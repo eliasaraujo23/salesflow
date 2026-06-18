@@ -13,7 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { signInWithCustomToken } from 'firebase/auth';
+import { db, auth } from '@/lib/firebase';
 
 const loginSchema = z.object({
   email: z.string().email('Digite um e-mail válido.').min(1, 'O e-mail é obrigatório.'),
@@ -60,6 +61,9 @@ export default function LoginPage() {
 
         try {
           const { customToken } = result.data;
+
+          // Authenticate with Firebase BEFORE reading Firestore
+          await signInWithCustomToken(auth, customToken);
 
           const userDocRef = doc(db, 'usuarios', values.email);
           const snap = await getDoc(userDocRef);
