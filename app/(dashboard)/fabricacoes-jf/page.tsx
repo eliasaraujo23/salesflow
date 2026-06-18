@@ -108,7 +108,7 @@ export default function FabricacoesJFPage() {
         <FabFabricacaoCard pecas={data.emFabricacao} />
       </div>
 
-      <FabSubtipoTable data={data.estoqueSubtipo} />
+      <FabSubtipoTable data={data.estoqueCategoria} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <FabVendasChart data={data.vendasMes} />

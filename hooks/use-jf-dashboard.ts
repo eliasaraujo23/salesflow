@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchJfDashboardAction, type JfDashboardFeed, type ResponseApi } from '@/lib/actions/fetch-jf-dashboard';
+import { fetchJfDashboardAction, type JfDashboardFeed } from '@/lib/actions/fetch-jf-dashboard';
 
 export function useJfDashboard() {
   return useQuery({
@@ -12,5 +12,6 @@ export function useJfDashboard() {
       return result.data;
     },
     staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
   });
 }

@@ -1,55 +1,78 @@
 import { z } from 'zod';
 import { authFetch, API_BASE } from '@/lib/auth-fetch';
 
+const coerceNum = () => z.coerce.number().default(0);
+
+const resumoSchema = z.object({
+  estoque: coerceNum(),
+  em_fabricacao: coerceNum(),
+  vendidos: coerceNum(),
+  vendidos_mes: coerceNum(),
+  ticket_medio: coerceNum(),
+  faturamento_mes: coerceNum(),
+});
+
+const alertaSchema = z.object({
+  subtipo: z.string(),
+  estoque: coerceNum(),
+  vendidos_90d: coerceNum(),
+  em_fabricacao: coerceNum(),
+  status_alerta: z.enum(['RUPTURA', 'CRITICO', 'ATENCAO']),
+});
+
+const emFabricacaoSchema = z.object({
+  referencia: z.string(),
+  subtipo: z.string().nullable().optional(),
+  tipo_pedra: z.string().nullable().optional(),
+  dias: coerceNum(),
+});
+
+const categoriaRowSchema = z.object({
+  subtipo: z.string(),
+  produto: z.string().nullable().optional(),
+  tipo_pedra: z.string().nullable().optional(),
+  lapidacao: z.string().nullable().optional(),
+  estoque: coerceNum(),
+  em_fabricacao: coerceNum(),
+  vendidos_total: z.coerce.number().optional(),
+  vendidos: z.coerce.number().optional(),
+  vendidos_90d: coerceNum(),
+  ticket_medio: z.coerce.number().nullable().optional(),
+}).transform(r => ({
+  subtipo: r.subtipo,
+  produto: r.produto ?? null,
+  tipo_pedra: r.tipo_pedra ?? null,
+  lapidacao: r.lapidacao ?? null,
+  estoque: r.estoque,
+  em_fabricacao: r.em_fabricacao,
+  vendidos: r.vendidos ?? r.vendidos_total ?? 0,
+  vendidos_90d: r.vendidos_90d,
+  ticket_medio: r.ticket_medio ?? null,
+}));
+
+const vendasMesSchema = z.object({
+  mes: z.string(),
+  qtd: coerceNum(),
+  total: coerceNum(),
+});
+
+const vendasPedraSchema = z.object({
+  tipo_pedra: z.string(),
+  qtd: coerceNum(),
+  ticket_medio: coerceNum(),
+});
+
 const jfDashboardSchema = z.object({
-  resumo: z.object({
-    estoque: z.number().default(0),
-    em_fabricacao: z.number().default(0),
-    vendidos: z.number().default(0),
-    vendidos_mes: z.number().default(0),
-    ticket_medio: z.number().default(0),
-    faturamento_mes: z.number().default(0),
-  }),
-  alertas: z.array(z.object({
-    subtipo: z.string(),
-    estoque: z.number(),
-    vendidos_90d: z.number(),
-    em_fabricacao: z.number().default(0),
-    status_alerta: z.enum(['RUPTURA', 'CRITICO', 'ATENCAO']),
-  })).default([]),
-  emFabricacao: z.array(z.object({
-    referencia: z.string(),
-    subtipo: z.string().nullable().optional(),
-    tipo_pedra: z.string().nullable().optional(),
-    dias: z.number(),
-  })).default([]),
-  estoqueSubtipo: z.array(z.object({
-    subtipo: z.string(),
-    estoque: z.number(),
-    em_fabricacao: z.number().default(0),
-    vendidos: z.number().default(0),
-    ticket_medio: z.number().nullable().optional(),
-  })).default([]),
-  vendasMes: z.array(z.object({
-    mes: z.string(),
-    qtd: z.number(),
-    total: z.number(),
-  })).default([]),
-  vendasPedra: z.array(z.object({
-    tipo_pedra: z.string(),
-    qtd: z.number(),
-    ticket_medio: z.number().default(0),
-  })).default([]),
-  estoqueCategoria: z.array(z.object({
-    categoria: z.string(),
-    estoque: z.number(),
-    em_fabricacao: z.number().default(0),
-    vendidos: z.number().default(0),
-    ticket_medio: z.number().nullable().optional(),
-  })).default([]),
+  resumo: resumoSchema,
+  alertas: z.array(alertaSchema).default([]),
+  emFabricacao: z.array(emFabricacaoSchema).default([]),
+  estoqueCategoria: z.array(categoriaRowSchema).default([]),
+  vendasMes: z.array(vendasMesSchema).default([]),
+  vendasPedra: z.array(vendasPedraSchema).default([]),
 });
 
 export type JfDashboardFeed = z.infer<typeof jfDashboardSchema>;
+export type CategoriaRow = JfDashboardFeed['estoqueCategoria'][number];
 
 export interface ResponseApi<T> {
   httpStatus?: number;
@@ -60,32 +83,30 @@ export interface ResponseApi<T> {
 
 export async function fetchJfDashboardAction(): Promise<ResponseApi<JfDashboardFeed>> {
   try {
-    const [resumo, alertas, fabricacao, subtipo, vendasMes, vendasPedra, categorias] = await Promise.all([
+    const [resumo, alertas, fabricacao, categorias, vendasMes, vendasPedra] = await Promise.all([
       authFetch(`${API_BASE}/resumo`).then(r => r.json()),
       authFetch(`${API_BASE}/alertas`).then(r => r.json()),
       authFetch(`${API_BASE}/em-fabricacao`).then(r => r.json()),
-      authFetch(`${API_BASE}/estoque-subtipo`).then(r => r.json()),
+      authFetch(`${API_BASE}/estoque-categoria`).then(r => r.json()),
       authFetch(`${API_BASE}/vendas-mes`).then(r => r.json()),
       authFetch(`${API_BASE}/vendas-pedra`).then(r => r.json()),
-      authFetch(`${API_BASE}/estoque-categoria`).then(r => r.json()),
     ]);
 
-    const dataPayload = {
+    const parsed = jfDashboardSchema.safeParse({
       resumo,
       alertas,
       emFabricacao: fabricacao,
-      estoqueSubtipo: subtipo,
+      estoqueCategoria: categorias,
       vendasMes,
       vendasPedra,
-      estoqueCategoria: categorias,
-    };
+    });
 
-    const parsed = jfDashboardSchema.safeParse(dataPayload);
     if (!parsed.success) {
       return { httpStatus: 400, message: 'Formato de resposta do dashboard JF inválido', errors: parsed.error };
     }
     return { httpStatus: 200, data: parsed.data };
-  } catch (error: any) {
-    return { httpStatus: 500, message: error.message || 'Erro ao carregar dashboard JF' };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Erro ao carregar dashboard JF';
+    return { httpStatus: 500, message: msg };
   }
 }
