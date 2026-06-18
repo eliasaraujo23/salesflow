@@ -1,8 +1,7 @@
-'use server';
+import { authFetch, API_BASE } from '@/lib/auth-fetch';
 
 import { z } from 'zod';
 
-const API_BASE = 'https://goldtech-fabricacoes-api.onrender.com';
 
 const maintenanceItemSchema = z.object({
   referencia: z.string(),
@@ -29,7 +28,7 @@ export interface ResponseApi<T> {
 
 export async function fetchMaintenanceAction(): Promise<ResponseApi<MaintenanceItem[]>> {
   try {
-    const res = await fetch(`${API_BASE}/manutencao`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/manutencao`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rawData = await res.json();
     const parsed = z.array(maintenanceItemSchema).safeParse(rawData);

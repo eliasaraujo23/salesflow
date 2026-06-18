@@ -1,8 +1,5 @@
-'use server';
-
 import { z } from 'zod';
-
-const API_BASE = 'https://goldtech-fabricacoes-api.onrender.com';
+import { authFetch, API_BASE } from '@/lib/auth-fetch';
 
 const jfDashboardSchema = z.object({
   resumo: z.object({
@@ -64,13 +61,13 @@ export interface ResponseApi<T> {
 export async function fetchJfDashboardAction(): Promise<ResponseApi<JfDashboardFeed>> {
   try {
     const [resumo, alertas, fabricacao, subtipo, vendasMes, vendasPedra, categorias] = await Promise.all([
-      fetch(`${API_BASE}/resumo`, { credentials: 'include' }).then(r => r.json()),
-      fetch(`${API_BASE}/alertas`, { credentials: 'include' }).then(r => r.json()),
-      fetch(`${API_BASE}/em-fabricacao`, { credentials: 'include' }).then(r => r.json()),
-      fetch(`${API_BASE}/estoque-subtipo`, { credentials: 'include' }).then(r => r.json()),
-      fetch(`${API_BASE}/vendas-mes`, { credentials: 'include' }).then(r => r.json()),
-      fetch(`${API_BASE}/vendas-pedra`, { credentials: 'include' }).then(r => r.json()),
-      fetch(`${API_BASE}/estoque-categoria`, { credentials: 'include' }).then(r => r.json()),
+      authFetch(`${API_BASE}/resumo`).then(r => r.json()),
+      authFetch(`${API_BASE}/alertas`).then(r => r.json()),
+      authFetch(`${API_BASE}/em-fabricacao`).then(r => r.json()),
+      authFetch(`${API_BASE}/estoque-subtipo`).then(r => r.json()),
+      authFetch(`${API_BASE}/vendas-mes`).then(r => r.json()),
+      authFetch(`${API_BASE}/vendas-pedra`).then(r => r.json()),
+      authFetch(`${API_BASE}/estoque-categoria`).then(r => r.json()),
     ]);
 
     const dataPayload = {

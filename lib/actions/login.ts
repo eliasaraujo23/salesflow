@@ -1,8 +1,5 @@
-'use server';
-
 import { z } from 'zod';
-
-const API_BASE = 'https://goldtech-fabricacoes-api.onrender.com';
+import { API_BASE } from '@/lib/auth-fetch';
 
 const loginResponseSchema = z.object({
   customToken: z.string(),
@@ -26,7 +23,6 @@ export async function loginAction(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
-      credentials: 'include',
     });
 
     if (!res.ok) {

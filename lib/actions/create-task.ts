@@ -1,8 +1,7 @@
-'use server';
+import { authFetch, API_BASE } from '@/lib/auth-fetch';
 
 import { z } from 'zod';
 
-const API_BASE = 'https://goldtech-fabricacoes-api.onrender.com';
 
 const createTaskSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
@@ -26,11 +25,10 @@ export async function createTaskAction(data: CreateTaskInput): Promise<ResponseA
   try {
     const validated = createTaskSchema.parse(data);
 
-    const res = await fetch(`${API_BASE}/api/tasks`, {
+    const res = await authFetch(`${API_BASE}/api/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(validated),
-      credentials: 'include',
     });
 
     if (!res.ok) {

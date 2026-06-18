@@ -1,8 +1,7 @@
-'use server';
+import { authFetch, API_BASE } from '@/lib/auth-fetch';
 
 import { z } from 'zod';
 
-const API_BASE = 'https://goldtech-fabricacoes-api.onrender.com';
 
 const photoBagSchema = z.object({
   id: z.string().or(z.number()),
@@ -26,7 +25,7 @@ export interface ResponseApi<T> {
 
 export async function fetchPhotoBagsAction(): Promise<ResponseApi<PhotoBag[]>> {
   try {
-    const res = await fetch(`${API_BASE}/fotos`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/fotos`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rawData = await res.json();
     const parsed = z.array(photoBagSchema).safeParse(rawData);
@@ -41,11 +40,10 @@ export async function fetchPhotoBagsAction(): Promise<ResponseApi<PhotoBag[]>> {
 
 export async function createPhotoBagAction(data: Partial<PhotoBag>): Promise<ResponseApi<PhotoBag>> {
   try {
-    const res = await fetch(`${API_BASE}/fotos`, {
+    const res = await authFetch(`${API_BASE}/fotos`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-      credentials: 'include',
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rawData = await res.json();
@@ -61,11 +59,10 @@ export async function createPhotoBagAction(data: Partial<PhotoBag>): Promise<Res
 
 export async function updatePhotoBagAction(id: string | number, data: Partial<PhotoBag>): Promise<ResponseApi<PhotoBag>> {
   try {
-    const res = await fetch(`${API_BASE}/fotos/${id}`, {
+    const res = await authFetch(`${API_BASE}/fotos/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-      credentials: 'include',
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rawData = await res.json();
@@ -81,9 +78,8 @@ export async function updatePhotoBagAction(id: string | number, data: Partial<Ph
 
 export async function deletePhotoBagAction(id: string | number): Promise<ResponseApi<null>> {
   try {
-    const res = await fetch(`${API_BASE}/fotos/${id}`, {
+    const res = await authFetch(`${API_BASE}/fotos/${id}`, {
       method: 'DELETE',
-      credentials: 'include',
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return { httpStatus: 200, data: null };

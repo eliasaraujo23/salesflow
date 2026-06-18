@@ -1,8 +1,7 @@
-'use server';
+import { authFetch, API_BASE } from '@/lib/auth-fetch';
 
 import { z } from 'zod';
 
-const API_BASE = 'https://goldtech-fabricacoes-api.onrender.com';
 
 const updateTaskSchema = z.object({
   id: z.string().or(z.number()),
@@ -28,11 +27,10 @@ export async function updateTaskAction(data: UpdateTaskInput): Promise<ResponseA
     const validated = updateTaskSchema.parse(data);
     const { id, ...payload } = validated;
 
-    const res = await fetch(`${API_BASE}/api/tasks/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/tasks/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-      credentials: 'include',
     });
 
     if (!res.ok) {

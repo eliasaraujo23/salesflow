@@ -1,6 +1,5 @@
-'use server';
+import { authFetch, API_BASE } from '@/lib/auth-fetch';
 
-const API_BASE = 'https://goldtech-fabricacoes-api.onrender.com';
 
 export interface ResponseApi<T> {
   httpStatus?: number;
@@ -11,9 +10,8 @@ export interface ResponseApi<T> {
 
 export async function logoutAction(): Promise<ResponseApi<null>> {
   try {
-    const res = await fetch(`${API_BASE}/api/logout`, {
+    const res = await authFetch(`${API_BASE}/api/logout`, {
       method: 'POST',
-      credentials: 'include',
     });
 
     if (!res.ok) {

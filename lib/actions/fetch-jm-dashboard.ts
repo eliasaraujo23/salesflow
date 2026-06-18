@@ -1,8 +1,7 @@
-'use server';
+import { authFetch, API_BASE } from '@/lib/auth-fetch';
 
 import { z } from 'zod';
 
-const API_BASE = 'https://goldtech-fabricacoes-api.onrender.com';
 
 const jmDashboardSchema = z.object({
   resumo: z.object({
@@ -29,10 +28,10 @@ export interface ResponseApi<T> {
 export async function fetchJmDashboardAction(): Promise<ResponseApi<JmDashboardFeed>> {
   try {
     const [resumo, listaEstoque, emFabricacao, listaFaturamento] = await Promise.all([
-      fetch(`${API_BASE}/jm/resumo`, { credentials: 'include' }).then(r => r.json()),
-      fetch(`${API_BASE}/jm/lista-estoque`, { credentials: 'include' }).then(r => r.json()),
-      fetch(`${API_BASE}/jm/em-fabricacao`, { credentials: 'include' }).then(r => r.json()),
-      fetch(`${API_BASE}/jm/lista-faturamento`, { credentials: 'include' }).then(r => r.json()),
+      authFetch(`${API_BASE}/jm/resumo`).then(r => r.json()),
+      authFetch(`${API_BASE}/jm/lista-estoque`).then(r => r.json()),
+      authFetch(`${API_BASE}/jm/em-fabricacao`).then(r => r.json()),
+      authFetch(`${API_BASE}/jm/lista-faturamento`).then(r => r.json()),
     ]);
 
     const dataPayload = {

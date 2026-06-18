@@ -1,8 +1,7 @@
-'use server';
+import { authFetch, API_BASE } from '@/lib/auth-fetch';
 
 import { z } from 'zod';
 
-const API_BASE = 'https://goldtech-fabricacoes-api.onrender.com';
 
 const resellItemSchema = z.object({
   fornecedor: z.string(),
@@ -22,7 +21,7 @@ export interface ResponseApi<T> {
 
 export async function fetchResaleAction(from: string, to: string): Promise<ResponseApi<ResellItem[]>> {
   try {
-    const res = await fetch(`${API_BASE}/revenda?from=${from}&to=${to}`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/revenda?from=${from}&to=${to}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rawData = await res.json();
     const parsed = z.array(resellItemSchema).safeParse(rawData);

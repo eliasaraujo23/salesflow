@@ -1,8 +1,7 @@
-'use server';
+import { authFetch, API_BASE } from '@/lib/auth-fetch';
 
 import { z } from 'zod';
 
-const API_BASE = 'https://goldtech-fabricacoes-api.onrender.com';
 
 const partnerSalesSchema = z.object({
   parceiro: z.string(),
@@ -30,7 +29,7 @@ export interface ResponseApi<T> {
 
 export async function fetchPartnerSalesAction(): Promise<ResponseApi<PartnerSales[]>> {
   try {
-    const res = await fetch(`${API_BASE}/vendas-parceiro`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/vendas-parceiro`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rawData = await res.json();
     const parsed = z.array(partnerSalesSchema).safeParse(rawData);
@@ -45,7 +44,7 @@ export async function fetchPartnerSalesAction(): Promise<ResponseApi<PartnerSale
 
 export async function fetchPartnerConsignmentsAction(): Promise<ResponseApi<PartnerConsignment[]>> {
   try {
-    const res = await fetch(`${API_BASE}/comodato`, { credentials: 'include' });
+    const res = await authFetch(`${API_BASE}/comodato`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const rawData = await res.json();
     const parsed = z.array(partnerConsignmentSchema).safeParse(rawData);

@@ -1,6 +1,5 @@
-'use server';
+import { authFetch, API_BASE } from '@/lib/auth-fetch';
 
-const API_BASE = 'https://goldtech-fabricacoes-api.onrender.com';
 
 export interface ResponseApi<T> {
   httpStatus?: number;
@@ -11,9 +10,8 @@ export interface ResponseApi<T> {
 
 export async function deleteTaskAction(id: string | number): Promise<ResponseApi<null>> {
   try {
-    const res = await fetch(`${API_BASE}/api/tasks/${id}`, {
+    const res = await authFetch(`${API_BASE}/api/tasks/${id}`, {
       method: 'DELETE',
-      credentials: 'include',
     });
 
     if (!res.ok) {
