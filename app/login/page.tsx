@@ -44,7 +44,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (currentUser) {
-      router.push('/(dashboard)/tasks');
+      router.push('/tasks');
     }
   }, [currentUser, router]);
 
@@ -78,7 +78,7 @@ export default function LoginPage() {
 
           await logIn(values.email, customToken, profile);
           toast.success(`Bem-vindo de volta, ${profile.name || values.email}!`);
-          router.push('/(dashboard)/tasks');
+          router.push('/tasks');
         } catch (error: any) {
           console.error('[Login Error]', error);
           setLoginError(error.message || 'Erro de conexão.');
