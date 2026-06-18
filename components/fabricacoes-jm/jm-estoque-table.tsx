@@ -10,108 +10,115 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { type JmEstoqueItem } from '@/lib/actions/fetch-jm-dashboard';
+import { type JmPeca } from '@/lib/actions/fetch-jm-dashboard';
 
 const fmtMoeda = (v: number | null | undefined): string => {
   if (v == null || isNaN(v)) return '—';
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 };
 
-const estoqueClass = (estoque: number, vendidos_90d: number): string => {
-  if (estoque === 0 && vendidos_90d > 0) return 'text-semantic-red font-bold';
-  if (estoque <= 3 && vendidos_90d > 0) return 'text-semantic-amber font-semibold';
-  if (estoque <= 6 && vendidos_90d > 0) return 'text-yellow-400';
-  return 'text-semantic-green';
+const TIPO_BADGE: Record<string, string> = {
+  JRCP: 'bg-semantic-amber/20 text-semantic-amber',
+  JMCP: 'bg-accent/20 text-accent',
+  JMSP: 'bg-semantic-purple/20 text-semantic-purple',
 };
 
-function getStatus(row: JmEstoqueItem): { label: string; cls: string } | null {
-  if (row.estoque === 0 && row.vendidos_90d > 0) return { label: 'RUPTURA', cls: 'bg-semantic-red/20 text-semantic-red' };
-  if (row.estoque <= 3 && row.vendidos_90d > 0) return { label: 'CRÍTICO', cls: 'bg-semantic-amber/20 text-semantic-amber' };
-  if (row.estoque <= 6 && row.vendidos_90d > 0) return { label: 'ATENÇÃO', cls: 'bg-yellow-400/20 text-yellow-400' };
-  return null;
-}
-
 interface JmEstoqueTableProps {
-  data: JmEstoqueItem[];
+  data: JmPeca[];
 }
 
 export function JmEstoqueTable({ data }: JmEstoqueTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'estoque', desc: false }]);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'custo_real', desc: true }]);
 
-  const columns: ColumnDef<JmEstoqueItem>[] = [
+  const columns: ColumnDef<JmPeca>[] = [
     {
-      id: 'categoria',
-      header: 'Categoria',
-      accessorFn: (row) => row.subtipo,
+      accessorKey: 'referencia',
+      header: 'Referência',
+      cell: ({ getValue }) => (
+        <span className="font-mono text-xs text-accent">{getValue<string>()}</span>
+      ),
+    },
+    {
+      accessorKey: 'produto',
+      header: 'Produto',
       cell: ({ row }) => (
         <div>
-          <div className="text-sm font-medium text-text">{row.original.subtipo}</div>
-          {row.original.produto && <div className="text-xs text-text-muted">{row.original.produto}</div>}
-          {row.original.tipo_pedra && <div className="text-xs text-text-muted">{row.original.tipo_pedra}</div>}
+          <div className="text-sm text-text">{row.original.produto ?? '—'}</div>
+          {row.original.tipo_pedra && (
+            <div className="text-xs text-text-muted">{row.original.tipo_pedra}</div>
+          )}
         </div>
       ),
     },
     {
-      accessorKey: 'estoque',
+      accessorKey: 'tipo',
+      header: 'Metal',
+      cell: ({ getValue }) => {
+        const v = getValue<string | null | undefined>() ?? '';
+        return (
+          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${TIPO_BADGE[v] ?? 'bg-border text-text-muted'}`}>
+            {v || '—'}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: 'lapidacao',
+      header: 'Lapidação',
+      cell: ({ getValue }) => (
+        <span className="text-xs text-text-muted">{getValue<string | null | undefined>() ?? '—'}</span>
+      ),
+    },
+    {
+      accessorKey: 'peso',
       header: ({ column }) => (
         <button
           className="flex items-center gap-1 text-xs font-semibold text-text-muted hover:text-text"
           onClick={() => column.toggleSorting()}
         >
-          Estoque
+          Peso (g)
           {column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> :
            column.getIsSorted() === 'desc' ? <ArrowDown size={12} /> :
            <ArrowUpDown size={12} />}
         </button>
       ),
-      cell: ({ row }) => (
-        <span className={`text-sm ${estoqueClass(row.original.estoque, row.original.vendidos_90d)}`}>
-          {row.original.estoque}
-        </span>
+      cell: ({ getValue }) => (
+        <span className="text-sm text-text-muted">{getValue<number>().toFixed(3)}g</span>
       ),
     },
     {
-      accessorKey: 'em_fabricacao',
-      header: 'Em Fab.',
-      cell: ({ getValue }) => <span className="text-sm text-semantic-amber">{getValue<number>()}</span>,
+      accessorKey: 'custo_real',
+      header: ({ column }) => (
+        <button
+          className="flex items-center gap-1 text-xs font-semibold text-text-muted hover:text-text"
+          onClick={() => column.toggleSorting()}
+        >
+          Custo Real
+          {column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> :
+           column.getIsSorted() === 'desc' ? <ArrowDown size={12} /> :
+           <ArrowUpDown size={12} />}
+        </button>
+      ),
+      cell: ({ getValue }) => (
+        <span className="text-sm text-text-muted">{fmtMoeda(getValue<number>())}</span>
+      ),
     },
     {
-      accessorKey: 'vendidos_90d',
-      header: 'Vel. 90d',
-      cell: ({ getValue }) => {
-        const v = getValue<number>();
-        const pct = Math.min(100, (v / 20) * 100);
-        return (
-          <div className="flex items-center gap-2">
-            <div className="w-12 h-1.5 bg-bg-surface-2 rounded-full overflow-hidden">
-              <div className="h-full bg-accent rounded-full" style={{ width: `${pct}%` }} />
-            </div>
-            <span className="text-xs text-text-muted">{v}</span>
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: 'vendidos',
-      header: 'Total Vend.',
-      cell: ({ getValue }) => <span className="text-sm text-text-muted">{getValue<number>()}</span>,
-    },
-    {
-      accessorKey: 'ticket_medio',
-      header: 'Ticket Médio',
-      cell: ({ getValue }) => <span className="text-sm text-accent">{fmtMoeda(getValue<number | null>())}</span>,
-    },
-    {
-      id: 'status',
-      header: 'Status',
-      cell: ({ row }) => {
-        const s = getStatus(row.original);
-        return s ? (
-          <span className={`px-2 py-0.5 rounded text-xs font-bold ${s.cls}`}>{s.label}</span>
-        ) : (
-          <span className="text-xs text-semantic-green/70">OK</span>
-        );
-      },
+      accessorKey: 'preco_cobrado',
+      header: ({ column }) => (
+        <button
+          className="flex items-center gap-1 text-xs font-semibold text-text-muted hover:text-text"
+          onClick={() => column.toggleSorting()}
+        >
+          Preço Loja
+          {column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> :
+           column.getIsSorted() === 'desc' ? <ArrowDown size={12} /> :
+           <ArrowUpDown size={12} />}
+        </button>
+      ),
+      cell: ({ getValue }) => (
+        <span className="text-sm font-semibold text-accent">{fmtMoeda(getValue<number | null>())}</span>
+      ),
     },
   ];
 
@@ -151,7 +158,7 @@ export function JmEstoqueTable({ data }: JmEstoqueTableProps) {
         </tbody>
       </table>
       {data.length === 0 && (
-        <div className="p-12 text-center text-text-muted text-sm">Nenhum item no estoque</div>
+        <div className="p-12 text-center text-text-muted text-sm">Nenhuma peça no estoque</div>
       )}
     </div>
   );

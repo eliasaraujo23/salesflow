@@ -3,66 +3,64 @@ import { z } from 'zod';
 
 const coerceNum = () => z.coerce.number().default(0);
 
+// Resumo returned by /jm/resumo
 const jmResumoSchema = z.object({
-  estoque: coerceNum(),
+  total_jm: coerceNum(),
   em_fabricacao: coerceNum(),
-  vendidos_mes: coerceNum(),
+  estoque: coerceNum(),
+  vendidos: coerceNum(),
   ticket_medio: coerceNum(),
   faturamento_mes: coerceNum(),
+  vendidos_mes: coerceNum(),
 });
 
-const jmEstoqueItemSchema = z.object({
-  subtipo: z.string().default(''),
+// Individual piece schema (used by lista-estoque and em-fabricacao)
+const jmPecaSchema = z.object({
+  referencia: z.string().default(''),
   produto: z.string().nullable().optional(),
+  subtipo: z.string().nullable().optional(),
   tipo_pedra: z.string().nullable().optional(),
   lapidacao: z.string().nullable().optional(),
-  estoque: coerceNum(),
-  em_fabricacao: coerceNum(),
-  vendidos_total: coerceNum().optional(),
-  vendidos: coerceNum().optional(),
-  vendidos_90d: coerceNum(),
-  ticket_medio: z.coerce.number().nullable().optional(),
-}).transform((r) => ({
-  subtipo: r.subtipo,
-  produto: r.produto ?? null,
-  tipo_pedra: r.tipo_pedra ?? null,
-  lapidacao: r.lapidacao ?? null,
-  estoque: r.estoque,
-  em_fabricacao: r.em_fabricacao,
-  vendidos: r.vendidos ?? r.vendidos_total ?? 0,
-  vendidos_90d: r.vendidos_90d,
-  ticket_medio: r.ticket_medio ?? null,
-}));
-
-const jmFabricacaoItemSchema = z.object({
-  referencia: z.string().default(''),
-  subtipo: z.string().nullable().optional(),
-  produto: z.string().nullable().optional(),
-  dias: coerceNum(),
-  responsavel: z.string().nullable().optional(),
-  status: z.string().nullable().optional(),
+  destino: z.string().nullable().optional(),
+  tipo: z.string().nullable().optional(),
+  peso: coerceNum(),
+  custo_real: coerceNum(),
+  preco_cobrado: z.coerce.number().nullable().optional(),
+  data_venda: z.string().nullable().optional(),
+  diamantes: z.string().nullable().optional(),
+  cts_diamantes: z.coerce.number().nullable().optional(),
+  pedra_colorida: z.string().nullable().optional(),
+  cts_pedra_colorida: z.coerce.number().nullable().optional(),
 });
 
-const jmFaturamentoItemSchema = z.object({
+// Faturamento piece schema (sold pieces — has nf_joia, status_id)
+const jmFaturamentoSchema = z.object({
   referencia: z.string().default(''),
+  tipo: z.string().nullable().optional(),
   produto: z.string().nullable().optional(),
   subtipo: z.string().nullable().optional(),
-  preco_loja: z.coerce.number().nullable().optional(),
+  tipo_pedra: z.string().nullable().optional(),
+  lapidacao: z.string().nullable().optional(),
+  destino: z.string().nullable().optional(),
+  peso: coerceNum(),
+  custo_real: coerceNum(),
+  preco_cobrado: z.coerce.number().nullable().optional(),
   data_venda: z.string().nullable().optional(),
-  vendedor: z.string().nullable().optional(),
+  nf_joia: z.string().nullable().optional(),
+  vendedor_interno: z.string().nullable().optional(),
+  status_id: z.coerce.number().nullable().optional(),
 });
 
 const jmDashboardSchema = z.object({
   resumo: jmResumoSchema,
-  listaEstoque: z.array(jmEstoqueItemSchema).default([]),
-  emFabricacao: z.array(jmFabricacaoItemSchema).default([]),
-  listaFaturamento: z.array(jmFaturamentoItemSchema).default([]),
+  listaEstoque: z.array(jmPecaSchema).default([]),
+  emFabricacao: z.array(jmPecaSchema).default([]),
+  listaFaturamento: z.array(jmFaturamentoSchema).default([]),
 });
 
 export type JmDashboardFeed = z.infer<typeof jmDashboardSchema>;
-export type JmEstoqueItem = JmDashboardFeed['listaEstoque'][number];
-export type JmFabricacaoItem = JmDashboardFeed['emFabricacao'][number];
-export type JmFaturamentoItem = JmDashboardFeed['listaFaturamento'][number];
+export type JmPeca = z.infer<typeof jmPecaSchema>;
+export type JmFaturamentoItem = z.infer<typeof jmFaturamentoSchema>;
 
 export interface ResponseApi<T> {
   httpStatus?: number;

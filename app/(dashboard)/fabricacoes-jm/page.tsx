@@ -72,9 +72,9 @@ export default function FabricacoesJMPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <KPICard
           icon={Package}
-          label="Estoque Disponível"
-          value={data.resumo.estoque.toLocaleString('pt-BR')}
-          subtext="peças prontas p/ venda"
+          label="Total JM"
+          value={data.resumo.total_jm.toLocaleString('pt-BR')}
+          subtext={`${data.resumo.estoque} disponíveis`}
           variant="blue"
         />
         <KPICard
@@ -86,9 +86,9 @@ export default function FabricacoesJMPage() {
         />
         <KPICard
           icon={CheckCircle}
-          label="Vendidos no Mês"
-          value={data.resumo.vendidos_mes.toLocaleString('pt-BR')}
-          subtext="vendas este mês"
+          label="Vendidos Total"
+          value={data.resumo.vendidos.toLocaleString('pt-BR')}
+          subtext={`${data.resumo.vendidos_mes} este mês`}
           variant="green"
         />
         <KPICard
@@ -121,6 +121,9 @@ export default function FabricacoesJMPage() {
                 }`}
               >
                 {tab.label}
+                <span className="ml-1.5 text-xs opacity-70">
+                  {tab.key === 'estoque' ? data.listaEstoque.length : data.listaFaturamento.length}
+                </span>
               </button>
             ))}
           </div>
