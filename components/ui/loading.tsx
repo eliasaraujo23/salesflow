@@ -1,8 +1,6 @@
 'use client'
 
-import { useEffect } from "react";
 import { Progress } from "./progress";
-import { useLoading } from "@/contexts/loading-context";
 
 export const Loading = () => {
   return (
@@ -20,44 +18,6 @@ export function LoadingBar({ progress }: { progress: number }) {
     </div>
   );
 };
-
-export function ServerLoadingBar() {
-  const { loading, setLoading, progress, setProgress } = useLoading();
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      // Aumenta o progresso em partes específicas
-      if (progress < 30) {
-        setLoading(true)
-        setProgress(prevProgress => prevProgress + 1);
-      } else if (progress < 50) {
-        setProgress(prevProgress => prevProgress + 1);
-      } else if (progress < 80) {
-        setProgress(prevProgress => prevProgress + 1);
-      } else if (progress < 100) {
-        setProgress(prevProgress => prevProgress + 1);
-      } else {
-        // Quando atingir 100%, reseta o progresso
-        setProgress(0);
-        setLoading(false)
-      }
-    }, 100); // Tempo de intervalo reduzido para uma animação mais suave
-
-    return () => clearTimeout(timeout);
-  }, [progress, setLoading, setProgress]);
-
-  return (
-    <>
-      {loading &&
-        <div className="fixed top-16 w-full z-50">
-          <Progress value={progress} />
-        </div>
-      }
-    </>
-  );
-};
-
-
 
 export function LoadingOverley({ isLoading }: { isLoading: boolean }) {
   return (
