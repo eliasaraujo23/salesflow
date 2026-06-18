@@ -104,22 +104,8 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    /* SalesFlow Design System (Light mode) */
-    --color-bg: 225 38% 87%;
-    --color-surface: 0 0% 100%;
-    --color-surface-2: 225 20% 90%;
-    --color-border: 225 30% 75%;
-    --color-border-2: 225 25% 63%;
-    --color-text: 225 20% 10%;
-    --color-muted: 220 20% 28%;
-    --color-muted-2: 220 12% 42%;
-  }
-}
-
 .dark {
-  /* SalesFlow Design System (Dark mode override) */
+  /* SalesFlow Design System (Dark mode) */
   --color-bg: 225 18% 6%;
   --color-surface: 225 12% 7%;
   --color-surface-2: 225 10% 9%;
