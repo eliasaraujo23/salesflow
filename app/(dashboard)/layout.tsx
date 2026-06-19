@@ -6,37 +6,33 @@ import { useFirebase } from '@/components/firebase-provider';
 import { Sidebar } from '@/components/sidebar';
 import { Topbar } from '@/components/topbar';
 
-interface DashboardLayoutProps {
-  children: React.ReactNode;
-}
-
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { currentUser, loading } = useFirebase();
 
   useEffect(() => {
-    if (!loading && !currentUser) {
-      router.push('/login');
-    }
+    if (!loading && !currentUser) router.push('/login');
   }, [currentUser, loading, router]);
 
   if (loading || !currentUser) {
     return (
-      <div className="flex items-center justify-center h-screen bg-bg">
+      <div className="flex items-center justify-center h-screen bg-zinc-950">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4" />
-          <div className="text-text-muted">Carregando...</div>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-500 border-t-transparent mx-auto mb-3" />
+          <div className="text-sm text-zinc-400">Carregando...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg">
+    <div className="flex h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950">
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Topbar />
-        <main className="flex-1 overflow-y-auto bg-bg">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-zinc-950">
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -21,18 +21,13 @@ export function Topbar({ title, subtitle, onSearch }: TopbarProps) {
     const dark = saved ? saved === 'dark' : document.documentElement.classList.contains('dark');
     setIsDark(dark);
     if (!dark) document.documentElement.classList.remove('dark');
+    else document.documentElement.classList.add('dark');
   }, []);
 
   const navItem = NAVIGATION_ITEMS.find(
     item => pathname === item.href || pathname.startsWith(item.href + '/')
   );
-  const pageTitle    = title ?? navItem?.label ?? 'SalesFlow';
-  const pageSubtitle = subtitle;
-
-  const handleSearch = (value: string) => {
-    setSearchQuery(value);
-    onSearch?.(value);
-  };
+  const pageTitle = title ?? navItem?.label ?? 'SalesFlow';
 
   const toggleTheme = () => {
     const html = document.documentElement;
@@ -48,49 +43,45 @@ export function Topbar({ title, subtitle, onSearch }: TopbarProps) {
   };
 
   return (
-    <header className="bg-bg-surface border-b border-border px-6 h-topbar flex items-center justify-between shrink-0">
+    <header className="h-topbar bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] px-6 flex items-center justify-between shrink-0">
       <div className="flex-1 min-w-0">
-        <div className="text-[15px] font-semibold text-text truncate">{pageTitle}</div>
-        {pageSubtitle && (
-          <div className="text-xs text-text-muted flex items-center gap-1.5 mt-0.5">
-            <span className="w-1.5 h-1.5 bg-semantic-green rounded-full animate-pulse shrink-0" />
-            {pageSubtitle}
+        <div className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-50 truncate">
+          {pageTitle}
+        </div>
+        {subtitle && (
+          <div className="text-xs text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5 mt-0.5">
+            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse shrink-0" />
+            {subtitle}
           </div>
         )}
       </div>
 
-      <div className="flex items-center gap-2 ml-6">
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-bg border border-border focus-within:border-accent transition-colors">
-          <Search size={14} className="text-text-muted shrink-0" />
+      <div className="flex items-center gap-1.5 ml-6">
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-white/[0.06] border border-zinc-200 dark:border-white/[0.06] focus-within:border-indigo-400 dark:focus-within:border-indigo-500 transition-colors">
+          <Search size={13} className="text-zinc-400 shrink-0" />
           <input
             type="text"
             placeholder="Buscar tarefas..."
             value={searchQuery}
-            onChange={e => handleSearch(e.target.value)}
-            className="bg-transparent border-none outline-none text-sm text-text placeholder:text-text-muted w-36"
+            onChange={e => { setSearchQuery(e.target.value); onSearch?.(e.target.value); }}
+            className="bg-transparent border-none outline-none text-[13px] text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 w-36"
           />
         </div>
 
-        <button
-          title="Notificações"
-          className="p-2 rounded-lg hover:bg-border transition-colors text-text-muted hover:text-text"
-        >
-          <Bell size={17} />
+        <button className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">
+          <Bell size={16} />
         </button>
 
         <button
           onClick={toggleTheme}
+          className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
           title={isDark ? 'Modo claro' : 'Modo escuro'}
-          className="p-2 rounded-lg hover:bg-border transition-colors text-text-muted hover:text-text"
         >
-          {isDark ? <Sun size={17} /> : <Moon size={17} />}
+          {isDark ? <Sun size={16} /> : <Moon size={16} />}
         </button>
 
-        <button
-          title="Sincronizado"
-          className="p-2 rounded-lg cursor-default text-semantic-green"
-        >
-          <CloudCheck size={17} />
+        <button className="p-2 rounded-lg cursor-default text-emerald-500">
+          <CloudCheck size={16} />
         </button>
       </div>
     </header>

@@ -1,17 +1,20 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { DM_Sans, Instrument_Serif } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Providers } from '@/components/providers';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const dmSans = DM_Sans({
+  variable: '--font-dm-sans',
   subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const instrumentSerif = Instrument_Serif({
+  variable: '--font-instrument-serif',
   subsets: ['latin'],
+  weight: '400',
+  style: ['normal', 'italic'],
 });
 
 export const metadata: Metadata = {
@@ -28,12 +31,11 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       suppressHydrationWarning
-      className={cn('dark h-full antialiased', geistSans.variable, geistMono.variable)}
+      className={cn('dark h-full', dmSans.variable, instrumentSerif.variable)}
     >
-      <body className="h-full bg-bg text-text">
+      <body className="h-full bg-zinc-950 text-zinc-100 antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>
   );
 }
-

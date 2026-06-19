@@ -100,32 +100,32 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg px-4">
-      <div className="w-full max-w-md rounded-lg border border-border bg-bg-surface p-8 shadow-lg transition-all duration-300 hover:shadow-accent/10">
+    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4">
+      <div className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-zinc-900 p-8 shadow-2xl">
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent font-serif text-2xl font-bold tracking-tight text-white">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 font-serif text-xl font-bold text-white shadow-lg shadow-indigo-500/25">
             S
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-text">SalesFlow</h1>
-            <p className="text-xs text-text-muted">Goldtech Joias</p>
+            <h1 className="text-[15px] font-bold text-zinc-50">SalesFlow</h1>
+            <p className="text-xs text-zinc-500">Goldtech Joias</p>
           </div>
         </div>
 
         <div className="mb-6">
-          <h2 className="text-2xl font-semibold text-text">Bem-vindo de volta</h2>
-          <p className="text-sm text-text-muted">Faça login para acessar o painel</p>
+          <h2 className="text-2xl font-semibold text-zinc-50">Bem-vindo de volta</h2>
+          <p className="text-sm text-zinc-400 mt-1">Faça login para acessar o painel</p>
         </div>
 
         {loginError && (
-          <div className="mb-6 rounded-lg border border-semantic-red/20 bg-semantic-red/10 px-4 py-3 text-sm text-semantic-red animate-shake">
+          <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400 animate-shake">
             {loginError}
           </div>
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-text-muted text-sm font-medium">
+            <Label htmlFor="email" className="text-zinc-400 text-[13px] font-medium">
               E-mail
             </Label>
             <Input
@@ -133,15 +133,15 @@ export default function LoginPage() {
               type="email"
               placeholder="seu@goldtechjoias.com"
               {...register('email')}
-              className={`h-11 bg-bg-surface-2 border-border text-text focus:border-accent focus:ring-1 focus:ring-accent rounded-lg placeholder-text-muted ${
-                errors.email ? 'border-semantic-red focus:border-semantic-red focus:ring-semantic-red' : ''
+              className={`h-11 bg-zinc-800 border-white/[0.08] text-zinc-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 rounded-xl placeholder:text-zinc-600 ${
+                errors.email ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/30' : ''
               }`}
             />
-            {errors.email && <p className="text-xs text-semantic-red mt-1">{errors.email.message}</p>}
+            {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email.message}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-text-muted text-sm font-medium">
+            <Label htmlFor="password" className="text-zinc-400 text-[13px] font-medium">
               Senha
             </Label>
             <div className="relative">
@@ -150,25 +150,25 @@ export default function LoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••••"
                 {...register('password')}
-                className={`h-11 bg-bg-surface-2 border-border text-text focus:border-accent focus:ring-1 focus:ring-accent rounded-lg placeholder-text-muted pr-11 ${
-                  errors.password ? 'border-semantic-red focus:border-semantic-red focus:ring-semantic-red' : ''
+                className={`h-11 bg-zinc-800 border-white/[0.08] text-zinc-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 rounded-xl placeholder:text-zinc-600 pr-11 ${
+                  errors.password ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/30' : ''
                 }`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
               </button>
             </div>
-            {errors.password && <p className="text-xs text-semantic-red mt-1">{errors.password.message}</p>}
+            {errors.password && <p className="text-xs text-red-400 mt-1">{errors.password.message}</p>}
           </div>
 
           <Button
             type="submit"
             disabled={isPending}
-            className="w-full h-11 bg-accent hover:bg-accent-2 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2 mt-6"
+            className="w-full h-11 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 mt-2 shadow-lg shadow-indigo-500/20"
           >
             {isPending ? (
               <>
@@ -180,13 +180,13 @@ export default function LoginPage() {
             )}
           </Button>
         {slowConnection && (
-          <p className="mt-3 text-center text-xs text-text-muted">
+          <p className="mt-3 text-center text-xs text-zinc-500">
             A API estava em repouso. Reconectando automaticamente…
           </p>
         )}
         </form>
 
-        <div className="mt-8 text-center text-xs text-text-muted-2">
+        <div className="mt-8 text-center text-xs text-zinc-600">
           Goldtech Joias · Gestão Comercial
         </div>
       </div>
