@@ -20,8 +20,8 @@ const fmtMoeda = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 });
 const fmtMoedaK = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-const fmtPct = (num: number, den: number) =>
-  den > 0 ? `${(((num - den) / den) * 100).toFixed(2)}%` : '—';
+const fmtLuc = (fat: number, custo: number) =>
+  fat > 0 ? `${(((fat - custo) / fat) * 100).toFixed(1)}%` : '—';
 const ticketMedio = (fat: number, qtd: number) =>
   qtd > 0 ? fmtMoeda(fat / qtd) : '—';
 
@@ -51,7 +51,7 @@ function ScrapCard({ fat, custo, qtd }: { fat: number; custo: number; qtd: numbe
         </div>
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-0.5">Lucratividade</div>
-          <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">{fmtPct(fat, custo)}</div>
+          <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">{fmtLuc(fat, custo)}</div>
         </div>
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-0.5">Ticket Médio</div>
@@ -133,7 +133,7 @@ export default function ResalePage() {
               <KPIBox label="Faturamento" value={fmtMoedaK(data.faturamento)} />
               <KPIBox
                 label="Lucratividade"
-                value={fmtPct(data.faturamento, data.custo)}
+                value={fmtLuc(data.faturamento, data.custo)}
                 valueClass="text-emerald-600 dark:text-emerald-400"
               />
               <KPIBox label="Ticket Médio" value={ticketMedio(data.faturamento, data.qtd)} />

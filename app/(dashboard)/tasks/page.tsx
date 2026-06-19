@@ -162,7 +162,7 @@ export default function TasksPage() {
   }, [tasks, today]);
 
   return (
-    <div className="p-6 space-y-5 max-w-5xl mx-auto">
+    <div className="p-6 space-y-5 w-full">
 
       {/* Header */}
       <div className="flex items-center justify-between gap-4">

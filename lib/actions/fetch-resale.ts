@@ -71,7 +71,24 @@ export interface ResponseApi<T> {
   data?: T;
 }
 
-function agg(rows: RawRevenda[], keyFn: (r: RawRevenda) => string | null | undefined): AgItem[] {
+const RV_DESTINOS = new Set([
+  'DESAPEGO DO LUXO', 'DESAPEGO LEGAL', 'DESAPEGUE BR', 'JUGELLI DESAPEGO',
+  'RESOLVI DESAPEGO', 'RESOLVI DESAPEGAR', 'ACHADOS PERDIDOS', 'ALINE RAMOS', 'ALINI DUARTE',
+  'ANDRÉ FAUSTINO', 'BRILHO VINTAGE', 'CARLA LEILÃO', 'CIRCULAR JOIAS',
+  'CLAUDIA MASCARENHAS', 'DANIELLE VOGUE', 'ELIANE DANTAS', 'ETERNNO',
+  'ETIQUETA ÚNICA', 'ETSY BRECHO', 'FERNANDA SCARAMBONE', 'GRINGA',
+  'ILA LUX', 'IVAIR ONGARATTO', 'IZABELLA BARCKI', 'JOÃO FECHY JOIAS',
+  'LAURA BATEZINI', 'LEILÃO 24K', 'LEILÃO BRUNO', 'LEILÃO ETERNNO',
+  'LOHANA COELHO', 'LOUCA POR JÓIAS', 'LUCIMARY', 'MEGA DO LUXO',
+  'MERCADO LIVRE', 'NIUMA', 'REAL DEAL', 'SECOND HAND', 'SIDNEI QUARTIER',
+  'TATI CANTO', 'TRIZZ JOIAS', 'UMA VEZ MAIS', 'JÓIAS EM DESAPEGO',
+]);
+
+const RV_STATUS_MAIN = new Set([2, 4, 13]);
+
+const isScrap = (r: RawRevenda) => r.nf_joia?.toUpperCase() === 'SCRAP';
+
+function agg(rows: RawRevenda[], keyFn: (r: RawRevenda) => string | null | undefined, sortBy: 'faturamento' | 'qtd' = 'faturamento'): AgItem[] {
   const map = new Map<string, AgItem>();
   for (const r of rows) {
     const key = keyFn(r) || '(Em branco)';
@@ -85,37 +102,42 @@ function agg(rows: RawRevenda[], keyFn: (r: RawRevenda) => string | null | undef
       map.set(key, { name: key, qtd: 1, faturamento: fat, custo: r.custo_real });
     }
   }
-  return Array.from(map.values()).sort((a, b) => b.faturamento - a.faturamento);
+  return Array.from(map.values()).sort((a, b) => b[sortBy] - a[sortBy]);
 }
-
-const isScrap = (r: RawRevenda) => r.nf_joia?.toUpperCase() === 'SCRAP';
 
 const canalOf = (destino: string | null | undefined): string => {
   if (!destino) return 'Parceiros';
   const d = destino.toUpperCase();
   if (d === 'ETERNNO') return 'Eternno';
-  if (d.includes('LEILÃO') || d.includes('LEILAO')) return 'Leilão';
+  if (d.includes('LEIL')) return 'Leilão';
   return 'Parceiros';
 };
 
+const tipoOf = (tipo: string | null | undefined): string => {
+  if (!tipo) return 'JR';
+  if (tipo === 'JF') return 'JF';
+  if (tipo === 'JMF') return 'JMF';
+  if (tipo === 'JMCP' || tipo === 'JMSP') return 'JM';
+  return 'JR';
+};
+
 const CANAL_COLORS: Record<string, string> = {
-  Eternno: '#6366f1',
-  Parceiros: '#f59e0b',
-  Leilão: '#8b5cf6',
+  Eternno: '#3b82f6',
+  Parceiros: '#f97316',
+  'Leilão': '#a855f7',
 };
 
 const TIPO_COLORS: Record<string, string> = {
-  JF: '#6366f1',
-  JMF: '#f59e0b',
-  JR: '#10b981',
-  JM: '#8b5cf6',
-  JRCP: '#06b6d4',
-  JMCP: '#f97316',
+  JF: '#3b82f6',
+  JMF: '#f97316',
+  JR: '#22c55e',
+  JM: '#a855f7',
 };
 
-function buildResaleData(rows: RawRevenda[]): ResaleData {
-  const main = rows.filter(r => !isScrap(r));
-  const scrap = rows.filter(r => isScrap(r));
+function buildResaleData(data: RawRevenda[]): ResaleData {
+  const allowed = data.filter(r => r.destino && RV_DESTINOS.has(r.destino.toUpperCase()));
+  const scrap = allowed.filter(r => isScrap(r));
+  const main = allowed.filter(r => isScrap(r) || RV_STATUS_MAIN.has(Number(r.status_id)));
 
   const mainFat = main.reduce((s, r) => s + (r.preco_cobrado ?? 0), 0);
   const mainCusto = main.reduce((s, r) => s + r.custo_real, 0);
@@ -129,13 +151,14 @@ function buildResaleData(rows: RawRevenda[]): ResaleData {
     canalMap.set(c, (canalMap.get(c) ?? 0) + (r.preco_cobrado ?? 0));
   }
   const canalVenda: DonutItem[] = Array.from(canalMap.entries())
+    .filter(([, v]) => v > 0)
     .map(([name, faturamento]) => ({ name, faturamento, color: CANAL_COLORS[name] ?? '#71717a' }))
     .sort((a, b) => b.faturamento - a.faturamento);
 
-  // Tipo de Fabricação (all rows)
+  // Tipo de Fabricação
   const tipoMap = new Map<string, number>();
-  for (const r of rows) {
-    const t = r.tipo || '(Em branco)';
+  for (const r of main) {
+    const t = tipoOf(r.tipo);
     tipoMap.set(t, (tipoMap.get(t) ?? 0) + (r.preco_cobrado ?? 0));
   }
   const byTipo: DonutItem[] = Array.from(tipoMap.entries())
@@ -148,7 +171,7 @@ function buildResaleData(rows: RawRevenda[]): ResaleData {
   const byVendedor = agg(eternnoRows, r => r.vendedor_interno);
 
   // Últimas vendas
-  const ultimasVendas: UltimaVenda[] = [...rows]
+  const ultimasVendas: UltimaVenda[] = [...main]
     .filter(r => r.data_venda)
     .sort((a, b) => ((b.data_venda ?? '') < (a.data_venda ?? '') ? -1 : 1))
     .slice(0, 12)
@@ -167,7 +190,7 @@ function buildResaleData(rows: RawRevenda[]): ResaleData {
     scrapCusto,
     scrapQtd: scrap.length,
     byDestino: agg(main, r => r.destino),
-    byProduto: agg(main, r => r.produto ?? r.subtipo),
+    byProduto: agg(main, r => r.produto ?? r.subtipo, 'qtd'),
     scrapByDestino: agg(scrap, r => r.destino),
     canalVenda,
     byTipo,
