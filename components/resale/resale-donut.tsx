@@ -38,7 +38,7 @@ export function ResaleDonut({ data, size = 160 }: ResaleDonutProps) {
             ))}
           </Pie>
           <Tooltip
-            formatter={(v: number) => [fmtMoeda(v), 'Faturamento']}
+            formatter={(value) => [fmtMoeda(Number(value)), 'Faturamento']}
             contentStyle={{
               backgroundColor: '#18181b',
               border: '1px solid rgba(255,255,255,0.08)',

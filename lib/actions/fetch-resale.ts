@@ -88,8 +88,7 @@ function agg(rows: RawRevenda[], keyFn: (r: RawRevenda) => string | null | undef
   return Array.from(map.values()).sort((a, b) => b.faturamento - a.faturamento);
 }
 
-const isScrap = (r: RawRevenda) =>
-  r.produto?.toUpperCase() === 'SCRAP' || r.subtipo?.toUpperCase() === 'SCRAP';
+const isScrap = (r: RawRevenda) => r.nf_joia?.toUpperCase() === 'SCRAP';
 
 const canalOf = (destino: string | null | undefined): string => {
   if (!destino) return 'Parceiros';

@@ -80,7 +80,7 @@ export function ResaleHBar({ data, color, labelWidth = 175 }: ResaleHBarProps) {
           tickLine={false}
         />
         <Tooltip
-          formatter={(v: number) => [fmtMoeda(v), 'Faturamento']}
+          formatter={(value) => [fmtMoeda(Number(value)), 'Faturamento']}
           contentStyle={{
             backgroundColor: '#18181b',
             border: '1px solid rgba(255,255,255,0.08)',
