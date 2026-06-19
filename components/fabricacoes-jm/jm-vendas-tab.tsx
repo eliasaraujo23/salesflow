@@ -94,8 +94,11 @@ interface JmVendasTabProps {
 }
 
 export function JmVendasTab({ data, isLoading }: JmVendasTabProps) {
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const now = new Date();
+  const mesAno = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const ultimoDia = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const [from, setFrom] = useState(`${mesAno}-01`);
+  const [to, setTo] = useState(`${mesAno}-${String(ultimoDia).padStart(2, '0')}`);
   const [busca, setBusca] = useState('');
   const [tipos, setTipos]           = useState<string[]>([]);
   const [produtos, setProdutos]     = useState<string[]>([]);
