@@ -1,13 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
-  getFilteredRowModel,
   type SortingState,
-  type ColumnFiltersState,
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
@@ -17,18 +15,26 @@ import { useDeletePhotoBag } from '@/hooks/use-photo-bags';
 import { toast } from 'sonner';
 
 const STATUS_BADGE: Record<BatchStatus, string> = {
-  pendente: 'bg-amber-500/20 text-amber-600 dark:text-amber-400',
+  pendente:     'bg-amber-500/20 text-amber-600 dark:text-amber-400',
   fotografando: 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400',
-  editando: 'bg-violet-500/20 text-violet-600 dark:text-violet-400',
-  finalizado: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+  editando:     'bg-violet-500/20 text-violet-600 dark:text-violet-400',
+  finalizado:   'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
 };
 
 const STATUS_LABEL: Record<BatchStatus, string> = {
-  pendente: 'Pendente',
+  pendente:     'Pendente',
   fotografando: 'Fotografando',
-  editando: 'Editando',
-  finalizado: 'Finalizado',
+  editando:     'Editando',
+  finalizado:   'Finalizado',
 };
+
+const STATUS_FILTERS: Array<{ key: string; label: string }> = [
+  { key: 'todos',        label: 'Todos' },
+  { key: 'pendente',     label: 'Pendente' },
+  { key: 'fotografando', label: 'Fotografando' },
+  { key: 'editando',     label: 'Editando' },
+  { key: 'finalizado',   label: 'Finalizado' },
+];
 
 const diasClass = (d: number): string => {
   if (d <= 3) return 'text-emerald-600 dark:text-emerald-400';
@@ -58,6 +64,12 @@ function ProgressCell({ done, total }: { done: number; total: number }) {
   );
 }
 
+function SortIcon({ dir }: { dir: false | 'asc' | 'desc' }) {
+  if (dir === 'asc') return <ArrowUp size={12} />;
+  if (dir === 'desc') return <ArrowDown size={12} />;
+  return <ArrowUpDown size={12} />;
+}
+
 interface Row extends PhotoBag {
   _status: BatchStatus;
   _dias: number;
@@ -69,15 +81,19 @@ interface PhotoBagTableProps {
 }
 
 export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
+  const [activeFilter, setActiveFilter] = useState<string>('todos');
   const [sorting, setSorting] = useState<SortingState>([{ id: '_dias', desc: true }]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const deleteMutation = useDeletePhotoBag();
 
-  const rows: Row[] = data.map(b => ({
-    ...b,
-    _status: getBatchStatus(b),
-    _dias: getBatchDias(b),
-  }));
+  const rows: Row[] = useMemo(
+    () => data.map((b) => ({ ...b, _status: getBatchStatus(b), _dias: getBatchDias(b) })),
+    [data],
+  );
+
+  const filtered = useMemo(
+    () => (activeFilter === 'todos' ? rows : rows.filter((r) => r._status === activeFilter)),
+    [rows, activeFilter],
+  );
 
   const handleDelete = async (bag: Row) => {
     if (!confirm(`Remover lote de ${fmtDate(bag.data_recebimento)}?`)) return;
@@ -89,12 +105,20 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
     }
   };
 
+  const thBtn = 'flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100';
+
   const columns: ColumnDef<Row>[] = [
     {
       accessorKey: 'data_recebimento',
-      header: 'Data Recebimento',
+      header: ({ column }) => (
+        <button className={thBtn} onClick={() => column.toggleSorting()}>
+          Data Recebimento <SortIcon dir={column.getIsSorted()} />
+        </button>
+      ),
       cell: ({ getValue }) => (
-        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{fmtDate(getValue<string>())}</span>
+        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+          {fmtDate(getValue<string>())}
+        </span>
       ),
     },
     {
@@ -106,7 +130,9 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
         return (
           <div className="text-xs text-zinc-600 dark:text-zinc-400 space-y-0.5">
             <div>{total} peças</div>
-            <div className="text-zinc-400 dark:text-zinc-500">{fab}F · {sec}S · {scrap}Sc</div>
+            <div className="text-zinc-400 dark:text-zinc-500">
+              {fab > 0 && `${fab}F`}{fab > 0 && sec > 0 && ' · '}{sec > 0 && `${sec}S`}{(fab > 0 || sec > 0) && scrap > 0 && ' · '}{scrap > 0 && `${scrap}Sc`}
+            </div>
           </div>
         );
       },
@@ -132,7 +158,6 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
     {
       accessorKey: '_status',
       header: 'Status',
-      filterFn: 'equals',
       cell: ({ getValue }) => {
         const v = getValue<BatchStatus>();
         return (
@@ -145,14 +170,8 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
     {
       accessorKey: '_dias',
       header: ({ column }) => (
-        <button
-          className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-          onClick={() => column.toggleSorting()}
-        >
-          Dias
-          {column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> :
-           column.getIsSorted() === 'desc' ? <ArrowDown size={12} /> :
-           <ArrowUpDown size={12} />}
+        <button className={thBtn} onClick={() => column.toggleSorting()}>
+          Dias <SortIcon dir={column.getIsSorted()} />
         </button>
       ),
       cell: ({ getValue }) => {
@@ -164,7 +183,9 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
       accessorKey: 'observacao',
       header: 'Observação',
       cell: ({ getValue }) => (
-        <span className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1">{getValue<string | undefined>() ?? '—'}</span>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1">
+          {getValue<string | undefined>() ?? '—'}
+        </span>
       ),
     },
     {
@@ -192,36 +213,13 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
   ];
 
   const table = useReactTable({
-    data: rows,
+    data: filtered,
     columns,
-    state: { sorting, columnFilters },
+    state: { sorting },
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
   });
-
-  const STATUS_FILTERS: Array<{ key: string; label: string }> = [
-    { key: 'todos', label: 'Todos' },
-    { key: 'pendente', label: 'Pendente' },
-    { key: 'fotografando', label: 'Fotografando' },
-    { key: 'editando', label: 'Editando' },
-    { key: 'finalizado', label: 'Finalizado' },
-  ];
-
-  const activeStatusFilter = (columnFilters.find((f) => f.id === '_status')?.value as string) ?? 'todos';
-
-  const handleStatusFilter = (status: string) => {
-    if (status === 'todos') {
-      setColumnFilters((prev) => prev.filter((f) => f.id !== '_status'));
-    } else {
-      setColumnFilters((prev) => [
-        ...prev.filter((f) => f.id !== '_status'),
-        { id: '_status', value: status },
-      ]);
-    }
-  };
 
   return (
     <div className="space-y-3">
@@ -229,9 +227,9 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
         {STATUS_FILTERS.map((s) => (
           <button
             key={s.key}
-            onClick={() => handleStatusFilter(s.key)}
+            onClick={() => setActiveFilter(s.key)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-              activeStatusFilter === s.key
+              activeFilter === s.key
                 ? 'bg-indigo-600 text-white'
                 : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
             }`}
@@ -256,7 +254,10 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-b border-zinc-200 dark:border-white/[0.06] hover:bg-zinc-50 dark:hover:bg-zinc-900/60 transition-colors">
+              <tr
+                key={row.id}
+                className="border-b border-zinc-200 dark:border-white/[0.06] hover:bg-zinc-50 dark:hover:bg-zinc-900/60 transition-colors"
+              >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -267,7 +268,9 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
           </tbody>
         </table>
         {table.getRowModel().rows.length === 0 && (
-          <div className="p-12 text-center text-zinc-500 dark:text-zinc-400 text-sm">Nenhum lote encontrado</div>
+          <div className="p-12 text-center text-zinc-500 dark:text-zinc-400 text-sm">
+            Nenhum lote encontrado
+          </div>
         )}
       </div>
     </div>
