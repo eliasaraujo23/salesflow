@@ -55,7 +55,7 @@ function downloadCSV(rows: JfVendasItem[], prefix: string) {
   URL.revokeObjectURL(url);
 }
 
-type StringField = 'produto' | 'subtipo' | 'vendedor_interno' | 'destino' | 'tipo_pedra' | 'lapidacao';
+type StringField = 'tipo' | 'produto' | 'subtipo' | 'destino' | 'tipo_pedra' | 'lapidacao';
 
 function uniqStrings(rows: JfVendasItem[], field: StringField): string[] {
   return [...new Set(rows.map(r => r[field]).filter((v): v is string => v != null && v !== ''))].sort();
@@ -63,15 +63,15 @@ function uniqStrings(rows: JfVendasItem[], field: StringField): string[] {
 
 function applyDimFilters(
   rows: JfVendasItem[],
-  produtos: string[], subtipos: string[], vendedores: string[],
+  tipos: string[], produtos: string[], subtipos: string[],
   destinos: string[], pedras: string[], lapidacoes: string[],
 ): JfVendasItem[] {
   return rows.filter(r => {
+    if (tipos.length    && !tipos.includes(r.tipo ?? ''))      return false;
     if (produtos.length && !produtos.includes(r.produto ?? '')) return false;
     if (subtipos.length && !subtipos.includes(r.subtipo ?? '')) return false;
-    if (vendedores.length && !vendedores.includes(r.vendedor_interno ?? '')) return false;
     if (destinos.length && !destinos.includes(r.destino ?? '')) return false;
-    if (pedras.length && !pedras.includes(r.tipo_pedra ?? '')) return false;
+    if (pedras.length   && !pedras.includes(r.tipo_pedra ?? '')) return false;
     if (lapidacoes.length && !lapidacoes.includes(r.lapidacao ?? '')) return false;
     return true;
   });
@@ -95,11 +95,11 @@ export function FabVendasTab() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [busca, setBusca] = useState('');
-  const [produtos, setProdutos] = useState<string[]>([]);
-  const [subtipos, setSubtipos] = useState<string[]>([]);
-  const [vendedores, setVendedores] = useState<string[]>([]);
-  const [destinos, setDestinos] = useState<string[]>([]);
-  const [pedras, setPedras] = useState<string[]>([]);
+  const [tipos, setTipos]         = useState<string[]>([]);
+  const [produtos, setProdutos]   = useState<string[]>([]);
+  const [subtipos, setSubtipos]   = useState<string[]>([]);
+  const [destinos, setDestinos]   = useState<string[]>([]);
+  const [pedras, setPedras]       = useState<string[]>([]);
   const [lapidacoes, setLapidacoes] = useState<string[]>([]);
   const [sorting, setSorting] = useState<SortingState>([{ id: 'data_venda', desc: true }]);
 
@@ -116,27 +116,27 @@ export function FabVendasTab() {
   }, [data, from, to, busca]);
 
   const filtered = useMemo(
-    () => applyDimFilters(dateSearchFiltered, produtos, subtipos, vendedores, destinos, pedras, lapidacoes),
-    [dateSearchFiltered, produtos, subtipos, vendedores, destinos, pedras, lapidacoes],
+    () => applyDimFilters(dateSearchFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes),
+    [dateSearchFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes],
   );
 
-  const availProdutos   = useMemo(() => uniqStrings(applyDimFilters(dateSearchFiltered, [],       subtipos,  vendedores, destinos, pedras, lapidacoes), 'produto'),         [dateSearchFiltered, subtipos,  vendedores, destinos, pedras, lapidacoes]);
-  const availSubtipos   = useMemo(() => uniqStrings(applyDimFilters(dateSearchFiltered, produtos,  [],        vendedores, destinos, pedras, lapidacoes), 'subtipo'),          [dateSearchFiltered, produtos,  vendedores, destinos, pedras, lapidacoes]);
-  const availVendedores = useMemo(() => uniqStrings(applyDimFilters(dateSearchFiltered, produtos,  subtipos,  [],         destinos, pedras, lapidacoes), 'vendedor_interno'), [dateSearchFiltered, produtos,  subtipos,   destinos, pedras, lapidacoes]);
-  const availDestinos   = useMemo(() => uniqStrings(applyDimFilters(dateSearchFiltered, produtos,  subtipos,  vendedores, [],       pedras, lapidacoes), 'destino'),          [dateSearchFiltered, produtos,  subtipos, vendedores, pedras, lapidacoes]);
-  const availPedras     = useMemo(() => uniqStrings(applyDimFilters(dateSearchFiltered, produtos,  subtipos,  vendedores, destinos, [],     lapidacoes), 'tipo_pedra'),       [dateSearchFiltered, produtos,  subtipos, vendedores, destinos, lapidacoes]);
-  const availLapidacoes = useMemo(() => uniqStrings(applyDimFilters(dateSearchFiltered, produtos,  subtipos,  vendedores, destinos, pedras, []),         'lapidacao'),        [dateSearchFiltered, produtos,  subtipos, vendedores, destinos, pedras]);
+  const availTipos      = useMemo(() => uniqStrings(applyDimFilters(dateSearchFiltered, [],     produtos, subtipos, destinos, pedras, lapidacoes), 'tipo'),      [dateSearchFiltered, produtos, subtipos, destinos, pedras, lapidacoes]);
+  const availProdutos   = useMemo(() => uniqStrings(applyDimFilters(dateSearchFiltered, tipos,  [],       subtipos, destinos, pedras, lapidacoes), 'produto'),   [dateSearchFiltered, tipos, subtipos, destinos, pedras, lapidacoes]);
+  const availSubtipos   = useMemo(() => uniqStrings(applyDimFilters(dateSearchFiltered, tipos,  produtos, [],       destinos, pedras, lapidacoes), 'subtipo'),   [dateSearchFiltered, tipos, produtos, destinos, pedras, lapidacoes]);
+  const availDestinos   = useMemo(() => uniqStrings(applyDimFilters(dateSearchFiltered, tipos,  produtos, subtipos, [],       pedras, lapidacoes), 'destino'),   [dateSearchFiltered, tipos, produtos, subtipos, pedras, lapidacoes]);
+  const availPedras     = useMemo(() => uniqStrings(applyDimFilters(dateSearchFiltered, tipos,  produtos, subtipos, destinos, [],     lapidacoes), 'tipo_pedra'), [dateSearchFiltered, tipos, produtos, subtipos, destinos, lapidacoes]);
+  const availLapidacoes = useMemo(() => uniqStrings(applyDimFilters(dateSearchFiltered, tipos,  produtos, subtipos, destinos, pedras, []),         'lapidacao'),  [dateSearchFiltered, tipos, produtos, subtipos, destinos, pedras]);
 
   const totalFaturamento = useMemo(
     () => filtered.reduce((s, r) => s + (r.preco_cobrado ?? 0), 0),
     [filtered],
   );
 
-  const hasFilters = produtos.length > 0 || subtipos.length > 0 || vendedores.length > 0 ||
+  const hasFilters = tipos.length > 0 || produtos.length > 0 || subtipos.length > 0 ||
     destinos.length > 0 || pedras.length > 0 || lapidacoes.length > 0 || !!busca || !!from || !!to;
 
   function clearAll() {
-    setProdutos([]); setSubtipos([]); setVendedores([]);
+    setTipos([]); setProdutos([]); setSubtipos([]);
     setDestinos([]); setPedras([]); setLapidacoes([]);
     setBusca(''); setFrom(''); setTo('');
   }
@@ -370,12 +370,12 @@ export function FabVendasTab() {
   }
 
   const dimDefs = [
-    { label: 'Produto',      avail: availProdutos,   sel: produtos,   set: setProdutos },
-    { label: 'Subtipo',      avail: availSubtipos,   sel: subtipos,   set: setSubtipos },
-    { label: 'Dest. Manut.', avail: availVendedores, sel: vendedores, set: setVendedores },
-    { label: 'Destino',      avail: availDestinos,   sel: destinos,   set: setDestinos },
-    { label: 'Tipo Pedra',   avail: availPedras,     sel: pedras,     set: setPedras },
-    { label: 'Lapidação',    avail: availLapidacoes, sel: lapidacoes, set: setLapidacoes },
+    { label: 'Tipo',       avail: availTipos,      sel: tipos,      set: setTipos },
+    { label: 'Produto',    avail: availProdutos,   sel: produtos,   set: setProdutos },
+    { label: 'Subtipo',    avail: availSubtipos,   sel: subtipos,   set: setSubtipos },
+    { label: 'Destino',    avail: availDestinos,   sel: destinos,   set: setDestinos },
+    { label: 'Tipo Pedra', avail: availPedras,     sel: pedras,     set: setPedras },
+    { label: 'Lapidação',  avail: availLapidacoes, sel: lapidacoes, set: setLapidacoes },
   ];
 
   return (
