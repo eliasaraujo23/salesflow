@@ -46,16 +46,16 @@ interface ResaleHBarProps {
   data: AgItem[];
   color: string;
   labelWidth?: number;
+  barH?: number;
 }
 
-export function ResaleHBar({ data, color, labelWidth = 175 }: ResaleHBarProps) {
+export function ResaleHBar({ data, color, labelWidth = 175, barH = 26 }: ResaleHBarProps) {
   const chartData = data.map(d => ({
     label: `${d.name} (${d.qtd})`,
     value: d.faturamento,
   }));
 
-  const barH = 28;
-  const height = Math.max(data.length * barH + 40, 160);
+  const height = Math.max(data.length * barH + 40, 120);
 
   return (
     <ResponsiveContainer width="100%" height={height}>

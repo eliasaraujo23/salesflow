@@ -26,9 +26,9 @@ const jmPecaSchema = z.object({
   preco_cobrado: z.coerce.number().nullable().optional(),
   data_venda: z.string().nullable().optional(),
   diamantes: z.string().nullable().optional(),
-  cts_diamantes: z.coerce.number().nullable().optional(),
+  cts_diamantes: z.coerce.number().nullable().optional().catch(null),
   pedra_colorida: z.string().nullable().optional(),
-  cts_pedra_colorida: z.coerce.number().nullable().optional(),
+  cts_pedra_colorida: z.coerce.number().nullable().optional().catch(null),
 });
 
 const jmFaturamentoSchema = z.object({
