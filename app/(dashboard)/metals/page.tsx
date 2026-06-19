@@ -1,115 +1,78 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import { Plus, Weight } from 'lucide-react';
+import React, { useMemo } from 'react';
 import { useFirebase } from '@/components/firebase-provider';
-import { KPICard } from '@/components/kpi-card';
+import { MetalsEntryForm } from '@/components/metals/metals-entry-form';
+import { MetalsChart } from '@/components/metals/metals-chart';
 import { MetalsTable } from '@/components/metals/metals-table';
-import { MetalsAddDialog } from '@/components/metals/metals-add-dialog';
 
-const METAL_TABS = [
-  { key: 'todos', label: 'Todos' },
-  { key: 'ouro', label: 'Ouro' },
-  { key: 'prata', label: 'Prata' },
-  { key: 'platina', label: 'Platina' },
-] as const;
+const METAL_CARD_STYLES = {
+  ouro:    { border: 'border-amber-300/60 dark:border-amber-500/30',  badge: 'text-amber-500 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10' },
+  prata:   { border: 'border-zinc-300/60 dark:border-zinc-500/30',    badge: 'text-zinc-500 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-700/40' },
+  platina: { border: 'border-violet-300/60 dark:border-violet-500/30', badge: 'text-violet-500 dark:text-violet-400 bg-violet-50 dark:bg-violet-500/10' },
+} as const;
+
+type MetalType = 'ouro' | 'prata' | 'platina';
+
+function MetalKPICard({ metal, metals }: { metal: MetalType; metals: ReturnType<typeof useFirebase>['metals'] }) {
+  const items = metals.filter((m) => m.metal === metal);
+  const total = items.reduce((s, m) => s + (m.sobrou ?? 0), 0);
+  const byOrigem = (origem: string) =>
+    items.filter((m) => m.origem === origem).reduce((s, m) => s + (m.sobrou ?? 0), 0);
+
+  const style = METAL_CARD_STYLES[metal];
+  const label = metal.charAt(0).toUpperCase() + metal.slice(1);
+
+  return (
+    <div className={`bg-white dark:bg-zinc-900 border ${style.border} rounded-xl p-5`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+          {label}
+        </span>
+        <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded-full ${style.badge}`}>
+          {label}
+        </span>
+      </div>
+      <div className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 leading-none mb-1.5">
+        {total.toFixed(2)}{' '}
+        <span className="text-base font-semibold text-zinc-400 dark:text-zinc-500">g</span>
+      </div>
+      <div className="text-xs text-zinc-500 dark:text-zinc-400 space-x-3 mb-1">
+        <span>Second: {byOrigem('second').toFixed(2)}g</span>
+        <span>Scrap: {byOrigem('scrap').toFixed(2)}g</span>
+      </div>
+      <div className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+        saldo em estoque
+      </div>
+    </div>
+  );
+}
 
 export default function MetalsPage() {
   const { metals, currentUser } = useFirebase();
-  const [activeTab, setActiveTab] = useState<'todos' | 'ouro' | 'prata' | 'platina'>('todos');
-  const [showAddDialog, setShowAddDialog] = useState(false);
-
   const isAdmin = currentUser?.role === 'admin';
-
-  const filtered = useMemo(
-    () => (activeTab === 'todos' ? metals : metals.filter((m) => m.metal === activeTab)),
-    [metals, activeTab]
-  );
-
-  const summary = useMemo(() => {
-    const byMetal = (m: 'ouro' | 'prata' | 'platina') =>
-      metals.filter((x) => x.metal === m).reduce((s, x) => s + x.peso, 0);
-    return {
-      ouro: byMetal('ouro'),
-      prata: byMetal('prata'),
-      platina: byMetal('platina'),
-      total: metals.reduce((s, x) => s + x.peso, 0),
-    };
-  }, [metals]);
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Controle de Metais</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Inventário de ouro, prata e platina</p>
-        </div>
-        {isAdmin && (
-          <button
-            onClick={() => setShowAddDialog(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
-          >
-            <Plus size={16} />
-            Registrar
-          </button>
-        )}
+      <div>
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Controle de Metais</h1>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+          Ouro · Prata · Platina — Second Hand &amp; Scrap
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard
-          icon={Weight}
-          label="Total Geral"
-          value={`${summary.total.toFixed(2)}g`}
-          subtext={`${metals.length} registros`}
-          variant="blue"
-        />
-        <KPICard
-          icon={Weight}
-          label="Ouro"
-          value={`${summary.ouro.toFixed(2)}g`}
-          subtext="total registrado"
-          variant="amber"
-        />
-        <KPICard
-          icon={Weight}
-          label="Prata"
-          value={`${summary.prata.toFixed(2)}g`}
-          subtext="total registrado"
-          variant="purple"
-        />
-        <KPICard
-          icon={Weight}
-          label="Platina"
-          value={`${summary.platina.toFixed(2)}g`}
-          subtext="total registrado"
-          variant="green"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <MetalKPICard metal="ouro"    metals={metals} />
+        <MetalKPICard metal="prata"   metals={metals} />
+        <MetalKPICard metal="platina" metals={metals} />
       </div>
 
-      <div className="flex gap-2">
-        {METAL_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              activeTab === tab.key
-                ? 'bg-indigo-600 text-white'
-                : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <MetalsEntryForm />
+        <MetalsChart metals={metals} />
       </div>
 
-      <MetalsTable data={filtered} canDelete={isAdmin} />
-
-      {showAddDialog && currentUser && (
-        <MetalsAddDialog
-          onClose={() => setShowAddDialog(false)}
-          currentUser={currentUser.name}
-        />
-      )}
+      <MetalsTable metals={metals} canDelete={isAdmin} />
     </div>
   );
 }

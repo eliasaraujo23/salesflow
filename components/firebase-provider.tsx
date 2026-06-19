@@ -43,10 +43,14 @@ export interface Metal {
   id: string | number;
   tipo: 'entrada' | 'cadastro' | 'antigo';
   metal: 'ouro' | 'prata' | 'platina';
+  chegou: number;
+  cadastrado: number;
+  sobrou: number;
   peso: number;
-  detalhe?: string;
-  responsavel: string;
-  createdAt: string;
+  origem: string;
+  data: string;
+  obs?: string;
+  createdAt: number | string;
 }
 
 export interface DeleteRequest {

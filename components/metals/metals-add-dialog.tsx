@@ -34,7 +34,7 @@ export function MetalsAddDialog({ onClose, currentUser }: MetalsAddDialogProps) 
   });
 
   const onSubmit = async (values: FormValues) => {
-    const result = await addMetalAction(values as AddMetalInput);
+    const result = await addMetalAction(values as unknown as AddMetalInput);
     if (result.success) {
       toast.success('Metal registrado com sucesso!');
       onClose();

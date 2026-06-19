@@ -1,21 +1,27 @@
-import { collection, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export interface AddMetalInput {
-  metal: 'ouro' | 'prata' | 'platina';
   tipo: 'entrada' | 'cadastro' | 'antigo';
+  metal: 'ouro' | 'prata' | 'platina';
+  data: string;
+  origem: string;
+  chegou: number;
+  cadastrado: number;
+  sobrou: number;
   peso: number;
-  detalhe?: string;
-  responsavel: string;
+  obs?: string;
 }
 
 export async function addMetalAction(
-  input: AddMetalInput
+  input: AddMetalInput,
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const id = Date.now();
     await addDoc(collection(db, 'metais'), {
       ...input,
-      createdAt: serverTimestamp(),
+      id,
+      createdAt: id,
     });
     return { success: true };
   } catch (error: unknown) {
@@ -25,7 +31,7 @@ export async function addMetalAction(
 }
 
 export async function deleteMetalAction(
-  docId: string
+  docId: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await deleteDoc(doc(db, 'metais', docId));
