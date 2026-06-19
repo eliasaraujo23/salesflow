@@ -18,9 +18,9 @@ const fmtMoeda = (v: number | null | undefined): string => {
 };
 
 const TIPO_BADGE: Record<string, string> = {
-  JRCP: 'bg-semantic-amber/20 text-semantic-amber',
-  JMCP: 'bg-accent/20 text-accent',
-  JMSP: 'bg-semantic-purple/20 text-semantic-purple',
+  JRCP: 'bg-amber-500/20 text-amber-600 dark:text-amber-400',
+  JMCP: 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400',
+  JMSP: 'bg-violet-500/20 text-violet-600 dark:text-violet-400',
 };
 
 interface JmEstoqueTableProps {
@@ -35,7 +35,7 @@ export function JmEstoqueTable({ data }: JmEstoqueTableProps) {
       accessorKey: 'referencia',
       header: 'Referência',
       cell: ({ getValue }) => (
-        <span className="font-mono text-xs text-accent">{getValue<string>()}</span>
+        <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400">{getValue<string>()}</span>
       ),
     },
     {
@@ -43,9 +43,9 @@ export function JmEstoqueTable({ data }: JmEstoqueTableProps) {
       header: 'Produto',
       cell: ({ row }) => (
         <div>
-          <div className="text-sm text-text">{row.original.produto ?? '—'}</div>
+          <div className="text-sm text-zinc-900 dark:text-zinc-100">{row.original.produto ?? '—'}</div>
           {row.original.tipo_pedra && (
-            <div className="text-xs text-text-muted">{row.original.tipo_pedra}</div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400">{row.original.tipo_pedra}</div>
           )}
         </div>
       ),
@@ -56,7 +56,7 @@ export function JmEstoqueTable({ data }: JmEstoqueTableProps) {
       cell: ({ getValue }) => {
         const v = getValue<string | null | undefined>() ?? '';
         return (
-          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${TIPO_BADGE[v] ?? 'bg-border text-text-muted'}`}>
+          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${TIPO_BADGE[v] ?? 'bg-zinc-200 dark:bg-white/[0.06] text-zinc-500 dark:text-zinc-400'}`}>
             {v || '—'}
           </span>
         );
@@ -66,14 +66,14 @@ export function JmEstoqueTable({ data }: JmEstoqueTableProps) {
       accessorKey: 'lapidacao',
       header: 'Lapidação',
       cell: ({ getValue }) => (
-        <span className="text-xs text-text-muted">{getValue<string | null | undefined>() ?? '—'}</span>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">{getValue<string | null | undefined>() ?? '—'}</span>
       ),
     },
     {
       accessorKey: 'peso',
       header: ({ column }) => (
         <button
-          className="flex items-center gap-1 text-xs font-semibold text-text-muted hover:text-text"
+          className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
           onClick={() => column.toggleSorting()}
         >
           Peso (g)
@@ -83,14 +83,14 @@ export function JmEstoqueTable({ data }: JmEstoqueTableProps) {
         </button>
       ),
       cell: ({ getValue }) => (
-        <span className="text-sm text-text-muted">{getValue<number>().toFixed(3)}g</span>
+        <span className="text-sm text-zinc-500 dark:text-zinc-400">{getValue<number>().toFixed(3)}g</span>
       ),
     },
     {
       accessorKey: 'custo_real',
       header: ({ column }) => (
         <button
-          className="flex items-center gap-1 text-xs font-semibold text-text-muted hover:text-text"
+          className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
           onClick={() => column.toggleSorting()}
         >
           Custo Real
@@ -100,14 +100,14 @@ export function JmEstoqueTable({ data }: JmEstoqueTableProps) {
         </button>
       ),
       cell: ({ getValue }) => (
-        <span className="text-sm text-text-muted">{fmtMoeda(getValue<number>())}</span>
+        <span className="text-sm text-zinc-500 dark:text-zinc-400">{fmtMoeda(getValue<number>())}</span>
       ),
     },
     {
       accessorKey: 'preco_cobrado',
       header: ({ column }) => (
         <button
-          className="flex items-center gap-1 text-xs font-semibold text-text-muted hover:text-text"
+          className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
           onClick={() => column.toggleSorting()}
         >
           Preço Loja
@@ -117,7 +117,7 @@ export function JmEstoqueTable({ data }: JmEstoqueTableProps) {
         </button>
       ),
       cell: ({ getValue }) => (
-        <span className="text-sm font-semibold text-accent">{fmtMoeda(getValue<number | null>())}</span>
+        <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">{fmtMoeda(getValue<number | null>())}</span>
       ),
     },
   ];
@@ -132,13 +132,13 @@ export function JmEstoqueTable({ data }: JmEstoqueTableProps) {
   });
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-white/[0.06]">
       <table className="w-full text-sm">
         <thead>
           {table.getHeaderGroups().map((hg) => (
-            <tr key={hg.id} className="border-b border-border bg-bg-surface-2">
+            <tr key={hg.id} className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800">
               {hg.headers.map((h) => (
-                <th key={h.id} className="px-4 py-3 text-left text-xs font-semibold text-text-muted">
+                <th key={h.id} className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                   {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
                 </th>
               ))}
@@ -147,7 +147,7 @@ export function JmEstoqueTable({ data }: JmEstoqueTableProps) {
         </thead>
         <tbody>
           {table.getRowModel().rows.map((row) => (
-            <tr key={row.id} className="border-b border-border hover:bg-bg-surface transition-colors">
+            <tr key={row.id} className="border-b border-zinc-200 dark:border-white/[0.06] hover:bg-zinc-50 dark:hover:bg-zinc-900/60 transition-colors">
               {row.getVisibleCells().map((cell) => (
                 <td key={cell.id} className="px-4 py-3">
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -158,7 +158,7 @@ export function JmEstoqueTable({ data }: JmEstoqueTableProps) {
         </tbody>
       </table>
       {data.length === 0 && (
-        <div className="p-12 text-center text-text-muted text-sm">Nenhuma peça no estoque</div>
+        <div className="p-12 text-center text-zinc-500 dark:text-zinc-400 text-sm">Nenhuma peça no estoque</div>
       )}
     </div>
   );

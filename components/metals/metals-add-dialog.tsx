@@ -43,12 +43,14 @@ export function MetalsAddDialog({ onClose, currentUser }: MetalsAddDialogProps) 
     }
   };
 
+  const inputCls = 'w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:border-indigo-500 transition-colors';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-bg-surface border border-border rounded-xl p-6 w-full max-w-md shadow-2xl">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-6 w-full max-w-md shadow-2xl">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-text">Registrar Metal</h2>
-          <button onClick={onClose} className="text-text-muted hover:text-text transition-colors">
+          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Registrar Metal</h2>
+          <button onClick={onClose} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -56,22 +58,16 @@ export function MetalsAddDialog({ onClose, currentUser }: MetalsAddDialogProps) 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-text-muted mb-1.5">Metal</label>
-              <select
-                {...register('metal')}
-                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text text-sm focus:outline-none focus:border-accent"
-              >
+              <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Metal</label>
+              <select {...register('metal')} className={inputCls}>
                 <option value="ouro">Ouro</option>
                 <option value="prata">Prata</option>
                 <option value="platina">Platina</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-text-muted mb-1.5">Tipo</label>
-              <select
-                {...register('tipo')}
-                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text text-sm focus:outline-none focus:border-accent"
-              >
+              <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Tipo</label>
+              <select {...register('tipo')} className={inputCls}>
                 <option value="entrada">Entrada</option>
                 <option value="cadastro">Cadastro</option>
                 <option value="antigo">Antigo</option>
@@ -80,38 +76,29 @@ export function MetalsAddDialog({ onClose, currentUser }: MetalsAddDialogProps) 
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-text-muted mb-1.5">
-              Peso (g)
-            </label>
+            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Peso (g)</label>
             <input
               type="number"
               step="0.01"
               {...register('peso', { valueAsNumber: true })}
               placeholder="Ex: 12.50"
-              className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text text-sm focus:outline-none focus:border-accent"
+              className={inputCls}
             />
             {errors.peso && (
-              <p className="text-xs text-semantic-red mt-1">{errors.peso.message}</p>
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.peso.message}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-text-muted mb-1.5">Detalhe</label>
-            <input
-              {...register('detalhe')}
-              placeholder="Opcional"
-              className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text text-sm focus:outline-none focus:border-accent"
-            />
+            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Detalhe</label>
+            <input {...register('detalhe')} placeholder="Opcional" className={inputCls} />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-text-muted mb-1.5">Responsável</label>
-            <input
-              {...register('responsavel')}
-              className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text text-sm focus:outline-none focus:border-accent"
-            />
+            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Responsável</label>
+            <input {...register('responsavel')} className={inputCls} />
             {errors.responsavel && (
-              <p className="text-xs text-semantic-red mt-1">{errors.responsavel.message}</p>
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.responsavel.message}</p>
             )}
           </div>
 
@@ -119,14 +106,14 @@ export function MetalsAddDialog({ onClose, currentUser }: MetalsAddDialogProps) 
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 text-sm font-medium text-text-muted border border-border rounded-lg hover:bg-bg-surface-2 transition-colors"
+              className="flex-1 px-4 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent-2 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors disabled:opacity-50"
             >
               {isSubmitting ? 'Salvando...' : 'Registrar'}
             </button>

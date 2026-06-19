@@ -20,15 +20,15 @@ export function KanbanColumn({ title, count, dotColor, tasks, isFirst, isLast, o
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
           <div className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />
-          <span className="text-sm font-semibold text-text">{title}</span>
+          <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</span>
         </div>
-        <span className="text-xs font-medium text-text-muted bg-bg-surface px-2 py-0.5 rounded-full border border-border">
+        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-200 dark:border-white/[0.06]">
           {count}
         </span>
       </div>
-      <div className="flex flex-col gap-2 min-h-[200px] bg-bg-surface/50 rounded-lg p-2 border border-border">
+      <div className="flex flex-col gap-2 min-h-[200px] bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-2 border border-zinc-200 dark:border-white/[0.06]">
         {tasks.length === 0 ? (
-          <div className="flex items-center justify-center h-20 text-xs text-text-muted opacity-50">
+          <div className="flex items-center justify-center h-20 text-xs text-zinc-400 dark:text-zinc-600 opacity-50">
             Nenhuma tarefa
           </div>
         ) : (

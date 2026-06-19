@@ -17,10 +17,10 @@ import { useDeletePhotoBag } from '@/hooks/use-photo-bags';
 import { toast } from 'sonner';
 
 const STATUS_BADGE: Record<string, string> = {
-  pendente: 'bg-semantic-amber/20 text-semantic-amber',
-  fotografado: 'bg-accent/20 text-accent',
-  catalogado: 'bg-semantic-purple/20 text-semantic-purple',
-  finalizado: 'bg-semantic-green/20 text-semantic-green',
+  pendente: 'bg-amber-500/20 text-amber-600 dark:text-amber-400',
+  fotografado: 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400',
+  catalogado: 'bg-violet-500/20 text-violet-600 dark:text-violet-400',
+  finalizado: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -31,9 +31,9 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const diasClass = (d: number): string => {
-  if (d <= 3) return 'text-semantic-green';
-  if (d <= 7) return 'text-semantic-amber';
-  return 'text-semantic-red';
+  if (d <= 3) return 'text-emerald-600 dark:text-emerald-400';
+  if (d <= 7) return 'text-amber-600 dark:text-amber-400';
+  return 'text-red-600 dark:text-red-400';
 };
 
 interface PhotoBagTableProps {
@@ -61,13 +61,13 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
       accessorKey: 'cod_saquinho',
       header: 'Código',
       cell: ({ getValue }) => (
-        <span className="font-mono text-sm text-accent font-semibold">{getValue<string>()}</span>
+        <span className="font-mono text-sm text-indigo-600 dark:text-indigo-400 font-semibold">{getValue<string>()}</span>
       ),
     },
     {
       accessorKey: 'responsavel',
       header: 'Responsável',
-      cell: ({ getValue }) => <span className="text-sm text-text">{getValue<string>()}</span>,
+      cell: ({ getValue }) => <span className="text-sm text-zinc-900 dark:text-zinc-100">{getValue<string>()}</span>,
     },
     {
       accessorKey: 'status',
@@ -86,7 +86,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
       accessorKey: 'dias',
       header: ({ column }) => (
         <button
-          className="flex items-center gap-1 text-xs font-semibold text-text-muted hover:text-text"
+          className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
           onClick={() => column.toggleSorting()}
         >
           Dias
@@ -104,7 +104,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
       accessorKey: 'detalhes',
       header: 'Detalhes',
       cell: ({ getValue }) => (
-        <span className="text-xs text-text-muted line-clamp-1">{getValue<string | undefined>() ?? '—'}</span>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1">{getValue<string | undefined>() ?? '—'}</span>
       ),
     },
     {
@@ -114,14 +114,14 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
         <div className="flex items-center gap-1">
           <button
             onClick={() => onEdit(row.original)}
-            className="p-1.5 text-text-muted hover:text-accent transition-colors rounded"
+            className="p-1.5 text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded"
             title="Editar"
           >
             <Pencil size={14} />
           </button>
           <button
             onClick={() => handleDelete(row.original)}
-            className="p-1.5 text-text-muted hover:text-semantic-red transition-colors rounded"
+            className="p-1.5 text-zinc-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded"
             title="Remover"
           >
             <Trash2 size={14} />
@@ -165,8 +165,8 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
             onClick={() => handleStatusFilter(s)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all capitalize ${
               activeStatusFilter === s
-                ? 'bg-accent text-white'
-                : 'bg-bg-surface border border-border text-text-muted hover:text-text'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
             }`}
           >
             {s === 'todos' ? 'Todos' : STATUS_LABEL[s]}
@@ -174,13 +174,13 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-white/[0.06]">
         <table className="w-full text-sm">
           <thead>
             {table.getHeaderGroups().map((hg) => (
-              <tr key={hg.id} className="border-b border-border bg-bg-surface-2">
+              <tr key={hg.id} className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800">
                 {hg.headers.map((h) => (
-                  <th key={h.id} className="px-4 py-3 text-left text-xs font-semibold text-text-muted">
+                  <th key={h.id} className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                     {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
                   </th>
                 ))}
@@ -189,7 +189,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-b border-border hover:bg-bg-surface transition-colors">
+              <tr key={row.id} className="border-b border-zinc-200 dark:border-white/[0.06] hover:bg-zinc-50 dark:hover:bg-zinc-900/60 transition-colors">
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -200,7 +200,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
           </tbody>
         </table>
         {table.getRowModel().rows.length === 0 && (
-          <div className="p-12 text-center text-text-muted text-sm">Nenhum saquinho encontrado</div>
+          <div className="p-12 text-center text-zinc-500 dark:text-zinc-400 text-sm">Nenhum saquinho encontrado</div>
         )}
       </div>
     </div>

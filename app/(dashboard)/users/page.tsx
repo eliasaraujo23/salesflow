@@ -6,8 +6,8 @@ import { useFirebase } from '@/components/firebase-provider';
 import { KPICard } from '@/components/kpi-card';
 
 const ROLE_BADGE: Record<string, string> = {
-  admin: 'bg-semantic-amber/20 text-semantic-amber border-semantic-amber/30',
-  user: 'bg-accent/20 text-accent border-accent/30',
+  admin: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
+  user: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30',
 };
 
 const ROLE_LABEL: Record<string, string> = {
@@ -16,11 +16,11 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 const AVATAR_COLORS = [
-  'bg-accent/20 text-accent',
-  'bg-semantic-green/20 text-semantic-green',
-  'bg-semantic-amber/20 text-semantic-amber',
-  'bg-semantic-purple/20 text-semantic-purple',
-  'bg-semantic-red/20 text-semantic-red',
+  'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400',
+  'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+  'bg-amber-500/20 text-amber-600 dark:text-amber-400',
+  'bg-violet-500/20 text-violet-600 dark:text-violet-400',
+  'bg-red-500/20 text-red-600 dark:text-red-400',
 ];
 
 function getInitials(name: string): string {
@@ -41,11 +41,6 @@ export default function UsersPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-text">Usuários &amp; Acesso</h1>
-        <p className="text-sm text-text-muted mt-1">Membros com acesso ao SalesFlow</p>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KPICard icon={Users} label="Total de Usuários" value={users.length} subtext="registrados" variant="blue" />
         <KPICard icon={ShieldCheck} label="Administradores" value={admins} subtext="acesso completo" variant="amber" />
@@ -53,9 +48,9 @@ export default function UsersPage() {
       </div>
 
       {!isAdmin && (
-        <div className="flex items-center gap-3 p-4 bg-semantic-amber/10 border border-semantic-amber/30 rounded-lg">
-          <AlertTriangle size={16} className="text-semantic-amber flex-shrink-0" />
-          <p className="text-sm text-semantic-amber">
+        <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+          <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
+          <p className="text-sm text-amber-700 dark:text-amber-400">
             Somente administradores podem editar usuários e permissões.
           </p>
         </div>
@@ -69,8 +64,10 @@ export default function UsersPage() {
           return (
             <div
               key={user.email}
-              className={`bg-bg-surface border rounded-xl p-4 transition-colors ${
-                isCurrentUser ? 'border-accent/40' : 'border-border hover:border-border-2'
+              className={`bg-white dark:bg-zinc-900 border rounded-xl p-4 transition-colors ${
+                isCurrentUser
+                  ? 'border-indigo-500/40'
+                  : 'border-zinc-200 dark:border-white/[0.06] hover:border-zinc-300 dark:hover:border-white/[0.10]'
               }`}
             >
               <div className="flex items-start gap-3">
@@ -79,14 +76,14 @@ export default function UsersPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-text truncate">{user.name}</span>
+                    <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">{user.name}</span>
                     {isCurrentUser && (
-                      <span className="text-xs text-accent">(você)</span>
+                      <span className="text-xs text-indigo-600 dark:text-indigo-400">(você)</span>
                     )}
                   </div>
-                  <p className="text-xs text-text-muted truncate mt-0.5">{user.email}</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">{user.email}</p>
                   {user.cargo && (
-                    <p className="text-xs text-text-muted mt-0.5">{user.cargo}</p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{user.cargo}</p>
                   )}
                 </div>
               </div>
@@ -96,7 +93,7 @@ export default function UsersPage() {
                   {ROLE_LABEL[user.role] ?? user.role}
                 </span>
                 {user.permissions && user.permissions.length > 0 && (
-                  <span className="text-xs text-text-muted">
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
                     {user.permissions.length} permissão{user.permissions.length !== 1 ? 'ões' : ''}
                   </span>
                 )}
@@ -108,8 +105,8 @@ export default function UsersPage() {
 
       {users.length === 0 && (
         <div className="py-20 text-center">
-          <Users size={48} className="mx-auto mb-4 text-text-muted/30" />
-          <p className="text-text-muted">Nenhum usuário encontrado</p>
+          <Users size={48} className="mx-auto mb-4 text-zinc-300 dark:text-zinc-600" />
+          <p className="text-zinc-500 dark:text-zinc-400">Nenhum usuário encontrado</p>
         </div>
       )}
     </div>

@@ -12,12 +12,12 @@ interface PagePlaceholderProps {
 export function PagePlaceholder({ title, description, icon: Icon }: PagePlaceholderProps) {
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-text mb-2">{title}</h1>
-      {description && <p className="text-text-muted mb-8">{description}</p>}
+      <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">{title}</h1>
+      {description && <p className="text-zinc-500 dark:text-zinc-400 mb-8">{description}</p>}
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <Icon size={64} className="mx-auto mb-4 text-accent/40" />
-          <p className="text-text-muted">Esta página será implementada em breve</p>
+          <Icon size={64} className="mx-auto mb-4 text-indigo-500/40" />
+          <p className="text-zinc-500 dark:text-zinc-400">Esta página será implementada em breve</p>
         </div>
       </div>
     </div>

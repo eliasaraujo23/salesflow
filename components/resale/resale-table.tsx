@@ -33,7 +33,7 @@ export function ResaleTable({ data }: ResaleTableProps) {
 
   const SortHeader = ({ column, label }: { column: { toggleSorting: () => void; getIsSorted: () => false | 'asc' | 'desc' }; label: string }) => (
     <button
-      className="flex items-center gap-1 text-xs font-semibold text-text-muted hover:text-text"
+      className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
       onClick={() => column.toggleSorting()}
     >
       {label}
@@ -47,25 +47,25 @@ export function ResaleTable({ data }: ResaleTableProps) {
     {
       accessorKey: 'fornecedor',
       header: 'Fornecedor',
-      cell: ({ getValue }) => <span className="font-medium text-text">{getValue<string>()}</span>,
+      cell: ({ getValue }) => <span className="font-medium text-zinc-900 dark:text-zinc-100">{getValue<string>()}</span>,
     },
     {
       accessorKey: 'qtd',
       header: ({ column }) => <SortHeader column={column} label="Qtd" />,
-      cell: ({ getValue }) => <span className="text-sm">{getValue<number>()}</span>,
+      cell: ({ getValue }) => <span className="text-sm text-zinc-900 dark:text-zinc-100">{getValue<number>()}</span>,
     },
     {
       accessorKey: 'total_custo',
       header: ({ column }) => <SortHeader column={column} label="Custo" />,
       cell: ({ getValue }) => (
-        <span className="text-sm text-text-muted">{fmtMoeda(getValue<number>())}</span>
+        <span className="text-sm text-zinc-500 dark:text-zinc-400">{fmtMoeda(getValue<number>())}</span>
       ),
     },
     {
       accessorKey: 'total_loja',
       header: ({ column }) => <SortHeader column={column} label="Valor Loja" />,
       cell: ({ getValue }) => (
-        <span className="text-sm font-semibold text-accent">{fmtMoeda(getValue<number>())}</span>
+        <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">{fmtMoeda(getValue<number>())}</span>
       ),
     },
     {
@@ -73,9 +73,9 @@ export function ResaleTable({ data }: ResaleTableProps) {
       header: 'Margem',
       cell: ({ row }) => {
         const { total_custo: c, total_loja: l } = row.original;
-        if (c <= 0) return <span className="text-text-muted text-sm">—</span>;
+        if (c <= 0) return <span className="text-zinc-500 dark:text-zinc-400 text-sm">—</span>;
         const pct = (((l - c) / c) * 100).toFixed(1);
-        return <span className="text-sm font-medium text-semantic-green">{pct}%</span>;
+        return <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{pct}%</span>;
       },
     },
   ];
@@ -92,20 +92,20 @@ export function ResaleTable({ data }: ResaleTableProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wide">
+        <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
           Revenda por Fornecedor
         </h3>
-        <div className="text-xs text-text-muted">
+        <div className="text-xs text-zinc-500 dark:text-zinc-400">
           {totals.qtd} peças · {fmtMoeda(totals.loja)}
         </div>
       </div>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-white/[0.06]">
         <table className="w-full text-sm">
           <thead>
             {table.getHeaderGroups().map((hg) => (
-              <tr key={hg.id} className="border-b border-border bg-bg-surface-2">
+              <tr key={hg.id} className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800">
                 {hg.headers.map((h) => (
-                  <th key={h.id} className="px-4 py-3 text-left text-xs font-semibold text-text-muted">
+                  <th key={h.id} className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                     {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
                   </th>
                 ))}
@@ -114,7 +114,7 @@ export function ResaleTable({ data }: ResaleTableProps) {
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-b border-border hover:bg-bg-surface transition-colors">
+              <tr key={row.id} className="border-b border-zinc-200 dark:border-white/[0.06] hover:bg-zinc-50 dark:hover:bg-zinc-900/60 transition-colors">
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -122,19 +122,19 @@ export function ResaleTable({ data }: ResaleTableProps) {
                 ))}
               </tr>
             ))}
-            <tr className="bg-bg-surface-2 border-t-2 border-border">
-              <td className="px-4 py-3 text-xs font-bold text-text-muted uppercase">Total</td>
-              <td className="px-4 py-3 text-sm font-semibold">{totals.qtd}</td>
-              <td className="px-4 py-3 text-sm text-text-muted">{fmtMoeda(totals.custo)}</td>
-              <td className="px-4 py-3 text-sm font-bold text-accent">{fmtMoeda(totals.loja)}</td>
-              <td className="px-4 py-3 text-sm font-semibold text-semantic-green">
+            <tr className="bg-zinc-50 dark:bg-zinc-800 border-t-2 border-zinc-200 dark:border-white/[0.06]">
+              <td className="px-4 py-3 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase">Total</td>
+              <td className="px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{totals.qtd}</td>
+              <td className="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">{fmtMoeda(totals.custo)}</td>
+              <td className="px-4 py-3 text-sm font-bold text-indigo-600 dark:text-indigo-400">{fmtMoeda(totals.loja)}</td>
+              <td className="px-4 py-3 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                 {totals.custo > 0 ? `${(((totals.loja - totals.custo) / totals.custo) * 100).toFixed(1)}%` : '—'}
               </td>
             </tr>
           </tbody>
         </table>
         {data.length === 0 && (
-          <div className="p-8 text-center text-text-muted text-sm">
+          <div className="p-8 text-center text-zinc-500 dark:text-zinc-400 text-sm">
             Nenhum dado de revenda no período
           </div>
         )}

@@ -18,9 +18,9 @@ const fmtMoeda = (v: unknown): string => {
 };
 
 const diasClass = (d: number): string => {
-  if (d <= 7) return 'text-semantic-green';
-  if (d <= 30) return 'text-semantic-amber';
-  return 'text-semantic-red';
+  if (d <= 7) return 'text-emerald-600 dark:text-emerald-400';
+  if (d <= 30) return 'text-amber-600 dark:text-amber-400';
+  return 'text-red-600 dark:text-red-400';
 };
 
 interface MaintenanceTableProps {
@@ -35,7 +35,7 @@ export function MaintenanceTable({ data }: MaintenanceTableProps) {
       accessorKey: 'referencia',
       header: 'Referência',
       cell: ({ getValue }) => (
-        <span className="font-mono text-xs text-accent">{getValue<string>()}</span>
+        <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400">{getValue<string>()}</span>
       ),
     },
     {
@@ -43,9 +43,9 @@ export function MaintenanceTable({ data }: MaintenanceTableProps) {
       header: 'Produto / Tipo',
       cell: ({ row }) => (
         <div>
-          <div className="text-sm text-text">{row.original.produto ?? '—'}</div>
+          <div className="text-sm text-zinc-900 dark:text-zinc-100">{row.original.produto ?? '—'}</div>
           {row.original.subtipo && (
-            <div className="text-xs text-text-muted">{row.original.subtipo}</div>
+            <div className="text-xs text-zinc-500 dark:text-zinc-400">{row.original.subtipo}</div>
           )}
         </div>
       ),
@@ -54,14 +54,14 @@ export function MaintenanceTable({ data }: MaintenanceTableProps) {
       accessorKey: 'tipo_pedra',
       header: 'Pedra',
       cell: ({ getValue }) => (
-        <span className="text-sm text-text-muted">{getValue<string | null | undefined>() ?? '—'}</span>
+        <span className="text-sm text-zinc-500 dark:text-zinc-400">{getValue<string | null | undefined>() ?? '—'}</span>
       ),
     },
     {
       accessorKey: 'destino',
       header: 'Destino',
       cell: ({ getValue }) => (
-        <span className="text-sm">{getValue<string | null | undefined>() ?? '—'}</span>
+        <span className="text-sm text-zinc-900 dark:text-zinc-100">{getValue<string | null | undefined>() ?? '—'}</span>
       ),
     },
     {
@@ -69,15 +69,15 @@ export function MaintenanceTable({ data }: MaintenanceTableProps) {
       header: 'Saída',
       cell: ({ getValue }) => {
         const v = getValue<string | null | undefined>();
-        if (!v) return <span className="text-text-muted text-sm">—</span>;
-        return <span className="text-sm">{new Date(v).toLocaleDateString('pt-BR')}</span>;
+        if (!v) return <span className="text-zinc-500 dark:text-zinc-400 text-sm">—</span>;
+        return <span className="text-sm text-zinc-900 dark:text-zinc-100">{new Date(v).toLocaleDateString('pt-BR')}</span>;
       },
     },
     {
       accessorKey: 'dias',
       header: ({ column }) => (
         <button
-          className="flex items-center gap-1 text-xs font-semibold text-text-muted hover:text-text"
+          className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
           onClick={() => column.toggleSorting()}
         >
           Dias
@@ -99,7 +99,7 @@ export function MaintenanceTable({ data }: MaintenanceTableProps) {
       accessorKey: 'preco_loja',
       header: 'Preço Loja',
       cell: ({ getValue }) => (
-        <span className="text-sm text-accent font-medium">{fmtMoeda(getValue())}</span>
+        <span className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">{fmtMoeda(getValue())}</span>
       ),
     },
   ];
@@ -114,13 +114,13 @@ export function MaintenanceTable({ data }: MaintenanceTableProps) {
   });
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-white/[0.06]">
       <table className="w-full text-sm">
         <thead>
           {table.getHeaderGroups().map((hg) => (
-            <tr key={hg.id} className="border-b border-border bg-bg-surface-2">
+            <tr key={hg.id} className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800">
               {hg.headers.map((h) => (
-                <th key={h.id} className="px-4 py-3 text-left text-xs font-semibold text-text-muted">
+                <th key={h.id} className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                   {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
                 </th>
               ))}
@@ -129,7 +129,7 @@ export function MaintenanceTable({ data }: MaintenanceTableProps) {
         </thead>
         <tbody>
           {table.getRowModel().rows.map((row) => (
-            <tr key={row.id} className="border-b border-border hover:bg-bg-surface transition-colors">
+            <tr key={row.id} className="border-b border-zinc-200 dark:border-white/[0.06] hover:bg-zinc-50 dark:hover:bg-zinc-900/60 transition-colors">
               {row.getVisibleCells().map((cell) => (
                 <td key={cell.id} className="px-4 py-3">
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -140,7 +140,7 @@ export function MaintenanceTable({ data }: MaintenanceTableProps) {
         </tbody>
       </table>
       {data.length === 0 && (
-        <div className="p-12 text-center text-text-muted text-sm">Nenhuma manutenção encontrada</div>
+        <div className="p-12 text-center text-zinc-500 dark:text-zinc-400 text-sm">Nenhuma manutenção encontrada</div>
       )}
     </div>
   );

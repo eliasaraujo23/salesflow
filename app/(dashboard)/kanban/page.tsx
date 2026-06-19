@@ -7,10 +7,10 @@ import { updateTaskStatusAction } from '@/lib/actions/tasks';
 import { toast } from 'sonner';
 
 const COLUMNS = [
-  { status: 'pendente', title: 'A Fazer', dotColor: 'bg-text-muted' },
-  { status: 'progress', title: 'Em Andamento', dotColor: 'bg-accent' },
-  { status: 'blocked', title: 'Bloqueada', dotColor: 'bg-semantic-red' },
-  { status: 'done', title: 'Concluída', dotColor: 'bg-semantic-green' },
+  { status: 'pendente', title: 'A Fazer', dotColor: 'bg-zinc-400 dark:bg-zinc-600' },
+  { status: 'progress', title: 'Em Andamento', dotColor: 'bg-indigo-500' },
+  { status: 'blocked', title: 'Bloqueada', dotColor: 'bg-red-500' },
+  { status: 'done', title: 'Concluída', dotColor: 'bg-emerald-500' },
 ];
 
 export default function KanbanPage() {
@@ -38,8 +38,8 @@ export default function KanbanPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-text">Kanban</h1>
-        <p className="text-sm text-text-muted mt-1">
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Kanban</h1>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
           {tasks.length} tarefa{tasks.length !== 1 ? 's' : ''} no total
         </p>
       </div>

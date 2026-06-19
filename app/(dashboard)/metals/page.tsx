@@ -41,13 +41,13 @@ export default function MetalsPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-text">Controle de Metais</h1>
-          <p className="text-sm text-text-muted mt-1">Inventário de ouro, prata e platina</p>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Controle de Metais</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Inventário de ouro, prata e platina</p>
         </div>
         {isAdmin && (
           <button
             onClick={() => setShowAddDialog(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent-2 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
           >
             <Plus size={16} />
             Registrar
@@ -93,8 +93,8 @@ export default function MetalsPage() {
             onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
               activeTab === tab.key
-                ? 'bg-accent text-white'
-                : 'bg-bg-surface border border-border text-text-muted hover:text-text'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
             }`}
           >
             {tab.label}

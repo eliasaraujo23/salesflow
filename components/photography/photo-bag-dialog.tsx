@@ -63,48 +63,47 @@ export function PhotoBagDialog({ bag, onClose, currentUser }: PhotoBagDialogProp
     }
   };
 
+  const inputCls = 'w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:border-indigo-500 transition-colors';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-bg-surface border border-border rounded-xl p-6 w-full max-w-md shadow-2xl">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-6 w-full max-w-md shadow-2xl">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-text">
+          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
             {isEdit ? 'Editar Saquinho' : 'Novo Saquinho'}
           </h2>
-          <button onClick={onClose} className="text-text-muted hover:text-text transition-colors">
+          <button onClick={onClose} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
             <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-text-muted mb-1.5">Código</label>
+            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Código</label>
             <input
               {...register('cod_saquinho')}
               placeholder="Ex: SAQ-001"
-              className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text text-sm focus:outline-none focus:border-accent"
+              className={inputCls}
             />
             {errors.cod_saquinho && (
-              <p className="text-xs text-semantic-red mt-1">{errors.cod_saquinho.message}</p>
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.cod_saquinho.message}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-text-muted mb-1.5">Responsável</label>
+            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Responsável</label>
             <input
               {...register('responsavel')}
-              className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text text-sm focus:outline-none focus:border-accent"
+              className={inputCls}
             />
             {errors.responsavel && (
-              <p className="text-xs text-semantic-red mt-1">{errors.responsavel.message}</p>
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.responsavel.message}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-text-muted mb-1.5">Status</label>
-            <select
-              {...register('status')}
-              className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text text-sm focus:outline-none focus:border-accent"
-            >
+            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Status</label>
+            <select {...register('status')} className={inputCls}>
               <option value="pendente">Pendente</option>
               <option value="fotografado">Fotografado</option>
               <option value="catalogado">Catalogado</option>
@@ -113,12 +112,12 @@ export function PhotoBagDialog({ bag, onClose, currentUser }: PhotoBagDialogProp
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-text-muted mb-1.5">Detalhes</label>
+            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Detalhes</label>
             <textarea
               {...register('detalhes')}
               rows={3}
               placeholder="Opcional"
-              className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text text-sm focus:outline-none focus:border-accent resize-none"
+              className={`${inputCls} resize-none`}
             />
           </div>
 
@@ -126,14 +125,14 @@ export function PhotoBagDialog({ bag, onClose, currentUser }: PhotoBagDialogProp
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 text-sm font-medium text-text-muted border border-border rounded-lg hover:bg-bg-surface-2 transition-colors"
+              className="flex-1 px-4 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent-2 transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors disabled:opacity-50"
             >
               {isSubmitting ? 'Salvando...' : isEdit ? 'Salvar' : 'Criar'}
             </button>

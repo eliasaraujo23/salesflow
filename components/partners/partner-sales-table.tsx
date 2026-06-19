@@ -29,13 +29,13 @@ export function PartnerSalesTable({ data }: PartnerSalesTableProps) {
     {
       accessorKey: 'parceiro',
       header: 'Parceiro',
-      cell: ({ getValue }) => <span className="font-medium text-text">{getValue<string>()}</span>,
+      cell: ({ getValue }) => <span className="font-medium text-zinc-900 dark:text-zinc-100">{getValue<string>()}</span>,
     },
     {
       accessorKey: 'qtd_pecas',
       header: ({ column }) => (
         <button
-          className="flex items-center gap-1 text-xs font-semibold text-text-muted hover:text-text"
+          className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
           onClick={() => column.toggleSorting()}
         >
           Peças
@@ -44,13 +44,13 @@ export function PartnerSalesTable({ data }: PartnerSalesTableProps) {
            <ArrowUpDown size={12} />}
         </button>
       ),
-      cell: ({ getValue }) => <span className="text-sm">{getValue<number>()}</span>,
+      cell: ({ getValue }) => <span className="text-sm text-zinc-900 dark:text-zinc-100">{getValue<number>()}</span>,
     },
     {
       accessorKey: 'total_vendas',
       header: ({ column }) => (
         <button
-          className="flex items-center gap-1 text-xs font-semibold text-text-muted hover:text-text"
+          className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
           onClick={() => column.toggleSorting()}
         >
           Total Vendas
@@ -60,7 +60,7 @@ export function PartnerSalesTable({ data }: PartnerSalesTableProps) {
         </button>
       ),
       cell: ({ getValue }) => (
-        <span className="text-sm font-semibold text-semantic-green">{fmtMoeda(getValue<number>())}</span>
+        <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{fmtMoeda(getValue<number>())}</span>
       ),
     },
     {
@@ -70,13 +70,13 @@ export function PartnerSalesTable({ data }: PartnerSalesTableProps) {
         const pct = totalVendas > 0 ? ((row.original.total_vendas / totalVendas) * 100).toFixed(1) : '0';
         return (
           <div className="flex items-center gap-2">
-            <div className="w-20 h-1.5 bg-bg-surface-2 rounded-full overflow-hidden">
+            <div className="w-20 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-accent rounded-full"
+                className="h-full bg-indigo-500 rounded-full"
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className="text-xs text-text-muted">{pct}%</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">{pct}%</span>
           </div>
         );
       },
@@ -95,18 +95,18 @@ export function PartnerSalesTable({ data }: PartnerSalesTableProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wide">Vendas por Parceiro</h3>
-        <div className="text-xs text-text-muted">
+        <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Vendas por Parceiro</h3>
+        <div className="text-xs text-zinc-500 dark:text-zinc-400">
           {totalPecas} peças · {fmtMoeda(totalVendas)}
         </div>
       </div>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-white/[0.06]">
         <table className="w-full text-sm">
           <thead>
             {table.getHeaderGroups().map((hg) => (
-              <tr key={hg.id} className="border-b border-border bg-bg-surface-2">
+              <tr key={hg.id} className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800">
                 {hg.headers.map((h) => (
-                  <th key={h.id} className="px-4 py-3 text-left text-xs font-semibold text-text-muted">
+                  <th key={h.id} className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                     {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
                   </th>
                 ))}
@@ -115,7 +115,7 @@ export function PartnerSalesTable({ data }: PartnerSalesTableProps) {
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-b border-border hover:bg-bg-surface transition-colors">
+              <tr key={row.id} className="border-b border-zinc-200 dark:border-white/[0.06] hover:bg-zinc-50 dark:hover:bg-zinc-900/60 transition-colors">
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -126,7 +126,7 @@ export function PartnerSalesTable({ data }: PartnerSalesTableProps) {
           </tbody>
         </table>
         {data.length === 0 && (
-          <div className="p-8 text-center text-text-muted text-sm">Nenhum dado de vendas</div>
+          <div className="p-8 text-center text-zinc-500 dark:text-zinc-400 text-sm">Nenhum dado de vendas</div>
         )}
       </div>
     </div>

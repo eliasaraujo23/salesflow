@@ -35,51 +35,51 @@ export default function ResalePage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-text">Revenda</h1>
-          <p className="text-sm text-text-muted mt-1">Análise de revenda por fornecedor no período</p>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Revenda</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Análise de revenda por fornecedor no período</p>
         </div>
         <button
           onClick={() => refetch()}
           disabled={isFetching}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-muted bg-bg-surface border border-border rounded-lg hover:border-accent transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50"
         >
           <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
           Atualizar
         </button>
       </div>
 
-      <div className="flex items-center gap-4 p-4 bg-bg-surface border border-border rounded-lg flex-wrap">
-        <Calendar size={16} className="text-text-muted" />
+      <div className="flex items-center gap-4 p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl flex-wrap">
+        <Calendar size={16} className="text-zinc-500 dark:text-zinc-400" />
         <div className="flex items-center gap-2">
-          <label className="text-xs font-semibold text-text-muted">De</label>
+          <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">De</label>
           <input
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className="px-3 py-1.5 bg-bg border border-border rounded-md text-text text-sm focus:outline-none focus:border-accent"
+            className="px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:border-indigo-500"
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs font-semibold text-text-muted">Até</label>
+          <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Até</label>
           <input
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="px-3 py-1.5 bg-bg border border-border rounded-md text-text text-sm focus:outline-none focus:border-accent"
+            className="px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:border-indigo-500"
           />
         </div>
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center min-h-48">
-          <div className="text-text-muted text-sm flex items-center gap-2">
+          <div className="text-zinc-500 dark:text-zinc-400 text-sm flex items-center gap-2">
             <RefreshCw size={16} className="animate-spin" />
             Carregando...
           </div>
         </div>
       ) : isError ? (
         <div className="flex items-center justify-center min-h-48">
-          <div className="text-semantic-red text-sm">
+          <div className="text-red-600 dark:text-red-400 text-sm">
             Erro ao carregar dados.{' '}
             <button onClick={() => refetch()} className="underline hover:no-underline">
               Tentar novamente

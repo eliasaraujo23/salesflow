@@ -29,7 +29,7 @@ export default function FabricacoesJMPage() {
   if (isLoading) {
     return (
       <div className="p-6 flex items-center justify-center min-h-64">
-        <div className="text-text-muted text-sm flex items-center gap-2">
+        <div className="text-zinc-500 dark:text-zinc-400 text-sm flex items-center gap-2">
           <RefreshCw size={16} className="animate-spin" />
           Carregando dados...
         </div>
@@ -40,7 +40,7 @@ export default function FabricacoesJMPage() {
   if (isError || !data) {
     return (
       <div className="p-6 flex items-center justify-center min-h-64">
-        <div className="text-semantic-red text-sm">
+        <div className="text-red-600 dark:text-red-400 text-sm">
           Erro ao carregar dados.{' '}
           <button onClick={() => refetch()} className="underline hover:no-underline">
             Tentar novamente
@@ -54,15 +54,15 @@ export default function FabricacoesJMPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-text">
-            Fabricações <span className="text-accent">JM</span>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+            Fabricações <span className="text-indigo-600 dark:text-indigo-400">JM</span>
           </h1>
-          <p className="text-sm text-text-muted mt-1">Atualizado: {lastUpdate}</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Atualizado: {lastUpdate}</p>
         </div>
         <button
           onClick={() => refetch()}
           disabled={isFetching}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-muted bg-bg-surface border border-border rounded-lg hover:border-accent transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50"
         >
           <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
           Atualizar
@@ -116,8 +116,8 @@ export default function FabricacoesJMPage() {
                 onClick={() => setActiveTab(tab.key)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                   activeTab === tab.key
-                    ? 'bg-accent text-white'
-                    : 'bg-bg-surface border border-border text-text-muted hover:text-text'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
                 }`}
               >
                 {tab.label}

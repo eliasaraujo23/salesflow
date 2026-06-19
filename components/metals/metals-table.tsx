@@ -20,9 +20,9 @@ interface MetalsTableProps {
 }
 
 const METAL_BADGE: Record<string, string> = {
-  ouro: 'bg-semantic-amber/20 text-semantic-amber',
-  prata: 'bg-text-muted/20 text-text-muted',
-  platina: 'bg-semantic-purple/20 text-semantic-purple',
+  ouro: 'bg-amber-500/20 text-amber-600 dark:text-amber-400',
+  prata: 'bg-zinc-400/20 text-zinc-500 dark:text-zinc-400',
+  platina: 'bg-violet-500/20 text-violet-600 dark:text-violet-400',
 };
 
 const TIPO_LABEL: Record<string, string> = {
@@ -61,7 +61,7 @@ export function MetalsTable({ data, canDelete }: MetalsTableProps) {
       accessorKey: 'tipo',
       header: 'Tipo',
       cell: ({ getValue }) => (
-        <span className="text-sm text-text-muted capitalize">
+        <span className="text-sm text-zinc-500 dark:text-zinc-400 capitalize">
           {TIPO_LABEL[getValue<string>()] ?? getValue<string>()}
         </span>
       ),
@@ -70,7 +70,7 @@ export function MetalsTable({ data, canDelete }: MetalsTableProps) {
       accessorKey: 'peso',
       header: ({ column }) => (
         <button
-          className="flex items-center gap-1 text-xs font-semibold text-text-muted hover:text-text"
+          className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
           onClick={() => column.toggleSorting()}
         >
           Peso (g)
@@ -80,29 +80,29 @@ export function MetalsTable({ data, canDelete }: MetalsTableProps) {
         </button>
       ),
       cell: ({ getValue }) => (
-        <span className="text-sm font-semibold text-text">{Number(getValue<number>()).toFixed(2)}g</span>
+        <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{Number(getValue<number>()).toFixed(2)}g</span>
       ),
     },
     {
       accessorKey: 'detalhe',
       header: 'Detalhe',
       cell: ({ getValue }) => (
-        <span className="text-sm text-text-muted">{getValue<string | undefined>() ?? '—'}</span>
+        <span className="text-sm text-zinc-500 dark:text-zinc-400">{getValue<string | undefined>() ?? '—'}</span>
       ),
     },
     {
       accessorKey: 'responsavel',
       header: 'Responsável',
-      cell: ({ getValue }) => <span className="text-sm">{getValue<string>()}</span>,
+      cell: ({ getValue }) => <span className="text-sm text-zinc-900 dark:text-zinc-100">{getValue<string>()}</span>,
     },
     {
       accessorKey: 'createdAt',
       header: 'Data',
       cell: ({ getValue }) => {
         const v = getValue<string>();
-        if (!v) return <span className="text-text-muted text-sm">—</span>;
+        if (!v) return <span className="text-zinc-500 dark:text-zinc-400 text-sm">—</span>;
         const d = new Date(v);
-        return <span className="text-sm text-text-muted">{isNaN(d.getTime()) ? v : d.toLocaleDateString('pt-BR')}</span>;
+        return <span className="text-sm text-zinc-500 dark:text-zinc-400">{isNaN(d.getTime()) ? v : d.toLocaleDateString('pt-BR')}</span>;
       },
     },
     ...(canDelete
@@ -112,7 +112,7 @@ export function MetalsTable({ data, canDelete }: MetalsTableProps) {
           cell: ({ row }: { row: { original: Metal } }) => (
             <button
               onClick={() => handleDelete(row.original)}
-              className="p-1.5 text-text-muted hover:text-semantic-red transition-colors rounded"
+              className="p-1.5 text-zinc-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded"
               title="Remover"
             >
               <Trash2 size={14} />
@@ -132,13 +132,13 @@ export function MetalsTable({ data, canDelete }: MetalsTableProps) {
   });
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-white/[0.06]">
       <table className="w-full text-sm">
         <thead>
           {table.getHeaderGroups().map((hg) => (
-            <tr key={hg.id} className="border-b border-border bg-bg-surface-2">
+            <tr key={hg.id} className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800">
               {hg.headers.map((h) => (
-                <th key={h.id} className="px-4 py-3 text-left text-xs font-semibold text-text-muted">
+                <th key={h.id} className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                   {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
                 </th>
               ))}
@@ -147,7 +147,7 @@ export function MetalsTable({ data, canDelete }: MetalsTableProps) {
         </thead>
         <tbody>
           {table.getRowModel().rows.map((row) => (
-            <tr key={row.id} className="border-b border-border hover:bg-bg-surface transition-colors">
+            <tr key={row.id} className="border-b border-zinc-200 dark:border-white/[0.06] hover:bg-zinc-50 dark:hover:bg-zinc-900/60 transition-colors">
               {row.getVisibleCells().map((cell) => (
                 <td key={cell.id} className="px-4 py-3">
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -158,7 +158,7 @@ export function MetalsTable({ data, canDelete }: MetalsTableProps) {
         </tbody>
       </table>
       {data.length === 0 && (
-        <div className="p-12 text-center text-text-muted text-sm">Nenhum registro de metal</div>
+        <div className="p-12 text-center text-zinc-500 dark:text-zinc-400 text-sm">Nenhum registro de metal</div>
       )}
     </div>
   );

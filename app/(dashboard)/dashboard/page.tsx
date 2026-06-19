@@ -65,11 +65,6 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-text">Dashboard</h1>
-        <p className="text-sm text-text-muted mt-1">Visão geral das atividades da equipe</p>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <KPICard icon={ClipboardList} label="Total de Tarefas" value={stats.total} subtext="registradas" variant="blue" />
         <KPICard
@@ -92,8 +87,8 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-bg-surface border border-border rounded-xl p-5">
-          <h3 className="text-sm font-bold text-text-muted uppercase tracking-wide mb-4">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-5">
+          <h3 className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.5px] mb-4">
             Tarefas por Status
           </h3>
           {stats.byStatus.length > 0 ? (
@@ -119,29 +114,29 @@ export default function DashboardPage() {
                 {stats.byStatus.map((s) => (
                   <div key={s.name} className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ background: s.fill }} />
-                    <span className="text-sm text-text-muted">{s.name}</span>
-                    <span className="text-sm font-semibold text-text ml-auto pl-4">{s.value}</span>
+                    <span className="text-sm text-zinc-500 dark:text-zinc-400">{s.name}</span>
+                    <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 ml-auto pl-4">{s.value}</span>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
-            <div className="py-10 text-center text-text-muted text-sm">Sem dados</div>
+            <div className="py-10 text-center text-zinc-500 dark:text-zinc-400 text-sm">Sem dados</div>
           )}
         </div>
 
-        <div className="bg-bg-surface border border-border rounded-xl p-5">
-          <h3 className="text-sm font-bold text-text-muted uppercase tracking-wide mb-4">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-5">
+          <h3 className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.5px] mb-4">
             Tarefas por Prioridade
           </h3>
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={stats.byPriority} layout="vertical" barSize={16}>
               <XAxis type="number" hide />
-              <YAxis type="category" dataKey="name" width={60} tick={{ fill: 'hsl(220 8% 42%)', fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" width={60} tick={{ fill: 'rgb(161 161 170)', fontSize: 12 }} axisLine={false} tickLine={false} />
               <Tooltip
-                contentStyle={{ background: 'hsl(225 12% 7%)', border: '1px solid hsl(225 10% 12%)', borderRadius: 8 }}
-                labelStyle={{ color: 'hsl(225 6% 94%)', fontSize: 12 }}
-                itemStyle={{ color: 'hsl(225 6% 94%)', fontSize: 12 }}
+                contentStyle={{ background: 'rgb(24 24 27)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8 }}
+                labelStyle={{ color: 'rgb(244 244 245)', fontSize: 12 }}
+                itemStyle={{ color: 'rgb(244 244 245)', fontSize: 12 }}
               />
               <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                 {stats.byPriority.map((entry, i) => (
@@ -153,26 +148,26 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="bg-bg-surface border border-border rounded-xl p-5">
-        <h3 className="text-sm font-bold text-text-muted uppercase tracking-wide mb-4">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-5">
+        <h3 className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.5px] mb-4">
           Ranking da Equipe
         </h3>
         <div className="space-y-3">
           {stats.byPerson.map((p, i) => (
             <div key={p.person} className="flex items-center gap-3">
-              <span className="w-6 text-xs font-bold text-text-muted text-center">{i + 1}</span>
+              <span className="w-6 text-xs font-bold text-zinc-500 dark:text-zinc-400 text-center">{i + 1}</span>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-text">{p.person}</span>
-                  <div className="flex items-center gap-3 text-xs text-text-muted">
-                    <span className="text-semantic-green">{p.done} concl.</span>
-                    {p.late > 0 && <span className="text-semantic-red">{p.late} atras.</span>}
-                    <span className="font-semibold text-text">{p.pct}%</span>
+                  <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{p.person}</span>
+                  <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+                    <span className="text-emerald-600 dark:text-emerald-400">{p.done} concl.</span>
+                    {p.late > 0 && <span className="text-red-600 dark:text-red-400">{p.late} atras.</span>}
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">{p.pct}%</span>
                   </div>
                 </div>
-                <div className="w-full h-1.5 bg-bg-surface-2 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-accent rounded-full transition-all"
+                    className="h-full bg-indigo-500 rounded-full transition-all"
                     style={{ width: `${p.pct}%` }}
                   />
                 </div>
@@ -180,7 +175,7 @@ export default function DashboardPage() {
             </div>
           ))}
           {stats.byPerson.length === 0 && (
-            <div className="py-8 text-center text-text-muted text-sm">Sem tarefas registradas</div>
+            <div className="py-8 text-center text-zinc-500 dark:text-zinc-400 text-sm">Sem tarefas registradas</div>
           )}
         </div>
       </div>

@@ -14,10 +14,10 @@ interface CalendarGridProps {
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 const PRIORITY_DOT: Record<string, string> = {
-  urgente: 'bg-semantic-red',
-  alta: 'bg-semantic-amber',
-  media: 'bg-accent',
-  baixa: 'bg-semantic-green',
+  urgente: 'bg-red-500',
+  alta: 'bg-amber-500',
+  media: 'bg-indigo-500',
+  baixa: 'bg-emerald-500',
 };
 
 function parseTaskDay(due: string): number | null {
@@ -60,7 +60,7 @@ export function CalendarGrid({ year, month, tasks, onDayClick, selectedDay }: Ca
     <div>
       <div className="grid grid-cols-7 mb-1">
         {WEEKDAYS.map((wd) => (
-          <div key={wd} className="py-2 text-center text-xs font-semibold text-text-muted">
+          <div key={wd} className="py-2 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">
             {wd}
           </div>
         ))}
@@ -79,15 +79,15 @@ export function CalendarGrid({ year, month, tasks, onDayClick, selectedDay }: Ca
               onClick={() => onDayClick(cell.day!, dayTasks)}
               className={`
                 relative flex flex-col items-center p-2 rounded-lg min-h-[64px] border transition-all
-                ${isSelected ? 'border-accent bg-accent/10' :
-                  isToday ? 'border-accent/40 bg-accent/5' :
-                  'border-transparent hover:border-border hover:bg-bg-surface'}
+                ${isSelected ? 'border-indigo-500 bg-indigo-500/10' :
+                  isToday ? 'border-indigo-500/40 bg-indigo-500/5' :
+                  'border-transparent hover:border-zinc-200 dark:hover:border-white/[0.06] hover:bg-zinc-50 dark:hover:bg-zinc-900/60'}
               `}
             >
               <span
                 className={`
                   text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full mb-1
-                  ${isToday ? 'bg-accent text-white font-bold' : 'text-text'}
+                  ${isToday ? 'bg-indigo-600 text-white font-bold' : 'text-zinc-900 dark:text-zinc-100'}
                 `}
               >
                 {cell.day}
@@ -97,16 +97,16 @@ export function CalendarGrid({ year, month, tasks, onDayClick, selectedDay }: Ca
                   {dayTasks.slice(0, 3).map((t, ti) => (
                     <div
                       key={ti}
-                      className={`w-1.5 h-1.5 rounded-full ${PRIORITY_DOT[t.priority] ?? 'bg-text-muted'}`}
+                      className={`w-1.5 h-1.5 rounded-full ${PRIORITY_DOT[t.priority] ?? 'bg-zinc-400 dark:bg-zinc-600'}`}
                     />
                   ))}
                   {dayTasks.length > 3 && (
-                    <span className="text-xs text-text-muted">+{dayTasks.length - 3}</span>
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">+{dayTasks.length - 3}</span>
                   )}
                 </div>
               )}
               {hasLate && (
-                <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-semantic-red" />
+                <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-red-500" />
               )}
             </button>
           );
