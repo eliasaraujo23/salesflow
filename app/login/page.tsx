@@ -29,6 +29,7 @@ export default function LoginPage() {
   const { mutate: login, isPending } = useLogin();
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [slowConnection, setSlowConnection] = useState(false);
 
   const {
     register,
@@ -50,9 +51,13 @@ export default function LoginPage() {
 
   const onSubmit = async (values: LoginFormValues) => {
     setLoginError(null);
+    setSlowConnection(false);
+    const slowTimer = setTimeout(() => setSlowConnection(true), 5000);
 
     login(values, {
       onSuccess: async (result) => {
+        clearTimeout(slowTimer);
+        setSlowConnection(false);
         if (result.httpStatus !== 200 || !result.data) {
           setLoginError(result.message || 'E-mail ou senha incorretos.');
           toast.error(result.message || 'Erro ao realizar login.');
@@ -86,6 +91,8 @@ export default function LoginPage() {
         }
       },
       onError: (error: any) => {
+        clearTimeout(slowTimer);
+        setSlowConnection(false);
         setLoginError(error.message || 'Erro de conexão.');
         toast.error(error.message || 'Erro ao realizar login.');
       },
@@ -166,12 +173,17 @@ export default function LoginPage() {
             {isPending ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Entrando...
+                {slowConnection ? 'Servidor acordando...' : 'Entrando...'}
               </>
             ) : (
               'Entrar'
             )}
           </Button>
+        {slowConnection && (
+          <p className="mt-3 text-center text-xs text-text-muted">
+            A API estava em repouso. Reconectando automaticamente…
+          </p>
+        )}
         </form>
 
         <div className="mt-8 text-center text-xs text-text-muted-2">

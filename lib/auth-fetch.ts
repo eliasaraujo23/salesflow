@@ -1,6 +1,6 @@
 import { auth } from './firebase';
 
-const API_BASE = 'https://goldtech-fabricacoes-api.onrender.com';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://goldtech-fabricacoes-api.onrender.com';
 
 export { API_BASE };
 

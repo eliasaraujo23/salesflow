@@ -14,30 +14,44 @@ export interface ResponseApi<T> {
   data?: T;
 }
 
+const RETRY_DELAY_MS = 10_000;
+const MAX_ATTEMPTS   = 3;
+
 export async function loginAction(
   email: string,
   password: string
 ): Promise<ResponseApi<LoginResponse>> {
-  try {
-    const res = await fetch(`${API_BASE}/api/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return { httpStatus: res.status, message: err.error || 'Credenciais inválidas' };
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return { httpStatus: res.status, message: err.error || 'Credenciais inválidas' };
+      }
+
+      const rawData = await res.json();
+      const parsed = loginResponseSchema.safeParse(rawData);
+      if (!parsed.success) {
+        return { httpStatus: 400, message: 'Resposta inválida do servidor.', errors: parsed.error };
+      }
+
+      return { httpStatus: 200, data: parsed.data };
+    } catch {
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise<void>(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        continue;
+      }
+      return {
+        httpStatus: 503,
+        message: 'Servidor inicializando. Aguarde 30 segundos e tente novamente.',
+      };
     }
-
-    const rawData = await res.json();
-    const parsed = loginResponseSchema.safeParse(rawData);
-    if (!parsed.success) {
-      return { httpStatus: 400, message: 'Resposta inválida do servidor.', errors: parsed.error };
-    }
-
-    return { httpStatus: 200, data: parsed.data };
-  } catch (error: any) {
-    return { httpStatus: 500, message: error.message || 'Erro de rede' };
   }
+
+  return { httpStatus: 503, message: 'Servidor indisponível.' };
 }
