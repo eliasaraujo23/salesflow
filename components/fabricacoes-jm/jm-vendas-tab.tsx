@@ -10,7 +10,10 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import { Download, RefreshCw, X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { format } from 'date-fns';
+import { type DateRange } from 'react-day-picker';
 import { type JmFaturamentoItem } from '@/lib/actions/fetch-jm-dashboard';
+import { CalendarDateRangePicker } from '@/components/ui/date-range-picker';
 
 const fmtMoeda = (v: number | null | undefined): string => {
   if (v == null || isNaN(v)) return '—';
@@ -94,11 +97,12 @@ interface JmVendasTabProps {
 }
 
 export function JmVendasTab({ data, isLoading }: JmVendasTabProps) {
-  const now = new Date();
-  const mesAno = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const ultimoDia = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const [from, setFrom] = useState(`${mesAno}-01`);
-  const [to, setTo] = useState(`${mesAno}-${String(ultimoDia).padStart(2, '0')}`);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const now = new Date();
+    return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: new Date(now.getFullYear(), now.getMonth() + 1, 0) };
+  });
+  const from = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '';
+  const to   = dateRange?.to   ? format(dateRange.to,   'yyyy-MM-dd') : '';
   const [busca, setBusca] = useState('');
   const [tipos, setTipos]           = useState<string[]>([]);
   const [produtos, setProdutos]     = useState<string[]>([]);
@@ -143,7 +147,7 @@ export function JmVendasTab({ data, isLoading }: JmVendasTabProps) {
   function clearAll() {
     setTipos([]); setProdutos([]); setSubtipos([]);
     setDestinos([]); setPedras([]); setLapidacoes([]);
-    setBusca(''); setFrom(''); setTo('');
+    setBusca(''); setDateRange(undefined);
   }
 
   const inputCls = 'px-3 py-1.5 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors';
@@ -374,14 +378,7 @@ export function JmVendasTab({ data, isLoading }: JmVendasTabProps) {
     <div className="space-y-4">
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4">
         <div className="flex items-start gap-4 overflow-x-auto pb-1">
-          <div className="flex flex-col gap-1.5 shrink-0">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">De</span>
-            <input type="date" value={from} onChange={e => setFrom(e.target.value)} className={`w-36 ${inputCls}`} />
-          </div>
-          <div className="flex flex-col gap-1.5 shrink-0">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Até</span>
-            <input type="date" value={to} onChange={e => setTo(e.target.value)} className={`w-36 ${inputCls}`} />
-          </div>
+          <CalendarDateRangePicker dateRange={dateRange} setDateRange={setDateRange} />
           <div className="flex flex-col gap-1.5 shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Buscar</span>
             <input
@@ -443,7 +440,7 @@ export function JmVendasTab({ data, isLoading }: JmVendasTabProps) {
 
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm" style={{ minWidth: '1400px' }}>
+          <table className="w-full text-sm data-table" style={{ minWidth: '1400px' }}>
             <thead>
               {table.getHeaderGroups().map(hg => (
                 <tr key={hg.id} className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/60">

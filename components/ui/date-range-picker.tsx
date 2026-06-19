@@ -1,16 +1,24 @@
 // @ts-nocheck
+'use client';
+
 import { CalendarIcon } from '@radix-ui/react-icons';
+import { ChevronDown } from 'lucide-react';
 import { format, isValid, parse } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { DateRange } from 'react-day-picker';
+import { pt } from 'date-fns/locale';
+import { type DateRange } from 'react-day-picker';
 import InputMask from 'react-input-mask';
 
-import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Dispatch, useEffect, useState } from 'react';
+import { type Dispatch, useEffect, useState } from 'react';
+
+const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+function pillDate(d: Date): string {
+  return `${String(d.getDate()).padStart(2, '0')}/${MONTHS_PT[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
+}
 
 interface CalendarDateRangePickerProps {
   className?: string;
@@ -30,142 +38,165 @@ export function CalendarDateRangePicker({
   const [fromInput, setFromInput] = useState<string>('');
   const [toInput, setToInput] = useState<string>('');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [pendingRange, setPendingRange] = useState<DateRange | undefined>(dateRange);
   const [isRangeComplete, setIsRangeComplete] = useState(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
+    setPendingRange(dateRange);
     setFromInput(dateRange?.from ? format(dateRange.from, 'dd/MM/yyyy') : '');
-    setToInput(dateRange?.to ? format(dateRange.to, 'dd/MM/yyyy') : '');
-
+    setToInput(dateRange?.to   ? format(dateRange.to,   'dd/MM/yyyy') : '');
     setIsRangeComplete(!!(dateRange?.from && dateRange?.to));
   }, [dateRange]);
 
   const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'from' | 'to') => {
     const value = e.target.value;
-    const setInputState = field === 'from' ? setFromInput : setToInput;
-    setInputState(value);
+    if (field === 'from') setFromInput(value);
+    else setToInput(value);
 
-    // Se limpar o input, limpa a data correspondente
     if (!value || value.replace(/[/_]/g, '').length === 0) {
-      setDateRange((prev) => ({
+      setPendingRange((prev) => ({
         from: field === 'from' ? undefined : prev?.from,
-        to: field === 'to' ? undefined : prev?.to,
+        to:   field === 'to'   ? undefined : prev?.to,
       }));
       return;
     }
 
-    // Se a data estiver completa, valida e aplica
     if (!value.includes('_') && value.length === 10) {
-      const parsedDate = parse(value, 'dd/MM/yyyy', new Date());
-
-      if (isValid(parsedDate)) {
-        const newRange = {
-          from: field === 'from' ? parsedDate : dateRange?.from,
-          to: field === 'to' ? parsedDate : dateRange?.to,
-        };
-        setDateRange(newRange);
+      const parsed = parse(value, 'dd/MM/yyyy', new Date());
+      if (isValid(parsed)) {
+        setPendingRange((prev) => ({
+          from: field === 'from' ? parsed : prev?.from,
+          to:   field === 'to'   ? parsed : prev?.to,
+        }));
       }
     }
   };
 
-  useEffect(() => {
-    if (!isPopoverOpen && onDateChange) {
-      onDateChange(dateRange);
-    }
-  }, [isPopoverOpen, dateRange, onDateChange]);
+  const handleApply = () => {
+    setDateRange(pendingRange);
+    if (onDateChange) onDateChange(pendingRange);
+    setIsPopoverOpen(false);
+  };
+
+  const pillLabel = dateRange?.from
+    ? dateRange.to
+      ? `${pillDate(dateRange.from)} → ${pillDate(dateRange.to)}`
+      : `De ${pillDate(dateRange.from)}`
+    : 'Selecionar período';
+
+  const inputCls =
+    'px-2.5 py-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-xs text-zinc-800 dark:text-zinc-100 w-[110px] focus:outline-none focus:border-indigo-500 transition-colors';
 
   return (
-    <div className={cn('grid gap-2', className)}>
+    <div className={cn('shrink-0', className)}>
       <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
         <PopoverTrigger asChild>
-          <Button
-            id="date"
-            size="sm"
-            variant="outline"
+          <button
+            type="button"
             className={cn(
-              'h-8 w-full justify-start text-left font-normal',
-              !dateRange && 'text-muted-foreground',
+              'flex items-center gap-2 px-3.5 py-1.5 rounded-full border-2 border-zinc-800 dark:border-zinc-300',
+              'text-sm font-semibold text-zinc-800 dark:text-zinc-100',
+              'bg-white dark:bg-zinc-900',
+              'hover:border-indigo-500 dark:hover:border-indigo-400 transition-colors whitespace-nowrap',
               buttonClassName,
             )}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {dateRange?.from ? (
-              dateRange.to ? (
-                <>
-                  {format(dateRange.from, 'dd/MM/yyyy')} - {format(dateRange.to, 'dd/MM/yyyy')}
-                </>
-              ) : (
-                format(dateRange.from, 'dd/MM/yyyy')
-              )
-            ) : (
-              <span className="text-xs text-muted-foreground">Escolha um intervalo de datas...</span>
-            )}
-          </Button>
+            <CalendarIcon className="w-3.5 h-3.5" />
+            {pillLabel}
+            <ChevronDown size={12} className="text-zinc-400 dark:text-zinc-500" />
+          </button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto max-w-[100vw] overflow-x-auto p-0" align="end">
-          <div className="flex items-center justify-between rounded-t-md border-b bg-card px-4 py-2 shadow-sm">
+
+        <PopoverContent
+          className="w-auto max-w-[100vw] overflow-x-auto p-0 rounded-2xl border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-zinc-900 shadow-2xl"
+          align="start"
+          sideOffset={8}
+        >
+          {/* INÍCIO / FIM */}
+          <div className="flex items-center gap-6 px-5 pt-4 pb-3 border-b border-zinc-100 dark:border-white/[0.05]">
             <div className="flex items-center gap-2">
-              <p className="text-xs font-semibold">INÍCIO:</p>
-              {/* @ts-ignore */}
+              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+                Início:
+              </span>
               <InputMask
                 mask="99/99/9999"
                 value={fromInput}
                 onChange={(e) => handleDateInputChange(e, 'from')}
               >
-                {(inputProps: any) => (
+                {(inputProps) => (
                   <input
                     {...inputProps}
                     type="text"
                     inputMode="numeric"
                     placeholder="dd/mm/aaaa"
-                    className="w-full rounded border px-2 py-1 text-xs md:w-[130px]"
+                    className={inputCls}
                   />
                 )}
               </InputMask>
             </div>
             <div className="flex items-center gap-2">
-              <p className="text-xs font-semibold">FIM:</p>
-              {/* @ts-ignore */}
+              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+                Fim:
+              </span>
               <InputMask
                 mask="99/99/9999"
                 value={toInput}
                 onChange={(e) => handleDateInputChange(e, 'to')}
               >
-                {(inputProps: any) => (
+                {(inputProps) => (
                   <input
                     {...inputProps}
                     type="text"
                     inputMode="numeric"
                     placeholder="dd/mm/aaaa"
-                    className="w-full rounded border px-2 py-1 text-xs md:w-[130px]"
+                    className={inputCls}
                   />
                 )}
               </InputMask>
             </div>
           </div>
 
-          <Calendar
-            mode="range"
-            defaultMonth={dateRange?.from || new Date()}
-            selected={dateRange}
-            onSelect={(range) => {
-              if (isRangeComplete) {
-                if (range?.from && range?.to) {
-                  const newDate = range.to > (dateRange?.to || range.to) ? range.to : range.from;
-                  if (
-                    newDate.getTime() !== dateRange?.from?.getTime() &&
-                    newDate.getTime() !== dateRange?.to?.getTime()
-                  ) {
-                    setDateRange({ from: newDate, to: undefined });
-                    return;
+          {/* Calendar */}
+          <div className="px-4 py-3">
+            <Calendar
+              mode="range"
+              defaultMonth={pendingRange?.from ?? new Date()}
+              selected={pendingRange}
+              onSelect={(range) => {
+                if (isRangeComplete) {
+                  if (range?.from && range?.to) {
+                    const newDate =
+                      range.to > (dateRange?.to ?? range.to) ? range.to : range.from;
+                    if (
+                      newDate.getTime() !== dateRange?.from?.getTime() &&
+                      newDate.getTime() !== dateRange?.to?.getTime()
+                    ) {
+                      setPendingRange({ from: newDate, to: undefined });
+                      setIsRangeComplete(false);
+                      return;
+                    }
                   }
                 }
-              }
-              setDateRange(range);
-            }}
-            numberOfMonths={isMobile ? 1 : 2}
-            locale={ptBR}
-          />
+                setPendingRange(range);
+                if (range?.from && range?.to) setIsRangeComplete(true);
+              }}
+              numberOfMonths={isMobile ? 1 : 2}
+              locale={pt}
+              className="drp-calendar"
+            />
+          </div>
+
+          {/* Apply */}
+          <div className="flex justify-end px-5 pb-4 pt-2 border-t border-zinc-100 dark:border-white/[0.05]">
+            <button
+              type="button"
+              onClick={handleApply}
+              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors"
+            >
+              Aplicar
+            </button>
+          </div>
         </PopoverContent>
       </Popover>
     </div>

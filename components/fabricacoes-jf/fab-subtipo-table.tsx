@@ -168,7 +168,7 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm data-table">
           <thead>
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id}>

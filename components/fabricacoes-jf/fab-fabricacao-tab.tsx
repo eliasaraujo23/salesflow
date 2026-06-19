@@ -302,7 +302,7 @@ export function FabFabricacaoTab({ pecas }: FabFabricacaoTabProps) {
 
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm" style={{ minWidth: '1000px' }}>
+          <table className="w-full text-sm data-table" style={{ minWidth: '1000px' }}>
             <thead>
               {table.getHeaderGroups().map(hg => (
                 <tr key={hg.id} className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/60">
