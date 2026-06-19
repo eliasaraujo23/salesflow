@@ -1,0 +1,103 @@
+'use client';
+
+import React from 'react';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from 'recharts';
+import { type AgItem } from '@/lib/actions/fetch-resale';
+
+const fmtMoeda = (v: number) =>
+  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+
+const fmtAxisX = (v: number) => {
+  if (v === 0) return 'R$0';
+  if (v >= 1_000_000) return `R$${(v / 1_000_000).toFixed(1)}M`;
+  return `R$${(v / 1_000).toFixed(0)}k`;
+};
+
+interface CustomLabelProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  value?: number;
+}
+
+function CustomLabel({ x = 0, y = 0, width = 0, height = 0, value = 0 }: CustomLabelProps) {
+  return (
+    <text
+      x={x + width + 6}
+      y={y + height / 2 + 4}
+      fill="#71717a"
+      fontSize={10}
+      textAnchor="start"
+    >
+      {fmtMoeda(value)}
+    </text>
+  );
+}
+
+interface ResaleHBarProps {
+  data: AgItem[];
+  color: string;
+  labelWidth?: number;
+}
+
+export function ResaleHBar({ data, color, labelWidth = 175 }: ResaleHBarProps) {
+  const chartData = data.map(d => ({
+    label: `${d.name} (${d.qtd})`,
+    value: d.faturamento,
+  }));
+
+  const barH = 28;
+  const height = Math.max(data.length * barH + 40, 160);
+
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart
+        data={chartData}
+        layout="vertical"
+        margin={{ top: 0, right: 95, bottom: 20, left: 0 }}
+      >
+        <XAxis
+          type="number"
+          tickFormatter={fmtAxisX}
+          tick={{ fontSize: 10, fill: '#71717a' }}
+          axisLine={false}
+          tickLine={false}
+        />
+        <YAxis
+          type="category"
+          dataKey="label"
+          width={labelWidth}
+          tick={{ fontSize: 10, fill: '#71717a' }}
+          axisLine={false}
+          tickLine={false}
+        />
+        <Tooltip
+          formatter={(v: number) => [fmtMoeda(v), 'Faturamento']}
+          contentStyle={{
+            backgroundColor: '#18181b',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '8px',
+            fontSize: '12px',
+            color: '#f4f4f5',
+          }}
+        />
+        <Bar
+          dataKey="value"
+          fill={color}
+          radius={[0, 3, 3, 0]}
+          maxBarSize={20}
+          isAnimationActive={false}
+          label={<CustomLabel />}
+        />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}

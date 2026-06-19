@@ -10,7 +10,7 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { type ResellItem } from '@/lib/actions/fetch-resale';
+import { type ResellItem } from '@/lib/actions/fetch-resale'; // legacy, not used in main page
 
 interface ResaleTableProps {
   data: ResellItem[];
