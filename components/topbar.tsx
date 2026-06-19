@@ -1,22 +1,33 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Icon } from '@/components/icon-map';
+import { usePathname } from 'next/navigation';
 import { Search, Sun, Moon, CloudCheck, Bell } from 'lucide-react';
+import { NAVIGATION_ITEMS } from '@/lib/constants';
 
 interface TopbarProps {
-  title: string;
+  title?: string;
   subtitle?: string;
   onSearch?: (query: string) => void;
 }
 
 export function Topbar({ title, subtitle, onSearch }: TopbarProps) {
+  const pathname = usePathname();
   const [isDark, setIsDark] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    setIsDark(document.documentElement.classList.contains('dark'));
+    const saved = localStorage.getItem('theme');
+    const dark = saved ? saved === 'dark' : document.documentElement.classList.contains('dark');
+    setIsDark(dark);
+    if (!dark) document.documentElement.classList.remove('dark');
   }, []);
+
+  const navItem = NAVIGATION_ITEMS.find(
+    item => pathname === item.href || pathname.startsWith(item.href + '/')
+  );
+  const pageTitle    = title ?? navItem?.label ?? 'SalesFlow';
+  const pageSubtitle = subtitle;
 
   const handleSearch = (value: string) => {
     setSearchQuery(value);
@@ -38,54 +49,48 @@ export function Topbar({ title, subtitle, onSearch }: TopbarProps) {
 
   return (
     <header className="bg-bg-surface border-b border-border px-6 h-topbar flex items-center justify-between shrink-0">
-      {/* Left: Title */}
-      <div className="flex-1">
-        <div className="text-base font-semibold text-text">{title}</div>
-        {subtitle && (
-          <div className="text-xs text-text-muted flex items-center gap-2">
-            <span className="inline-block w-1.5 h-1.5 bg-semantic-green rounded-full animate-pulse" />
-            {subtitle}
+      <div className="flex-1 min-w-0">
+        <div className="text-[15px] font-semibold text-text truncate">{pageTitle}</div>
+        {pageSubtitle && (
+          <div className="text-xs text-text-muted flex items-center gap-1.5 mt-0.5">
+            <span className="w-1.5 h-1.5 bg-semantic-green rounded-full animate-pulse shrink-0" />
+            {pageSubtitle}
           </div>
         )}
       </div>
 
-      {/* Right: Controls */}
-      <div className="flex items-center gap-3 ml-6">
-        {/* Search */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-bg-surface-2 border border-border">
-          <Search size={16} className="text-text-muted shrink-0" />
+      <div className="flex items-center gap-2 ml-6">
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-bg border border-border focus-within:border-accent transition-colors">
+          <Search size={14} className="text-text-muted shrink-0" />
           <input
             type="text"
-            placeholder="Buscar..."
+            placeholder="Buscar tarefas..."
             value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="bg-transparent border-none outline-none text-sm text-text placeholder-text-muted w-40"
+            onChange={e => handleSearch(e.target.value)}
+            className="bg-transparent border-none outline-none text-sm text-text placeholder:text-text-muted w-36"
           />
         </div>
 
-        {/* Notifications */}
         <button
           title="Notificações"
           className="p-2 rounded-lg hover:bg-border transition-colors text-text-muted hover:text-text"
         >
-          <Bell size={18} />
+          <Bell size={17} />
         </button>
 
-        {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          title="Alternar tema"
+          title={isDark ? 'Modo claro' : 'Modo escuro'}
           className="p-2 rounded-lg hover:bg-border transition-colors text-text-muted hover:text-text"
         >
-          {isDark ? <Sun size={18} /> : <Moon size={18} />}
+          {isDark ? <Sun size={17} /> : <Moon size={17} />}
         </button>
 
-        {/* Sync Status */}
         <button
-          title="Sincronizado com Firebase"
+          title="Sincronizado"
           className="p-2 rounded-lg cursor-default text-semantic-green"
         >
-          <CloudCheck size={18} />
+          <CloudCheck size={17} />
         </button>
       </div>
     </header>

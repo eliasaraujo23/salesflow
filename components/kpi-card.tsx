@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { LucideIcon } from 'lucide-react';
+import { type LucideIcon } from 'lucide-react';
 
 interface KPICardProps {
-  icon: LucideIcon;
+  icon?: LucideIcon;
   label: string;
   value: number | string;
   subtext?: string;
@@ -12,12 +12,20 @@ interface KPICardProps {
   className?: string;
 }
 
-const variantStyles = {
-  blue: 'bg-accent/10 text-accent border-accent/20',
-  green: 'bg-semantic-green/10 text-semantic-green border-semantic-green/20',
-  amber: 'bg-semantic-amber/10 text-semantic-amber border-semantic-amber/20',
-  red: 'bg-semantic-red/10 text-semantic-red border-semantic-red/20',
-  purple: 'bg-semantic-purple/10 text-semantic-purple border-semantic-purple/20',
+const topBorderMap: Record<string, string> = {
+  blue:   'bg-accent',
+  green:  'bg-semantic-green',
+  amber:  'bg-semantic-amber',
+  red:    'bg-semantic-red',
+  purple: 'bg-semantic-purple',
+};
+
+const valueColorMap: Record<string, string> = {
+  blue:   'text-accent',
+  green:  'text-semantic-green',
+  amber:  'text-semantic-amber',
+  red:    'text-semantic-red',
+  purple: 'text-semantic-purple',
 };
 
 export function KPICard({
@@ -28,28 +36,26 @@ export function KPICard({
   variant = 'blue',
   className = '',
 }: KPICardProps) {
+  const topBorder = topBorderMap[variant] ?? topBorderMap.blue;
+  const valueColor = valueColorMap[variant] ?? valueColorMap.blue;
+
   return (
-    <div
-      className={`
-        p-4 rounded-lg border transition-all duration-300
-        hover:shadow-lg hover:scale-105
-        ${variantStyles[variant]} ${className}
-      `}
-    >
-      <div className="flex items-start justify-between mb-3">
-        <Icon size={24} className="opacity-60" />
-      </div>
-      <div className="text-xs font-medium opacity-70 mb-1">{label}</div>
-      <div className="text-2xl font-bold tracking-tight mb-1">{value}</div>
-      {subtext && (
-        <div className="text-xs opacity-60">
-          {subtext.split(/(\d+%)/).map((part, i) =>
-            part.match(/\d+%/) ?
-              <span key={i} className="text-semantic-green font-medium">{part}</span> :
-              part
-          )}
+    <div className={`relative bg-bg-surface border border-border rounded-xl overflow-hidden hover:border-border-2 transition-colors ${className}`}>
+      <div className={`absolute top-0 inset-x-0 h-[3px] ${topBorder}`} />
+      <div className="px-5 pt-6 pb-5">
+        {Icon && (
+          <Icon size={16} className={`${valueColor} opacity-35 mb-2`} />
+        )}
+        <div className="text-[11px] font-semibold text-text-muted uppercase tracking-[0.5px] mb-2">
+          {label}
         </div>
-      )}
+        <div className={`text-[32px] font-bold leading-none tracking-tight ${valueColor}`}>
+          {value}
+        </div>
+        {subtext && (
+          <div className="text-xs text-text-muted mt-2">{subtext}</div>
+        )}
+      </div>
     </div>
   );
 }
