@@ -11,15 +11,15 @@ import { toast } from 'sonner';
 
 const schema = z.object({
   data_recebimento: z.string().min(1, 'Data obrigatória'),
-  qtd_fabricado: z.coerce.number().min(0).default(0),
-  foto_fabricado: z.coerce.number().min(0).default(0),
-  edit_fabricado: z.coerce.number().min(0).default(0),
-  qtd_second: z.coerce.number().min(0).default(0),
-  foto_second: z.coerce.number().min(0).default(0),
-  edit_second: z.coerce.number().min(0).default(0),
-  qtd_scrap: z.coerce.number().min(0).default(0),
-  foto_scrap: z.coerce.number().min(0).default(0),
-  edit_scrap: z.coerce.number().min(0).default(0),
+  qtd_fabricado: z.number().min(0),
+  foto_fabricado: z.number().min(0),
+  edit_fabricado: z.number().min(0),
+  qtd_second: z.number().min(0),
+  foto_second: z.number().min(0),
+  edit_second: z.number().min(0),
+  qtd_scrap: z.number().min(0),
+  foto_scrap: z.number().min(0),
+  edit_scrap: z.number().min(0),
   data_finalizacao: z.string().optional(),
   observacao: z.string().optional(),
 });
@@ -123,45 +123,45 @@ export function PhotoBagDialog({ bag, onClose }: PhotoBagDialogProps) {
           <FieldGroup label="Fabricado">
             <div>
               <label className={labelCls}>Qtd</label>
-              <input type="number" min={0} {...register('qtd_fabricado')} className={numInputCls} />
+              <input type="number" min={0} {...register('qtd_fabricado', { valueAsNumber: true })} className={numInputCls} />
             </div>
             <div>
               <label className={labelCls}>Fotos</label>
-              <input type="number" min={0} {...register('foto_fabricado')} className={numInputCls} />
+              <input type="number" min={0} {...register('foto_fabricado', { valueAsNumber: true })} className={numInputCls} />
             </div>
             <div>
               <label className={labelCls}>Edições</label>
-              <input type="number" min={0} {...register('edit_fabricado')} className={numInputCls} />
+              <input type="number" min={0} {...register('edit_fabricado', { valueAsNumber: true })} className={numInputCls} />
             </div>
           </FieldGroup>
 
           <FieldGroup label="Second">
             <div>
               <label className={labelCls}>Qtd</label>
-              <input type="number" min={0} {...register('qtd_second')} className={numInputCls} />
+              <input type="number" min={0} {...register('qtd_second', { valueAsNumber: true })} className={numInputCls} />
             </div>
             <div>
               <label className={labelCls}>Fotos</label>
-              <input type="number" min={0} {...register('foto_second')} className={numInputCls} />
+              <input type="number" min={0} {...register('foto_second', { valueAsNumber: true })} className={numInputCls} />
             </div>
             <div>
               <label className={labelCls}>Edições</label>
-              <input type="number" min={0} {...register('edit_second')} className={numInputCls} />
+              <input type="number" min={0} {...register('edit_second', { valueAsNumber: true })} className={numInputCls} />
             </div>
           </FieldGroup>
 
           <FieldGroup label="Scrap">
             <div>
               <label className={labelCls}>Qtd</label>
-              <input type="number" min={0} {...register('qtd_scrap')} className={numInputCls} />
+              <input type="number" min={0} {...register('qtd_scrap', { valueAsNumber: true })} className={numInputCls} />
             </div>
             <div>
               <label className={labelCls}>Fotos</label>
-              <input type="number" min={0} {...register('foto_scrap')} className={numInputCls} />
+              <input type="number" min={0} {...register('foto_scrap', { valueAsNumber: true })} className={numInputCls} />
             </div>
             <div>
               <label className={labelCls}>Edições</label>
-              <input type="number" min={0} {...register('edit_scrap')} className={numInputCls} />
+              <input type="number" min={0} {...register('edit_scrap', { valueAsNumber: true })} className={numInputCls} />
             </div>
           </FieldGroup>
 
