@@ -6,6 +6,7 @@ import { useJfDashboard } from '@/hooks/use-jf-dashboard';
 import { KPICard } from '@/components/kpi-card';
 import { FabAlertasCard } from '@/components/fabricacoes-jf/fab-alertas-card';
 import { FabFabricacaoCard } from '@/components/fabricacoes-jf/fab-fabricacao-card';
+import { FabFabricacaoTab } from '@/components/fabricacoes-jf/fab-fabricacao-tab';
 import { FabSubtipoTable } from '@/components/fabricacoes-jf/fab-subtipo-table';
 import { FabVendasChart } from '@/components/fabricacoes-jf/fab-vendas-chart';
 import { FabPedrasChart } from '@/components/fabricacoes-jf/fab-pedras-chart';
@@ -111,7 +112,7 @@ export default function FabricacoesJFPage() {
           )}
 
           {activeTab === 'fabricacao' && (
-            <FabFabricacaoCard pecas={data.emFabricacao} expanded />
+            <FabFabricacaoTab pecas={data.emFabricacao} />
           )}
 
           {activeTab === 'controle' && (

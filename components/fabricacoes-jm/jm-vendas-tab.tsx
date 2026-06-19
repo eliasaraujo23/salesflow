@@ -378,73 +378,73 @@ export function JmVendasTab({ data, isLoading }: JmVendasTabProps) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4 space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">De</label>
-            <input type="date" value={from} onChange={e => setFrom(e.target.value)} className={inputCls} />
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4">
+        <div className="flex items-start gap-4 overflow-x-auto pb-1">
+          <div className="flex flex-col gap-1.5 shrink-0">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">De</span>
+            <input type="date" value={from} onChange={e => setFrom(e.target.value)} className={`w-36 ${inputCls}`} />
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Até</label>
-            <input type="date" value={to} onChange={e => setTo(e.target.value)} className={inputCls} />
+          <div className="flex flex-col gap-1.5 shrink-0">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Até</span>
+            <input type="date" value={to} onChange={e => setTo(e.target.value)} className={`w-36 ${inputCls}`} />
           </div>
-          <input
-            type="text"
-            placeholder="Buscar referência ou produto…"
-            value={busca}
-            onChange={e => setBusca(e.target.value)}
-            className={`flex-1 min-w-[200px] ${inputCls} placeholder:text-zinc-400`}
-          />
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-sm text-zinc-500 dark:text-zinc-400">
-              <span className="font-semibold text-zinc-900 dark:text-zinc-100">{filtered.length}</span> vendas
-              {' · '}
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">{fmtMoeda(totalFaturamento)}</span>
-            </span>
+          <div className="flex flex-col gap-1.5 shrink-0">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Buscar</span>
+            <input
+              type="text"
+              placeholder="Ref ou produto…"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              className={`w-44 ${inputCls} placeholder:text-zinc-400`}
+            />
+          </div>
+
+          {dimDefs.filter(d => d.avail.length > 0).map(d => (
+            <div key={d.label} className="flex flex-col min-w-[120px] shrink-0">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-1.5">
+                {d.label}
+              </span>
+              <div className="max-h-[88px] overflow-y-auto space-y-0.5 pr-1">
+                {d.avail.map(v => (
+                  <label key={v} className="flex items-center gap-1.5 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={d.sel.includes(v)}
+                      onChange={() => d.set(toggle(d.sel, v))}
+                      className="w-3.5 h-3.5 accent-indigo-600 cursor-pointer shrink-0"
+                    />
+                    <span className="text-xs text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 leading-tight">
+                      {v}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <div className="ml-auto flex flex-col items-end gap-1.5 shrink-0">
+            <div className="text-right">
+              <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 leading-none">{filtered.length}</span>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">itens</div>
+            </div>
+            <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{fmtMoeda(totalFaturamento)}</div>
             {hasFilters && (
               <button
                 onClick={clearAll}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-red-400 hover:text-red-500 transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-red-400 hover:text-red-500 transition-colors"
               >
-                <X size={12} /> Limpar
+                <X size={11} /> Limpar
               </button>
             )}
             <button
               onClick={() => downloadCSV(filtered)}
               disabled={filtered.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors disabled:opacity-40"
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors disabled:opacity-40"
             >
               <Download size={13} /> CSV
             </button>
           </div>
         </div>
-
-        {dimDefs.some(d => d.avail.length > 0) && (
-          <div className="space-y-2 pt-1 border-t border-zinc-100 dark:border-white/[0.04]">
-            {dimDefs.filter(d => d.avail.length > 0).map(d => (
-              <div key={d.label} className="flex items-start gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 pt-1 min-w-[64px] shrink-0">
-                  {d.label}
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {d.avail.map(v => (
-                    <button
-                      key={v}
-                      onClick={() => d.set(toggle(d.sel, v))}
-                      className={`px-2.5 py-0.5 rounded text-xs font-medium transition-colors ${
-                        d.sel.includes(v)
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-                      }`}
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl overflow-hidden">

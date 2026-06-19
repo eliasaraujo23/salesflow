@@ -5,6 +5,7 @@ import { Package, Hammer, CheckCircle, DollarSign, TrendingUp, RefreshCw, Layout
 import { useJmDashboard } from '@/hooks/use-jm-dashboard';
 import { KPICard } from '@/components/kpi-card';
 import { JmFabricacaoCard } from '@/components/fabricacoes-jm/jm-fabricacao-card';
+import { JmModificacaoTab } from '@/components/fabricacoes-jm/jm-modificacao-tab';
 import { JmEstoqueTable } from '@/components/fabricacoes-jm/jm-estoque-table';
 import { JmVendasTab } from '@/components/fabricacoes-jm/jm-vendas-tab';
 
@@ -104,7 +105,7 @@ export default function FabricacoesJMPage() {
           )}
 
           {activeTab === 'modificacao' && (
-            <JmFabricacaoCard pecas={data.emFabricacao} expanded />
+            <JmModificacaoTab pecas={data.emFabricacao} />
           )}
         </>
       )}
