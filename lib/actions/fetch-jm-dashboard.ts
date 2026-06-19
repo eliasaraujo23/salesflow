@@ -3,7 +3,6 @@ import { z } from 'zod';
 
 const coerceNum = () => z.coerce.number().default(0);
 
-// Resumo returned by /jm/resumo
 const jmResumoSchema = z.object({
   total_jm: coerceNum(),
   em_fabricacao: coerceNum(),
@@ -14,7 +13,6 @@ const jmResumoSchema = z.object({
   vendidos_mes: coerceNum(),
 });
 
-// Individual piece schema (used by lista-estoque and em-fabricacao)
 const jmPecaSchema = z.object({
   referencia: z.string().default(''),
   produto: z.string().nullable().optional(),
@@ -33,7 +31,6 @@ const jmPecaSchema = z.object({
   cts_pedra_colorida: z.coerce.number().nullable().optional(),
 });
 
-// Faturamento piece schema (sold pieces — has nf_joia, status_id)
 const jmFaturamentoSchema = z.object({
   referencia: z.string().default(''),
   tipo: z.string().nullable().optional(),
@@ -69,23 +66,35 @@ export interface ResponseApi<T> {
   data?: T;
 }
 
-async function safeFetch(url: string): Promise<unknown> {
+async function safeFetchArr(url: string): Promise<unknown[]> {
   try {
     const r = await authFetch(url);
     if (!r.ok) return [];
-    return await r.json();
+    const data = await r.json();
+    return Array.isArray(data) ? data : [];
   } catch {
     return [];
+  }
+}
+
+async function safeFetchObj(url: string): Promise<Record<string, unknown>> {
+  try {
+    const r = await authFetch(url);
+    if (!r.ok) return {};
+    const data = await r.json();
+    return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+  } catch {
+    return {};
   }
 }
 
 export async function fetchJmDashboardAction(): Promise<ResponseApi<JmDashboardFeed>> {
   try {
     const [resumo, listaEstoque, emFabricacao, listaFaturamento] = await Promise.all([
-      safeFetch(`${API_BASE}/jm/resumo`),
-      safeFetch(`${API_BASE}/jm/lista-estoque`),
-      safeFetch(`${API_BASE}/jm/em-fabricacao`),
-      safeFetch(`${API_BASE}/jm/lista-faturamento`),
+      safeFetchObj(`${API_BASE}/jm/resumo`),
+      safeFetchArr(`${API_BASE}/jm/lista-estoque`),
+      safeFetchArr(`${API_BASE}/jm/em-fabricacao`),
+      safeFetchArr(`${API_BASE}/jm/lista-faturamento`),
     ]);
 
     const parsed = jmDashboardSchema.safeParse({
@@ -96,7 +105,11 @@ export async function fetchJmDashboardAction(): Promise<ResponseApi<JmDashboardF
     });
 
     if (!parsed.success) {
-      return { httpStatus: 400, message: 'Formato de resposta do dashboard JM inválido', errors: parsed.error };
+      return {
+        httpStatus: 400,
+        message: `Formato de resposta JM inválido: ${parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')}`,
+        errors: parsed.error,
+      };
     }
     return { httpStatus: 200, data: parsed.data };
   } catch (error: unknown) {

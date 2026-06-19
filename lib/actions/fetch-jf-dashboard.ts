@@ -3,6 +3,28 @@ import { authFetch, API_BASE } from '@/lib/auth-fetch';
 
 const coerceNum = () => z.coerce.number().default(0);
 
+async function safeFetchArr(url: string): Promise<unknown[]> {
+  try {
+    const r = await authFetch(url);
+    if (!r.ok) return [];
+    const data = await r.json();
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+async function safeFetchObj(url: string): Promise<Record<string, unknown>> {
+  try {
+    const r = await authFetch(url);
+    if (!r.ok) return {};
+    const data = await r.json();
+    return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+  } catch {
+    return {};
+  }
+}
+
 const resumoSchema = z.object({
   estoque: coerceNum(),
   em_fabricacao: coerceNum(),
@@ -13,29 +35,31 @@ const resumoSchema = z.object({
 });
 
 const alertaSchema = z.object({
-  subtipo: z.string(),
+  subtipo: z.string().default(''),
   estoque: coerceNum(),
   vendidos_90d: coerceNum(),
   em_fabricacao: coerceNum(),
-  status_alerta: z.enum(['RUPTURA', 'CRITICO', 'ATENCAO']),
+  status_alerta: z.string().default('ATENCAO').transform(
+    v => (['RUPTURA', 'CRITICO', 'ATENCAO'].includes(v) ? v : 'ATENCAO') as 'RUPTURA' | 'CRITICO' | 'ATENCAO'
+  ),
 });
 
 const emFabricacaoSchema = z.object({
-  referencia: z.string(),
+  referencia: z.string().default(''),
   subtipo: z.string().nullable().optional(),
   tipo_pedra: z.string().nullable().optional(),
   dias: coerceNum(),
 });
 
 const categoriaRowSchema = z.object({
-  subtipo: z.string(),
+  subtipo: z.string().default(''),
   produto: z.string().nullable().optional(),
   tipo_pedra: z.string().nullable().optional(),
   lapidacao: z.string().nullable().optional(),
   estoque: coerceNum(),
   em_fabricacao: coerceNum(),
-  vendidos_total: z.coerce.number().optional(),
-  vendidos: z.coerce.number().optional(),
+  vendidos_total: z.coerce.number().default(0),
+  vendidos: z.coerce.number().default(0),
   vendidos_90d: coerceNum(),
   ticket_medio: z.coerce.number().nullable().optional(),
 }).transform(r => ({
@@ -45,19 +69,19 @@ const categoriaRowSchema = z.object({
   lapidacao: r.lapidacao ?? null,
   estoque: r.estoque,
   em_fabricacao: r.em_fabricacao,
-  vendidos: r.vendidos ?? r.vendidos_total ?? 0,
+  vendidos: r.vendidos || r.vendidos_total || 0,
   vendidos_90d: r.vendidos_90d,
   ticket_medio: r.ticket_medio ?? null,
 }));
 
 const vendasMesSchema = z.object({
-  mes: z.string(),
+  mes: z.string().default(''),
   qtd: coerceNum(),
   total: coerceNum(),
 });
 
 const vendasPedraSchema = z.object({
-  tipo_pedra: z.string(),
+  tipo_pedra: z.string().default(''),
   qtd: coerceNum(),
   ticket_medio: coerceNum(),
 });
@@ -84,12 +108,12 @@ export interface ResponseApi<T> {
 export async function fetchJfDashboardAction(): Promise<ResponseApi<JfDashboardFeed>> {
   try {
     const [resumo, alertas, fabricacao, categorias, vendasMes, vendasPedra] = await Promise.all([
-      authFetch(`${API_BASE}/resumo`).then(r => r.json()),
-      authFetch(`${API_BASE}/alertas`).then(r => r.json()),
-      authFetch(`${API_BASE}/em-fabricacao`).then(r => r.json()),
-      authFetch(`${API_BASE}/estoque-categoria`).then(r => r.json()),
-      authFetch(`${API_BASE}/vendas-mes`).then(r => r.json()),
-      authFetch(`${API_BASE}/vendas-pedra`).then(r => r.json()),
+      safeFetchObj(`${API_BASE}/resumo`),
+      safeFetchArr(`${API_BASE}/alertas`),
+      safeFetchArr(`${API_BASE}/em-fabricacao`),
+      safeFetchArr(`${API_BASE}/estoque-categoria`),
+      safeFetchArr(`${API_BASE}/vendas-mes`),
+      safeFetchArr(`${API_BASE}/vendas-pedra`),
     ]);
 
     const parsed = jfDashboardSchema.safeParse({
@@ -102,7 +126,11 @@ export async function fetchJfDashboardAction(): Promise<ResponseApi<JfDashboardF
     });
 
     if (!parsed.success) {
-      return { httpStatus: 400, message: 'Formato de resposta do dashboard JF inválido', errors: parsed.error };
+      return {
+        httpStatus: 400,
+        message: `Formato de resposta JF inválido: ${parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')}`,
+        errors: parsed.error,
+      };
     }
     return { httpStatus: 200, data: parsed.data };
   } catch (error: unknown) {
