@@ -19,7 +19,7 @@ const TABS = [
 ] as const;
 
 export default function FabricacoesJMPage() {
-  const { data, isLoading, isError, refetch, isFetching, dataUpdatedAt } = useJmDashboard();
+  const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useJmDashboard();
   const [activeTab, setActiveTab] = useState<'estoque' | 'faturamento'>('estoque');
 
   const lastUpdate = dataUpdatedAt
@@ -39,13 +39,18 @@ export default function FabricacoesJMPage() {
 
   if (isError || !data) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-64">
+      <div className="p-6 flex flex-col items-center justify-center min-h-64 gap-2">
         <div className="text-red-600 dark:text-red-400 text-sm">
           Erro ao carregar dados.{' '}
           <button onClick={() => refetch()} className="underline hover:no-underline">
             Tentar novamente
           </button>
         </div>
+        {error instanceof Error && (
+          <pre className="text-xs text-zinc-500 dark:text-zinc-400 max-w-xl whitespace-pre-wrap break-all text-center">
+            {error.message}
+          </pre>
+        )}
       </div>
     );
   }
