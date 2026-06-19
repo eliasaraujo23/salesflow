@@ -37,28 +37,47 @@ function KPIBox({ label, value, valueClass = '' }: { label: string; value: strin
   );
 }
 
-function ScrapCard({ fat, custo, qtd }: { fat: number; custo: number; qtd: number }) {
+function ScrapCard({ fat, custo, qtd, mainFat, topDestino }: {
+  fat: number; custo: number; qtd: number; mainFat: number; topDestino?: string;
+}) {
+  const lucro = fat - custo;
+  const pctTotal = mainFat > 0 ? (fat / mainFat * 100) : 0;
+
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-3">
       <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-2">⚡ Scrap</div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-x-3 gap-y-2">
         <div>
           <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Faturamento</div>
-          <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">{fmtMoedaK(fat)}</div>
+          <div className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 truncate">{fmtMoedaK(fat)}</div>
         </div>
         <div>
           <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Quantidade</div>
-          <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{qtd}</div>
+          <div className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100">{qtd}</div>
+        </div>
+        <div>
+          <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">% do Total</div>
+          <div className="text-[13px] font-bold text-amber-600 dark:text-amber-400">{pctTotal.toFixed(1)}%</div>
         </div>
         <div>
           <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Lucratividade</div>
-          <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{fmtLuc(fat, custo)}</div>
+          <div className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400">{fmtLuc(fat, custo)}</div>
         </div>
         <div>
           <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Ticket Médio</div>
-          <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">{ticketMedio(fat, qtd)}</div>
+          <div className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 truncate">{ticketMedio(fat, qtd)}</div>
+        </div>
+        <div>
+          <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Lucro Bruto</div>
+          <div className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400 truncate">{fmtMoedaK(lucro)}</div>
         </div>
       </div>
+      {topDestino && (
+        <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-white/[0.06]">
+          <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Top Destino · </span>
+          <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">{topDestino}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -119,7 +138,13 @@ export default function ResalePage() {
               <KPIBox label="Ticket Médio"  value={ticketMedio(data.faturamento, data.qtd)} />
               <KPIBox label="Quantidade"    value={String(data.qtd)} />
             </div>
-            <ScrapCard fat={data.scrapFat} custo={data.scrapCusto} qtd={data.scrapQtd} />
+            <ScrapCard
+              fat={data.scrapFat}
+              custo={data.scrapCusto}
+              qtd={data.scrapQtd}
+              mainFat={data.faturamento}
+              topDestino={data.scrapByDestino[0]?.name}
+            />
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-3 max-h-[200px] overflow-hidden flex flex-col">
               <ResaleUltimasVendas vendas={data.ultimasVendas} totalQtd={data.qtd + data.scrapQtd} />
             </div>
@@ -140,7 +165,7 @@ export default function ResalePage() {
             <SectionCard title="Scrap — Por Destino">
               {data.scrapByDestino.length === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
-                : <ResaleHBar data={data.scrapByDestino.slice(0, 15)} color="#d97706" labelWidth={160} barH={22} />}
+                : <ResaleHBar data={data.scrapByDestino.slice(0, 15)} color="#eab308" labelWidth={160} barH={22} />}
             </SectionCard>
           </div>
 

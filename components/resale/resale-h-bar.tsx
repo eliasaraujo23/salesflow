@@ -34,7 +34,7 @@ function CustomLabel({ x = 0, y = 0, width = 0, height = 0, value = 0 }: CustomL
       x={x + width + 6}
       y={y + height / 2 + 4}
       fill="#71717a"
-      fontSize={10}
+      fontSize={11}
       textAnchor="start"
     >
       {fmtMoeda(value)}
@@ -67,7 +67,7 @@ export function ResaleHBar({ data, color, labelWidth = 175, barH = 26 }: ResaleH
         <XAxis
           type="number"
           tickFormatter={fmtAxisX}
-          tick={{ fontSize: 10, fill: '#71717a' }}
+          tick={{ fontSize: 11, fill: '#71717a' }}
           axisLine={false}
           tickLine={false}
         />
@@ -75,7 +75,7 @@ export function ResaleHBar({ data, color, labelWidth = 175, barH = 26 }: ResaleH
           type="category"
           dataKey="label"
           width={labelWidth}
-          tick={{ fontSize: 10, fill: '#71717a' }}
+          tick={{ fontSize: 11, fill: '#71717a' }}
           axisLine={false}
           tickLine={false}
         />
