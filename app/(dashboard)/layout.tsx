@@ -35,7 +35,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     <div className="flex h-screen overflow-hidden bg-bg">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar title="SalesFlow" subtitle="Pronto para começar" />
+        <Topbar />
         <main className="flex-1 overflow-y-auto bg-bg">{children}</main>
       </div>
     </div>
