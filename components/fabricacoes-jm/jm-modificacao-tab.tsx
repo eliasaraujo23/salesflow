@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { X } from 'lucide-react';
 import { type JmPeca } from '@/lib/actions/fetch-jm-dashboard';
 
-type StringField = 'tipo' | 'produto' | 'subtipo' | 'tipo_pedra' | 'lapidacao' | 'destino';
+type StringField = 'produto' | 'subtipo' | 'vendedor_interno' | 'destino' | 'tipo_pedra' | 'lapidacao';
 
 function uniqStrings(rows: JmPeca[], field: StringField): string[] {
   return [...new Set(rows.map(r => r[field]).filter((v): v is string => v != null && v !== ''))].sort();
@@ -12,16 +12,16 @@ function uniqStrings(rows: JmPeca[], field: StringField): string[] {
 
 function applyDimFilters(
   rows: JmPeca[],
-  tipos: string[], produtos: string[], subtipos: string[],
-  pedras: string[], lapidacoes: string[], destinos: string[],
+  produtos: string[], subtipos: string[], vendedores: string[],
+  destinos: string[], pedras: string[], lapidacoes: string[],
 ): JmPeca[] {
   return rows.filter(r => {
-    if (tipos.length && !tipos.includes(r.tipo ?? '')) return false;
     if (produtos.length && !produtos.includes(r.produto ?? '')) return false;
     if (subtipos.length && !subtipos.includes(r.subtipo ?? '')) return false;
+    if (vendedores.length && !vendedores.includes(r.vendedor_interno ?? '')) return false;
+    if (destinos.length && !destinos.includes(r.destino ?? '')) return false;
     if (pedras.length && !pedras.includes(r.tipo_pedra ?? '')) return false;
     if (lapidacoes.length && !lapidacoes.includes(r.lapidacao ?? '')) return false;
-    if (destinos.length && !destinos.includes(r.destino ?? '')) return false;
     return true;
   });
 }
@@ -44,12 +44,12 @@ interface JmModificacaoTabProps {
 
 export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
   const [busca, setBusca] = useState('');
-  const [tipos, setTipos] = useState<string[]>([]);
   const [produtos, setProdutos] = useState<string[]>([]);
   const [subtipos, setSubtipos] = useState<string[]>([]);
+  const [vendedores, setVendedores] = useState<string[]>([]);
+  const [destinos, setDestinos] = useState<string[]>([]);
   const [pedras, setPedras] = useState<string[]>([]);
   const [lapidacoes, setLapidacoes] = useState<string[]>([]);
-  const [destinos, setDestinos] = useState<string[]>([]);
 
   const buscaFiltered = useMemo(() => {
     if (!busca) return pecas;
@@ -60,29 +60,29 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
   }, [pecas, busca]);
 
   const filtered = useMemo(
-    () => applyDimFilters(buscaFiltered, tipos, produtos, subtipos, pedras, lapidacoes, destinos),
-    [buscaFiltered, tipos, produtos, subtipos, pedras, lapidacoes, destinos],
+    () => applyDimFilters(buscaFiltered, produtos, subtipos, vendedores, destinos, pedras, lapidacoes),
+    [buscaFiltered, produtos, subtipos, vendedores, destinos, pedras, lapidacoes],
   );
 
-  const availTipos      = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, [],     produtos,  subtipos, pedras, lapidacoes, destinos), 'tipo'),      [buscaFiltered, produtos,  subtipos, pedras, lapidacoes, destinos]);
-  const availProdutos   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  [],        subtipos, pedras, lapidacoes, destinos), 'produto'),    [buscaFiltered, tipos,     subtipos, pedras, lapidacoes, destinos]);
-  const availSubtipos   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos,  [],       pedras, lapidacoes, destinos), 'subtipo'),    [buscaFiltered, tipos, produtos,   pedras, lapidacoes, destinos]);
-  const availPedras     = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos,  subtipos, [],     lapidacoes, destinos), 'tipo_pedra'), [buscaFiltered, tipos, produtos, subtipos, lapidacoes, destinos]);
-  const availLapidacoes = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos,  subtipos, pedras, [],         destinos), 'lapidacao'),  [buscaFiltered, tipos, produtos, subtipos, pedras,     destinos]);
-  const availDestinos   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos,  subtipos, pedras, lapidacoes, []),      'destino'),    [buscaFiltered, tipos, produtos, subtipos, pedras, lapidacoes]);
+  const availProdutos   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, [],      subtipos,  vendedores, destinos, pedras, lapidacoes), 'produto'),         [buscaFiltered, subtipos,  vendedores, destinos, pedras, lapidacoes]);
+  const availSubtipos   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, produtos, [],        vendedores, destinos, pedras, lapidacoes), 'subtipo'),          [buscaFiltered, produtos,  vendedores, destinos, pedras, lapidacoes]);
+  const availVendedores = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, produtos, subtipos,  [],         destinos, pedras, lapidacoes), 'vendedor_interno'), [buscaFiltered, produtos,  subtipos,   destinos, pedras, lapidacoes]);
+  const availDestinos   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, produtos, subtipos,  vendedores, [],       pedras, lapidacoes), 'destino'),          [buscaFiltered, produtos,  subtipos, vendedores, pedras, lapidacoes]);
+  const availPedras     = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, produtos, subtipos,  vendedores, destinos, [],     lapidacoes), 'tipo_pedra'),       [buscaFiltered, produtos,  subtipos, vendedores, destinos, lapidacoes]);
+  const availLapidacoes = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, produtos, subtipos,  vendedores, destinos, pedras, []),         'lapidacao'),        [buscaFiltered, produtos,  subtipos, vendedores, destinos, pedras]);
 
-  const hasFilters = !!busca || tipos.length > 0 || produtos.length > 0 || subtipos.length > 0 ||
-    pedras.length > 0 || lapidacoes.length > 0 || destinos.length > 0;
+  const hasFilters = !!busca || produtos.length > 0 || subtipos.length > 0 || vendedores.length > 0 ||
+    destinos.length > 0 || pedras.length > 0 || lapidacoes.length > 0;
 
   const totalPeso = useMemo(() => filtered.reduce((s, p) => s + p.peso, 0), [filtered]);
 
   const dimDefs = [
-    { label: 'Tipo',       avail: availTipos,      sel: tipos,      set: setTipos },
-    { label: 'Produto',    avail: availProdutos,   sel: produtos,   set: setProdutos },
-    { label: 'Subtipo',    avail: availSubtipos,   sel: subtipos,   set: setSubtipos },
-    { label: 'Tipo Pedra', avail: availPedras,     sel: pedras,     set: setPedras },
-    { label: 'Lapidação',  avail: availLapidacoes, sel: lapidacoes, set: setLapidacoes },
-    { label: 'Destino',    avail: availDestinos,   sel: destinos,   set: setDestinos },
+    { label: 'Produto',      avail: availProdutos,   sel: produtos,   set: setProdutos },
+    { label: 'Subtipo',      avail: availSubtipos,   sel: subtipos,   set: setSubtipos },
+    { label: 'Dest. Manut.', avail: availVendedores, sel: vendedores, set: setVendedores },
+    { label: 'Destino',      avail: availDestinos,   sel: destinos,   set: setDestinos },
+    { label: 'Tipo Pedra',   avail: availPedras,     sel: pedras,     set: setPedras },
+    { label: 'Lapidação',    avail: availLapidacoes, sel: lapidacoes, set: setLapidacoes },
   ];
 
   return (
@@ -134,8 +134,8 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
             {hasFilters && (
               <button
                 onClick={() => {
-                  setTipos([]); setProdutos([]); setSubtipos([]);
-                  setPedras([]); setLapidacoes([]); setDestinos([]); setBusca('');
+                  setProdutos([]); setSubtipos([]); setVendedores([]);
+                  setDestinos([]); setPedras([]); setLapidacoes([]); setBusca('');
                 }}
                 className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-red-400 hover:text-red-500 transition-colors"
               >

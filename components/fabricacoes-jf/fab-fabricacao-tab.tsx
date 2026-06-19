@@ -5,10 +5,26 @@ import { X } from 'lucide-react';
 import { type JfDashboardFeed } from '@/lib/actions/fetch-jf-dashboard';
 
 type JfPeca = JfDashboardFeed['emFabricacao'][number];
-type StringField = 'subtipo' | 'tipo_pedra';
+type StringField = 'produto' | 'subtipo' | 'vendedor_interno' | 'destino' | 'tipo_pedra' | 'lapidacao';
 
 function uniqStrings(rows: JfPeca[], field: StringField): string[] {
   return [...new Set(rows.map(r => r[field]).filter((v): v is string => v != null && v !== ''))].sort();
+}
+
+function applyDimFilters(
+  rows: JfPeca[],
+  produtos: string[], subtipos: string[], vendedores: string[],
+  destinos: string[], pedras: string[], lapidacoes: string[],
+): JfPeca[] {
+  return rows.filter(r => {
+    if (produtos.length && !produtos.includes(r.produto ?? '')) return false;
+    if (subtipos.length && !subtipos.includes(r.subtipo ?? '')) return false;
+    if (vendedores.length && !vendedores.includes(r.vendedor_interno ?? '')) return false;
+    if (destinos.length && !destinos.includes(r.destino ?? '')) return false;
+    if (pedras.length && !pedras.includes(r.tipo_pedra ?? '')) return false;
+    if (lapidacoes.length && !lapidacoes.includes(r.lapidacao ?? '')) return false;
+    return true;
+  });
 }
 
 function toggle(arr: string[], v: string): string[] {
@@ -30,8 +46,12 @@ interface FabFabricacaoTabProps {
 
 export function FabFabricacaoTab({ pecas }: FabFabricacaoTabProps) {
   const [busca, setBusca] = useState('');
+  const [produtos, setProdutos] = useState<string[]>([]);
   const [subtipos, setSubtipos] = useState<string[]>([]);
+  const [vendedores, setVendedores] = useState<string[]>([]);
+  const [destinos, setDestinos] = useState<string[]>([]);
   const [pedras, setPedras] = useState<string[]>([]);
+  const [lapidacoes, setLapidacoes] = useState<string[]>([]);
 
   const buscaFiltered = useMemo(() => {
     if (!busca) return pecas;
@@ -39,29 +59,28 @@ export function FabFabricacaoTab({ pecas }: FabFabricacaoTabProps) {
     return pecas.filter(p => p.referencia.toLowerCase().includes(q));
   }, [pecas, busca]);
 
-  const filtered = useMemo(() => {
-    return buscaFiltered.filter(p => {
-      if (subtipos.length && !subtipos.includes(p.subtipo ?? '')) return false;
-      if (pedras.length && !pedras.includes(p.tipo_pedra ?? '')) return false;
-      return true;
-    });
-  }, [buscaFiltered, subtipos, pedras]);
-
-  const availSubtipos = useMemo(
-    () => uniqStrings(buscaFiltered.filter(p => !pedras.length || pedras.includes(p.tipo_pedra ?? '')), 'subtipo'),
-    [buscaFiltered, pedras],
+  const filtered = useMemo(
+    () => applyDimFilters(buscaFiltered, produtos, subtipos, vendedores, destinos, pedras, lapidacoes),
+    [buscaFiltered, produtos, subtipos, vendedores, destinos, pedras, lapidacoes],
   );
 
-  const availPedras = useMemo(
-    () => uniqStrings(buscaFiltered.filter(p => !subtipos.length || subtipos.includes(p.subtipo ?? '')), 'tipo_pedra'),
-    [buscaFiltered, subtipos],
-  );
+  const availProdutos   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, [],       subtipos,  vendedores, destinos, pedras, lapidacoes), 'produto'),          [buscaFiltered, subtipos,  vendedores, destinos, pedras, lapidacoes]);
+  const availSubtipos   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, produtos,  [],        vendedores, destinos, pedras, lapidacoes), 'subtipo'),           [buscaFiltered, produtos,  vendedores, destinos, pedras, lapidacoes]);
+  const availVendedores = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, produtos,  subtipos,  [],         destinos, pedras, lapidacoes), 'vendedor_interno'),  [buscaFiltered, produtos,  subtipos,   destinos, pedras, lapidacoes]);
+  const availDestinos   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, produtos,  subtipos,  vendedores, [],       pedras, lapidacoes), 'destino'),           [buscaFiltered, produtos,  subtipos, vendedores, pedras, lapidacoes]);
+  const availPedras     = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, produtos,  subtipos,  vendedores, destinos, [],     lapidacoes), 'tipo_pedra'),        [buscaFiltered, produtos,  subtipos, vendedores, destinos, lapidacoes]);
+  const availLapidacoes = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, produtos,  subtipos,  vendedores, destinos, pedras, []),         'lapidacao'),         [buscaFiltered, produtos,  subtipos, vendedores, destinos, pedras]);
 
-  const hasFilters = !!busca || subtipos.length > 0 || pedras.length > 0;
+  const hasFilters = !!busca || produtos.length > 0 || subtipos.length > 0 || vendedores.length > 0 ||
+    destinos.length > 0 || pedras.length > 0 || lapidacoes.length > 0;
 
   const dimDefs = [
-    { label: 'Subtipo',    avail: availSubtipos, sel: subtipos, set: setSubtipos },
-    { label: 'Tipo Pedra', avail: availPedras,   sel: pedras,   set: setPedras },
+    { label: 'Produto',      avail: availProdutos,   sel: produtos,   set: setProdutos },
+    { label: 'Subtipo',      avail: availSubtipos,   sel: subtipos,   set: setSubtipos },
+    { label: 'Dest. Manut.', avail: availVendedores, sel: vendedores, set: setVendedores },
+    { label: 'Destino',      avail: availDestinos,   sel: destinos,   set: setDestinos },
+    { label: 'Tipo Pedra',   avail: availPedras,     sel: pedras,     set: setPedras },
+    { label: 'Lapidação',    avail: availLapidacoes, sel: lapidacoes, set: setLapidacoes },
   ];
 
   return (
@@ -109,7 +128,10 @@ export function FabFabricacaoTab({ pecas }: FabFabricacaoTabProps) {
             </div>
             {hasFilters && (
               <button
-                onClick={() => { setSubtipos([]); setPedras([]); setBusca(''); }}
+                onClick={() => {
+                  setProdutos([]); setSubtipos([]); setVendedores([]);
+                  setDestinos([]); setPedras([]); setLapidacoes([]); setBusca('');
+                }}
                 className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-red-400 hover:text-red-500 transition-colors"
               >
                 <X size={11} /> Limpar

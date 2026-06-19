@@ -20,6 +20,7 @@ const jmPecaSchema = z.object({
   tipo_pedra: z.string().nullable().optional(),
   lapidacao: z.string().nullable().optional(),
   destino: z.string().nullable().optional(),
+  vendedor_interno: z.string().nullable().optional(),
   tipo: z.string().nullable().optional(),
   peso: coerceNum(),
   custo_real: coerceNum(),

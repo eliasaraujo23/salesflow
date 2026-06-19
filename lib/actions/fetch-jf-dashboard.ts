@@ -46,8 +46,12 @@ const alertaSchema = z.object({
 
 const emFabricacaoSchema = z.object({
   referencia: z.string().default(''),
+  produto: z.string().nullable().optional(),
   subtipo: z.string().nullable().optional(),
   tipo_pedra: z.string().nullable().optional(),
+  lapidacao: z.string().nullable().optional(),
+  destino: z.string().nullable().optional(),
+  vendedor_interno: z.string().nullable().optional(),
   dias: coerceNum(),
 });
 
