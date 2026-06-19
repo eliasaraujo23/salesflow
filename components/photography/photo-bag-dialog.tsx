@@ -10,10 +10,18 @@ import { useCreatePhotoBag, useUpdatePhotoBag } from '@/hooks/use-photo-bags';
 import { toast } from 'sonner';
 
 const schema = z.object({
-  cod_saquinho: z.string().min(1, 'Código obrigatório'),
-  responsavel: z.string().min(1, 'Responsável obrigatório'),
-  status: z.enum(['pendente', 'fotografado', 'catalogado', 'finalizado']),
-  detalhes: z.string().optional(),
+  data_recebimento: z.string().min(1, 'Data obrigatória'),
+  qtd_fabricado: z.coerce.number().min(0).default(0),
+  foto_fabricado: z.coerce.number().min(0).default(0),
+  edit_fabricado: z.coerce.number().min(0).default(0),
+  qtd_second: z.coerce.number().min(0).default(0),
+  foto_second: z.coerce.number().min(0).default(0),
+  edit_second: z.coerce.number().min(0).default(0),
+  qtd_scrap: z.coerce.number().min(0).default(0),
+  foto_scrap: z.coerce.number().min(0).default(0),
+  edit_scrap: z.coerce.number().min(0).default(0),
+  data_finalizacao: z.string().optional(),
+  observacao: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -21,10 +29,24 @@ type FormValues = z.infer<typeof schema>;
 interface PhotoBagDialogProps {
   bag?: PhotoBag;
   onClose: () => void;
-  currentUser: string;
 }
 
-export function PhotoBagDialog({ bag, onClose, currentUser }: PhotoBagDialogProps) {
+const inputCls = 'w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:border-indigo-500 transition-colors';
+const numInputCls = `${inputCls} text-center`;
+const labelCls = 'block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1';
+
+function FieldGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-3">
+      <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-2">{label}</div>
+      <div className="grid grid-cols-3 gap-2">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export function PhotoBagDialog({ bag, onClose }: PhotoBagDialogProps) {
   const isEdit = !!bag;
   const createMutation = useCreatePhotoBag();
   const updateMutation = useUpdatePhotoBag();
@@ -36,26 +58,40 @@ export function PhotoBagDialog({ bag, onClose, currentUser }: PhotoBagDialogProp
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      cod_saquinho: bag?.cod_saquinho ?? '',
-      responsavel: bag?.responsavel ?? currentUser,
-      status: bag?.status ?? 'pendente',
-      detalhes: bag?.detalhes ?? '',
+      data_recebimento: bag?.data_recebimento?.slice(0, 10) ?? '',
+      qtd_fabricado: bag?.qtd_fabricado ?? 0,
+      foto_fabricado: bag?.foto_fabricado ?? 0,
+      edit_fabricado: bag?.edit_fabricado ?? 0,
+      qtd_second: bag?.qtd_second ?? 0,
+      foto_second: bag?.foto_second ?? 0,
+      edit_second: bag?.edit_second ?? 0,
+      qtd_scrap: bag?.qtd_scrap ?? 0,
+      foto_scrap: bag?.foto_scrap ?? 0,
+      edit_scrap: bag?.edit_scrap ?? 0,
+      data_finalizacao: bag?.data_finalizacao?.slice(0, 10) ?? '',
+      observacao: bag?.observacao ?? '',
     },
   });
 
   const onSubmit = async (values: FormValues) => {
+    const payload = {
+      ...values,
+      data_finalizacao: values.data_finalizacao || null,
+      observacao: values.observacao || null,
+    };
+
     if (isEdit && bag) {
-      const result = await updateMutation.mutateAsync({ id: bag.id, data: values });
+      const result = await updateMutation.mutateAsync({ id: bag.id, data: payload });
       if (result.httpStatus === 200) {
-        toast.success('Saquinho atualizado!');
+        toast.success('Lote atualizado!');
         onClose();
       } else {
         toast.error(result.message ?? 'Erro ao atualizar');
       }
     } else {
-      const result = await createMutation.mutateAsync(values);
+      const result = await createMutation.mutateAsync(payload);
       if (result.httpStatus === 201) {
-        toast.success('Saquinho criado!');
+        toast.success('Lote criado!');
         onClose();
       } else {
         toast.error(result.message ?? 'Erro ao criar');
@@ -63,14 +99,12 @@ export function PhotoBagDialog({ bag, onClose, currentUser }: PhotoBagDialogProp
     }
   };
 
-  const inputCls = 'w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:border-indigo-500 transition-colors';
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-6 w-full max-w-md shadow-2xl">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-            {isEdit ? 'Editar Saquinho' : 'Novo Saquinho'}
+            {isEdit ? 'Editar Lote' : 'Novo Lote'}
           </h2>
           <button onClick={onClose} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
             <X size={20} />
@@ -79,44 +113,68 @@ export function PhotoBagDialog({ bag, onClose, currentUser }: PhotoBagDialogProp
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Código</label>
-            <input
-              {...register('cod_saquinho')}
-              placeholder="Ex: SAQ-001"
-              className={inputCls}
-            />
-            {errors.cod_saquinho && (
-              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.cod_saquinho.message}</p>
+            <label className={labelCls}>Data de Recebimento</label>
+            <input type="date" {...register('data_recebimento')} className={inputCls} />
+            {errors.data_recebimento && (
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.data_recebimento.message}</p>
             )}
           </div>
 
+          <FieldGroup label="Fabricado">
+            <div>
+              <label className={labelCls}>Qtd</label>
+              <input type="number" min={0} {...register('qtd_fabricado')} className={numInputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Fotos</label>
+              <input type="number" min={0} {...register('foto_fabricado')} className={numInputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Edições</label>
+              <input type="number" min={0} {...register('edit_fabricado')} className={numInputCls} />
+            </div>
+          </FieldGroup>
+
+          <FieldGroup label="Second">
+            <div>
+              <label className={labelCls}>Qtd</label>
+              <input type="number" min={0} {...register('qtd_second')} className={numInputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Fotos</label>
+              <input type="number" min={0} {...register('foto_second')} className={numInputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Edições</label>
+              <input type="number" min={0} {...register('edit_second')} className={numInputCls} />
+            </div>
+          </FieldGroup>
+
+          <FieldGroup label="Scrap">
+            <div>
+              <label className={labelCls}>Qtd</label>
+              <input type="number" min={0} {...register('qtd_scrap')} className={numInputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Fotos</label>
+              <input type="number" min={0} {...register('foto_scrap')} className={numInputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Edições</label>
+              <input type="number" min={0} {...register('edit_scrap')} className={numInputCls} />
+            </div>
+          </FieldGroup>
+
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Responsável</label>
-            <input
-              {...register('responsavel')}
-              className={inputCls}
-            />
-            {errors.responsavel && (
-              <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.responsavel.message}</p>
-            )}
+            <label className={labelCls}>Data de Finalização (opcional)</label>
+            <input type="date" {...register('data_finalizacao')} className={inputCls} />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Status</label>
-            <select {...register('status')} className={inputCls}>
-              <option value="pendente">Pendente</option>
-              <option value="fotografado">Fotografado</option>
-              <option value="catalogado">Catalogado</option>
-              <option value="finalizado">Finalizado</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Detalhes</label>
+            <label className={labelCls}>Observação (opcional)</label>
             <textarea
-              {...register('detalhes')}
-              rows={3}
-              placeholder="Opcional"
+              {...register('observacao')}
+              rows={2}
               className={`${inputCls} resize-none`}
             />
           </div>

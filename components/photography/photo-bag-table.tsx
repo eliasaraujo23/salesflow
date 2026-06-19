@@ -12,21 +12,21 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import { ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2 } from 'lucide-react';
-import { type PhotoBag } from '@/lib/actions/photo-bags';
+import { type PhotoBag, getBatchStatus, getBatchDias, type BatchStatus } from '@/lib/actions/photo-bags';
 import { useDeletePhotoBag } from '@/hooks/use-photo-bags';
 import { toast } from 'sonner';
 
-const STATUS_BADGE: Record<string, string> = {
+const STATUS_BADGE: Record<BatchStatus, string> = {
   pendente: 'bg-amber-500/20 text-amber-600 dark:text-amber-400',
-  fotografado: 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400',
-  catalogado: 'bg-violet-500/20 text-violet-600 dark:text-violet-400',
+  fotografando: 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400',
+  editando: 'bg-violet-500/20 text-violet-600 dark:text-violet-400',
   finalizado: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
 };
 
-const STATUS_LABEL: Record<string, string> = {
+const STATUS_LABEL: Record<BatchStatus, string> = {
   pendente: 'Pendente',
-  fotografado: 'Fotografado',
-  catalogado: 'Catalogado',
+  fotografando: 'Fotografando',
+  editando: 'Editando',
   finalizado: 'Finalizado',
 };
 
@@ -36,54 +36,114 @@ const diasClass = (d: number): string => {
   return 'text-red-600 dark:text-red-400';
 };
 
+function fmtDate(iso: string): string {
+  if (!iso) return '—';
+  const d = new Date(iso.slice(0, 10) + 'T00:00:00');
+  return d.toLocaleDateString('pt-BR');
+}
+
+function ProgressCell({ done, total }: { done: number; total: number }) {
+  if (total === 0) return <span className="text-xs text-zinc-400 dark:text-zinc-500">—</span>;
+  const pct = Math.min(100, Math.round((done / total) * 100));
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="w-12 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${done >= total ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="text-xs text-zinc-500 dark:text-zinc-400">{done}/{total}</span>
+    </div>
+  );
+}
+
+interface Row extends PhotoBag {
+  _status: BatchStatus;
+  _dias: number;
+}
+
 interface PhotoBagTableProps {
   data: PhotoBag[];
   onEdit: (bag: PhotoBag) => void;
 }
 
 export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'dias', desc: true }]);
+  const [sorting, setSorting] = useState<SortingState>([{ id: '_dias', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const deleteMutation = useDeletePhotoBag();
 
-  const handleDelete = async (bag: PhotoBag) => {
-    if (!confirm(`Remover saquinho ${bag.cod_saquinho}?`)) return;
+  const rows: Row[] = data.map(b => ({
+    ...b,
+    _status: getBatchStatus(b),
+    _dias: getBatchDias(b),
+  }));
+
+  const handleDelete = async (bag: Row) => {
+    if (!confirm(`Remover lote de ${fmtDate(bag.data_recebimento)}?`)) return;
     const result = await deleteMutation.mutateAsync(bag.id);
     if (result.httpStatus === 200) {
-      toast.success('Saquinho removido');
+      toast.success('Lote removido');
     } else {
       toast.error(result.message ?? 'Erro ao remover');
     }
   };
 
-  const columns: ColumnDef<PhotoBag>[] = [
+  const columns: ColumnDef<Row>[] = [
     {
-      accessorKey: 'cod_saquinho',
-      header: 'Código',
+      accessorKey: 'data_recebimento',
+      header: 'Data Recebimento',
       cell: ({ getValue }) => (
-        <span className="font-mono text-sm text-indigo-600 dark:text-indigo-400 font-semibold">{getValue<string>()}</span>
+        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{fmtDate(getValue<string>())}</span>
       ),
     },
     {
-      accessorKey: 'responsavel',
-      header: 'Responsável',
-      cell: ({ getValue }) => <span className="text-sm text-zinc-900 dark:text-zinc-100">{getValue<string>()}</span>,
+      id: 'total_qtd',
+      header: 'Total',
+      cell: ({ row }) => {
+        const { qtd_fabricado: fab, qtd_second: sec, qtd_scrap: scrap } = row.original;
+        const total = fab + sec + scrap;
+        return (
+          <div className="text-xs text-zinc-600 dark:text-zinc-400 space-y-0.5">
+            <div>{total} peças</div>
+            <div className="text-zinc-400 dark:text-zinc-500">{fab}F · {sec}S · {scrap}Sc</div>
+          </div>
+        );
+      },
     },
     {
-      accessorKey: 'status',
+      id: 'fotos',
+      header: 'Fotos',
+      cell: ({ row }) => {
+        const total = row.original.qtd_fabricado + row.original.qtd_second + row.original.qtd_scrap;
+        const done = row.original.foto_fabricado + row.original.foto_second + row.original.foto_scrap;
+        return <ProgressCell done={done} total={total} />;
+      },
+    },
+    {
+      id: 'edicoes',
+      header: 'Edições',
+      cell: ({ row }) => {
+        const total = row.original.qtd_fabricado + row.original.qtd_second + row.original.qtd_scrap;
+        const done = row.original.edit_fabricado + row.original.edit_second + row.original.edit_scrap;
+        return <ProgressCell done={done} total={total} />;
+      },
+    },
+    {
+      accessorKey: '_status',
       header: 'Status',
       filterFn: 'equals',
       cell: ({ getValue }) => {
-        const v = getValue<string>();
+        const v = getValue<BatchStatus>();
         return (
-          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${STATUS_BADGE[v] ?? ''}`}>
-            {STATUS_LABEL[v] ?? v}
+          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${STATUS_BADGE[v]}`}>
+            {STATUS_LABEL[v]}
           </span>
         );
       },
     },
     {
-      accessorKey: 'dias',
+      accessorKey: '_dias',
       header: ({ column }) => (
         <button
           className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -101,8 +161,8 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
       },
     },
     {
-      accessorKey: 'detalhes',
-      header: 'Detalhes',
+      accessorKey: 'observacao',
+      header: 'Observação',
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1">{getValue<string | undefined>() ?? '—'}</span>
       ),
@@ -132,7 +192,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
   ];
 
   const table = useReactTable({
-    data,
+    data: rows,
     columns,
     state: { sorting, columnFilters },
     onSortingChange: setSorting,
@@ -142,16 +202,23 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
     getFilteredRowModel: getFilteredRowModel(),
   });
 
-  const STATUS_FILTERS = ['todos', 'pendente', 'fotografado', 'catalogado', 'finalizado'];
-  const activeStatusFilter = (columnFilters.find((f) => f.id === 'status')?.value as string) ?? 'todos';
+  const STATUS_FILTERS: Array<{ key: string; label: string }> = [
+    { key: 'todos', label: 'Todos' },
+    { key: 'pendente', label: 'Pendente' },
+    { key: 'fotografando', label: 'Fotografando' },
+    { key: 'editando', label: 'Editando' },
+    { key: 'finalizado', label: 'Finalizado' },
+  ];
+
+  const activeStatusFilter = (columnFilters.find((f) => f.id === '_status')?.value as string) ?? 'todos';
 
   const handleStatusFilter = (status: string) => {
     if (status === 'todos') {
-      setColumnFilters((prev) => prev.filter((f) => f.id !== 'status'));
+      setColumnFilters((prev) => prev.filter((f) => f.id !== '_status'));
     } else {
       setColumnFilters((prev) => [
-        ...prev.filter((f) => f.id !== 'status'),
-        { id: 'status', value: status },
+        ...prev.filter((f) => f.id !== '_status'),
+        { id: '_status', value: status },
       ]);
     }
   };
@@ -161,15 +228,15 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
       <div className="flex gap-2 overflow-x-auto pb-1">
         {STATUS_FILTERS.map((s) => (
           <button
-            key={s}
-            onClick={() => handleStatusFilter(s)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all capitalize ${
-              activeStatusFilter === s
+            key={s.key}
+            onClick={() => handleStatusFilter(s.key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+              activeStatusFilter === s.key
                 ? 'bg-indigo-600 text-white'
                 : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
             }`}
           >
-            {s === 'todos' ? 'Todos' : STATUS_LABEL[s]}
+            {s.label}
           </button>
         ))}
       </div>
@@ -200,7 +267,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
           </tbody>
         </table>
         {table.getRowModel().rows.length === 0 && (
-          <div className="p-12 text-center text-zinc-500 dark:text-zinc-400 text-sm">Nenhum saquinho encontrado</div>
+          <div className="p-12 text-center text-zinc-500 dark:text-zinc-400 text-sm">Nenhum lote encontrado</div>
         )}
       </div>
     </div>

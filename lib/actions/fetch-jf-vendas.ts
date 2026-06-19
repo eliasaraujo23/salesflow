@@ -1,0 +1,47 @@
+import { z } from 'zod';
+import { authFetch, API_BASE } from '@/lib/auth-fetch';
+
+const jfVendasItemSchema = z.object({
+  referencia: z.string().default(''),
+  tipo: z.string().nullable().optional(),
+  produto: z.string().nullable().optional(),
+  subtipo: z.string().nullable().optional(),
+  tipo_pedra: z.string().nullable().optional(),
+  lapidacao: z.string().nullable().optional(),
+  destino: z.string().nullable().optional(),
+  data_venda: z.string().nullable().optional(),
+  peso: z.coerce.number().default(0),
+  custo_real: z.coerce.number().default(0),
+  preco_cobrado: z.coerce.number().nullable().optional(),
+  diamantes: z.string().nullable().optional(),
+  cts_diamantes: z.coerce.number().nullable().optional().catch(null),
+  pedra_colorida: z.string().nullable().optional(),
+  cts_pedra_colorida: z.coerce.number().nullable().optional().catch(null),
+  nf_joia: z.string().nullable().optional(),
+  vendedor_interno: z.string().nullable().optional(),
+});
+
+export type JfVendasItem = z.infer<typeof jfVendasItemSchema>;
+
+export interface ResponseApi<T> {
+  httpStatus?: number;
+  message?: string;
+  errors?: unknown;
+  data?: T;
+}
+
+export async function fetchJfVendasAction(): Promise<ResponseApi<JfVendasItem[]>> {
+  try {
+    const r = await authFetch(`${API_BASE}/lista-faturamento`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const raw = await r.json();
+    const parsed = z.array(jfVendasItemSchema).safeParse(raw);
+    if (!parsed.success) {
+      return { httpStatus: 400, message: 'Formato inválido de lista-faturamento JF', errors: parsed.error };
+    }
+    return { httpStatus: 200, data: parsed.data };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Erro ao carregar lista de faturamento JF';
+    return { httpStatus: 500, message: msg };
+  }
+}

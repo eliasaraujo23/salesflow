@@ -51,7 +51,7 @@ interface ResaleHBarProps {
 
 export function ResaleHBar({ data, color, labelWidth = 175, barH = 26 }: ResaleHBarProps) {
   const chartData = data.map(d => ({
-    label: `${d.name} (${d.qtd})`,
+    label: `${d.name} (${d.qtd})`,
     value: d.faturamento,
   }));
 

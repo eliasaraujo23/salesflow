@@ -46,6 +46,10 @@ const jmFaturamentoSchema = z.object({
   nf_joia: z.string().nullable().optional(),
   vendedor_interno: z.string().nullable().optional(),
   status_id: z.coerce.number().nullable().optional(),
+  diamantes: z.string().nullable().optional(),
+  cts_diamantes: z.coerce.number().nullable().optional().catch(null),
+  pedra_colorida: z.string().nullable().optional(),
+  cts_pedra_colorida: z.coerce.number().nullable().optional().catch(null),
 });
 
 const jmDashboardSchema = z.object({

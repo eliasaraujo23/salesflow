@@ -20,10 +20,11 @@ export default function PartnersPage() {
   const sales = salesQuery.data ?? [];
   const consignments = consignmentQuery.data ?? [];
 
-  const totalVendas = sales.reduce((s, r) => s + r.total_vendas, 0);
-  const totalPecasVendas = sales.reduce((s, r) => s + r.qtd_pecas, 0);
-  const totalComodato = consignments.reduce((s, r) => s + r.total_loja, 0);
-  const totalPecasComodato = consignments.reduce((s, r) => s + r.total_pecas, 0);
+  const totalFaturado = sales.reduce((s, r) => s + r.total_faturado, 0);
+  const totalPecasVendas = sales.reduce((s, r) => s + r.total_vendas, 0);
+  const totalComodato = consignments.reduce((s, r) => s + r.preco_loja, 0);
+  const parceirosVendas = new Set(sales.map(r => r.destino)).size;
+  const parceirosComodato = new Set(consignments.map(r => r.destino).filter(Boolean)).size;
 
   if (isLoading) {
     return (
@@ -79,28 +80,28 @@ export default function PartnersPage() {
         <KPICard
           icon={TrendingUp}
           label="Total Vendas"
-          value={fmtMoeda(totalVendas)}
+          value={fmtMoeda(totalFaturado)}
           subtext={`${totalPecasVendas} peças vendidas`}
           variant="green"
         />
         <KPICard
           icon={Store}
           label="Parceiros Ativos (Vendas)"
-          value={sales.length}
-          subtext="com vendas registradas"
+          value={parceirosVendas}
+          subtext={`${sales.length} linhas de produtos`}
           variant="blue"
         />
         <KPICard
           icon={Package}
           label="Comodato Total"
           value={fmtMoeda(totalComodato)}
-          subtext={`${totalPecasComodato} peças em comodato`}
+          subtext={`${consignments.length} peças em comodato`}
           variant="amber"
         />
         <KPICard
           icon={DollarSign}
           label="Parceiros (Comodato)"
-          value={consignments.length}
+          value={parceirosComodato}
           subtext="com comodato ativo"
           variant="purple"
         />

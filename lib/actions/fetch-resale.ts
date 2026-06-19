@@ -91,7 +91,9 @@ const isScrap = (r: RawRevenda) => r.nf_joia?.toUpperCase() === 'SCRAP';
 function agg(rows: RawRevenda[], keyFn: (r: RawRevenda) => string | null | undefined, sortBy: 'faturamento' | 'qtd' = 'faturamento'): AgItem[] {
   const map = new Map<string, AgItem>();
   for (const r of rows) {
-    const key = keyFn(r) || '(Em branco)';
+    const raw = keyFn(r);
+    if (!raw?.trim()) continue;
+    const key = raw.trim().toUpperCase();
     const fat = r.preco_cobrado ?? 0;
     const e = map.get(key);
     if (e) {

@@ -19,58 +19,74 @@ interface PartnerConsignmentTableProps {
 const fmtMoeda = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 
-const fmtPeso = (v: number) => `${v.toFixed(2)}g`;
+const diasClass = (d: number): string => {
+  if (d <= 30) return 'text-emerald-600 dark:text-emerald-400';
+  if (d <= 90) return 'text-amber-600 dark:text-amber-400';
+  return 'text-red-600 dark:text-red-400';
+};
 
 export function PartnerConsignmentTable({ data }: PartnerConsignmentTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'total_loja', desc: true }]);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'preco_loja', desc: true }]);
 
   const totals = data.reduce(
-    (acc, r) => ({
-      pecas: acc.pecas + r.total_pecas,
-      peso: acc.peso + r.total_peso,
-      custo: acc.custo + r.total_custo,
-      loja: acc.loja + r.total_loja,
-    }),
-    { pecas: 0, peso: 0, custo: 0, loja: 0 }
+    (acc, r) => ({ custo: acc.custo + r.custo_real, loja: acc.loja + r.preco_loja }),
+    { custo: 0, loja: 0 }
   );
 
   const columns: ColumnDef<PartnerConsignment>[] = [
     {
-      accessorKey: 'parceiro',
-      header: 'Parceiro',
-      cell: ({ getValue }) => <span className="font-medium text-zinc-900 dark:text-zinc-100">{getValue<string>()}</span>,
+      accessorKey: 'referencia',
+      header: 'Referência',
+      cell: ({ getValue }) => (
+        <span className="font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-400">{getValue<string>()}</span>
+      ),
     },
     {
-      accessorKey: 'total_pecas',
+      id: 'produto_info',
+      header: 'Produto',
+      cell: ({ row }) => {
+        const { produto, subtipo } = row.original;
+        return (
+          <span className="text-sm text-zinc-700 dark:text-zinc-300">
+            {[produto, subtipo].filter(Boolean).join(' · ') || '—'}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: 'destino',
+      header: 'Parceiro',
+      cell: ({ getValue }) => (
+        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{getValue<string | undefined>() ?? '—'}</span>
+      ),
+    },
+    {
+      accessorKey: 'dias_campo',
       header: ({ column }) => (
         <button
           className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
           onClick={() => column.toggleSorting()}
         >
-          Peças
+          Dias
           {column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> :
            column.getIsSorted() === 'desc' ? <ArrowDown size={12} /> :
            <ArrowUpDown size={12} />}
         </button>
       ),
-      cell: ({ getValue }) => <span className="text-sm text-zinc-900 dark:text-zinc-100">{getValue<number>()}</span>,
+      cell: ({ getValue }) => {
+        const d = getValue<number>();
+        return <span className={`text-sm font-semibold ${diasClass(d)}`}>{d}d</span>;
+      },
     },
     {
-      accessorKey: 'total_peso',
-      header: 'Peso',
-      cell: ({ getValue }) => (
-        <span className="text-sm text-zinc-500 dark:text-zinc-400">{fmtPeso(getValue<number>())}</span>
-      ),
-    },
-    {
-      accessorKey: 'total_custo',
+      accessorKey: 'custo_real',
       header: 'Custo',
       cell: ({ getValue }) => (
         <span className="text-sm text-zinc-500 dark:text-zinc-400">{fmtMoeda(getValue<number>())}</span>
       ),
     },
     {
-      accessorKey: 'total_loja',
+      accessorKey: 'preco_loja',
       header: ({ column }) => (
         <button
           className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -90,7 +106,7 @@ export function PartnerConsignmentTable({ data }: PartnerConsignmentTableProps) 
       id: 'margem',
       header: 'Margem',
       cell: ({ row }) => {
-        const { total_custo: custo, total_loja: loja } = row.original;
+        const { custo_real: custo, preco_loja: loja } = row.original;
         if (custo <= 0) return <span className="text-zinc-500 dark:text-zinc-400 text-sm">—</span>;
         const pct = (((loja - custo) / custo) * 100).toFixed(0);
         return <span className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">{pct}%</span>;
@@ -110,9 +126,9 @@ export function PartnerConsignmentTable({ data }: PartnerConsignmentTableProps) 
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Comodato por Parceiro</h3>
+        <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Comodato</h3>
         <div className="text-xs text-zinc-500 dark:text-zinc-400">
-          {totals.pecas} peças · {fmtPeso(totals.peso)} · {fmtMoeda(totals.loja)}
+          {data.length} peças · {fmtMoeda(totals.loja)}
         </div>
       </div>
       <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-white/[0.06]">
@@ -139,9 +155,9 @@ export function PartnerConsignmentTable({ data }: PartnerConsignmentTableProps) 
               </tr>
             ))}
             <tr className="bg-zinc-50 dark:bg-zinc-800 border-t-2 border-zinc-200 dark:border-white/[0.06]">
-              <td className="px-4 py-3 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase">Total</td>
-              <td className="px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{totals.pecas}</td>
-              <td className="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">{fmtPeso(totals.peso)}</td>
+              <td className="px-4 py-3 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase" colSpan={4}>
+                Total ({data.length} itens)
+              </td>
               <td className="px-4 py-3 text-sm text-zinc-500 dark:text-zinc-400">{fmtMoeda(totals.custo)}</td>
               <td className="px-4 py-3 text-sm font-bold text-indigo-600 dark:text-indigo-400">{fmtMoeda(totals.loja)}</td>
               <td className="px-4 py-3 text-sm font-semibold text-emerald-600 dark:text-emerald-400">

@@ -19,9 +19,10 @@ function diasVariant(d: number): string {
 
 interface FabFabricacaoCardProps {
   pecas: Peca[];
+  expanded?: boolean;
 }
 
-export function FabFabricacaoCard({ pecas }: FabFabricacaoCardProps) {
+export function FabFabricacaoCard({ pecas, expanded }: FabFabricacaoCardProps) {
   return (
     <Card variant="bordered">
       <CardHeader>
@@ -30,7 +31,7 @@ export function FabFabricacaoCard({ pecas }: FabFabricacaoCardProps) {
           {pecas.length}
         </span>
       </CardHeader>
-      <div className="max-h-80 overflow-y-auto">
+      <div className={expanded ? 'overflow-y-auto' : 'max-h-80 overflow-y-auto'}>
         {pecas.length === 0 ? (
           <div className="py-8 text-center text-zinc-500 dark:text-zinc-400 text-sm">Nenhuma peça em fabricação</div>
         ) : (

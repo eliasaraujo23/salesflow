@@ -12,9 +12,10 @@ const TIPO_BADGE: Record<string, string> = {
 
 interface JmFabricacaoCardProps {
   pecas: JmPeca[];
+  expanded?: boolean;
 }
 
-export function JmFabricacaoCard({ pecas }: JmFabricacaoCardProps) {
+export function JmFabricacaoCard({ pecas, expanded }: JmFabricacaoCardProps) {
   const totalPeso = pecas.reduce((s, p) => s + p.peso, 0);
 
   return (
@@ -36,7 +37,7 @@ export function JmFabricacaoCard({ pecas }: JmFabricacaoCardProps) {
       {pecas.length === 0 ? (
         <div className="py-8 text-center text-zinc-500 dark:text-zinc-400 text-sm">Nenhuma peça em fabricação</div>
       ) : (
-        <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+        <div className={`space-y-2 overflow-y-auto pr-1 ${expanded ? '' : 'max-h-96'}`}>
           {pecas.map((p, i) => (
             <div key={i} className="flex items-center justify-between gap-3 p-2.5 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-white/[0.06]">
               <div className="min-w-0 flex-1">
