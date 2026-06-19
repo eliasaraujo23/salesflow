@@ -70,14 +70,17 @@ export function MetalsTable({ metals, canDelete }: MetalsTableProps) {
   const rowsWithSaldo: MetalsTableRow[] = useMemo(() => {
     const sorted = [...metals].sort((a, b) => {
       const da = a.data ?? '';
-      const db2 = b.data ?? '';
-      return da < db2 ? -1 : da > db2 ? 1 : 0;
+      const db = b.data ?? '';
+      if (da !== db) return da < db ? -1 : 1;
+      const ca = typeof a.createdAt === 'number' ? a.createdAt : Number(a.createdAt ?? 0);
+      const cb = typeof b.createdAt === 'number' ? b.createdAt : Number(b.createdAt ?? 0);
+      return ca - cb;
     });
 
-    let running = 0;
+    const running: Record<string, number> = {};
     const mapped = sorted.map((m) => {
-      running += m.sobrou ?? 0;
-      return { ...m, saldoAcum: running };
+      running[m.metal] = (running[m.metal] ?? 0) + (m.sobrou ?? 0);
+      return { ...m, saldoAcum: running[m.metal] };
     });
     return mapped.reverse();
   }, [metals]);

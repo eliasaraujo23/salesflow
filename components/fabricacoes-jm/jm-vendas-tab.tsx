@@ -57,6 +57,8 @@ function downloadCSV(rows: JmFaturamentoItem[]) {
   URL.revokeObjectURL(url);
 }
 
+const HIDDEN_DESTINOS = new Set(['helton', 'augusto', 'eduardo', 'thaís', 'thais']);
+
 type StringField = 'tipo' | 'produto' | 'subtipo' | 'destino' | 'tipo_pedra' | 'lapidacao';
 
 function uniqStrings(rows: JmFaturamentoItem[], field: StringField): string[] {
@@ -114,6 +116,7 @@ export function JmVendasTab({ data, isLoading }: JmVendasTabProps) {
 
   const dateSearchFiltered = useMemo(() => {
     return data.filter(r => {
+      if (HIDDEN_DESTINOS.has((r.destino ?? '').toLowerCase())) return false;
       if (from && (!r.data_venda || new Date(r.data_venda) < new Date(from + 'T00:00:00'))) return false;
       if (to && (!r.data_venda || new Date(r.data_venda) > new Date(to + 'T23:59:59'))) return false;
       if (busca) {
