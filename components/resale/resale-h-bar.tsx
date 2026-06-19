@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import {
@@ -50,10 +50,12 @@ interface ResaleHBarProps {
 }
 
 export function ResaleHBar({ data, color, labelWidth = 175, barH = 26 }: ResaleHBarProps) {
-  const chartData = data.map(d => ({
-    label: `${d.name} (${d.qtd})`,
-    value: d.faturamento,
-  }));
+  const chartData = data
+    .filter(d => d.faturamento > 0 && d.name.trim().length > 0)
+    .map(d => ({
+      label: `${d.name} (${d.qtd})`,
+      value: d.faturamento,
+    }));
 
   const height = Math.max(data.length * barH + 40, 120);
 
