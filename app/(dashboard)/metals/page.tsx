@@ -14,11 +14,16 @@ const METAL_CARD_STYLES = {
 
 type MetalType = 'ouro' | 'prata' | 'platina';
 
+function metalDelta(m: ReturnType<typeof useFirebase>['metals'][number]): number {
+  if (m.tipo === 'entrada') return m.chegou ?? m.peso ?? 0;
+  return -(m.peso ?? 0);
+}
+
 function MetalKPICard({ metal, metals }: { metal: MetalType; metals: ReturnType<typeof useFirebase>['metals'] }) {
   const items = metals.filter((m) => m.metal === metal);
-  const total = items.reduce((s, m) => s + (m.chegou ?? 0), 0);
+  const total = items.reduce((s, m) => s + metalDelta(m), 0);
   const byOrigem = (origem: string) =>
-    items.filter((m) => m.origem === origem).reduce((s, m) => s + (m.chegou ?? 0), 0);
+    items.filter((m) => m.origem === origem).reduce((s, m) => s + metalDelta(m), 0);
 
   const style = METAL_CARD_STYLES[metal];
   const label = metal.charAt(0).toUpperCase() + metal.slice(1);

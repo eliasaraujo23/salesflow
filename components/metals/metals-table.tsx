@@ -53,6 +53,15 @@ interface MetalsTableProps {
 
 const ALL = '__all__';
 
+function metalDelta(m: Metal): number {
+  if (m.tipo === 'entrada') return m.chegou ?? m.peso ?? 0;
+  return -(m.peso ?? 0); // cadastro e antigo subtraem
+}
+
+function pesoDisplay(m: Metal): number {
+  return m.tipo === 'entrada' ? (m.chegou ?? m.peso ?? 0) : (m.peso ?? 0);
+}
+
 export function MetalsTable({ metals, canDelete }: MetalsTableProps) {
   const [filterMetal, setFilterMetal] = useState(ALL);
   const [filterOrigem, setFilterOrigem] = useState(ALL);
@@ -79,7 +88,7 @@ export function MetalsTable({ metals, canDelete }: MetalsTableProps) {
 
     const running: Record<string, number> = {};
     const mapped = sorted.map((m) => {
-      running[m.metal] = (running[m.metal] ?? 0) + (m.chegou ?? 0);
+      running[m.metal] = (running[m.metal] ?? 0) + metalDelta(m);
       return { ...m, saldoAcum: running[m.metal] };
     });
     return mapped.reverse();
@@ -148,11 +157,11 @@ export function MetalsTable({ metals, canDelete }: MetalsTableProps) {
       ),
     },
     {
-      accessorKey: 'chegou',
+      id: 'peso_display',
       header: 'Peso',
-      cell: ({ getValue }) => (
+      cell: ({ row }) => (
         <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-          {Number(getValue<number>() ?? 0).toFixed(2)}g
+          {pesoDisplay(row.original).toFixed(2)}g
         </span>
       ),
     },

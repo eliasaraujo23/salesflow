@@ -39,13 +39,36 @@ export function MetalsChart({ metals }: MetalsChartProps) {
       d.setDate(d.getDate() - i);
       days.push(d.toISOString().slice(0, 10));
     }
+
+    const delta = (m: Metal) => (m.tipo === 'entrada' ? (m.chegou ?? m.peso ?? 0) : -(m.peso ?? 0));
+
+    // Accumulate everything before the window into the starting balance
+    const balance = { ouro: 0, prata: 0, platina: 0 };
+    metals
+      .filter((m) => (m.data ?? '') < days[0])
+      .forEach((m) => {
+        const key = m.metal as keyof typeof balance;
+        if (key in balance) balance[key] += delta(m);
+      });
+
+    // Walk through the window day by day
+    const sorted = [...metals]
+      .filter((m) => (m.data ?? '') >= days[0])
+      .sort((a, b) => ((a.data ?? '') < (b.data ?? '') ? -1 : 1));
+
+    let idx = 0;
     return days.map((day) => {
-      const items = metals.filter((m) => m.data === day);
+      while (idx < sorted.length && (sorted[idx].data ?? '') === day) {
+        const m = sorted[idx];
+        const key = m.metal as keyof typeof balance;
+        if (key in balance) balance[key] += delta(m);
+        idx++;
+      }
       return {
         label: day.slice(5).replace('-', '/'),
-        ouro:    items.filter((m) => m.metal === 'ouro').reduce((s, m) => s + (m.chegou ?? 0), 0),
-        prata:   items.filter((m) => m.metal === 'prata').reduce((s, m) => s + (m.chegou ?? 0), 0),
-        platina: items.filter((m) => m.metal === 'platina').reduce((s, m) => s + (m.chegou ?? 0), 0),
+        ouro:    balance.ouro,
+        prata:   balance.prata,
+        platina: balance.platina,
       };
     });
   }, [metals]);
