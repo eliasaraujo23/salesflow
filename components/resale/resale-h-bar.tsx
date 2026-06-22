@@ -42,6 +42,19 @@ function CustomLabel({ x = 0, y = 0, width = 0, height = 0, value = 0 }: CustomL
   );
 }
 
+// Approximate pixel width of an uppercase string at 11px sans-serif
+function estimatePx(label: string): number {
+  let w = 0;
+  for (const ch of label) {
+    if ('MW'.includes(ch))         w += 10;
+    else if ('ADGONQCOU'.includes(ch)) w += 8;
+    else if (' '.includes(ch))     w += 3;
+    else if ('IJ1l'.includes(ch))  w += 4;
+    else                            w += 7;
+  }
+  return w;
+}
+
 interface ResaleHBarProps {
   data: AgItem[];
   color: string;
@@ -49,7 +62,7 @@ interface ResaleHBarProps {
   barH?: number;
 }
 
-export function ResaleHBar({ data, color, labelWidth = 175, barH = 26 }: ResaleHBarProps) {
+export function ResaleHBar({ data, color, labelWidth, barH = 26 }: ResaleHBarProps) {
   const chartData = data
     .filter(d => d.faturamento > 0 && d.name.trim().length > 0)
     .map(d => ({
@@ -57,7 +70,11 @@ export function ResaleHBar({ data, color, labelWidth = 175, barH = 26 }: ResaleH
       value: d.faturamento,
     }));
 
-  const height = Math.max(data.length * barH + 40, 120);
+  // Auto-size YAxis to fit the longest label; passed labelWidth is a minimum, not a cap
+  const autoWidth = chartData.reduce((m, d) => Math.max(m, estimatePx(d.label)), 80);
+  const actualLabelWidth = Math.max(labelWidth ?? 100, Math.min(autoWidth + 16, 240));
+
+  const height = Math.max(chartData.length * barH + 40, 120);
 
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -76,7 +93,7 @@ export function ResaleHBar({ data, color, labelWidth = 175, barH = 26 }: ResaleH
         <YAxis
           type="category"
           dataKey="label"
-          width={labelWidth}
+          width={actualLabelWidth}
           tick={{ fontSize: 11, fill: '#71717a' }}
           axisLine={false}
           tickLine={false}
