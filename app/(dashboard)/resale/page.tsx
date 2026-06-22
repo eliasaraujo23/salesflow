@@ -174,6 +174,7 @@ export default function ResalePage() {
                 b2c={data.b2c}
                 scrap={{ faturamento: data.scrapFat, custo: data.scrapCusto, qtd: data.scrapQtd }}
                 b2cBreakdown={data.b2cBreakdown}
+                scrapBreakdown={data.scrapByDestino}
               />
             </SectionCard>
           </div>

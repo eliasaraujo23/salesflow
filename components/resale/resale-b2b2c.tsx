@@ -26,9 +26,10 @@ interface ResaleB2b2cProps {
   b2c: ChannelSegment;
   scrap: ChannelSegment;
   b2cBreakdown: AgItem[];
+  scrapBreakdown: AgItem[];
 }
 
-export function ResaleB2b2c({ b2b, b2c, scrap, b2cBreakdown }: ResaleB2b2cProps) {
+export function ResaleB2b2c({ b2b, b2c, scrap, b2cBreakdown, scrapBreakdown }: ResaleB2b2cProps) {
   const total = b2b.faturamento + b2c.faturamento + scrap.faturamento;
   const pct = (v: number) => (total > 0 ? (v / total) * 100 : 0);
 
@@ -72,43 +73,74 @@ export function ResaleB2b2c({ b2b, b2c, scrap, b2cBreakdown }: ResaleB2b2cProps)
         ))}
       </div>
 
-      {/* B2C channel breakdown — compact rows */}
+      {/* B2C channel breakdown */}
       {b2cBreakdown.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-              Canais B2C
-            </span>
-            <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
-              {fmtK(b2cTotal)}
-            </span>
-          </div>
-          <div className="space-y-1">
-            {b2cBreakdown.map(item => {
-              const share = b2cTotal > 0 ? (item.faturamento / b2cTotal) * 100 : 0;
-              return (
-                <div key={item.name} className="flex items-center gap-2">
-                  <span className="text-[10px] text-zinc-600 dark:text-zinc-400 w-24 shrink-0 truncate">
-                    {item.name}
-                  </span>
-                  <div className="flex-1 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${share}%` }} />
-                  </div>
-                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 w-7 text-right shrink-0 tabular-nums">
-                    {share.toFixed(0)}%
-                  </span>
-                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 w-16 text-right shrink-0 tabular-nums">
-                    {fmtK(item.faturamento)}
-                  </span>
-                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 w-8 text-right shrink-0 tabular-nums">
-                    {itemLucStr(item)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <BreakdownSection
+          title="Canais B2C"
+          total={b2cTotal}
+          items={b2cBreakdown}
+          barColor="bg-emerald-500"
+          textColor="text-emerald-600 dark:text-emerald-400"
+        />
       )}
+
+      {/* Scrap destino breakdown */}
+      {scrapBreakdown.length > 0 && (
+        <BreakdownSection
+          title="Destinos Scrap"
+          total={scrap.faturamento}
+          items={scrapBreakdown}
+          barColor="bg-amber-500"
+          textColor="text-amber-600 dark:text-amber-400"
+        />
+      )}
+    </div>
+  );
+}
+
+interface BreakdownSectionProps {
+  title: string;
+  total: number;
+  items: AgItem[];
+  barColor: string;
+  textColor: string;
+}
+
+function BreakdownSection({ title, total, items, barColor, textColor }: BreakdownSectionProps) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+          {title}
+        </span>
+        <span className={`text-[9px] font-semibold ${textColor}`}>
+          {fmtK(total)}
+        </span>
+      </div>
+      <div className="space-y-1">
+        {items.map(item => {
+          const share = total > 0 ? (item.faturamento / total) * 100 : 0;
+          return (
+            <div key={item.name} className="flex items-center gap-2">
+              <span className="text-[10px] text-zinc-600 dark:text-zinc-400 w-24 shrink-0 truncate">
+                {item.name}
+              </span>
+              <div className="flex-1 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div className={`h-full ${barColor} rounded-full`} style={{ width: `${share}%` }} />
+              </div>
+              <span className={`text-[10px] font-semibold ${textColor} w-7 text-right shrink-0 tabular-nums`}>
+                {share.toFixed(0)}%
+              </span>
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 w-16 text-right shrink-0 tabular-nums">
+                {fmtK(item.faturamento)}
+              </span>
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 w-8 text-right shrink-0 tabular-nums">
+                {itemLucStr(item)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
