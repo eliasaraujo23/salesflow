@@ -161,12 +161,12 @@ export default function ResalePage() {
             <SectionCard title="Por Destino" className="h-full flex flex-col" contentClass="flex-1 min-h-0">
               {data.byDestino.length === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados</div>
-                : <ResaleHBar data={data.byDestino.slice(0, 14)} color="#8b5cf6" labelWidth={160} fullHeight />}
+                : <ResaleHBar data={data.byDestino} color="#8b5cf6" labelWidth={160} fullHeight />}
             </SectionCard>
             <SectionCard title="Scrap — Por Destino" className="h-full flex flex-col" contentClass="flex-1 min-h-0">
               {data.scrapByDestino.length === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
-                : <ResaleHBar data={data.scrapByDestino.slice(0, 14)} color="#eab308" labelWidth={160} fullHeight />}
+                : <ResaleHBar data={data.scrapByDestino} color="#eab308" labelWidth={160} fullHeight />}
             </SectionCard>
             <SectionCard title="B2B · B2C · Scrap" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
               <ResaleB2b2c
