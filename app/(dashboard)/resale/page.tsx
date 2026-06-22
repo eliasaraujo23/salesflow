@@ -132,7 +132,7 @@ export default function ResalePage() {
               />
             </SectionCard>
 
-            <SectionCard title="Últimas Vendas" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
+            <SectionCard title="Últimas Vendas" className="h-full flex flex-col row-span-2" contentClass="flex-1 min-h-0 overflow-y-auto">
               <ResaleUltimasVendas vendas={data.ultimasVendas} totalQtd={data.qtd} />
             </SectionCard>
 
@@ -143,9 +143,6 @@ export default function ResalePage() {
             <SectionCard title="Tipo de Fabricação" className="h-full flex flex-col" contentClass="flex-1 min-h-0 flex">
               <ResaleDonut data={data.byTipo} horizontal />
             </SectionCard>
-
-            {/* célula vazia [linha 2, col 3] */}
-            <div />
 
           </div>
 
