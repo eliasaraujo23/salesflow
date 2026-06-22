@@ -10,9 +10,10 @@ const fmtMoeda = (v: number) =>
 interface ResaleDonutProps {
   data: DonutItem[];
   size?: number;
+  fullHeight?: boolean;
 }
 
-export function ResaleDonut({ data, size = 160 }: ResaleDonutProps) {
+export function ResaleDonut({ data, size = 160, fullHeight = false }: ResaleDonutProps) {
   const filtered = data.filter(d => d.faturamento > 0);
 
   if (filtered.length === 0) {
@@ -20,8 +21,8 @@ export function ResaleDonut({ data, size = 160 }: ResaleDonutProps) {
   }
 
   return (
-    <div className="flex flex-col items-center">
-      <ResponsiveContainer width="100%" height={size}>
+    <div className={`flex flex-col items-center ${fullHeight ? 'h-full' : ''}`}>
+      <ResponsiveContainer width="100%" height={fullHeight ? '100%' : size}>
         <PieChart>
           <Pie
             data={filtered}

@@ -8,8 +8,7 @@ import { ResaleHBar } from '@/components/resale/resale-h-bar';
 import { ResaleDonut } from '@/components/resale/resale-donut';
 import { ResaleDatePicker } from '@/components/resale/resale-date-picker';
 import { ResaleTicker } from '@/components/resale/resale-ticker';
-import { ResaleB2b2c } from '@/components/resale/resale-b2b2c';
-import { ResaleScrapChannels } from '@/components/resale/resale-scrap-channels';
+import { ResaleUltimasVendas } from '@/components/resale/resale-ultimas-vendas';
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -144,18 +143,9 @@ export default function ResalePage() {
               qtd={data.scrapQtd}
               mainFat={data.faturamento}
             />
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-2">Canal de Venda</div>
-                  <ResaleDonut data={data.canalVenda} size={100} />
-                </div>
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-2">Tipo de Fabricação</div>
-                  <ResaleDonut data={data.byTipo} size={100} />
-                </div>
-              </div>
-            </div>
+            <SectionCard title="Últimas Vendas" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
+              <ResaleUltimasVendas data={data.ultimasVendas} />
+            </SectionCard>
           </div>
 
           {/* Row 2 — Horizontal bar charts — flex-1 fills remaining space */}
@@ -165,21 +155,11 @@ export default function ResalePage() {
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados</div>
                 : <ResaleHBar data={data.byDestino} color="#8b5cf6" labelWidth={160} fullHeight />}
             </SectionCard>
-            <SectionCard title="Scrap · B2B / B2C" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
-              {data.scrapFat === 0
-                ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
-                : <ResaleScrapChannels
-                    scrapB2b={data.scrapB2b}
-                    scrapB2c={data.scrapB2c}
-                    scrapB2cBreakdown={data.scrapB2cBreakdown}
-                  />}
+            <SectionCard title="Canal de Venda" className="h-full flex flex-col" contentClass="flex-1 min-h-0">
+              <ResaleDonut data={data.canalVenda} fullHeight />
             </SectionCard>
-            <SectionCard title="B2B · B2C" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
-              <ResaleB2b2c
-                b2b={data.b2b}
-                b2c={data.b2c}
-                b2cBreakdown={data.b2cBreakdown}
-              />
+            <SectionCard title="Tipo de Fabricação" className="h-full flex flex-col" contentClass="flex-1 min-h-0">
+              <ResaleDonut data={data.byTipo} fullHeight />
             </SectionCard>
           </div>
 
