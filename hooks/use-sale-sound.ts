@@ -20,7 +20,7 @@ export function useSaleSound() {
         const t0 = ctx.currentTime + i * 0.18;
         const t1 = t0 + 0.35;
         gain.gain.setValueAtTime(0, t0);
-        gain.gain.linearRampToValueAtTime(0.25, t0 + 0.02);
+        gain.gain.linearRampToValueAtTime(0.7, t0 + 0.02);
         gain.gain.exponentialRampToValueAtTime(0.001, t1);
         osc.start(t0);
         osc.stop(t1);
