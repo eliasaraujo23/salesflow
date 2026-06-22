@@ -11,7 +11,8 @@ export function useResale(from: string, to: string) {
       }
       return result.data;
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 55,
+    refetchInterval: 1000 * 60,
     enabled: !!from && !!to,
   });
 }

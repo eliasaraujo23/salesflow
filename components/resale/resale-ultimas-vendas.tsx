@@ -16,9 +16,10 @@ const TIPO_COLORS: Record<string, string> = {
 interface ResaleUltimasVendasProps {
   vendas: UltimaVenda[];
   totalQtd: number;
+  newReferencias?: Set<string>;
 }
 
-export function ResaleUltimasVendas({ vendas, totalQtd }: ResaleUltimasVendasProps) {
+export function ResaleUltimasVendas({ vendas, totalQtd, newReferencias }: ResaleUltimasVendasProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-2 flex-shrink-0">
@@ -32,8 +33,8 @@ export function ResaleUltimasVendas({ vendas, totalQtd }: ResaleUltimasVendasPro
       <div className="flex flex-col overflow-y-auto flex-1 min-h-0">
         {vendas.map((v, i) => (
           <div
-            key={i}
-            className="flex items-center justify-between py-1 border-b border-zinc-200/60 dark:border-white/[0.04] gap-1.5 last:border-0"
+            key={v.referencia}
+            className={`flex items-center justify-between py-1 border-b border-zinc-200/60 dark:border-white/[0.04] gap-1.5 last:border-0 rounded ${newReferencias?.has(v.referencia) ? 'animate-sale-new-item' : ''}`}
           >
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1 mb-0.5">

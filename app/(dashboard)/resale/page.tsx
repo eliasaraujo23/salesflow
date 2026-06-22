@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useResale } from '@/hooks/use-resale';
 import { useXauUsd } from '@/hooks/use-xau-usd';
@@ -11,6 +11,7 @@ import { ResaleTicker } from '@/components/resale/resale-ticker';
 import { ResaleUltimasVendas } from '@/components/resale/resale-ultimas-vendas';
 import { ResaleB2b2c } from '@/components/resale/resale-b2b2c';
 import { ResaleScrapChannels } from '@/components/resale/resale-scrap-channels';
+import { useSaleSound } from '@/hooks/use-sale-sound';
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -30,9 +31,9 @@ const fmtLuc = (fat: number, custo: number) =>
 const ticketMedio = (fat: number, qtd: number) =>
   qtd > 0 ? fmtMoeda(fat / qtd) : '—';
 
-function KPIBox({ label, value, valueClass = '' }: { label: string; value: string; valueClass?: string }) {
+function KPIBox({ label, value, valueClass = '', flash = false }: { label: string; value: string; valueClass?: string; flash?: boolean }) {
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg px-3 py-2 flex flex-col gap-0.5">
+    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg px-3 py-2 flex flex-col gap-0.5 ${flash ? 'animate-sale-kpi' : ''}`}>
       <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{label}</span>
       <span className={`text-sm font-bold truncate ${valueClass || 'text-zinc-900 dark:text-zinc-100'}`}>{value}</span>
     </div>
@@ -58,6 +59,52 @@ export default function ResalePage() {
   const [to, setTo]     = useState(todayISO());
   const { data, isLoading, isError, refetch, isFetching } = useResale(from, to);
   const ticker = useXauUsd();
+  const playChime = useSaleSound();
+
+  // Detecção de vendas novas
+  const prevQtdRef = useRef<number | null>(null);
+  const prevReferenciasRef = useRef<Set<string>>(new Set());
+  const [kpiFlash, setKpiFlash] = useState(false);
+  const [newReferencias, setNewReferencias] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!data) return;
+
+    const prevQtd = prevQtdRef.current;
+
+    // Na primeira carga apenas inicializa — não dispara animação
+    if (prevQtd === null) {
+      prevQtdRef.current = data.qtd;
+      prevReferenciasRef.current = new Set(data.ultimasVendas.map(v => v.referencia));
+      return;
+    }
+
+    if (data.qtd > prevQtd) {
+      // Identifica quais referências são novas
+      const fresh = new Set(
+        data.ultimasVendas
+          .map(v => v.referencia)
+          .filter(r => !prevReferenciasRef.current.has(r))
+      );
+
+      playChime();
+      setKpiFlash(true);
+      setNewReferencias(fresh);
+
+      // Limpa as animações após 4s (3 repetições do flash = ~3.6s)
+      const t = setTimeout(() => {
+        setKpiFlash(false);
+        setNewReferencias(new Set());
+      }, 4000);
+
+      prevQtdRef.current = data.qtd;
+      prevReferenciasRef.current = new Set(data.ultimasVendas.map(v => v.referencia));
+      return () => clearTimeout(t);
+    }
+
+    prevQtdRef.current = data.qtd;
+    prevReferenciasRef.current = new Set(data.ultimasVendas.map(v => v.referencia));
+  }, [data, playChime]);
 
   return (
     <div className="p-4 flex flex-col gap-3 overflow-hidden" style={{ height: 'calc(100vh - 56px)' }}>
@@ -97,10 +144,10 @@ export default function ResalePage() {
           {/* Col 1: KPIs (cima) + Por Destino (baixo) */}
           <div className="flex flex-col gap-3 min-h-0">
             <div className="grid gap-2 shrink-0" style={{ gridTemplateColumns: '3fr 2fr' }}>
-              <KPIBox label="Faturamento"   value={fmtMoedaK(data.faturamento)} />
-              <KPIBox label="Lucratividade" value={fmtLuc(data.faturamento, data.custo)} valueClass="text-emerald-600 dark:text-emerald-400" />
-              <KPIBox label="Ticket Médio"  value={ticketMedio(data.faturamento, data.qtd)} />
-              <KPIBox label="Quantidade"    value={String(data.qtd)} />
+              <KPIBox label="Faturamento"   value={fmtMoedaK(data.faturamento)} flash={kpiFlash} />
+              <KPIBox label="Lucratividade" value={fmtLuc(data.faturamento, data.custo)} valueClass="text-emerald-600 dark:text-emerald-400" flash={kpiFlash} />
+              <KPIBox label="Ticket Médio"  value={ticketMedio(data.faturamento, data.qtd)} flash={kpiFlash} />
+              <KPIBox label="Quantidade"    value={String(data.qtd)} flash={kpiFlash} />
             </div>
             <SectionCard title="Por Destino" className="flex-1 flex flex-col min-h-0" contentClass="flex-1 min-h-0">
               {data.byDestino.length === 0
@@ -133,7 +180,7 @@ export default function ResalePage() {
             </SectionCard>
 
             <SectionCard title="Últimas Vendas" className="h-full flex flex-col row-span-2" contentClass="flex-1 min-h-0 overflow-y-auto">
-              <ResaleUltimasVendas vendas={data.ultimasVendas} totalQtd={data.qtd} />
+              <ResaleUltimasVendas vendas={data.ultimasVendas} totalQtd={data.qtd} newReferencias={newReferencias} />
             </SectionCard>
 
             {/* Canal + Tipo empilhados verticalmente, apenas col 1 (mesma largura que Scrap) */}
