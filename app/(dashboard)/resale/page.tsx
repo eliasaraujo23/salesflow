@@ -94,8 +94,8 @@ export default function ResalePage() {
         /* Layout principal: área esquerda (flex-col) + Últimas Vendas (coluna direita fixa) */
         <div className="flex-1 min-h-0 flex gap-3">
 
-          {/* Esquerda: 3 colunas */}
-          <div className="flex-1 min-h-0 grid gap-3 min-w-0" style={{ gridTemplateColumns: '2fr 1fr 1fr' }}>
+          {/* Esquerda: Por Destino | sub-grid direito */}
+          <div className="flex-1 min-h-0 grid gap-3 min-w-0" style={{ gridTemplateColumns: '2fr 2fr' }}>
 
             {/* Col 1: KPIs (cima) + Por Destino (baixo) */}
             <div className="flex flex-col gap-3 min-h-0">
@@ -112,9 +112,10 @@ export default function ResalePage() {
               </SectionCard>
             </div>
 
-            {/* Col 2: Scrap B2B/B2C (cima) + Canal de Venda + Tipo de Fabricação (baixo, empilhados) */}
-            <div className="flex flex-col gap-3 min-h-0">
-              <SectionCard title="Scrap · B2B / B2C" className="flex-1 flex flex-col min-h-0" contentClass="flex-1 min-h-0 overflow-y-auto">
+            {/* Col 2: sub-grid — Scrap|B2B·B2C (topo, altura natural) + Canal|Tipo (baixo, fill) */}
+            <div className="grid gap-3 min-h-0" style={{ gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'auto 1fr' }}>
+
+              <SectionCard title="Scrap · B2B / B2C" className="flex flex-col overflow-hidden" contentClass="overflow-y-auto">
                 {data.scrapFat === 0
                   ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
                   : <ResaleScrapChannels
@@ -123,23 +124,24 @@ export default function ResalePage() {
                       scrapB2cBreakdown={data.scrapB2cBreakdown}
                     />}
               </SectionCard>
-              <SectionCard title="Canal de Venda" className="shrink-0">
-                <ResaleDonut data={data.canalVenda} horizontal />
-              </SectionCard>
-              <SectionCard title="Tipo de Fabricação" className="shrink-0">
-                <ResaleDonut data={data.byTipo} horizontal />
-              </SectionCard>
-            </div>
 
-            {/* Col 3: B2B·B2C — altura total */}
-            <div className="flex flex-col gap-3 min-h-0">
-              <SectionCard title="B2B · B2C" className="flex-1 flex flex-col min-h-0" contentClass="flex-1 min-h-0 overflow-y-auto">
+              <SectionCard title="B2B · B2C" className="flex flex-col overflow-hidden" contentClass="overflow-y-auto">
                 <ResaleB2b2c
                   b2b={data.b2b}
                   b2c={data.b2c}
                   b2cBreakdown={data.b2cBreakdown}
                 />
               </SectionCard>
+
+              <div className="col-span-2 grid grid-cols-2 gap-3 min-h-0">
+                <SectionCard title="Canal de Venda" className="h-full flex flex-col" contentClass="flex-1 min-h-0">
+                  <ResaleDonut data={data.canalVenda} fullHeight />
+                </SectionCard>
+                <SectionCard title="Tipo de Fabricação" className="h-full flex flex-col" contentClass="flex-1 min-h-0">
+                  <ResaleDonut data={data.byTipo} fullHeight />
+                </SectionCard>
+              </div>
+
             </div>
 
           </div>
