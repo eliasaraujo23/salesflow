@@ -91,66 +91,62 @@ export default function ResalePage() {
           </div>
         </div>
       ) : (
-        /* Layout principal: área esquerda (flex-col) + Últimas Vendas (coluna direita fixa) */
-        <div className="flex-1 min-h-0 flex gap-3">
+        /* Layout principal: Por Destino | grid 3×2 (Scrap/B2B/Vendas | Canal/Tipo) */
+        <div className="flex-1 min-h-0 grid gap-3 min-w-0" style={{ gridTemplateColumns: '2fr 3fr' }}>
 
-          {/* Esquerda: Por Destino | sub-grid direito */}
-          <div className="flex-1 min-h-0 grid gap-3 min-w-0" style={{ gridTemplateColumns: '2fr 2fr' }}>
-
-            {/* Col 1: KPIs (cima) + Por Destino (baixo) */}
-            <div className="flex flex-col gap-3 min-h-0">
-              <div className="grid gap-2 shrink-0" style={{ gridTemplateColumns: '3fr 2fr' }}>
-                <KPIBox label="Faturamento"   value={fmtMoedaK(data.faturamento)} />
-                <KPIBox label="Lucratividade" value={fmtLuc(data.faturamento, data.custo)} valueClass="text-emerald-600 dark:text-emerald-400" />
-                <KPIBox label="Ticket Médio"  value={ticketMedio(data.faturamento, data.qtd)} />
-                <KPIBox label="Quantidade"    value={String(data.qtd)} />
-              </div>
-              <SectionCard title="Por Destino" className="flex-1 flex flex-col min-h-0" contentClass="flex-1 min-h-0">
-                {data.byDestino.length === 0
-                  ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados</div>
-                  : <ResaleHBar data={data.byDestino} color="#8b5cf6" labelWidth={160} fullHeight />}
-              </SectionCard>
+          {/* Col 1: KPIs (cima) + Por Destino (baixo) */}
+          <div className="flex flex-col gap-3 min-h-0">
+            <div className="grid gap-2 shrink-0" style={{ gridTemplateColumns: '3fr 2fr' }}>
+              <KPIBox label="Faturamento"   value={fmtMoedaK(data.faturamento)} />
+              <KPIBox label="Lucratividade" value={fmtLuc(data.faturamento, data.custo)} valueClass="text-emerald-600 dark:text-emerald-400" />
+              <KPIBox label="Ticket Médio"  value={ticketMedio(data.faturamento, data.qtd)} />
+              <KPIBox label="Quantidade"    value={String(data.qtd)} />
             </div>
-
-            {/* Col 2: sub-grid — rows iguais 1fr/1fr (metade/metade) */}
-            <div className="grid gap-3 min-h-0" style={{ gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr' }}>
-
-              <SectionCard title="Scrap · B2B / B2C" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
-                {data.scrapFat === 0
-                  ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
-                  : <ResaleScrapChannels
-                      scrapB2b={data.scrapB2b}
-                      scrapB2c={data.scrapB2c}
-                      scrapB2cBreakdown={data.scrapB2cBreakdown}
-                    />}
-              </SectionCard>
-
-              <SectionCard title="B2B · B2C" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
-                <ResaleB2b2c
-                  b2b={data.b2b}
-                  b2c={data.b2c}
-                  b2cBreakdown={data.b2cBreakdown}
-                />
-              </SectionCard>
-
-              <div className="col-span-2 flex flex-col gap-3 min-h-0">
-                <SectionCard title="Canal de Venda" className="flex-1 flex flex-col" contentClass="flex-1 min-h-0 flex">
-                  <ResaleDonut data={data.canalVenda} horizontal />
-                </SectionCard>
-                <SectionCard title="Tipo de Fabricação" className="flex-1 flex flex-col" contentClass="flex-1 min-h-0 flex">
-                  <ResaleDonut data={data.byTipo} horizontal />
-                </SectionCard>
-              </div>
-
-            </div>
-
+            <SectionCard title="Por Destino" className="flex-1 flex flex-col min-h-0" contentClass="flex-1 min-h-0">
+              {data.byDestino.length === 0
+                ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados</div>
+                : <ResaleHBar data={data.byDestino} color="#8b5cf6" labelWidth={160} fullHeight />}
+            </SectionCard>
           </div>
 
-          {/* Direita: Últimas Vendas — coluna estreita, metade da altura */}
-          <div className="w-[200px] shrink-0 h-1/2 self-start">
+          {/* Col 2: grid 3 colunas × 2 linhas
+              Linha 1: Scrap | B2B·B2C | Últimas Vendas
+              Linha 2: Canal de Venda | Tipo de Fabricação | (vazio) */}
+          <div className="grid gap-3 min-h-0" style={{ gridTemplateColumns: '1fr 1fr 180px', gridTemplateRows: '1fr 1fr' }}>
+
+            <SectionCard title="Scrap · B2B / B2C" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
+              {data.scrapFat === 0
+                ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
+                : <ResaleScrapChannels
+                    scrapB2b={data.scrapB2b}
+                    scrapB2c={data.scrapB2c}
+                    scrapB2cBreakdown={data.scrapB2cBreakdown}
+                  />}
+            </SectionCard>
+
+            <SectionCard title="B2B · B2C" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
+              <ResaleB2b2c
+                b2b={data.b2b}
+                b2c={data.b2c}
+                b2cBreakdown={data.b2cBreakdown}
+              />
+            </SectionCard>
+
             <SectionCard title="Últimas Vendas" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
               <ResaleUltimasVendas vendas={data.ultimasVendas} totalQtd={data.qtd} />
             </SectionCard>
+
+            <SectionCard title="Canal de Venda" className="h-full flex flex-col" contentClass="flex-1 min-h-0 flex">
+              <ResaleDonut data={data.canalVenda} horizontal />
+            </SectionCard>
+
+            <SectionCard title="Tipo de Fabricação" className="h-full flex flex-col" contentClass="flex-1 min-h-0 flex">
+              <ResaleDonut data={data.byTipo} horizontal />
+            </SectionCard>
+
+            {/* célula vazia [linha 2, col 3] */}
+            <div />
+
           </div>
 
         </div>
