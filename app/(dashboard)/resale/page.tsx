@@ -112,10 +112,10 @@ export default function ResalePage() {
               </SectionCard>
             </div>
 
-            {/* Col 2: sub-grid — Scrap|B2B·B2C (topo, altura natural) + Canal|Tipo (baixo, fill) */}
-            <div className="grid gap-3 min-h-0" style={{ gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'auto 1fr' }}>
+            {/* Col 2: sub-grid — rows iguais 1fr/1fr (metade/metade) */}
+            <div className="grid gap-3 min-h-0" style={{ gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr' }}>
 
-              <SectionCard title="Scrap · B2B / B2C" className="flex flex-col overflow-hidden" contentClass="overflow-y-auto">
+              <SectionCard title="Scrap · B2B / B2C" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
                 {data.scrapFat === 0
                   ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
                   : <ResaleScrapChannels
@@ -125,7 +125,7 @@ export default function ResalePage() {
                     />}
               </SectionCard>
 
-              <SectionCard title="B2B · B2C" className="flex flex-col overflow-hidden" contentClass="overflow-y-auto">
+              <SectionCard title="B2B · B2C" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
                 <ResaleB2b2c
                   b2b={data.b2b}
                   b2c={data.b2c}
