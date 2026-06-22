@@ -1,7 +1,17 @@
 import { useCallback } from 'react';
 
+function distortionCurve(amount: number): Float32Array {
+  const n = 512;
+  const curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = (i * 2) / n - 1;
+    curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x));
+  }
+  return curve;
+}
+
 export function useSaleSound() {
-  const playChime = useCallback(() => {
+  const playExplosion = useCallback(() => {
     try {
       const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!AudioCtx) return;
@@ -9,51 +19,74 @@ export function useSaleSound() {
       const master = ctx.createGain();
       master.gain.value = 1.0;
       master.connect(ctx.destination);
+      const now = ctx.currentTime;
 
-      // Batida grave inicial — impacto
-      const boom = () => {
-        const osc = ctx.createOscillator();
-        const g = ctx.createGain();
-        osc.connect(g); g.connect(master);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(120, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.25);
-        g.gain.setValueAtTime(1.0, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.3);
-      };
+      // ── 1. Ruído branco — o "crack" da explosão
+      const noiseLen = ctx.sampleRate * 1.2;
+      const noiseBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
+      const noiseData = noiseBuf.getChannelData(0);
+      for (let i = 0; i < noiseLen; i++) noiseData[i] = Math.random() * 2 - 1;
 
-      // Fanfare: 3 notas ascendentes com duas camadas (fundamental + oitava)
-      const fanfare = (freq: number, t: number, dur: number) => {
-        (['sawtooth', 'sine'] as OscillatorType[]).forEach((type, layer) => {
-          const osc = ctx.createOscillator();
-          const g = ctx.createGain();
-          osc.connect(g); g.connect(master);
-          osc.type = type;
-          osc.frequency.value = layer === 1 ? freq * 2 : freq;
-          const vol = layer === 0 ? 0.55 : 0.35;
-          g.gain.setValueAtTime(0, t);
-          g.gain.linearRampToValueAtTime(vol, t + 0.015);
-          g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-          osc.start(t);
-          osc.stop(t + dur);
-        });
-      };
+      const noise = ctx.createBufferSource();
+      noise.buffer = noiseBuf;
 
-      boom();
-      // C5, E5, G5, C6 — quatro notas, mais dramático
-      const notes = [523.25, 659.25, 783.99, 1046.5];
-      notes.forEach((freq, i) => {
-        fanfare(freq, ctx.currentTime + 0.05 + i * 0.16, 0.45);
-      });
+      // Passa-baixa: corta frequências altas — deixa grave como explosão
+      const lpf = ctx.createBiquadFilter();
+      lpf.type = 'lowpass';
+      lpf.frequency.setValueAtTime(1800, now);
+      lpf.frequency.exponentialRampToValueAtTime(200, now + 1.0);
 
-      // Fecha contexto após o último som
-      setTimeout(() => ctx.close(), 1500);
+      // Distorção no ruído
+      const distort = ctx.createWaveShaper();
+      distort.curve = distortionCurve(400);
+      distort.oversample = '4x';
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(1.0, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+
+      noise.connect(lpf);
+      lpf.connect(distort);
+      distort.connect(noiseGain);
+      noiseGain.connect(master);
+      noise.start(now);
+      noise.stop(now + 1.2);
+
+      // ── 2. Sub-grave: impacto físico
+      const sub = ctx.createOscillator();
+      const subGain = ctx.createGain();
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(90, now);
+      sub.frequency.exponentialRampToValueAtTime(25, now + 0.5);
+      subGain.gain.setValueAtTime(1.0, now);
+      subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      sub.connect(subGain);
+      subGain.connect(master);
+      sub.start(now);
+      sub.stop(now + 0.5);
+
+      // ── 3. Mid-range punch — dá "corpo" à explosão
+      const mid = ctx.createOscillator();
+      const midDist = ctx.createWaveShaper();
+      const midGain = ctx.createGain();
+      mid.type = 'sawtooth';
+      mid.frequency.setValueAtTime(180, now);
+      mid.frequency.exponentialRampToValueAtTime(55, now + 0.4);
+      midDist.curve = distortionCurve(600);
+      midDist.oversample = '2x';
+      midGain.gain.setValueAtTime(0.7, now);
+      midGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      mid.connect(midDist);
+      midDist.connect(midGain);
+      midGain.connect(master);
+      mid.start(now);
+      mid.stop(now + 0.5);
+
+      setTimeout(() => ctx.close(), 1600);
     } catch {
-      // falha silenciosa se TV não suportar
+      // falha silenciosa
     }
   }, []);
 
-  return playChime;
+  return playExplosion;
 }
