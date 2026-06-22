@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 
-function distortionCurve(amount: number): Float32Array {
+function distortionCurve(amount: number): Float32Array<ArrayBuffer> {
   const n = 512;
-  const curve = new Float32Array(n);
+  const curve = new Float32Array(new ArrayBuffer(n * 4));
   for (let i = 0; i < n; i++) {
     const x = (i * 2) / n - 1;
     curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x));
