@@ -144,7 +144,7 @@ export default function ResalePage() {
               mainFat={data.faturamento}
             />
             <SectionCard title="Últimas Vendas" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
-              <ResaleUltimasVendas data={data.ultimasVendas} />
+              <ResaleUltimasVendas vendas={data.ultimasVendas} totalQtd={data.qtd} />
             </SectionCard>
           </div>
 
