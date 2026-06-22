@@ -83,11 +83,16 @@ function ScrapCard({ fat, custo, qtd, mainFat, topDestino }: {
   );
 }
 
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+function SectionCard({ title, children, className = '', contentClass }: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+  contentClass?: string;
+}) {
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4">
-      <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-3">{title}</div>
-      {children}
+    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4 ${className}`}>
+      <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-3 shrink-0">{title}</div>
+      {contentClass ? <div className={contentClass}>{children}</div> : children}
     </div>
   );
 }
@@ -99,9 +104,9 @@ export default function ResalePage() {
   const ticker = useXauUsd();
 
   return (
-    <div className="p-4 space-y-3">
+    <div className="p-4 flex flex-col gap-3 overflow-hidden" style={{ height: 'calc(100vh - 56px)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-center justify-between gap-3 flex-wrap shrink-0">
         <div className="flex items-center gap-2 flex-wrap">
           <ResaleDatePicker from={from} to={to} onApply={(f, t) => { setFrom(f); setTo(t); }} />
           <ResaleTicker data={ticker} />
@@ -117,13 +122,13 @@ export default function ResalePage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-64">
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-zinc-500 dark:text-zinc-400 text-sm flex items-center gap-2">
             <RefreshCw size={16} className="animate-spin" /> Carregando...
           </div>
         </div>
       ) : isError || !data ? (
-        <div className="flex items-center justify-center min-h-64">
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-red-600 dark:text-red-400 text-sm">
             Erro ao carregar dados.{' '}
             <button onClick={() => refetch()} className="underline hover:no-underline">Tentar novamente</button>
@@ -132,7 +137,7 @@ export default function ResalePage() {
       ) : (
         <>
           {/* Row 1 — KPIs + SCRAP + Últimas Vendas */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 shrink-0">
             <div className="grid grid-cols-2 gap-2">
               <KPIBox label="Faturamento"   value={fmtMoedaK(data.faturamento)} />
               <KPIBox label="Lucratividade" value={fmtLuc(data.faturamento, data.custo)} valueClass="text-emerald-600 dark:text-emerald-400" />
@@ -151,19 +156,19 @@ export default function ResalePage() {
             </div>
           </div>
 
-          {/* Row 2 — Horizontal bar charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-            <SectionCard title="Por Destino">
+          {/* Row 2 — Horizontal bar charts — flex-1 fills remaining space */}
+          <div className="flex-1 min-h-0 grid grid-cols-3 auto-rows-fr gap-3">
+            <SectionCard title="Por Destino" className="h-full flex flex-col" contentClass="flex-1 min-h-0">
               {data.byDestino.length === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados</div>
-                : <ResaleHBar data={data.byDestino.slice(0, 12)} color="#8b5cf6" labelWidth={160} barH={22} />}
+                : <ResaleHBar data={data.byDestino.slice(0, 14)} color="#8b5cf6" labelWidth={160} fullHeight />}
             </SectionCard>
-            <SectionCard title="Scrap — Por Destino">
+            <SectionCard title="Scrap — Por Destino" className="h-full flex flex-col" contentClass="flex-1 min-h-0">
               {data.scrapByDestino.length === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
-                : <ResaleHBar data={data.scrapByDestino.slice(0, 10)} color="#eab308" labelWidth={160} barH={22} />}
+                : <ResaleHBar data={data.scrapByDestino.slice(0, 14)} color="#eab308" labelWidth={160} fullHeight />}
             </SectionCard>
-            <SectionCard title="B2B · B2C · Scrap">
+            <SectionCard title="B2B · B2C · Scrap" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
               <ResaleB2b2c
                 b2b={data.b2b}
                 b2c={data.b2c}
@@ -174,7 +179,7 @@ export default function ResalePage() {
           </div>
 
           {/* Row 3 — Donuts + Vendedor */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 shrink-0">
             <SectionCard title="Canal de Venda">
               <ResaleDonut data={data.canalVenda} size={140} />
             </SectionCard>

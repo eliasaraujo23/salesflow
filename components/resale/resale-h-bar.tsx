@@ -60,9 +60,10 @@ interface ResaleHBarProps {
   color: string;
   labelWidth?: number;
   barH?: number;
+  fullHeight?: boolean;
 }
 
-export function ResaleHBar({ data, color, labelWidth, barH = 26 }: ResaleHBarProps) {
+export function ResaleHBar({ data, color, labelWidth, barH = 26, fullHeight = false }: ResaleHBarProps) {
   const chartData = data
     .filter(d => d.faturamento > 0 && d.name.trim().length > 0)
     .map(d => ({
@@ -74,19 +75,19 @@ export function ResaleHBar({ data, color, labelWidth, barH = 26 }: ResaleHBarPro
   const autoWidth = chartData.reduce((m, d) => Math.max(m, estimatePx(d.label)), 80);
   const actualLabelWidth = Math.max(labelWidth ?? 100, Math.min(autoWidth + 16, 240));
 
-  const height = Math.max(chartData.length * barH + 40, 120);
+  const fixedHeight = Math.max(chartData.length * barH + 40, 120);
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width="100%" height={fullHeight ? '100%' : fixedHeight}>
       <BarChart
         data={chartData}
         layout="vertical"
-        margin={{ top: 0, right: 95, bottom: 20, left: 0 }}
+        margin={{ top: 0, right: 90, bottom: 20, left: 0 }}
       >
         <XAxis
           type="number"
           tickFormatter={fmtAxisX}
-          tick={{ fontSize: 11, fill: '#71717a' }}
+          tick={{ fontSize: 10, fill: '#71717a' }}
           axisLine={false}
           tickLine={false}
         />
@@ -94,9 +95,10 @@ export function ResaleHBar({ data, color, labelWidth, barH = 26 }: ResaleHBarPro
           type="category"
           dataKey="label"
           width={actualLabelWidth}
-          tick={{ fontSize: 11, fill: '#71717a' }}
+          tick={{ fontSize: 10, fill: '#71717a' }}
           axisLine={false}
           tickLine={false}
+          interval={0}
         />
         <Tooltip
           formatter={(value) => [fmtMoeda(Number(value)), 'Faturamento']}
@@ -113,6 +115,7 @@ export function ResaleHBar({ data, color, labelWidth, barH = 26 }: ResaleHBarPro
           fill={color}
           radius={[0, 3, 3, 0]}
           maxBarSize={20}
+          minPointSize={3}
           isAnimationActive={false}
           label={<CustomLabel />}
         />
