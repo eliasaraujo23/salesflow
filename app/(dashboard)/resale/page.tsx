@@ -98,7 +98,7 @@ export default function ResalePage() {
           <div className="flex-1 flex flex-col gap-3 min-w-0">
 
             {/* KPIs — linha compacta */}
-            <div className="grid grid-cols-4 gap-2 shrink-0">
+            <div className="grid grid-cols-2 gap-2 shrink-0">
               <KPIBox label="Faturamento"   value={fmtMoedaK(data.faturamento)} />
               <KPIBox label="Lucratividade" value={fmtLuc(data.faturamento, data.custo)} valueClass="text-emerald-600 dark:text-emerald-400" />
               <KPIBox label="Ticket Médio"  value={ticketMedio(data.faturamento, data.qtd)} />
