@@ -32,13 +32,32 @@ function CustomLabel({ x = 0, y = 0, width = 0, height = 0, value = 0 }: CustomL
   return (
     <text
       x={x + width + 6}
-      y={y + height / 2 + 4}
+      y={y + height / 2}
+      dominantBaseline="central"
       fill="#71717a"
       fontSize={10}
       textAnchor="start"
     >
       {fmtMoeda(value)}
     </text>
+  );
+}
+
+function CustomYAxisTick(props: { x?: number; y?: number; payload?: { value: string } }) {
+  const { x = 0, y = 0, payload } = props;
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text
+        x={-4}
+        y={0}
+        textAnchor="end"
+        dominantBaseline="central"
+        fill="#71717a"
+        fontSize={10}
+      >
+        {payload?.value}
+      </text>
+    </g>
   );
 }
 
@@ -95,7 +114,7 @@ export function ResaleHBar({ data, color, labelWidth, barH = 26, fullHeight = fa
           type="category"
           dataKey="label"
           width={actualLabelWidth}
-          tick={{ fontSize: 10, fill: '#71717a' }}
+          tick={<CustomYAxisTick />}
           axisLine={false}
           tickLine={false}
           interval={0}
