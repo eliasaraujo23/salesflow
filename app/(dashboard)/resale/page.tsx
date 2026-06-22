@@ -131,7 +131,7 @@ export default function ResalePage() {
       ) : (
         <>
           {/* Row 1 — KPIs + SCRAP + Canal/Tipo */}
-          <div className="grid grid-cols-3 gap-3 shrink-0">
+          <div className="grid grid-cols-3 gap-3 shrink-0 items-start">
             <div className="grid grid-cols-2 gap-2">
               <KPIBox label="Faturamento"   value={fmtMoedaK(data.faturamento)} />
               <KPIBox label="Lucratividade" value={fmtLuc(data.faturamento, data.custo)} valueClass="text-emerald-600 dark:text-emerald-400" />
