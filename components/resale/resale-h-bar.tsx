@@ -34,7 +34,7 @@ function CustomLabel({ x = 0, y = 0, width = 0, height = 0, value = 0 }: CustomL
       x={x + width + 6}
       y={y + height / 2 + 4}
       fill="#71717a"
-      fontSize={11}
+      fontSize={10}
       textAnchor="start"
     >
       {fmtMoeda(value)}
@@ -42,7 +42,7 @@ function CustomLabel({ x = 0, y = 0, width = 0, height = 0, value = 0 }: CustomL
   );
 }
 
-// Approximate pixel width of an uppercase string at 11px sans-serif
+// Approximate pixel width of an uppercase string at 10px sans-serif
 function estimatePx(label: string): number {
   let w = 0;
   for (const ch of label) {
