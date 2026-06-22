@@ -26,11 +26,9 @@ interface ResaleB2b2cProps {
   b2c: ChannelSegment;
   scrap: ChannelSegment;
   b2cBreakdown: AgItem[];
-  scrapB2b: ChannelSegment;
-  scrapB2c: ChannelSegment;
 }
 
-export function ResaleB2b2c({ b2b, b2c, scrap, b2cBreakdown, scrapB2b, scrapB2c }: ResaleB2b2cProps) {
+export function ResaleB2b2c({ b2b, b2c, scrap, b2cBreakdown }: ResaleB2b2cProps) {
   const total = b2b.faturamento + b2c.faturamento + scrap.faturamento;
   const pct = (v: number) => (total > 0 ? (v / total) * 100 : 0);
 
@@ -85,10 +83,6 @@ export function ResaleB2b2c({ b2b, b2c, scrap, b2cBreakdown, scrapB2b, scrapB2c 
         />
       )}
 
-      {/* Scrap B2B / B2C split */}
-      {scrap.faturamento > 0 && (
-        <ScrapChannelSplit scrapB2b={scrapB2b} scrapB2c={scrapB2c} scrapTotal={scrap.faturamento} />
-      )}
     </div>
   );
 }
@@ -140,53 +134,6 @@ function BreakdownSection({ title, total, items, barColor, textColor }: Breakdow
   );
 }
 
-function ScrapChannelSplit({ scrapB2b, scrapB2c, scrapTotal }: {
-  scrapB2b: ChannelSegment;
-  scrapB2c: ChannelSegment;
-  scrapTotal: number;
-}) {
-  const rows = [
-    { label: 'B2B', seg: scrapB2b, bar: 'bg-indigo-500', text: 'text-indigo-600 dark:text-indigo-400' },
-    { label: 'B2C', seg: scrapB2c, bar: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400' },
-  ];
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-          Scrap por Canal
-        </span>
-        <span className="text-[9px] font-semibold text-amber-600 dark:text-amber-400">
-          {fmtK(scrapTotal)}
-        </span>
-      </div>
-      <div className="space-y-1">
-        {rows.map(({ label, seg, bar, text }) => {
-          const share = scrapTotal > 0 ? (seg.faturamento / scrapTotal) * 100 : 0;
-          const luc = seg.faturamento > 0
-            ? `${(((seg.faturamento - seg.custo) / seg.faturamento) * 100).toFixed(1)}%`
-            : '—';
-          return (
-            <div key={label} className="flex items-center gap-2">
-              <span className={`text-[10px] font-semibold ${text} w-6 shrink-0`}>{label}</span>
-              <div className="flex-1 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                <div className={`h-full ${bar} rounded-full`} style={{ width: `${share}%` }} />
-              </div>
-              <span className={`text-[10px] font-semibold ${text} w-7 text-right shrink-0 tabular-nums`}>
-                {share.toFixed(0)}%
-              </span>
-              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 w-16 text-right shrink-0 tabular-nums">
-                {fmtK(seg.faturamento)}
-              </span>
-              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 w-8 text-right shrink-0 tabular-nums">
-                {luc}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function MiniRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (

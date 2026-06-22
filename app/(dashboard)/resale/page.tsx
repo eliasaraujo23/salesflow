@@ -6,7 +6,6 @@ import { useResale } from '@/hooks/use-resale';
 import { useXauUsd } from '@/hooks/use-xau-usd';
 import { ResaleHBar } from '@/components/resale/resale-h-bar';
 import { ResaleDonut } from '@/components/resale/resale-donut';
-import { ResaleUltimasVendas } from '@/components/resale/resale-ultimas-vendas';
 import { ResaleDatePicker } from '@/components/resale/resale-date-picker';
 import { ResaleTicker } from '@/components/resale/resale-ticker';
 import { ResaleB2b2c } from '@/components/resale/resale-b2b2c';
@@ -137,8 +136,8 @@ export default function ResalePage() {
         </div>
       ) : (
         <>
-          {/* Row 1 — KPIs + SCRAP + Últimas Vendas */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 shrink-0">
+          {/* Row 1 — KPIs + SCRAP + Canal/Tipo */}
+          <div className="grid grid-cols-3 gap-3 shrink-0">
             <div className="grid grid-cols-2 gap-2">
               <KPIBox label="Faturamento"   value={fmtMoedaK(data.faturamento)} />
               <KPIBox label="Lucratividade" value={fmtLuc(data.faturamento, data.custo)} valueClass="text-emerald-600 dark:text-emerald-400" />
@@ -152,8 +151,17 @@ export default function ResalePage() {
               mainFat={data.faturamento}
               topDestino={data.scrapByDestino[0]?.name}
             />
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-3 max-h-[200px] overflow-hidden flex flex-col">
-              <ResaleUltimasVendas vendas={data.ultimasVendas} totalQtd={data.qtd + data.scrapQtd} />
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-2">Canal de Venda</div>
+                  <ResaleDonut data={data.canalVenda} size={100} />
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-2">Tipo de Fabricação</div>
+                  <ResaleDonut data={data.byTipo} size={100} />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -179,26 +187,10 @@ export default function ResalePage() {
                 b2c={data.b2c}
                 scrap={{ faturamento: data.scrapFat, custo: data.scrapCusto, qtd: data.scrapQtd }}
                 b2cBreakdown={data.b2cBreakdown}
-                scrapB2b={data.scrapB2b}
-                scrapB2c={data.scrapB2c}
               />
             </SectionCard>
           </div>
 
-          {/* Row 3 — Donuts + Vendedor */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 shrink-0">
-            <SectionCard title="Canal de Venda">
-              <ResaleDonut data={data.canalVenda} size={140} />
-            </SectionCard>
-            <SectionCard title="Tipo de Fabricação">
-              <ResaleDonut data={data.byTipo} size={140} />
-            </SectionCard>
-            <SectionCard title="Vendedor Interno (Eternno)">
-              {data.byVendedor.length === 0
-                ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem vendas Eternno</div>
-                : <ResaleHBar data={data.byVendedor} color="#10b981" labelWidth={120} barH={22} />}
-            </SectionCard>
-          </div>
         </>
       )}
     </div>
