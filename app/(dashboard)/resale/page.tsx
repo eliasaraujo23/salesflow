@@ -144,8 +144,8 @@ export default function ResalePage() {
 
           </div>
 
-          {/* Direita: Últimas Vendas — coluna estreita, altura total */}
-          <div className="w-[200px] shrink-0">
+          {/* Direita: Últimas Vendas — coluna estreita, metade da altura */}
+          <div className="w-[200px] shrink-0 h-1/2 self-start">
             <SectionCard title="Últimas Vendas" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
               <ResaleUltimasVendas vendas={data.ultimasVendas} totalQtd={data.qtd} />
             </SectionCard>
