@@ -38,10 +38,6 @@ export function ResaleB2b2c({ b2b, b2c, scrap, b2cBreakdown }: ResaleB2b2cProps)
     { label: 'Scrap', seg: scrap, pct: pct(scrap.faturamento), bar: 'bg-amber-500',   text: 'text-amber-600 dark:text-amber-400',    bg: 'bg-amber-500/10' },
   ];
 
-  // Lucratividade comparison
-  const lucValues = segments.map(s => lucPct(s.seg));
-  const maxLuc = Math.max(...lucValues, 1);
-
   // B2C internal breakdown
   const b2cTotal = b2c.faturamento;
   const topB2c = b2cBreakdown.slice(0, 5);
@@ -78,55 +74,62 @@ export function ResaleB2b2c({ b2b, b2c, scrap, b2cBreakdown }: ResaleB2b2cProps)
         ))}
       </div>
 
-      {/* Lucratividade comparison bars */}
-      <div className="pt-1">
-        <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-2">
-          Lucratividade por Canal
-        </div>
-        <div className="space-y-1.5">
-          {segments.map((s, i) => (
-            <div key={s.label} className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold w-10 shrink-0 text-zinc-500 dark:text-zinc-400">{s.label}</span>
-              <div className="flex-1 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${s.bar} opacity-80`}
-                  style={{ width: `${(lucValues[i] / maxLuc) * 100}%` }}
-                />
-              </div>
-              <span className={`text-[10px] font-bold w-10 text-right shrink-0 ${s.text}`}>
-                {lucStr(s.seg)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* B2C breakdown */}
       {topB2c.length > 0 && (
         <div className="pt-1">
-          <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-2">
-            Breakdown B2C
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+              Canais B2C
+            </span>
+            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+              {fmtMoeda(b2cTotal)} total
+            </span>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2">
             {topB2c.map(item => {
               const share = b2cTotal > 0 ? (item.faturamento / b2cTotal) * 100 : 0;
+              const itemLuc = item.faturamento > 0
+                ? ((item.faturamento - item.custo) / item.faturamento) * 100
+                : 0;
+              const itemTicket = item.qtd > 0 ? item.faturamento / item.qtd : 0;
               return (
-                <div key={item.name} className="flex items-center gap-2">
-                  <span className="text-[10px] text-zinc-600 dark:text-zinc-400 truncate flex-1 min-w-0">
-                    {item.name}
-                  </span>
-                  <span className="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 shrink-0 tabular-nums">
-                    {fmtMoeda(item.faturamento)}
-                  </span>
-                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 shrink-0 w-8 text-right tabular-nums">
-                    {share.toFixed(0)}%
-                  </span>
+                <div key={item.name} className="bg-emerald-500/5 border border-emerald-500/10 rounded-lg p-2">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 truncate flex-1 min-w-0">
+                      {item.name}
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                      {share.toFixed(0)}%
+                    </span>
+                  </div>
+                  {/* Proportion bar */}
+                  <div className="h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden mb-1.5">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full"
+                      style={{ width: `${share}%` }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-1">
+                    <Micro label="Fat" value={fmtMoeda(item.faturamento)} />
+                    <Micro label="Qtd" value={String(item.qtd)} />
+                    <Micro label="Luc" value={itemLuc > 0 ? `${itemLuc.toFixed(1)}%` : '—'} />
+                    <Micro label="Ticket" value={itemTicket > 0 ? fmtMoeda(itemTicket) : '—'} span />
+                  </div>
                 </div>
               );
             })}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function Micro({ label, value, span }: { label: string; value: string; span?: boolean }) {
+  return (
+    <div className={span ? 'col-span-2' : ''}>
+      <div className="text-[8px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{label}</div>
+      <div className="text-[10px] font-semibold text-zinc-700 dark:text-zinc-300 tabular-nums">{value}</div>
     </div>
   );
 }
