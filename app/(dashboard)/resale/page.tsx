@@ -131,8 +131,8 @@ export default function ResalePage() {
         </div>
       ) : (
         <>
-          {/* Row 1 — KPIs + SCRAP + Canal/Tipo */}
-          <div className="grid gap-3 shrink-0 items-start" style={{ gridTemplateColumns: '1fr 1fr 200px' }}>
+          {/* Row 1 — KPIs + SCRAP (compacto) */}
+          <div className="grid grid-cols-2 gap-3 shrink-0 items-start">
             <div className="grid grid-cols-2 gap-2">
               <KPIBox label="Faturamento"   value={fmtMoedaK(data.faturamento)} />
               <KPIBox label="Lucratividade" value={fmtLuc(data.faturamento, data.custo)} valueClass="text-emerald-600 dark:text-emerald-400" />
@@ -145,13 +145,10 @@ export default function ResalePage() {
               qtd={data.scrapQtd}
               mainFat={data.faturamento}
             />
-            <SectionCard title="Últimas Vendas" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
-              <ResaleUltimasVendas vendas={data.ultimasVendas} totalQtd={data.qtd} />
-            </SectionCard>
           </div>
 
           {/* Row 2 — flex-1 fills remaining space */}
-          <div className="flex-1 min-h-0 grid grid-cols-[2fr_1fr_1fr_1fr_1fr] auto-rows-fr gap-3">
+          <div className="flex-1 min-h-0 grid auto-rows-fr gap-3" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.2fr' }}>
             <SectionCard title="Por Destino" className="h-full flex flex-col" contentClass="flex-1 min-h-0">
               {data.byDestino.length === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados</div>
@@ -178,6 +175,9 @@ export default function ResalePage() {
                 b2c={data.b2c}
                 b2cBreakdown={data.b2cBreakdown}
               />
+            </SectionCard>
+            <SectionCard title="Últimas Vendas" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
+              <ResaleUltimasVendas vendas={data.ultimasVendas} totalQtd={data.qtd} />
             </SectionCard>
           </div>
 
