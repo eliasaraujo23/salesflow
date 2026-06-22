@@ -38,8 +38,8 @@ function KPIBox({ label, value, valueClass = '' }: { label: string; value: strin
   );
 }
 
-function ScrapCard({ fat, custo, qtd, mainFat, topDestino }: {
-  fat: number; custo: number; qtd: number; mainFat: number; topDestino?: string;
+function ScrapCard({ fat, custo, qtd, mainFat }: {
+  fat: number; custo: number; qtd: number; mainFat: number;
 }) {
   const lucro = fat - custo;
   const pctTotal = mainFat > 0 ? (fat / mainFat * 100) : 0;
@@ -73,12 +73,6 @@ function ScrapCard({ fat, custo, qtd, mainFat, topDestino }: {
           <div className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400 truncate">{fmtMoedaK(lucro)}</div>
         </div>
       </div>
-      {topDestino && (
-        <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-white/[0.06]">
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Top Destino · </span>
-          <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">{topDestino}</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -149,7 +143,6 @@ export default function ResalePage() {
               custo={data.scrapCusto}
               qtd={data.scrapQtd}
               mainFat={data.faturamento}
-              topDestino={data.scrapByDestino[0]?.name}
             />
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4">
               <div className="grid grid-cols-2 gap-4">
