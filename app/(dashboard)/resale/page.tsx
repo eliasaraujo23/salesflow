@@ -31,9 +31,9 @@ const ticketMedio = (fat: number, qtd: number) =>
 
 function KPIBox({ label, value, valueClass = '' }: { label: string; value: string; valueClass?: string }) {
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-3 flex flex-col gap-0.5">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{label}</span>
-      <span className={`text-lg font-bold truncate ${valueClass || 'text-zinc-900 dark:text-zinc-100'}`}>{value}</span>
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg px-3 py-2 flex flex-col gap-0.5">
+      <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{label}</span>
+      <span className={`text-sm font-bold truncate ${valueClass || 'text-zinc-900 dark:text-zinc-100'}`}>{value}</span>
     </div>
   );
 }
