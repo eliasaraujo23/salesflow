@@ -24,7 +24,12 @@ interface ResaleScrapChannelsProps {
 
 export function ResaleScrapChannels({ scrapB2b, scrapB2c, scrapB2cBreakdown }: ResaleScrapChannelsProps) {
   const total = scrapB2b.faturamento + scrapB2c.faturamento;
+  const totalQtd = scrapB2b.qtd + scrapB2c.qtd;
+  const totalCusto = scrapB2b.custo + scrapB2c.custo;
   const pct = (v: number) => (total > 0 ? (v / total) * 100 : 0);
+
+  const lucTotal = total > 0 ? (((total - totalCusto) / total) * 100).toFixed(1) + '%' : '—';
+  const ticketTotal = totalQtd > 0 ? fmtK(total / totalQtd) : '—';
 
   const segments = [
     { label: 'B2B', seg: scrapB2b, bar: 'bg-indigo-500',  text: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-500/10'  },
@@ -33,6 +38,26 @@ export function ResaleScrapChannels({ scrapB2b, scrapB2c, scrapB2cBreakdown }: R
 
   return (
     <div className="space-y-2">
+      {/* Resumo total */}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 pb-2 border-b border-zinc-100 dark:border-white/[0.06]">
+        <div>
+          <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Faturamento</div>
+          <div className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100">{fmtK(total)}</div>
+        </div>
+        <div>
+          <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Quantidade</div>
+          <div className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100">{totalQtd}</div>
+        </div>
+        <div>
+          <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Lucratividade</div>
+          <div className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400">{lucTotal}</div>
+        </div>
+        <div>
+          <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Ticket Médio</div>
+          <div className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100">{ticketTotal}</div>
+        </div>
+      </div>
+
       {/* Proportional bar */}
       <div className="flex h-2.5 rounded-full overflow-hidden gap-px">
         {segments.map(s => (
