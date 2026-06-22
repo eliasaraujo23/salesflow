@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
 
-function distortionCurve(amount: number): Float32Array<ArrayBuffer> {
+function makeDistCurve(amount: number): Float32Array<ArrayBuffer> {
   const n = 512;
-  const curve = new Float32Array(new ArrayBuffer(n * 4));
+  const buf = new ArrayBuffer(n * 4);
+  const curve = new Float32Array(buf);
   for (let i = 0; i < n; i++) {
     const x = (i * 2) / n - 1;
     curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x));
@@ -10,8 +11,46 @@ function distortionCurve(amount: number): Float32Array<ArrayBuffer> {
   return curve;
 }
 
+function noiseBuffer(ctx: AudioContext, durationSec: number): AudioBuffer {
+  const len = Math.floor(ctx.sampleRate * durationSec);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  return buf;
+}
+
+// Uma explosão individual: ruído curto + sub-grave
+function bang(ctx: AudioContext, master: GainNode, t: number, vol: number, pitch: number) {
+  // Ruído branco com envelope
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuffer(ctx, 0.6);
+  const lpf = ctx.createBiquadFilter();
+  lpf.type = 'lowpass';
+  lpf.frequency.setValueAtTime(pitch, t);
+  lpf.frequency.exponentialRampToValueAtTime(pitch * 0.15, t + 0.5);
+  const dist = ctx.createWaveShaper();
+  dist.curve = makeDistCurve(350);
+  dist.oversample = '2x';
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+  src.connect(lpf); lpf.connect(dist); dist.connect(g); g.connect(master);
+  src.start(t); src.stop(t + 0.6);
+
+  // Sub-grave
+  const sub = ctx.createOscillator();
+  const subG = ctx.createGain();
+  sub.type = 'sine';
+  sub.frequency.setValueAtTime(pitch * 0.15, t);
+  sub.frequency.exponentialRampToValueAtTime(20, t + 0.4);
+  subG.gain.setValueAtTime(vol * 0.9, t);
+  subG.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+  sub.connect(subG); subG.connect(master);
+  sub.start(t); sub.stop(t + 0.45);
+}
+
 export function useSaleSound() {
-  const playExplosion = useCallback(() => {
+  const playFireworks = useCallback(() => {
     try {
       const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!AudioCtx) return;
@@ -21,72 +60,44 @@ export function useSaleSound() {
       master.connect(ctx.destination);
       const now = ctx.currentTime;
 
-      // ── 1. Ruído branco — o "crack" da explosão
-      const noiseLen = ctx.sampleRate * 1.2;
-      const noiseBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
-      const noiseData = noiseBuf.getChannelData(0);
-      for (let i = 0; i < noiseLen; i++) noiseData[i] = Math.random() * 2 - 1;
+      // ── Crackle contínuo por 5s — base de fogos
+      const crackle = ctx.createBufferSource();
+      crackle.buffer = noiseBuffer(ctx, 5.5);
+      const hpf = ctx.createBiquadFilter();
+      hpf.type = 'highpass';
+      hpf.frequency.value = 2000;
+      const crackleGain = ctx.createGain();
+      crackleGain.gain.setValueAtTime(0.15, now);
+      crackleGain.gain.setValueAtTime(0.18, now + 1.0);
+      crackleGain.gain.setValueAtTime(0.12, now + 3.0);
+      crackleGain.gain.exponentialRampToValueAtTime(0.001, now + 5.2);
+      crackle.connect(hpf); hpf.connect(crackleGain); crackleGain.connect(master);
+      crackle.start(now); crackle.stop(now + 5.5);
 
-      const noise = ctx.createBufferSource();
-      noise.buffer = noiseBuf;
+      // ── Sequência de explosões ao longo dos 5s
+      // [tempo, volume, frequência do filtro]
+      const bangs: [number, number, number][] = [
+        [0.00, 1.00, 1800], // BOOM inicial — o maior
+        [0.30, 0.75, 1400],
+        [0.75, 0.65, 2200],
+        [1.20, 0.80, 1600],
+        [1.70, 0.55, 2600],
+        [2.20, 0.85, 1500], // segundo grande
+        [2.65, 0.60, 2000],
+        [3.10, 0.70, 1700],
+        [3.55, 0.65, 2400],
+        [4.00, 0.75, 1900],
+        [4.40, 0.60, 2100],
+        [4.75, 0.90, 1600], // finalzão
+      ];
 
-      // Passa-baixa: corta frequências altas — deixa grave como explosão
-      const lpf = ctx.createBiquadFilter();
-      lpf.type = 'lowpass';
-      lpf.frequency.setValueAtTime(1800, now);
-      lpf.frequency.exponentialRampToValueAtTime(200, now + 1.0);
+      bangs.forEach(([t, vol, pitch]) => bang(ctx, master, now + t, vol, pitch));
 
-      // Distorção no ruído
-      const distort = ctx.createWaveShaper();
-      distort.curve = distortionCurve(400);
-      distort.oversample = '4x';
-
-      const noiseGain = ctx.createGain();
-      noiseGain.gain.setValueAtTime(1.0, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
-
-      noise.connect(lpf);
-      lpf.connect(distort);
-      distort.connect(noiseGain);
-      noiseGain.connect(master);
-      noise.start(now);
-      noise.stop(now + 1.2);
-
-      // ── 2. Sub-grave: impacto físico
-      const sub = ctx.createOscillator();
-      const subGain = ctx.createGain();
-      sub.type = 'sine';
-      sub.frequency.setValueAtTime(90, now);
-      sub.frequency.exponentialRampToValueAtTime(25, now + 0.5);
-      subGain.gain.setValueAtTime(1.0, now);
-      subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-      sub.connect(subGain);
-      subGain.connect(master);
-      sub.start(now);
-      sub.stop(now + 0.5);
-
-      // ── 3. Mid-range punch — dá "corpo" à explosão
-      const mid = ctx.createOscillator();
-      const midDist = ctx.createWaveShaper();
-      const midGain = ctx.createGain();
-      mid.type = 'sawtooth';
-      mid.frequency.setValueAtTime(180, now);
-      mid.frequency.exponentialRampToValueAtTime(55, now + 0.4);
-      midDist.curve = distortionCurve(600);
-      midDist.oversample = '2x';
-      midGain.gain.setValueAtTime(0.7, now);
-      midGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-      mid.connect(midDist);
-      midDist.connect(midGain);
-      midGain.connect(master);
-      mid.start(now);
-      mid.stop(now + 0.5);
-
-      setTimeout(() => ctx.close(), 1600);
+      setTimeout(() => ctx.close(), 6500);
     } catch {
       // falha silenciosa
     }
   }, []);
 
-  return playExplosion;
+  return playFireworks;
 }
