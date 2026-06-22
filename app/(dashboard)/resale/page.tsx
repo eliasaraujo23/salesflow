@@ -112,7 +112,7 @@ export default function ResalePage() {
               </SectionCard>
             </div>
 
-            {/* Col 2: Scrap B2B/B2C (cima) + Canal de Venda (baixo) */}
+            {/* Col 2: Scrap B2B/B2C (cima) + Canal de Venda + Tipo de Fabricação (baixo, empilhados) */}
             <div className="flex flex-col gap-3 min-h-0">
               <SectionCard title="Scrap · B2B / B2C" className="flex-1 flex flex-col min-h-0" contentClass="flex-1 min-h-0 overflow-y-auto">
                 {data.scrapFat === 0
@@ -123,12 +123,15 @@ export default function ResalePage() {
                       scrapB2cBreakdown={data.scrapB2cBreakdown}
                     />}
               </SectionCard>
-              <SectionCard title="Canal de Venda" className="flex-1 flex flex-col min-h-0" contentClass="flex-1 min-h-0">
-                <ResaleDonut data={data.canalVenda} fullHeight />
+              <SectionCard title="Canal de Venda" className="shrink-0">
+                <ResaleDonut data={data.canalVenda} horizontal />
+              </SectionCard>
+              <SectionCard title="Tipo de Fabricação" className="shrink-0">
+                <ResaleDonut data={data.byTipo} horizontal />
               </SectionCard>
             </div>
 
-            {/* Col 3: B2B·B2C (cima) + Tipo de Fabricação (baixo) */}
+            {/* Col 3: B2B·B2C — altura total */}
             <div className="flex flex-col gap-3 min-h-0">
               <SectionCard title="B2B · B2C" className="flex-1 flex flex-col min-h-0" contentClass="flex-1 min-h-0 overflow-y-auto">
                 <ResaleB2b2c
@@ -136,9 +139,6 @@ export default function ResalePage() {
                   b2c={data.b2c}
                   b2cBreakdown={data.b2cBreakdown}
                 />
-              </SectionCard>
-              <SectionCard title="Tipo de Fabricação" className="flex-1 flex flex-col min-h-0" contentClass="flex-1 min-h-0">
-                <ResaleDonut data={data.byTipo} fullHeight />
               </SectionCard>
             </div>
 
