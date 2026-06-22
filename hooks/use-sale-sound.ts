@@ -7,7 +7,7 @@ export function useSaleSound() {
     try {
       // Reutiliza o elemento para evitar múltiplas instâncias
       if (!audioRef.current) {
-        audioRef.current = new Audio('/sounds/fireworks.mp3');
+        audioRef.current = new Audio('/sounds/firework.mp3.mp3');
         audioRef.current.volume = 1.0;
       }
       const audio = audioRef.current;
