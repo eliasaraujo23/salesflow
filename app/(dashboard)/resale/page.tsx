@@ -114,7 +114,7 @@ export default function ResalePage() {
 
             {/* Col 2: Scrap B2B/B2C (cima) + Canal de Venda (baixo) */}
             <div className="flex flex-col gap-3 min-h-0">
-              <SectionCard title="Scrap · B2B / B2C" className="flex-[3] flex flex-col min-h-0" contentClass="flex-1 min-h-0 overflow-y-auto">
+              <SectionCard title="Scrap · B2B / B2C" className="flex-1 flex flex-col min-h-0" contentClass="flex-1 min-h-0 overflow-y-auto">
                 {data.scrapFat === 0
                   ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
                   : <ResaleScrapChannels
@@ -123,21 +123,21 @@ export default function ResalePage() {
                       scrapB2cBreakdown={data.scrapB2cBreakdown}
                     />}
               </SectionCard>
-              <SectionCard title="Canal de Venda" className="flex-[2] flex flex-col min-h-0" contentClass="flex-1 min-h-0">
+              <SectionCard title="Canal de Venda" className="flex-1 flex flex-col min-h-0" contentClass="flex-1 min-h-0">
                 <ResaleDonut data={data.canalVenda} fullHeight />
               </SectionCard>
             </div>
 
             {/* Col 3: B2B·B2C (cima) + Tipo de Fabricação (baixo) */}
             <div className="flex flex-col gap-3 min-h-0">
-              <SectionCard title="B2B · B2C" className="flex-[3] flex flex-col min-h-0" contentClass="flex-1 min-h-0 overflow-y-auto">
+              <SectionCard title="B2B · B2C" className="flex-1 flex flex-col min-h-0" contentClass="flex-1 min-h-0 overflow-y-auto">
                 <ResaleB2b2c
                   b2b={data.b2b}
                   b2c={data.b2c}
                   b2cBreakdown={data.b2cBreakdown}
                 />
               </SectionCard>
-              <SectionCard title="Tipo de Fabricação" className="flex-[2] flex flex-col min-h-0" contentClass="flex-1 min-h-0">
+              <SectionCard title="Tipo de Fabricação" className="flex-1 flex flex-col min-h-0" contentClass="flex-1 min-h-0">
                 <ResaleDonut data={data.byTipo} fullHeight />
               </SectionCard>
             </div>
