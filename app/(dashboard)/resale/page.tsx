@@ -9,6 +9,8 @@ import { ResaleDonut } from '@/components/resale/resale-donut';
 import { ResaleDatePicker } from '@/components/resale/resale-date-picker';
 import { ResaleTicker } from '@/components/resale/resale-ticker';
 import { ResaleUltimasVendas } from '@/components/resale/resale-ultimas-vendas';
+import { ResaleB2b2c } from '@/components/resale/resale-b2b2c';
+import { ResaleScrapChannels } from '@/components/resale/resale-scrap-channels';
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -148,8 +150,8 @@ export default function ResalePage() {
             </SectionCard>
           </div>
 
-          {/* Row 2 — Horizontal bar charts — flex-1 fills remaining space */}
-          <div className="flex-1 min-h-0 grid grid-cols-3 auto-rows-fr gap-3">
+          {/* Row 2 — flex-1 fills remaining space */}
+          <div className="flex-1 min-h-0 grid grid-cols-[2fr_1fr_1fr_1fr_1fr] auto-rows-fr gap-3">
             <SectionCard title="Por Destino" className="h-full flex flex-col" contentClass="flex-1 min-h-0">
               {data.byDestino.length === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados</div>
@@ -160,6 +162,22 @@ export default function ResalePage() {
             </SectionCard>
             <SectionCard title="Tipo de Fabricação" className="h-full flex flex-col" contentClass="flex-1 min-h-0">
               <ResaleDonut data={data.byTipo} fullHeight />
+            </SectionCard>
+            <SectionCard title="Scrap · B2B / B2C" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
+              {data.scrapFat === 0
+                ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
+                : <ResaleScrapChannels
+                    scrapB2b={data.scrapB2b}
+                    scrapB2c={data.scrapB2c}
+                    scrapB2cBreakdown={data.scrapB2cBreakdown}
+                  />}
+            </SectionCard>
+            <SectionCard title="B2B · B2C" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
+              <ResaleB2b2c
+                b2b={data.b2b}
+                b2c={data.b2c}
+                b2cBreakdown={data.b2cBreakdown}
+              />
             </SectionCard>
           </div>
 
