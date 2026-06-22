@@ -133,12 +133,12 @@ export default function ResalePage() {
                 />
               </SectionCard>
 
-              <div className="col-span-2 grid grid-cols-2 gap-3 min-h-0">
-                <SectionCard title="Canal de Venda" className="h-full flex flex-col" contentClass="flex-1 min-h-0">
-                  <ResaleDonut data={data.canalVenda} fullHeight />
+              <div className="col-span-2 flex flex-col gap-3 min-h-0">
+                <SectionCard title="Canal de Venda" className="flex-1 flex flex-col" contentClass="flex-1 min-h-0 flex items-center">
+                  <ResaleDonut data={data.canalVenda} horizontal />
                 </SectionCard>
-                <SectionCard title="Tipo de Fabricação" className="h-full flex flex-col" contentClass="flex-1 min-h-0">
-                  <ResaleDonut data={data.byTipo} fullHeight />
+                <SectionCard title="Tipo de Fabricação" className="flex-1 flex flex-col" contentClass="flex-1 min-h-0 flex items-center">
+                  <ResaleDonut data={data.byTipo} horizontal />
                 </SectionCard>
               </div>
 
