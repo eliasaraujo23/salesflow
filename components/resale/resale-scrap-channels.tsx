@@ -1,0 +1,119 @@
+'use client';
+
+import React from 'react';
+import { type ChannelSegment, type AgItem } from '@/lib/actions/fetch-resale';
+
+const fmtK = (v: number) =>
+  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+
+function lucStr(seg: ChannelSegment): string {
+  if (seg.faturamento <= 0) return '—';
+  return `${(((seg.faturamento - seg.custo) / seg.faturamento) * 100).toFixed(1)}%`;
+}
+
+function ticketStr(seg: ChannelSegment): string {
+  if (seg.qtd <= 0) return '—';
+  return fmtK(seg.faturamento / seg.qtd);
+}
+
+interface ResaleScrapChannelsProps {
+  scrapB2b: ChannelSegment;
+  scrapB2c: ChannelSegment;
+  scrapB2cBreakdown: AgItem[];
+}
+
+export function ResaleScrapChannels({ scrapB2b, scrapB2c, scrapB2cBreakdown }: ResaleScrapChannelsProps) {
+  const total = scrapB2b.faturamento + scrapB2c.faturamento;
+  const pct = (v: number) => (total > 0 ? (v / total) * 100 : 0);
+
+  const segments = [
+    { label: 'B2B', seg: scrapB2b, bar: 'bg-indigo-500',  text: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-500/10'  },
+    { label: 'B2C', seg: scrapB2c, bar: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
+  ];
+
+  return (
+    <div className="space-y-2">
+      {/* Proportional bar */}
+      <div className="flex h-2.5 rounded-full overflow-hidden gap-px">
+        {segments.map(s => (
+          <div
+            key={s.label}
+            className={s.bar}
+            style={{ width: `${pct(s.seg.faturamento).toFixed(1)}%`, minWidth: s.seg.faturamento > 0 ? '2px' : '0' }}
+            title={`${s.label}: ${pct(s.seg.faturamento).toFixed(1)}%`}
+          />
+        ))}
+      </div>
+
+      {/* Segment cards */}
+      <div className="space-y-1.5">
+        {segments.map(s => (
+          <div key={s.label} className={`${s.bg} rounded-lg px-2.5 py-1.5`}>
+            <div className="flex items-center justify-between mb-1">
+              <span className={`text-[11px] font-bold uppercase tracking-wider ${s.text}`}>{s.label}</span>
+              <span className={`text-[11px] font-bold ${s.text}`}>{pct(s.seg.faturamento).toFixed(1)}%</span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-3">
+              <MiniRow label="Faturamento" value={fmtK(s.seg.faturamento)} bold />
+              <MiniRow label="Qtd" value={String(s.seg.qtd)} />
+              <MiniRow label="Lucratividade" value={lucStr(s.seg)} />
+              <MiniRow label="Ticket Médio" value={ticketStr(s.seg)} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* B2C scrap breakdown */}
+      {scrapB2cBreakdown.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+              Canais B2C · Scrap
+            </span>
+            <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+              {fmtK(scrapB2c.faturamento)}
+            </span>
+          </div>
+          <div className="space-y-1">
+            {scrapB2cBreakdown.map(item => {
+              const share = scrapB2c.faturamento > 0 ? (item.faturamento / scrapB2c.faturamento) * 100 : 0;
+              const luc = item.faturamento > 0
+                ? `${(((item.faturamento - item.custo) / item.faturamento) * 100).toFixed(1)}%`
+                : '—';
+              return (
+                <div key={item.name} className="flex items-center gap-2">
+                  <span className="text-[10px] text-zinc-600 dark:text-zinc-400 w-24 shrink-0 truncate">
+                    {item.name}
+                  </span>
+                  <div className="flex-1 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${share}%` }} />
+                  </div>
+                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 w-7 text-right shrink-0 tabular-nums">
+                    {share.toFixed(0)}%
+                  </span>
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 w-16 text-right shrink-0 tabular-nums">
+                    {fmtK(item.faturamento)}
+                  </span>
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 w-8 text-right shrink-0 tabular-nums">
+                    {luc}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MiniRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between gap-1">
+      <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 shrink-0">{label}</span>
+      <span className={`text-[10px] tabular-nums text-right ${bold ? 'font-bold text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-300'}`}>
+        {value}
+      </span>
+    </div>
+  );
+}

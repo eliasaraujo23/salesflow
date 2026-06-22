@@ -10,6 +10,7 @@ import { ResaleUltimasVendas } from '@/components/resale/resale-ultimas-vendas';
 import { ResaleDatePicker } from '@/components/resale/resale-date-picker';
 import { ResaleTicker } from '@/components/resale/resale-ticker';
 import { ResaleB2b2c } from '@/components/resale/resale-b2b2c';
+import { ResaleScrapChannels } from '@/components/resale/resale-scrap-channels';
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -163,10 +164,14 @@ export default function ResalePage() {
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados</div>
                 : <ResaleHBar data={data.byDestino} color="#8b5cf6" labelWidth={160} fullHeight />}
             </SectionCard>
-            <SectionCard title="Scrap — Por Destino" className="h-full flex flex-col" contentClass="flex-1 min-h-0">
-              {data.scrapByDestino.length === 0
+            <SectionCard title="Scrap · B2B / B2C" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
+              {data.scrapFat === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
-                : <ResaleHBar data={data.scrapByDestino} color="#eab308" labelWidth={160} fullHeight />}
+                : <ResaleScrapChannels
+                    scrapB2b={data.scrapB2b}
+                    scrapB2c={data.scrapB2c}
+                    scrapB2cBreakdown={data.scrapB2cBreakdown}
+                  />}
             </SectionCard>
             <SectionCard title="B2B · B2C · Scrap" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
               <ResaleB2b2c
