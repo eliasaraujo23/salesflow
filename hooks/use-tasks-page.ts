@@ -58,6 +58,11 @@ export function useTasksPage() {
     if (filterPerson) list = list.filter((t) => t.person === filterPerson);
     if (filterPriority) list = list.filter((t) => t.priority === filterPriority);
 
+    // Todas as views (exceto Concluídas) mostram apenas tarefas em aberto
+    if (activeFilter !== 'concluidas') {
+      list = list.filter((t) => t.status !== 'done');
+    }
+
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const weekEnd = new Date(today);
@@ -83,7 +88,7 @@ export function useTasksPage() {
         });
         break;
       case 'atrasadas':
-        list = list.filter((t) => t.late > 0 && t.status !== 'done');
+        list = list.filter((t) => t.late > 0);
         break;
       case 'concluidas':
         list = list.filter((t) => t.status === 'done');
@@ -130,12 +135,13 @@ export function useTasksPage() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const weekEnd = new Date(today);
     weekEnd.setDate(weekEnd.getDate() + 7);
+    const open = scopedTasks.filter((t) => t.status !== 'done');
     return {
-      todas:      scopedTasks.length,
-      hoje:       scopedTasks.filter((t) => { const d = parseDue(t.due); return d && d.getTime() === today.getTime(); }).length,
-      amanha:     scopedTasks.filter((t) => { const d = parseDue(t.due); return d && d.getTime() === tomorrow.getTime(); }).length,
-      semana:     scopedTasks.filter((t) => { const d = parseDue(t.due); return d && d >= today && d <= weekEnd; }).length,
-      atrasadas:  scopedTasks.filter((t) => t.late > 0 && t.status !== 'done').length,
+      todas:      open.length,
+      hoje:       open.filter((t) => { const d = parseDue(t.due); return d && d.getTime() === today.getTime(); }).length,
+      amanha:     open.filter((t) => { const d = parseDue(t.due); return d && d.getTime() === tomorrow.getTime(); }).length,
+      semana:     open.filter((t) => { const d = parseDue(t.due); return d && d >= today && d <= weekEnd; }).length,
+      atrasadas:  open.filter((t) => t.late > 0).length,
       concluidas: scopedTasks.filter((t) => t.status === 'done').length,
     } as Record<string, number>;
   }, [scopedTasks, today]);
