@@ -79,7 +79,7 @@ export function MetalsTable({ metals, canDelete }: MetalsTableProps) {
 
     const running: Record<string, number> = {};
     const mapped = sorted.map((m) => {
-      running[m.metal] = (running[m.metal] ?? 0) + (m.sobrou ?? 0);
+      running[m.metal] = (running[m.metal] ?? 0) + (m.chegou ?? 0);
       return { ...m, saldoAcum: running[m.metal] };
     });
     return mapped.reverse();

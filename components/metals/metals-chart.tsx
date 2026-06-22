@@ -43,9 +43,9 @@ export function MetalsChart({ metals }: MetalsChartProps) {
       const items = metals.filter((m) => m.data === day);
       return {
         label: day.slice(5).replace('-', '/'),
-        ouro:    items.filter((m) => m.metal === 'ouro').reduce((s, m) => s + (m.sobrou ?? 0), 0),
-        prata:   items.filter((m) => m.metal === 'prata').reduce((s, m) => s + (m.sobrou ?? 0), 0),
-        platina: items.filter((m) => m.metal === 'platina').reduce((s, m) => s + (m.sobrou ?? 0), 0),
+        ouro:    items.filter((m) => m.metal === 'ouro').reduce((s, m) => s + (m.chegou ?? 0), 0),
+        prata:   items.filter((m) => m.metal === 'prata').reduce((s, m) => s + (m.chegou ?? 0), 0),
+        platina: items.filter((m) => m.metal === 'platina').reduce((s, m) => s + (m.chegou ?? 0), 0),
       };
     });
   }, [metals]);

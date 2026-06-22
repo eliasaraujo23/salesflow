@@ -16,9 +16,9 @@ type MetalType = 'ouro' | 'prata' | 'platina';
 
 function MetalKPICard({ metal, metals }: { metal: MetalType; metals: ReturnType<typeof useFirebase>['metals'] }) {
   const items = metals.filter((m) => m.metal === metal);
-  const total = items.reduce((s, m) => s + (m.sobrou ?? 0), 0);
+  const total = items.reduce((s, m) => s + (m.chegou ?? 0), 0);
   const byOrigem = (origem: string) =>
-    items.filter((m) => m.origem === origem).reduce((s, m) => s + (m.sobrou ?? 0), 0);
+    items.filter((m) => m.origem === origem).reduce((s, m) => s + (m.chegou ?? 0), 0);
 
   const style = METAL_CARD_STYLES[metal];
   const label = metal.charAt(0).toUpperCase() + metal.slice(1);

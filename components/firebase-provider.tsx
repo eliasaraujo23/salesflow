@@ -56,8 +56,9 @@ export interface Metal {
 export interface DeleteRequest {
   docId: string;
   taskId: string | number;
-  requester: string;
-  reason: string;
+  title?: string;
+  requestedBy?: string;
+  requestedByName?: string;
   createdAt: string;
 }
 
