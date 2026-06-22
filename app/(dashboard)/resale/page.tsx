@@ -181,11 +181,10 @@ export default function ResalePage() {
                     scrapB2cBreakdown={data.scrapB2cBreakdown}
                   />}
             </SectionCard>
-            <SectionCard title="B2B · B2C · Scrap" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
+            <SectionCard title="B2B · B2C" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
               <ResaleB2b2c
                 b2b={data.b2b}
                 b2c={data.b2c}
-                scrap={{ faturamento: data.scrapFat, custo: data.scrapCusto, qtd: data.scrapQtd }}
                 b2cBreakdown={data.b2cBreakdown}
               />
             </SectionCard>

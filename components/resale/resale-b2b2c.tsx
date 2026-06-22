@@ -24,18 +24,16 @@ function itemLucStr(item: AgItem): string {
 interface ResaleB2b2cProps {
   b2b: ChannelSegment;
   b2c: ChannelSegment;
-  scrap: ChannelSegment;
   b2cBreakdown: AgItem[];
 }
 
-export function ResaleB2b2c({ b2b, b2c, scrap, b2cBreakdown }: ResaleB2b2cProps) {
-  const total = b2b.faturamento + b2c.faturamento + scrap.faturamento;
+export function ResaleB2b2c({ b2b, b2c, b2cBreakdown }: ResaleB2b2cProps) {
+  const total = b2b.faturamento + b2c.faturamento;
   const pct = (v: number) => (total > 0 ? (v / total) * 100 : 0);
 
   const segments = [
-    { label: 'B2B',   seg: b2b,   pct: pct(b2b.faturamento),   bar: 'bg-indigo-500',  text: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-500/10'  },
-    { label: 'B2C',   seg: b2c,   pct: pct(b2c.faturamento),   bar: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
-    { label: 'Scrap', seg: scrap, pct: pct(scrap.faturamento), bar: 'bg-amber-500',   text: 'text-amber-600 dark:text-amber-400',    bg: 'bg-amber-500/10'   },
+    { label: 'B2B', seg: b2b, pct: pct(b2b.faturamento), bar: 'bg-indigo-500',  text: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-500/10'  },
+    { label: 'B2C', seg: b2c, pct: pct(b2c.faturamento), bar: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
   ];
 
   const b2cTotal = b2c.faturamento;
