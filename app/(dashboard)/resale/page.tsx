@@ -156,12 +156,12 @@ export default function ResalePage() {
             <SectionCard title="Por Destino">
               {data.byDestino.length === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados</div>
-                : <ResaleHBar data={data.byDestino.slice(0, 20)} color="#8b5cf6" labelWidth={160} barH={22} />}
+                : <ResaleHBar data={data.byDestino.slice(0, 12)} color="#8b5cf6" labelWidth={160} barH={22} />}
             </SectionCard>
             <SectionCard title="Scrap — Por Destino">
               {data.scrapByDestino.length === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
-                : <ResaleHBar data={data.scrapByDestino.slice(0, 15)} color="#eab308" labelWidth={160} barH={22} />}
+                : <ResaleHBar data={data.scrapByDestino.slice(0, 10)} color="#eab308" labelWidth={160} barH={22} />}
             </SectionCard>
             <SectionCard title="B2B · B2C · Scrap">
               <ResaleB2b2c
