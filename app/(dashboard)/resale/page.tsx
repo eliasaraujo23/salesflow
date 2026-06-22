@@ -9,6 +9,7 @@ import { ResaleDonut } from '@/components/resale/resale-donut';
 import { ResaleUltimasVendas } from '@/components/resale/resale-ultimas-vendas';
 import { ResaleDatePicker } from '@/components/resale/resale-date-picker';
 import { ResaleTicker } from '@/components/resale/resale-ticker';
+import { ResaleB2b2c } from '@/components/resale/resale-b2b2c';
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -157,15 +158,17 @@ export default function ResalePage() {
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados</div>
                 : <ResaleHBar data={data.byDestino.slice(0, 20)} color="#8b5cf6" labelWidth={160} barH={22} />}
             </SectionCard>
-            <SectionCard title="Por Tipo de Joia">
-              {data.byProduto.length === 0
-                ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados</div>
-                : <ResaleHBar data={data.byProduto.slice(0, 20)} color="#10b981" labelWidth={140} barH={22} />}
-            </SectionCard>
             <SectionCard title="Scrap — Por Destino">
               {data.scrapByDestino.length === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
                 : <ResaleHBar data={data.scrapByDestino.slice(0, 15)} color="#eab308" labelWidth={160} barH={22} />}
+            </SectionCard>
+            <SectionCard title="B2B · B2C · Scrap">
+              <ResaleB2b2c
+                b2b={data.b2b}
+                b2c={data.b2c}
+                scrap={{ faturamento: data.scrapFat, custo: data.scrapCusto, qtd: data.scrapQtd }}
+              />
             </SectionCard>
           </div>
 
