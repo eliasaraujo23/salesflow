@@ -11,8 +11,10 @@ const maintenanceItemSchema = z.object({
   tipo_pedra: z.string().nullable().optional(),
   lapidacao: z.string().nullable().optional(),
   destino: z.string().nullable().optional(),
+  destino_manutencao: z.string().nullable().optional(),
   data_saida_manutencao: z.string().nullable().optional(),
-  dias: z.number().default(0),
+  dias: z.coerce.number().default(0),
+  custo_real: z.coerce.number().default(0),
   preco_minimo: z.union([z.number(), z.string()]).nullable().optional(),
   preco_loja: z.union([z.number(), z.string()]).nullable().optional(),
 });
