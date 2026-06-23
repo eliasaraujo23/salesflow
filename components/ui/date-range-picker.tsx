@@ -8,7 +8,6 @@ import { type DateRange } from 'react-day-picker';
 
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import React, { type Dispatch, useEffect, useRef, useState } from 'react';
 
@@ -125,8 +124,6 @@ export function CalendarDateRangePicker({
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [pendingRange, setPendingRange] = useState<DateRange | undefined>(dateRange);
   const [isRangeComplete, setIsRangeComplete] = useState(false);
-  const isMobile = useIsMobile();
-
   useEffect(() => {
     setPendingRange(dateRange);
     setFromVal(dateRange?.from ? format(dateRange.from, 'dd/MM/yyyy') : '');
@@ -230,7 +227,7 @@ export function CalendarDateRangePicker({
                 setPendingRange(range);
                 if (range?.from && range?.to) setIsRangeComplete(true);
               }}
-              numberOfMonths={isMobile ? 1 : 2}
+              numberOfMonths={typeof window !== 'undefined' && window.innerWidth < 640 ? 1 : 2}
               locale={pt}
               className="drp-calendar"
             />
