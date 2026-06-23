@@ -10,7 +10,94 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { type Dispatch, useEffect, useState } from 'react';
+import React, { type Dispatch, useEffect, useRef, useState } from 'react';
+
+// ── Masked date input (sem react-input-mask) ────────────────────────────────
+// Mostra __/__/____ e preenche da esquerda pra direita conforme o usuário digita.
+// Suporta backspace, desktop (onKeyDown) e mobile (onChange fallback).
+
+function buildDisplay(digits: string): string {
+  const d = (digits + '________').slice(0, 8).split('');
+  return `${d[0]}${d[1]}/${d[2]}${d[3]}/${d[4]}${d[5]}${d[6]}${d[7]}`;
+}
+
+function toDateStr(digits: string): string {
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+}
+
+function digitsFromValue(value: string): string {
+  return value.replace(/\D/g, '').slice(0, 8);
+}
+
+interface MaskedDateInputProps {
+  value: string;
+  onChange: (v: string) => void; // emite 'dd/mm/yyyy' quando completo, '' para limpar
+  className?: string;
+}
+
+function MaskedDateInput({ value, onChange, className }: MaskedDateInputProps) {
+  const [digits, setDigits] = useState(() => digitsFromValue(value));
+  const prevDisplayRef = useRef(buildDisplay(digitsFromValue(value)));
+  // Evita dupla atualização quando keyDown e onChange disparam juntos
+  const skipChangeRef = useRef(false);
+
+  // Sincroniza apenas quando o pai envia valor completo ou vazio
+  useEffect(() => {
+    if (value === '' || value.length === 10) {
+      const d = digitsFromValue(value);
+      setDigits(d);
+      prevDisplayRef.current = buildDisplay(d);
+    }
+  }, [value]);
+
+  const apply = (d: string) => {
+    prevDisplayRef.current = buildDisplay(d);
+    setDigits(d);
+    if (d.length === 0) onChange('');
+    else if (d.length === 8) onChange(toDateStr(d));
+    // parcial: não emite, preserva o que o usuário digitou
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      skipChangeRef.current = true;
+      apply(digits.slice(0, -1));
+    } else if (/^\d$/.test(e.key) && digits.length < 8) {
+      e.preventDefault();
+      skipChangeRef.current = true;
+      apply(digits + e.key);
+    } else if (e.key !== 'Tab' && e.key !== 'Enter' && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+    }
+  };
+
+  // Fallback para mobile (teclado virtual não dispara onKeyDown confiável)
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (skipChangeRef.current) { skipChangeRef.current = false; return; }
+    const newRaw = e.target.value;
+    const prevRaw = prevDisplayRef.current;
+    if (newRaw.length > prevRaw.length) {
+      const added = newRaw.replace(/\D/g, '').slice(digits.length);
+      if (added && digits.length < 8) apply((digits + added).slice(0, 8));
+    } else if (newRaw.length < prevRaw.length && digits.length > 0) {
+      apply(digits.slice(0, -1));
+    }
+  };
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={buildDisplay(digits)}
+      onKeyDown={handleKeyDown}
+      onChange={handleChange}
+      className={className}
+    />
+  );
+}
+
+// ── CalendarDateRangePicker ─────────────────────────────────────────────────
 
 const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -33,8 +120,8 @@ export function CalendarDateRangePicker({
   setDateRange,
   onDateChange,
 }: CalendarDateRangePickerProps) {
-  const [fromInput, setFromInput] = useState<string>('');
-  const [toInput, setToInput] = useState<string>('');
+  const [fromVal, setFromVal] = useState(dateRange?.from ? format(dateRange.from, 'dd/MM/yyyy') : '');
+  const [toVal,   setToVal]   = useState(dateRange?.to   ? format(dateRange.to,   'dd/MM/yyyy') : '');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [pendingRange, setPendingRange] = useState<DateRange | undefined>(dateRange);
   const [isRangeComplete, setIsRangeComplete] = useState(false);
@@ -42,31 +129,23 @@ export function CalendarDateRangePicker({
 
   useEffect(() => {
     setPendingRange(dateRange);
-    setFromInput(dateRange?.from ? format(dateRange.from, 'dd/MM/yyyy') : '');
-    setToInput(dateRange?.to   ? format(dateRange.to,   'dd/MM/yyyy') : '');
+    setFromVal(dateRange?.from ? format(dateRange.from, 'dd/MM/yyyy') : '');
+    setToVal(  dateRange?.to   ? format(dateRange.to,   'dd/MM/yyyy') : '');
     setIsRangeComplete(!!(dateRange?.from && dateRange?.to));
   }, [dateRange]);
 
-  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'from' | 'to') => {
-    const value = e.target.value;
-    if (field === 'from') setFromInput(value);
-    else setToInput(value);
+  const handleFieldChange = (val: string, field: 'from' | 'to') => {
+    if (field === 'from') setFromVal(val);
+    else setToVal(val);
 
-    if (!value || value.replace(/[/_]/g, '').length === 0) {
-      setPendingRange((prev) => ({
-        from: field === 'from' ? undefined : prev?.from,
-        to:   field === 'to'   ? undefined : prev?.to,
-      }));
+    if (!val) {
+      setPendingRange(prev => ({ from: field === 'from' ? undefined : prev?.from, to: field === 'to' ? undefined : prev?.to }));
       return;
     }
-
-    if (!value.includes('_') && value.length === 10) {
-      const parsed = parse(value, 'dd/MM/yyyy', new Date());
+    if (val.length === 10) {
+      const parsed = parse(val, 'dd/MM/yyyy', new Date());
       if (isValid(parsed)) {
-        setPendingRange((prev) => ({
-          from: field === 'from' ? parsed : prev?.from,
-          to:   field === 'to'   ? parsed : prev?.to,
-        }));
+        setPendingRange(prev => ({ from: field === 'from' ? parsed : prev?.from, to: field === 'to' ? parsed : prev?.to }));
       }
     }
   };
@@ -117,29 +196,13 @@ export function CalendarDateRangePicker({
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
                 Início:
               </span>
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="dd/mm/aaaa"
-                value={fromInput}
-                onChange={(e) => handleDateInputChange(e, 'from')}
-                className={inputCls}
-                maxLength={10}
-              />
+              <MaskedDateInput value={fromVal} onChange={v => handleFieldChange(v, 'from')} className={inputCls} />
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
                 Fim:
               </span>
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="dd/mm/aaaa"
-                value={toInput}
-                onChange={(e) => handleDateInputChange(e, 'to')}
-                className={inputCls}
-                maxLength={10}
-              />
+              <MaskedDateInput value={toVal} onChange={v => handleFieldChange(v, 'to')} className={inputCls} />
             </div>
           </div>
 

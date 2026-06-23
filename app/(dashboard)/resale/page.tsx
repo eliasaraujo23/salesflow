@@ -160,15 +160,15 @@ export default function ResalePage() {
               <ResaleB2b2c b2b={data.b2b} b2c={data.b2c} />
             </SectionCard>
 
-            {/* Canal + Tipo — row 2, cols 1-2 */}
-            <div className="flex flex-col gap-3 md:min-h-0 md:col-start-1 md:row-start-2 md:col-span-2">
-              <SectionCard title="Canal de Venda" className="md:flex-1 md:flex md:flex-col" contentClass="md:flex-1 md:min-h-0 md:flex">
-                <ResaleDonut data={data.canalVenda} horizontal />
-              </SectionCard>
-              <SectionCard title="Tipo de Fabricação" className="md:flex-1 md:flex md:flex-col" contentClass="md:flex-1 md:min-h-0 md:flex">
-                <ResaleDonut data={data.byTipo} horizontal />
-              </SectionCard>
-            </div>
+            {/* Canal de Venda — row 2, col 1 */}
+            <SectionCard title="Canal de Venda" className="md:h-full md:flex md:flex-col md:col-start-1 md:row-start-2" contentClass="md:flex-1 md:min-h-0 md:flex">
+              <ResaleDonut data={data.canalVenda} horizontal />
+            </SectionCard>
+
+            {/* Tipo de Fabricação — row 2, col 2 */}
+            <SectionCard title="Tipo de Fabricação" className="md:h-full md:flex md:flex-col md:col-start-2 md:row-start-2" contentClass="md:flex-1 md:min-h-0 md:flex">
+              <ResaleDonut data={data.byTipo} horizontal />
+            </SectionCard>
 
             {/* Últimas Vendas — col 3 rows 1-2; último no HTML = último no mobile */}
             <SectionCard title="Últimas Vendas" className="md:h-full md:flex md:flex-col md:col-start-3 md:row-start-1 md:row-span-2" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
