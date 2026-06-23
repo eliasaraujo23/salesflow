@@ -143,7 +143,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
       accessorKey: 'produto',
       header: 'Produto',
       cell: ({ getValue }) => (
-        <span className="text-sm text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+        <span className="text-xs text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
@@ -152,7 +152,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
       accessorKey: 'subtipo',
       header: 'Subtipo',
       cell: ({ getValue }) => (
-        <span className="text-sm text-zinc-500 dark:text-zinc-400">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
@@ -162,7 +162,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
       header: 'Tipo Pedra',
       cell: ({ row }) => (
         <div>
-          <div className="text-sm text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+          <div className="text-xs text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
             {row.original.tipo_pedra ?? '—'}
           </div>
           {row.original.lapidacao && (
@@ -175,7 +175,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
       accessorKey: 'lapidacao',
       header: 'Lapidação',
       cell: ({ getValue }) => (
-        <span className="text-sm text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
@@ -184,7 +184,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
       accessorKey: 'destino',
       header: 'Destino',
       cell: ({ getValue }) => (
-        <span className="text-sm text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
@@ -224,7 +224,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
         </button>
       ),
       cell: ({ getValue }) => (
-        <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
+        <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
           {fmtMoeda(getValue<number | null>())}
         </span>
       ),

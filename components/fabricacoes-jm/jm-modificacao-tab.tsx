@@ -156,7 +156,7 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
       accessorKey: 'produto',
       header: 'Produto',
       cell: ({ getValue }) => (
-        <span className="text-sm text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+        <span className="text-xs text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
@@ -165,7 +165,7 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
       accessorKey: 'subtipo',
       header: 'Subtipo',
       cell: ({ getValue }) => (
-        <span className="text-sm text-zinc-500 dark:text-zinc-400">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
@@ -174,7 +174,7 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
       accessorKey: 'tipo_pedra',
       header: 'Pedra',
       cell: ({ getValue }) => (
-        <span className="text-sm text-zinc-700 dark:text-zinc-300">
+        <span className="text-xs text-zinc-700 dark:text-zinc-300">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),

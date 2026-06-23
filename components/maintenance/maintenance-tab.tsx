@@ -158,7 +158,7 @@ export function MaintenanceTab({ data }: MaintenanceTabProps) {
       accessorKey: 'produto',
       header: 'Produto',
       cell: ({ getValue }) => (
-        <span className="text-sm text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+        <span className="text-xs text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
@@ -167,7 +167,7 @@ export function MaintenanceTab({ data }: MaintenanceTabProps) {
       accessorKey: 'subtipo',
       header: 'Subtipo',
       cell: ({ getValue }) => (
-        <span className="text-sm text-zinc-500 dark:text-zinc-400">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
@@ -177,7 +177,7 @@ export function MaintenanceTab({ data }: MaintenanceTabProps) {
       header: 'Pedra',
       cell: ({ row }) => (
         <div>
-          <div className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
+          <div className="text-xs text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
             {row.original.tipo_pedra ?? '—'}
           </div>
           {row.original.lapidacao && (
@@ -209,7 +209,7 @@ export function MaintenanceTab({ data }: MaintenanceTabProps) {
       accessorKey: 'destino',
       header: 'Destino',
       cell: ({ getValue }) => (
-        <span className="text-sm text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
