@@ -10,9 +10,7 @@ import { FabVendasTab } from '@/components/fabricacoes-jf/fab-vendas-tab';
 import { FabEstoqueTab } from '@/components/fabricacoes-jf/fab-estoque-tab';
 
 const fmtMoedaK = (n: number) =>
-  n >= 1000
-    ? `R$${(n / 1000).toFixed(0)}k`
-    : n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+  n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 
 type Tab = 'estoque' | 'fabricacao' | 'controle' | 'vendas';
 
