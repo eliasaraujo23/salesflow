@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import { CalendarIcon } from '@radix-ui/react-icons';
@@ -6,7 +5,6 @@ import { ChevronDown } from 'lucide-react';
 import { format, isValid, parse } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { type DateRange } from 'react-day-picker';
-import InputMask from 'react-input-mask';
 
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -119,41 +117,29 @@ export function CalendarDateRangePicker({
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
                 Início:
               </span>
-              <InputMask
-                mask="99/99/9999"
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="dd/mm/aaaa"
                 value={fromInput}
                 onChange={(e) => handleDateInputChange(e, 'from')}
-              >
-                {(inputProps) => (
-                  <input
-                    {...inputProps}
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="dd/mm/aaaa"
-                    className={inputCls}
-                  />
-                )}
-              </InputMask>
+                className={inputCls}
+                maxLength={10}
+              />
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
                 Fim:
               </span>
-              <InputMask
-                mask="99/99/9999"
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="dd/mm/aaaa"
                 value={toInput}
                 onChange={(e) => handleDateInputChange(e, 'to')}
-              >
-                {(inputProps) => (
-                  <input
-                    {...inputProps}
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="dd/mm/aaaa"
-                    className={inputCls}
-                  />
-                )}
-              </InputMask>
+                className={inputCls}
+                maxLength={10}
+              />
             </div>
           </div>
 
