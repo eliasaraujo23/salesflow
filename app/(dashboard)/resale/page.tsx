@@ -172,6 +172,25 @@ export default function ResalePage() {
 
             {/* Eternno por Tipo — col 2, row 2 */}
             <SectionCard title="Eternno · Por Tipo" className="md:col-start-2 md:row-start-2 md:h-full md:flex md:flex-col">
+              {/* KPIs Eternno */}
+              <div className="grid grid-cols-2 gap-1.5 mb-3 shrink-0">
+                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Faturamento</span>
+                  <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtMoedaK(data.eternnoFat)}</span>
+                </div>
+                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Quantidade</span>
+                  <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{data.eternnoQtd}</span>
+                </div>
+                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Lucratividade</span>
+                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{fmtLuc(data.eternnoFat, data.eternnoCusto)}</span>
+                </div>
+                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Ticket Médio</span>
+                  <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{ticketMedio(data.eternnoFat, data.eternnoQtd)}</span>
+                </div>
+              </div>
               {data.eternnoByTipo.length === 0 ? (
                 <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados Eternno</div>
               ) : (
