@@ -170,6 +170,34 @@ export default function ResalePage() {
               </SectionCard>
             </div>
 
+            {/* Eternno por Tipo — col 2, row 2 */}
+            <SectionCard title="Eternno · Por Tipo" className="md:col-start-2 md:row-start-2 md:h-full md:flex md:flex-col">
+              {data.eternnoByTipo.length === 0 ? (
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados Eternno</div>
+              ) : (
+                <div className="flex flex-col gap-3 flex-1 justify-center">
+                  {data.eternnoByTipo.map(item => (
+                    <div key={item.name} className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
+                      <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 w-10 shrink-0">{item.name}</span>
+                      <div className="flex-1 h-5 bg-zinc-100 dark:bg-zinc-800 rounded overflow-hidden">
+                        <div
+                          className="h-full rounded transition-all"
+                          style={{
+                            width: `${(item.faturamento / data.eternnoByTipo[0].faturamento) * 100}%`,
+                            backgroundColor: item.color,
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 tabular-nums whitespace-nowrap shrink-0">
+                        {item.faturamento.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </SectionCard>
+
             {/* Últimas Vendas — col 3 rows 1-2; último no HTML = último no mobile */}
             <SectionCard title="Últimas Vendas" className="md:h-full md:flex md:flex-col md:col-start-3 md:row-start-1 md:row-span-2" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
               <ResaleUltimasVendas vendas={data.ultimasVendas} totalQtd={data.qtd} newReferencias={newReferencias} />
