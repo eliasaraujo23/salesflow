@@ -78,10 +78,10 @@ export function ResaleScrapChannels({ scrapB2b, scrapB2c, scrapB2cBreakdown }: R
               <span className={`text-[13px] font-bold uppercase tracking-wider ${s.text}`}>{s.label}</span>
               <span className={`text-[13px] font-bold ${s.text}`}>{pct(s.seg.faturamento).toFixed(1)}%</span>
             </div>
-            <div className="grid grid-cols-2 gap-x-3">
+            <div className="flex flex-col gap-0.5">
               <MiniRow label="Faturamento" value={fmtK(s.seg.faturamento)} bold />
-              <MiniRow label="Qtd" value={String(s.seg.qtd)} />
               <MiniRow label="Lucratividade" value={lucStr(s.seg)} />
+              <MiniRow label="Quantidade" value={String(s.seg.qtd)} />
               <MiniRow label="Ticket Médio" value={ticketStr(s.seg)} />
             </div>
           </div>

@@ -59,12 +59,11 @@ export function ResaleB2b2c({ b2b, b2c, b2cBreakdown }: ResaleB2b2cProps) {
               <span className={`text-[13px] font-bold uppercase tracking-wider ${s.text}`}>{s.label}</span>
               <span className={`text-[13px] font-bold ${s.text}`}>{s.pct.toFixed(1)}%</span>
             </div>
-            {/* 4 métricas em 2 colunas */}
-            <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
-              <Stat label="Fat." value={fmtK(s.seg.faturamento)} bold />
-              <Stat label="Qtd" value={String(s.seg.qtd)} />
-              <Stat label="Luc." value={lucStr(s.seg)} />
-              <Stat label="Ticket" value={ticketStr(s.seg)} />
+            <div className="flex flex-col gap-0.5">
+              <Stat label="Faturamento" value={fmtK(s.seg.faturamento)} bold />
+              <Stat label="Lucratividade" value={lucStr(s.seg)} />
+              <Stat label="Quantidade" value={String(s.seg.qtd)} />
+              <Stat label="Ticket Médio" value={ticketStr(s.seg)} />
             </div>
           </div>
         ))}
