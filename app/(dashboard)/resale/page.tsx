@@ -190,6 +190,12 @@ export default function ResalePage() {
                   <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Ticket Médio</span>
                   <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{ticketMedio(data.eternnoFat, data.eternnoQtd)}</span>
                 </div>
+                {data.eternnoScrapFat > 0 && (
+                  <div className="col-span-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Fat. Scrap</span>
+                    <span className="text-sm font-bold text-amber-700 dark:text-amber-300 tabular-nums">{fmtMoedaK(data.eternnoScrapFat)}</span>
+                  </div>
+                )}
               </div>
               {data.eternnoByTipo.length === 0 ? (
                 <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados Eternno</div>
