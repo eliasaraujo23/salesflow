@@ -161,11 +161,11 @@ export default function ResalePage() {
             </SectionCard>
 
             {/* Canal de Venda + Tipo de Fabricação — empilhados em col 1, row 2 */}
-            <div className="flex flex-col gap-3 md:col-start-1 md:row-start-2">
-              <SectionCard title="Canal de Venda">
+            <div className="flex flex-col gap-3 md:col-start-1 md:row-start-2 md:h-full">
+              <SectionCard title="Canal de Venda" className="md:flex-1">
                 <ResaleDonut data={data.canalVenda} horizontal />
               </SectionCard>
-              <SectionCard title="Tipo de Fabricação">
+              <SectionCard title="Tipo de Fabricação" className="md:flex-1">
                 <ResaleDonut data={data.byTipo} horizontal />
               </SectionCard>
             </div>
