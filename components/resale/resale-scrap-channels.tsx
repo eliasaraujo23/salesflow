@@ -37,7 +37,7 @@ export function ResaleScrapChannels({ scrapB2b, scrapB2c, scrapB2cBreakdown }: R
   ];
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 overflow-x-hidden">
       {/* Resumo total */}
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 pb-2 border-b border-zinc-100 dark:border-white/[0.06]">
         <div>
