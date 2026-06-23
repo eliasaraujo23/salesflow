@@ -14,8 +14,8 @@ const config: Config = {
         serif: ['Instrument Serif', ...defaultTheme.fontFamily.serif],
       },
       spacing: {
-        sidebar: '220px',
-        topbar: '56px',
+        sidebar: '248px',
+        topbar: '64px',
       },
       animation: {
         'fade-in':    'fadeIn 0.2s ease-out',

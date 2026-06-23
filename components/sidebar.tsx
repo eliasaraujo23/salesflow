@@ -49,32 +49,32 @@ export function Sidebar() {
   return (
     <aside
       className="shrink-0 flex flex-col overflow-hidden bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-white/[0.06] transition-all duration-200"
-      style={{ width: collapsed ? '52px' : '220px' }}
+      style={{ width: collapsed ? '56px' : '248px' }}
     >
       {/* Logo + toggle */}
-      <div className="h-topbar px-3 flex items-center justify-between border-b border-zinc-200 dark:border-white/[0.06] shrink-0 gap-2">
-        <div className={`flex items-center gap-2.5 min-w-0 ${collapsed ? 'w-0 overflow-hidden opacity-0' : 'flex-1 opacity-100'} transition-all duration-200`}>
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-md shadow-indigo-500/25">
+      <div className="h-topbar px-3.5 flex items-center justify-between border-b border-zinc-200 dark:border-white/[0.06] shrink-0 gap-2">
+        <div className={`flex items-center gap-3 min-w-0 ${collapsed ? 'w-0 overflow-hidden opacity-0' : 'flex-1 opacity-100'} transition-all duration-200`}>
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold shrink-0 shadow-md shadow-indigo-500/25 text-[15px]">
             S
           </div>
           <div className="min-w-0">
-            <div className="text-[13px] font-bold text-zinc-900 dark:text-zinc-50 leading-none">SalesFlow</div>
-            <div className="text-[11px] text-zinc-400 dark:text-zinc-500 leading-snug">Goldtech Joias</div>
+            <div className="text-[14px] font-bold text-zinc-900 dark:text-zinc-50 leading-tight">SalesFlow</div>
+            <div className="text-[11.5px] text-zinc-400 dark:text-zinc-500 leading-tight">Goldtech Joias</div>
           </div>
         </div>
 
         {collapsed && (
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-md shadow-indigo-500/25 mx-auto">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold shrink-0 shadow-md shadow-indigo-500/25 mx-auto text-[15px]">
             S
           </div>
         )}
 
         <button
           onClick={() => { setCollapsed(c => !c); setProfileMenuOpen(false); }}
-          className={`shrink-0 p-1 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors ${collapsed ? 'hidden' : ''}`}
+          className={`shrink-0 p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors ${collapsed ? 'hidden' : ''}`}
           title={collapsed ? 'Expandir menu' : 'Recolher menu'}
         >
-          <PanelLeftClose size={15} />
+          <PanelLeftClose size={16} />
         </button>
       </div>
 
