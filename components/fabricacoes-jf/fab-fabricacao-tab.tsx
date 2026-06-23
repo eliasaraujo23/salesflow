@@ -146,7 +146,7 @@ export function FabFabricacaoTab({ pecas }: FabFabricacaoTabProps) {
       cell: ({ getValue }) => {
         const v = getValue<string | null | undefined>() ?? '';
         return v
-          ? <span className="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">{v}</span>
+          ? <span className="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-700 dark:text-zinc-300">{v}</span>
           : <span className="text-zinc-400">—</span>;
       },
     },

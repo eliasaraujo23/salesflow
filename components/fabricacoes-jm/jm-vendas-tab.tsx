@@ -171,7 +171,7 @@ export function JmVendasTab({ data, isLoading }: JmVendasTabProps) {
       cell: ({ getValue }) => {
         const v = getValue<string | null | undefined>() ?? '';
         return (
-          <span className="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+          <span className="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-700 dark:text-zinc-300">
             {v || '—'}
           </span>
         );
