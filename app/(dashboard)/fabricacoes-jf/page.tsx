@@ -1,26 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Package, Hammer, ShoppingCart, Receipt, TrendingUp, RefreshCw, LayoutDashboard, TableProperties, BarChart3 } from 'lucide-react';
+import { Archive, Hammer, RefreshCw, TableProperties, BarChart3 } from 'lucide-react';
 import { useJfDashboard } from '@/hooks/use-jf-dashboard';
-import { FabKpiCard } from '@/components/fabricacoes-jf/fab-kpi-card';
-import { FabAlertasCard } from '@/components/fabricacoes-jf/fab-alertas-card';
-import { FabFabricacaoCard } from '@/components/fabricacoes-jf/fab-fabricacao-card';
 import { FabFabricacaoTab } from '@/components/fabricacoes-jf/fab-fabricacao-tab';
 import { FabSubtipoTable } from '@/components/fabricacoes-jf/fab-subtipo-table';
-import { FabVendasChart } from '@/components/fabricacoes-jf/fab-vendas-chart';
-import { FabPedrasChart } from '@/components/fabricacoes-jf/fab-pedras-chart';
 import { FabVendasTab } from '@/components/fabricacoes-jf/fab-vendas-tab';
+import { FabEstoqueTab } from '@/components/fabricacoes-jf/fab-estoque-tab';
 
-const fmtMoedaK = (n: number) =>
-  n >= 1000
-    ? `R$${(n / 1000).toFixed(0)}k`
-    : n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-
-type Tab = 'resumo' | 'fabricacao' | 'controle' | 'vendas';
+type Tab = 'estoque' | 'fabricacao' | 'controle' | 'vendas';
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
-  { key: 'resumo',     label: 'Resumo',     icon: <LayoutDashboard size={14} /> },
+  { key: 'estoque',    label: 'Estoque',    icon: <Archive size={14} /> },
   { key: 'fabricacao', label: 'Fabricação', icon: <Hammer size={14} /> },
   { key: 'controle',   label: 'Controle',   icon: <TableProperties size={14} /> },
   { key: 'vendas',     label: 'Vendas',     icon: <BarChart3 size={14} /> },
@@ -28,7 +19,7 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
 
 export default function FabricacoesJFPage() {
   const { data, isLoading, isError, refetch, isFetching, dataUpdatedAt } = useJfDashboard();
-  const [activeTab, setActiveTab] = useState<Tab>('resumo');
+  const [activeTab, setActiveTab] = useState<Tab>('estoque');
 
   const lastUpdate = dataUpdatedAt
     ? new Date(dataUpdatedAt).toLocaleTimeString('pt-BR')
@@ -71,7 +62,9 @@ export default function FabricacoesJFPage() {
         </div>
       </div>
 
-      {activeTab === 'vendas' ? (
+      {activeTab === 'estoque' ? (
+        <FabEstoqueTab />
+      ) : activeTab === 'vendas' ? (
         <FabVendasTab />
       ) : isLoading ? (
         <div className="flex items-center justify-center min-h-64">
@@ -91,27 +84,6 @@ export default function FabricacoesJFPage() {
         </div>
       ) : (
         <>
-          {activeTab === 'resumo' && (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <FabKpiCard icon={Package}     label="Estoque Disponível" value={data.resumo.estoque.toLocaleString('pt-BR')}       subtext="peças prontas p/ venda"                         variant="blue"   />
-                <FabKpiCard icon={Hammer}      label="Em Fabricação"      value={data.resumo.em_fabricacao.toLocaleString('pt-BR')} subtext="peças em andamento"                             variant="amber"  />
-                <FabKpiCard icon={ShoppingCart} label="Vendidos Mês"      value={data.resumo.vendidos_mes.toLocaleString('pt-BR')} subtext={`${data.resumo.vendidos} total vendidos`}         variant="green"  />
-                <FabKpiCard icon={Receipt}     label="Ticket Médio"       value={fmtMoedaK(data.resumo.ticket_medio)}              subtext="mês atual"                                      variant="orange" />
-                <FabKpiCard icon={TrendingUp}  label="Faturamento Mês"    value={fmtMoedaK(data.resumo.faturamento_mes)}           subtext="mês atual"                                      variant="purple" />
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <FabAlertasCard alertas={data.alertas} />
-                <FabFabricacaoCard pecas={data.emFabricacao} />
-              </div>
-              <FabSubtipoTable data={data.estoqueCategoria} />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <FabVendasChart data={data.vendasMes} />
-                <FabPedrasChart data={data.vendasPedra} />
-              </div>
-            </>
-          )}
-
           {activeTab === 'fabricacao' && (
             <FabFabricacaoTab pecas={data.emFabricacao} />
           )}
