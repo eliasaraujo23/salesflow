@@ -10,9 +10,7 @@ import { JmEstoqueTable } from '@/components/fabricacoes-jm/jm-estoque-table';
 import { JmVendasTab } from '@/components/fabricacoes-jm/jm-vendas-tab';
 
 const fmtMoedaK = (n: number) =>
-  n >= 1000
-    ? `R$${(n / 1000).toFixed(0)}k`
-    : n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+  n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 
 type Tab = 'resumo' | 'modificacao' | 'vendas';
 
