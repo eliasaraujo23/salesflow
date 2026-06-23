@@ -1,18 +1,19 @@
 'use client';
 
-import React from 'react';
-import { Users, ShieldCheck, User, AlertTriangle } from 'lucide-react';
-import { useFirebase } from '@/components/firebase-provider';
+import React, { useState } from 'react';
+import { Users, ShieldCheck, User, UserPlus, Pencil } from 'lucide-react';
+import { useFirebase, type AppUser } from '@/components/firebase-provider';
 import { KPICard } from '@/components/kpi-card';
+import { UserEditModal } from '@/components/usuarios/user-edit-modal';
 
 const ROLE_BADGE: Record<string, string> = {
   admin: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
-  user: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30',
+  user:  'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30',
 };
 
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Admin',
-  user: 'Usuário',
+  user:  'Usuário',
 };
 
 const AVATAR_COLORS = [
@@ -24,47 +25,63 @@ const AVATAR_COLORS = [
 ];
 
 function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .slice(0, 2)
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase();
+  return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
 }
 
 export default function UsersPage() {
   const { users, currentUser } = useFirebase();
-
   const isAdmin = currentUser?.role === 'admin';
-  const admins = users.filter((u) => u.role === 'admin').length;
-  const regularUsers = users.filter((u) => u.role !== 'admin').length;
+
+  const [modalOpen, setModalOpen]       = useState(false);
+  const [editingUser, setEditingUser]   = useState<AppUser | null>(null);
+
+  const admins       = users.filter(u => u.role === 'admin').length;
+  const regularUsers = users.filter(u => u.role !== 'admin').length;
+
+  function openCreate() { setEditingUser(null); setModalOpen(true); }
+  function openEdit(u: AppUser) { setEditingUser(u); setModalOpen(true); }
 
   return (
     <div className="p-6 space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KPICard icon={Users} label="Total de Usuários" value={users.length} subtext="registrados" variant="blue" />
-        <KPICard icon={ShieldCheck} label="Administradores" value={admins} subtext="acesso completo" variant="amber" />
-        <KPICard icon={User} label="Colaboradores" value={regularUsers} subtext="acesso padrão" variant="green" />
-      </div>
-
-      {!isAdmin && (
-        <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-          <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
-          <p className="text-sm text-amber-700 dark:text-amber-400">
-            Somente administradores podem editar usuários e permissões.
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Usuários & Acesso</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+            Gerencie quem tem acesso ao sistema e o que cada pessoa pode ver.
           </p>
         </div>
-      )}
+        {isAdmin && (
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+          >
+            <UserPlus size={15} />
+            Novo usuário
+          </button>
+        )}
+      </div>
 
+      {/* KPI cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <KPICard icon={Users}      label="Total de Usuários" value={users.length} subtext="registrados"    variant="blue"  />
+        <KPICard icon={ShieldCheck} label="Administradores"   value={admins}       subtext="acesso completo" variant="amber" />
+        <KPICard icon={User}        label="Colaboradores"      value={regularUsers} subtext="acesso padrão"   variant="green" />
+      </div>
+
+      {/* User grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {users.map((user, i) => {
-          const avatarColor = AVATAR_COLORS[i % AVATAR_COLORS.length];
+          const avatarColor   = AVATAR_COLORS[i % AVATAR_COLORS.length];
           const isCurrentUser = user.email === currentUser?.email;
 
           return (
             <div
               key={user.email}
-              className={`bg-white dark:bg-zinc-900 border rounded-xl p-4 transition-colors ${
+              onClick={isAdmin ? () => openEdit(user) : undefined}
+              className={`group bg-white dark:bg-zinc-900 border rounded-xl p-4 transition-colors ${
+                isAdmin ? 'cursor-pointer' : ''
+              } ${
                 isCurrentUser
                   ? 'border-indigo-500/40'
                   : 'border-zinc-200 dark:border-white/[0.06] hover:border-zinc-300 dark:hover:border-white/[0.10]'
@@ -72,7 +89,7 @@ export default function UsersPage() {
             >
               <div className="flex items-start gap-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${avatarColor}`}>
-                  {getInitials(user.name)}
+                  {user.personKey || getInitials(user.name)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -86,6 +103,9 @@ export default function UsersPage() {
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{user.cargo}</p>
                   )}
                 </div>
+                {isAdmin && (
+                  <Pencil size={13} className="flex-shrink-0 text-zinc-300 dark:text-zinc-600 group-hover:text-indigo-500 transition-colors mt-0.5" />
+                )}
               </div>
 
               <div className="flex items-center justify-between mt-3">
@@ -94,7 +114,7 @@ export default function UsersPage() {
                 </span>
                 {user.permissions && user.permissions.length > 0 && (
                   <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {user.permissions.length} permissão{user.permissions.length !== 1 ? 'ões' : ''}
+                    {user.permissions.length} permiss{user.permissions.length !== 1 ? 'ões' : 'ão'}
                   </span>
                 )}
               </div>
@@ -109,6 +129,12 @@ export default function UsersPage() {
           <p className="text-zinc-500 dark:text-zinc-400">Nenhum usuário encontrado</p>
         </div>
       )}
+
+      <UserEditModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        user={editingUser}
+      />
     </div>
   );
 }
