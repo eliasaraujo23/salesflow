@@ -93,32 +93,23 @@ export default function ResalePage() {
   return (
     <div className="p-3 sm:p-4 flex flex-col gap-3 md:overflow-hidden md:h-full">
 
-      {/* Header */}
-      <div className="flex items-center gap-3 shrink-0">
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <ResaleDatePicker from={from} to={to} onApply={(f, t) => { setFrom(f); setTo(t); }} />
-          <ResaleTicker data={ticker} />
+      {/* Header sticky — gruda no topo ao rolar no mobile */}
+      <div className="sticky top-0 z-10 -mx-3 sm:-mx-4 px-3 sm:px-4 pt-3 sm:pt-4 pb-3 -mt-3 sm:-mt-4 bg-zinc-50 dark:bg-zinc-950 shrink-0">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
+            <ResaleDatePicker from={from} to={to} onApply={(f, t) => { setFrom(f); setTo(t); }} />
+            <ResaleTicker data={ticker} />
+          </div>
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="shrink-0 flex items-center gap-1.5 px-3 h-8 text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
+            <span className="hidden sm:inline">Atualizar</span>
+          </button>
         </div>
-        {/* Desktop: in-flow button */}
-        <button
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="hidden md:flex ml-auto shrink-0 items-center gap-1.5 px-3 h-8 text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
-          Atualizar
-        </button>
       </div>
-
-      {/* Mobile: Atualizar fixed top-right (below topbar) */}
-      <button
-        onClick={() => refetch()}
-        disabled={isFetching}
-        className="fixed top-[88px] right-3 z-20 md:hidden flex items-center justify-center w-9 h-9 text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg shadow-sm hover:border-indigo-500 transition-colors disabled:opacity-50"
-        title="Atualizar"
-      >
-        <RefreshCw size={15} className={isFetching ? 'animate-spin' : ''} />
-      </button>
 
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center">
@@ -147,7 +138,6 @@ export default function ResalePage() {
               <KPIBox label="Ticket Médio"  value={ticketMedio(data.faturamento, data.qtd)} flash={kpiFlash} />
               <KPIBox label="Quantidade"    value={String(data.qtd)} flash={kpiFlash} />
             </div>
-            {/* Por Destino: min-h no mobile resolve recharts height:"100%" sem pai explícito */}
             <SectionCard title="Por Destino" className="md:flex-1 md:flex md:flex-col md:min-h-0" contentClass="min-h-[220px] md:min-h-0 md:flex-1">
               {data.byDestino.length === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados</div>
@@ -155,7 +145,7 @@ export default function ResalePage() {
             </SectionCard>
           </div>
 
-          {/* Col 2: Mobile = coluna simples; Desktop = grid 3×2 com placement explícito */}
+          {/* Col 2 */}
           <div
             className="flex flex-col gap-3 md:grid md:min-h-0"
             style={{ gridTemplateColumns: '1fr 1fr 180px', gridTemplateRows: '1fr 1fr' }}
@@ -180,7 +170,7 @@ export default function ResalePage() {
               </SectionCard>
             </div>
 
-            {/* Últimas Vendas — col 3, rows 1-2; último no HTML = último no mobile */}
+            {/* Últimas Vendas — col 3 rows 1-2; último no HTML = último no mobile */}
             <SectionCard title="Últimas Vendas" className="md:h-full md:flex md:flex-col md:col-start-3 md:row-start-1 md:row-span-2" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
               <ResaleUltimasVendas vendas={data.ultimasVendas} totalQtd={data.qtd} newReferencias={newReferencias} />
             </SectionCard>

@@ -38,6 +38,7 @@ export default function FabricacoesJFPage() {
 
   return (
     <div className="p-3 sm:p-6 space-y-6">
+      <div className="sticky top-0 z-10 -mx-3 sm:-mx-6 px-3 sm:px-6 pt-3 sm:pt-6 pb-3 -mt-3 sm:-mt-6 bg-zinc-50 dark:bg-zinc-950">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
@@ -58,13 +59,14 @@ export default function FabricacoesJFPage() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="fixed top-[88px] right-3 z-20 md:static md:top-auto md:right-auto md:z-auto flex items-center gap-1.5 px-2.5 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50 shrink-0 shadow-sm md:shadow-none"
+            className="flex items-center gap-1.5 px-2.5 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50 shrink-0"
             title="Atualizar"
           >
             <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
-            <span className="hidden md:inline">Atualizar</span>
+            <span className="hidden sm:inline">Atualizar</span>
           </button>
         </div>
+      </div>
       </div>
 
       {activeTab === 'vendas' ? (
