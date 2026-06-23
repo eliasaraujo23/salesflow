@@ -75,6 +75,11 @@ export function TaskItem({ task, pendingDelete, onToggleDone, onEdit }: TaskItem
               <span className="text-[11px] text-zinc-400 dark:text-zinc-500">· {task.person}</span>
             )}
           </div>
+          {task.description && !isDone && (
+            <p className="mt-1.5 text-[11.5px] text-zinc-500 dark:text-zinc-400 leading-relaxed line-clamp-2">
+              {task.description}
+            </p>
+          )}
         </div>
 
         <button

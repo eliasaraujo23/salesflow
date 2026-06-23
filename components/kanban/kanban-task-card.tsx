@@ -50,9 +50,15 @@ export function KanbanTaskCard({ task, isDragging, person, onDragStart, onDragEn
           : 'cursor-grab hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-black/30 active:cursor-grabbing active:shadow-lg active:scale-[1.02]'
       }`}
     >
-      <p className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 leading-snug mb-2.5 pointer-events-none">
+      <p className="text-[13px] font-medium text-zinc-900 dark:text-zinc-100 leading-snug pointer-events-none">
         {task.title}
       </p>
+      {task.description && (
+        <p className="mt-1 mb-2.5 text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed line-clamp-2 pointer-events-none">
+          {task.description}
+        </p>
+      )}
+      {!task.description && <div className="mb-2.5" />}
       <div className="flex items-end justify-between gap-2 pointer-events-none">
         <div className="flex flex-col gap-1 min-w-0">
           {badge && (
