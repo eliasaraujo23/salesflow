@@ -1,12 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Archive, Hammer, RefreshCw, TableProperties, BarChart3 } from 'lucide-react';
+import { Archive, Hammer, ShoppingCart, Receipt, TrendingUp, Package, RefreshCw, TableProperties, BarChart3 } from 'lucide-react';
 import { useJfDashboard } from '@/hooks/use-jf-dashboard';
+import { FabKpiCard } from '@/components/fabricacoes-jf/fab-kpi-card';
 import { FabFabricacaoTab } from '@/components/fabricacoes-jf/fab-fabricacao-tab';
 import { FabSubtipoTable } from '@/components/fabricacoes-jf/fab-subtipo-table';
 import { FabVendasTab } from '@/components/fabricacoes-jf/fab-vendas-tab';
 import { FabEstoqueTab } from '@/components/fabricacoes-jf/fab-estoque-tab';
+
+const fmtMoedaK = (n: number) =>
+  n >= 1000
+    ? `R$${(n / 1000).toFixed(0)}k`
+    : n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 
 type Tab = 'estoque' | 'fabricacao' | 'controle' | 'vendas';
 
@@ -62,9 +68,7 @@ export default function FabricacoesJFPage() {
         </div>
       </div>
 
-      {activeTab === 'estoque' ? (
-        <FabEstoqueTab />
-      ) : activeTab === 'vendas' ? (
+      {activeTab === 'vendas' ? (
         <FabVendasTab />
       ) : isLoading ? (
         <div className="flex items-center justify-center min-h-64">
@@ -84,6 +88,19 @@ export default function FabricacoesJFPage() {
         </div>
       ) : (
         <>
+          {activeTab === 'estoque' && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <FabKpiCard icon={Package}      label="Estoque Disponível" value={data.resumo.estoque.toLocaleString('pt-BR')}       subtext="peças prontas p/ venda"                          variant="blue"   />
+                <FabKpiCard icon={Hammer}       label="Em Fabricação"      value={data.resumo.em_fabricacao.toLocaleString('pt-BR')} subtext="peças em andamento"                              variant="amber"  />
+                <FabKpiCard icon={ShoppingCart} label="Vendidos Mês"       value={data.resumo.vendidos_mes.toLocaleString('pt-BR')}  subtext={`${data.resumo.vendidos} total vendidos`}         variant="green"  />
+                <FabKpiCard icon={Receipt}      label="Ticket Médio"       value={fmtMoedaK(data.resumo.ticket_medio)}               subtext="mês atual"                                       variant="orange" />
+                <FabKpiCard icon={TrendingUp}   label="Faturamento Mês"    value={fmtMoedaK(data.resumo.faturamento_mes)}            subtext="mês atual"                                       variant="purple" />
+              </div>
+              <FabEstoqueTab />
+            </>
+          )}
+
           {activeTab === 'fabricacao' && (
             <FabFabricacaoTab pecas={data.emFabricacao} />
           )}

@@ -9,10 +9,9 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { Download, RefreshCw, X, ArrowUp, ArrowDown, ArrowUpDown, Package, DollarSign, Weight, Gem, Tag } from 'lucide-react';
+import { Download, RefreshCw, X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { useJfEstoque } from '@/hooks/use-jf-estoque';
 import { type JfEstoqueItem } from '@/lib/actions/fetch-jf-estoque';
-import { FabKpiCard } from '@/components/fabricacoes-jf/fab-kpi-card';
 
 const fmtMoeda = (v: number | null | undefined): string => {
   if (v == null || isNaN(v)) return '—';
@@ -285,16 +284,6 @@ export function FabEstoqueTab() {
     { label: 'Lapidação',  avail: availLapidacoes, sel: lapidacoes, set: setLapidacoes },
   ];
 
-  const custoTotal = useMemo(() => data.reduce((s, r) => s + (r.custo_real ?? 0), 0), [data]);
-  const precoTotal = useMemo(() => data.reduce((s, r) => s + (r.preco_cobrado ?? 0), 0), [data]);
-  const pesoTotal  = useMemo(() => data.reduce((s, r) => s + (r.peso ?? 0), 0), [data]);
-  const comDiam    = useMemo(() => data.filter(r => r.cts_diamantes && r.cts_diamantes > 0).length, [data]);
-
-  const fmtK = (n: number) =>
-    n >= 1000
-      ? `R$${(n / 1000).toFixed(0)}k`
-      : n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-48">
@@ -320,14 +309,6 @@ export function FabEstoqueTab() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <FabKpiCard icon={Package}     label="Total em Estoque"   value={data.length.toLocaleString('pt-BR')}     subtext="peças disponíveis"      variant="blue"   />
-        <FabKpiCard icon={DollarSign}  label="Custo Total"        value={fmtK(custoTotal)}                        subtext="custo de fabricação"    variant="orange" />
-        <FabKpiCard icon={Tag}         label="Preço Total"        value={fmtK(precoTotal)}                        subtext="preço cobrado total"    variant="green"  />
-        <FabKpiCard icon={Weight}      label="Peso Total"         value={`${pesoTotal.toFixed(0)}g`}              subtext="gramas em estoque"      variant="amber"  />
-        <FabKpiCard icon={Gem}         label="Com Diamantes"      value={comDiam.toLocaleString('pt-BR')}         subtext="peças com brilhantes"   variant="purple" />
-      </div>
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl overflow-hidden">
       {/* Card header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-white/[0.06]">
@@ -453,7 +434,6 @@ export function FabEstoqueTab() {
           </div>
         )}
       </div>
-    </div>
     </div>
   );
 }
