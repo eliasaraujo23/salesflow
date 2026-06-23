@@ -167,7 +167,6 @@ export default function ResalePage() {
                 : <ResaleScrapChannels
                     scrapB2b={data.scrapB2b}
                     scrapB2c={data.scrapB2c}
-                    scrapB2cBreakdown={data.scrapB2cBreakdown}
                   />}
             </SectionCard>
 
@@ -175,7 +174,6 @@ export default function ResalePage() {
               <ResaleB2b2c
                 b2b={data.b2b}
                 b2c={data.b2c}
-                b2cBreakdown={data.b2cBreakdown}
               />
             </SectionCard>
 

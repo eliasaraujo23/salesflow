@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { type ChannelSegment, type AgItem } from '@/lib/actions/fetch-resale';
+import { type ChannelSegment } from '@/lib/actions/fetch-resale';
 
 const fmtK = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -16,18 +16,12 @@ function ticketStr(seg: ChannelSegment): string {
   return fmtK(seg.faturamento / seg.qtd);
 }
 
-function itemLucStr(item: AgItem): string {
-  if (item.faturamento <= 0) return '—';
-  return `${(((item.faturamento - item.custo) / item.faturamento) * 100).toFixed(1)}%`;
-}
-
 interface ResaleB2b2cProps {
   b2b: ChannelSegment;
   b2c: ChannelSegment;
-  b2cBreakdown: AgItem[];
 }
 
-export function ResaleB2b2c({ b2b, b2c, b2cBreakdown }: ResaleB2b2cProps) {
+export function ResaleB2b2c({ b2b, b2c }: ResaleB2b2cProps) {
   const total = b2b.faturamento + b2c.faturamento;
   const pct = (v: number) => (total > 0 ? (v / total) * 100 : 0);
 
@@ -70,42 +64,6 @@ export function ResaleB2b2c({ b2b, b2c, b2cBreakdown }: ResaleB2b2cProps) {
       </div>
 
       {/* Canais B2C */}
-      {b2cBreakdown.length > 0 && (
-        <div className="min-w-0">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-              Canais B2C
-            </span>
-            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
-              {fmtK(b2c.faturamento)}
-            </span>
-          </div>
-          <div className="space-y-1 min-w-0">
-            {b2cBreakdown.map(item => {
-              const share = b2c.faturamento > 0 ? (item.faturamento / b2c.faturamento) * 100 : 0;
-              return (
-                <div key={item.name} className="min-w-0">
-                  {/* Nome + % + valor na mesma linha */}
-                  <div className="flex items-center justify-between gap-1 mb-0.5">
-                    <span className="text-[12px] text-zinc-600 dark:text-zinc-400 truncate min-w-0 flex-1">
-                      {item.name}
-                    </span>
-                    <span className="text-[12px] font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums shrink-0">
-                      {share.toFixed(0)}%
-                    </span>
-                    <span className="text-[12px] text-zinc-500 dark:text-zinc-400 tabular-nums shrink-0">
-                      {fmtK(item.faturamento)}
-                    </span>
-                  </div>
-                  <div className="h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${share}%` }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
