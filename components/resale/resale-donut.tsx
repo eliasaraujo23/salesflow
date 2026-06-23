@@ -36,7 +36,7 @@ export function ResaleDonut({ data, size = 160, fullHeight = false, horizontal =
   if (horizontal) {
     return (
       <div className="flex items-center gap-4 flex-1 min-w-0">
-        <div className="shrink-0 self-stretch aspect-square">
+        <div className="shrink-0 w-[130px] h-[130px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={filtered} dataKey="faturamento" nameKey="name" innerRadius="50%" outerRadius="75%" startAngle={90} endAngle={-270} isAnimationActive={false}>
