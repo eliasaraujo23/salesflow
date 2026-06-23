@@ -283,9 +283,11 @@ export function MaintenanceTab({ data }: MaintenanceTabProps) {
       </div>
 
       {/* PBI filter panel */}
+      {/* Filter panel — scrolls horizontally on mobile */}
+      <div className="overflow-x-auto border-b-2 border-zinc-200 dark:border-white/[0.08]">
       <div
-        className="flex items-stretch border-b-2 border-zinc-200 dark:border-white/[0.08] bg-zinc-50 dark:bg-zinc-800/50 overflow-hidden"
-        style={{ maxHeight: '158px' }}
+        className="flex items-stretch bg-zinc-50 dark:bg-zinc-800/50"
+        style={{ maxHeight: '158px', minWidth: 'max-content' }}
       >
         {/* Search column */}
         <div className="flex-none flex flex-col justify-center gap-1.5 px-3 py-2 border-r border-zinc-200 dark:border-white/[0.06]" style={{ minWidth: '145px', maxWidth: '175px' }}>
@@ -344,6 +346,7 @@ export function MaintenanceTab({ data }: MaintenanceTabProps) {
           )}
         </div>
       </div>
+      </div>{/* end overflow-x-auto filter wrapper */}
 
       {/* Table */}
       <div className="overflow-x-auto">

@@ -36,15 +36,15 @@ export default function FabricacoesJMPage() {
 
   return (
     <div className="p-3 sm:p-6 space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
             Fabricações <span className="text-indigo-600 dark:text-indigo-400">JM</span>
           </h1>
           <p className="text-[13px] text-zinc-500 dark:text-zinc-400 mt-0.5">Estoque · Em modificação · Vendidos — tempo real</p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <nav className="flex items-center gap-0.5 p-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
+        <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+          <nav className="flex items-center gap-0.5 p-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl shrink-0">
             {TABS.map(tab => (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={tabBtnCls(tab.key)}>
                 {tab.icon}
@@ -52,11 +52,11 @@ export default function FabricacoesJMPage() {
               </button>
             ))}
           </nav>
-          <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{lastUpdate}</span>
+          <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap shrink-0 hidden sm:block">{lastUpdate}</span>
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50 shrink-0"
           >
             <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
             Atualizar
@@ -86,7 +86,7 @@ export default function FabricacoesJMPage() {
         <>
           {activeTab === 'estoque' && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 <FabKpiCard icon={Package}      label="Estoque Disponível" value={data.resumo.estoque.toLocaleString('pt-BR')}       subtext="peças prontas p/ venda"                          variant="blue"   />
                 <FabKpiCard icon={Hammer}       label="Em Modificação"     value={data.resumo.em_fabricacao.toLocaleString('pt-BR')} subtext="peças em andamento"                              variant="amber"  />
                 <FabKpiCard icon={ShoppingCart} label="Vendidos Mês"       value={data.resumo.vendidos_mes.toLocaleString('pt-BR')}  subtext={`${data.resumo.vendidos} total vendidos`}         variant="green"  />
