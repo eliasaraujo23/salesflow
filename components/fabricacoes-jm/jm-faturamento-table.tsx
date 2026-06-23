@@ -32,17 +32,24 @@ export function JmFaturamentoTable({ data }: JmFaturamentoTableProps) {
 
   const totalFaturamento = data.reduce((s, r) => s + (r.preco_cobrado ?? 0), 0);
 
+  const SortBtn = ({ column, label }: { column: { toggleSorting: () => void; getIsSorted: () => false | 'asc' | 'desc' }; label: string }) => (
+    <button className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100" onClick={() => column.toggleSorting()}>
+      {label}
+      {column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> : column.getIsSorted() === 'desc' ? <ArrowDown size={12} /> : <ArrowUpDown size={12} />}
+    </button>
+  );
+
   const columns: ColumnDef<JmFaturamentoItem>[] = [
     {
       accessorKey: 'referencia',
-      header: 'Referência',
+      header: ({ column }) => <SortBtn column={column} label="Referência" />,
       cell: ({ getValue }) => (
         <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400">{getValue<string>()}</span>
       ),
     },
     {
       accessorKey: 'produto',
-      header: 'Produto',
+      header: ({ column }) => <SortBtn column={column} label="Produto" />,
       cell: ({ row }) => (
         <div>
           <div className="text-sm text-zinc-900 dark:text-zinc-100">{row.original.produto ?? '—'}</div>
@@ -54,7 +61,7 @@ export function JmFaturamentoTable({ data }: JmFaturamentoTableProps) {
     },
     {
       accessorKey: 'tipo',
-      header: 'Metal',
+      header: ({ column }) => <SortBtn column={column} label="Metal" />,
       cell: ({ getValue }) => {
         const v = getValue<string | null | undefined>() ?? '';
         return (
@@ -66,7 +73,7 @@ export function JmFaturamentoTable({ data }: JmFaturamentoTableProps) {
     },
     {
       accessorKey: 'destino',
-      header: 'Destino',
+      header: ({ column }) => <SortBtn column={column} label="Destino" />,
       cell: ({ getValue }) => (
         <span className="text-sm text-zinc-500 dark:text-zinc-400">{getValue<string | null | undefined>() ?? '—'}</span>
       ),
@@ -110,7 +117,7 @@ export function JmFaturamentoTable({ data }: JmFaturamentoTableProps) {
     },
     {
       accessorKey: 'nf_joia',
-      header: 'NF',
+      header: ({ column }) => <SortBtn column={column} label="NF" />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400">{getValue<string | null | undefined>() ?? '—'}</span>
       ),

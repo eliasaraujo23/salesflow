@@ -28,7 +28,12 @@ export function PartnerSalesTable({ data }: PartnerSalesTableProps) {
   const columns: ColumnDef<PartnerSales>[] = [
     {
       accessorKey: 'destino',
-      header: 'Parceiro',
+      header: ({ column }) => (
+        <button className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100" onClick={() => column.toggleSorting()}>
+          Parceiro
+          {column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> : column.getIsSorted() === 'desc' ? <ArrowDown size={12} /> : <ArrowUpDown size={12} />}
+        </button>
+      ),
       cell: ({ getValue }) => (
         <span className="font-medium text-zinc-900 dark:text-zinc-100">{getValue<string>()}</span>
       ),

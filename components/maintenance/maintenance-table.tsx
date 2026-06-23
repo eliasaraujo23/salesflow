@@ -30,17 +30,24 @@ interface MaintenanceTableProps {
 export function MaintenanceTable({ data }: MaintenanceTableProps) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'dias', desc: true }]);
 
+  const SortBtn = ({ column, label }: { column: { toggleSorting: () => void; getIsSorted: () => false | 'asc' | 'desc' }; label: string }) => (
+    <button className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100" onClick={() => column.toggleSorting()}>
+      {label}
+      {column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> : column.getIsSorted() === 'desc' ? <ArrowDown size={12} /> : <ArrowUpDown size={12} />}
+    </button>
+  );
+
   const columns: ColumnDef<MaintenanceItem>[] = [
     {
       accessorKey: 'referencia',
-      header: 'Referência',
+      header: ({ column }) => <SortBtn column={column} label="Referência" />,
       cell: ({ getValue }) => (
         <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400">{getValue<string>()}</span>
       ),
     },
     {
       accessorKey: 'produto',
-      header: 'Produto / Tipo',
+      header: ({ column }) => <SortBtn column={column} label="Produto / Tipo" />,
       cell: ({ row }) => (
         <div>
           <div className="text-sm text-zinc-900 dark:text-zinc-100">{row.original.produto ?? '—'}</div>
@@ -52,21 +59,21 @@ export function MaintenanceTable({ data }: MaintenanceTableProps) {
     },
     {
       accessorKey: 'tipo_pedra',
-      header: 'Pedra',
+      header: ({ column }) => <SortBtn column={column} label="Pedra" />,
       cell: ({ getValue }) => (
         <span className="text-sm text-zinc-500 dark:text-zinc-400">{getValue<string | null | undefined>() ?? '—'}</span>
       ),
     },
     {
       accessorKey: 'destino',
-      header: 'Destino',
+      header: ({ column }) => <SortBtn column={column} label="Destino" />,
       cell: ({ getValue }) => (
         <span className="text-sm text-zinc-900 dark:text-zinc-100">{getValue<string | null | undefined>() ?? '—'}</span>
       ),
     },
     {
       accessorKey: 'data_saida_manutencao',
-      header: 'Saída',
+      header: ({ column }) => <SortBtn column={column} label="Saída" />,
       cell: ({ getValue }) => {
         const v = getValue<string | null | undefined>();
         if (!v) return <span className="text-zinc-500 dark:text-zinc-400 text-sm">—</span>;
@@ -97,7 +104,7 @@ export function MaintenanceTable({ data }: MaintenanceTableProps) {
     },
     {
       accessorKey: 'preco_loja',
-      header: 'Preço Loja',
+      header: ({ column }) => <SortBtn column={column} label="Preço Loja" />,
       cell: ({ getValue }) => (
         <span className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">{fmtMoeda(getValue())}</span>
       ),

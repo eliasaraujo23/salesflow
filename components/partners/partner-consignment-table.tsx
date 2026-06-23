@@ -36,7 +36,12 @@ export function PartnerConsignmentTable({ data }: PartnerConsignmentTableProps) 
   const columns: ColumnDef<PartnerConsignment>[] = [
     {
       accessorKey: 'referencia',
-      header: 'Referência',
+      header: ({ column }) => (
+        <button className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100" onClick={() => column.toggleSorting()}>
+          Referência
+          {column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> : column.getIsSorted() === 'desc' ? <ArrowDown size={12} /> : <ArrowUpDown size={12} />}
+        </button>
+      ),
       cell: ({ getValue }) => (
         <span className="font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-400">{getValue<string>()}</span>
       ),
@@ -55,7 +60,12 @@ export function PartnerConsignmentTable({ data }: PartnerConsignmentTableProps) 
     },
     {
       accessorKey: 'destino',
-      header: 'Parceiro',
+      header: ({ column }) => (
+        <button className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100" onClick={() => column.toggleSorting()}>
+          Parceiro
+          {column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> : column.getIsSorted() === 'desc' ? <ArrowDown size={12} /> : <ArrowUpDown size={12} />}
+        </button>
+      ),
       cell: ({ getValue }) => (
         <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{getValue<string | undefined>() ?? '—'}</span>
       ),
@@ -80,7 +90,12 @@ export function PartnerConsignmentTable({ data }: PartnerConsignmentTableProps) 
     },
     {
       accessorKey: 'custo_real',
-      header: 'Custo',
+      header: ({ column }) => (
+        <button className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100" onClick={() => column.toggleSorting()}>
+          Custo
+          {column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> : column.getIsSorted() === 'desc' ? <ArrowDown size={12} /> : <ArrowUpDown size={12} />}
+        </button>
+      ),
       cell: ({ getValue }) => (
         <span className="text-sm text-zinc-500 dark:text-zinc-400">{fmtMoeda(getValue<number>())}</span>
       ),

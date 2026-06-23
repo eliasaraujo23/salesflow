@@ -30,17 +30,24 @@ interface JmEstoqueTableProps {
 export function JmEstoqueTable({ data }: JmEstoqueTableProps) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'custo_real', desc: true }]);
 
+  const SortBtn = ({ column, label }: { column: { toggleSorting: () => void; getIsSorted: () => false | 'asc' | 'desc' }; label: string }) => (
+    <button className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100" onClick={() => column.toggleSorting()}>
+      {label}
+      {column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> : column.getIsSorted() === 'desc' ? <ArrowDown size={12} /> : <ArrowUpDown size={12} />}
+    </button>
+  );
+
   const columns: ColumnDef<JmPeca>[] = [
     {
       accessorKey: 'referencia',
-      header: 'Referência',
+      header: ({ column }) => <SortBtn column={column} label="Referência" />,
       cell: ({ getValue }) => (
         <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400">{getValue<string>()}</span>
       ),
     },
     {
       accessorKey: 'produto',
-      header: 'Produto',
+      header: ({ column }) => <SortBtn column={column} label="Produto" />,
       cell: ({ row }) => (
         <div>
           <div className="text-sm text-zinc-900 dark:text-zinc-100">{row.original.produto ?? '—'}</div>
@@ -52,7 +59,7 @@ export function JmEstoqueTable({ data }: JmEstoqueTableProps) {
     },
     {
       accessorKey: 'tipo',
-      header: 'Metal',
+      header: ({ column }) => <SortBtn column={column} label="Metal" />,
       cell: ({ getValue }) => {
         const v = getValue<string | null | undefined>() ?? '';
         return (
@@ -64,7 +71,7 @@ export function JmEstoqueTable({ data }: JmEstoqueTableProps) {
     },
     {
       accessorKey: 'lapidacao',
-      header: 'Lapidação',
+      header: ({ column }) => <SortBtn column={column} label="Lapidação" />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400">{getValue<string | null | undefined>() ?? '—'}</span>
       ),

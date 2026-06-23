@@ -46,7 +46,7 @@ export function ResaleTable({ data }: ResaleTableProps) {
   const columns: ColumnDef<ResellItem>[] = [
     {
       accessorKey: 'fornecedor',
-      header: 'Fornecedor',
+      header: ({ column }) => <SortHeader column={column} label="Fornecedor" />,
       cell: ({ getValue }) => <span className="font-medium text-zinc-900 dark:text-zinc-100">{getValue<string>()}</span>,
     },
     {
