@@ -12,9 +12,9 @@ type Alerta = {
 };
 
 const STYLES: Record<Alerta['status_alerta'], { row: string; badge: string }> = {
-  RUPTURA: { row: 'bg-red-500/10 border-l-4 border-l-red-500', badge: 'bg-red-500 text-white' },
-  CRITICO: { row: 'bg-amber-500/10 border-l-4 border-l-amber-500', badge: 'bg-amber-500 text-white' },
-  ATENCAO: { row: 'bg-yellow-400/5 border-l-4 border-l-yellow-400', badge: 'bg-yellow-400 text-black' },
+  RUPTURA: { row: 'bg-red-500/10 border-l-4 border-l-red-500',     badge: 'bg-red-500/15 text-red-500 border border-red-500/30 uppercase'         },
+  CRITICO: { row: 'bg-amber-500/10 border-l-4 border-l-amber-500', badge: 'bg-amber-500/15 text-amber-500 border border-amber-500/30 uppercase'   },
+  ATENCAO: { row: 'bg-yellow-400/5 border-l-4 border-l-yellow-400', badge: 'bg-yellow-400/[0.12] text-yellow-500 border border-yellow-400/30 uppercase' },
 };
 
 interface FabAlertasCardProps {

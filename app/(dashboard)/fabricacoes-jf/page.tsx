@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Package, Hammer, CheckCircle, DollarSign, TrendingUp, RefreshCw, LayoutDashboard, TableProperties, BarChart3 } from 'lucide-react';
+import { Package, Hammer, ShoppingCart, Receipt, TrendingUp, RefreshCw, LayoutDashboard, TableProperties, BarChart3 } from 'lucide-react';
 import { useJfDashboard } from '@/hooks/use-jf-dashboard';
-import { KPICard } from '@/components/kpi-card';
+import { FabKpiCard } from '@/components/fabricacoes-jf/fab-kpi-card';
 import { FabAlertasCard } from '@/components/fabricacoes-jf/fab-alertas-card';
 import { FabFabricacaoCard } from '@/components/fabricacoes-jf/fab-fabricacao-card';
 import { FabFabricacaoTab } from '@/components/fabricacoes-jf/fab-fabricacao-tab';
@@ -94,11 +94,11 @@ export default function FabricacoesJFPage() {
           {activeTab === 'resumo' && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                <KPICard icon={Package}     label="Estoque Disponível" value={data.resumo.estoque.toLocaleString('pt-BR')}       subtext="peças prontas p/ venda"                         variant="blue"   />
-                <KPICard icon={Hammer}      label="Em Fabricação"      value={data.resumo.em_fabricacao.toLocaleString('pt-BR')} subtext="peças em andamento"                             variant="amber"  />
-                <KPICard icon={CheckCircle} label="Vendidos Total"     value={data.resumo.vendidos.toLocaleString('pt-BR')}      subtext={`${data.resumo.vendidos_mes} vendidos este mês`} variant="green"  />
-                <KPICard icon={DollarSign}  label="Ticket Médio"       value={fmtMoedaK(data.resumo.ticket_medio)}              subtext="média JF vendidas"                              variant="blue"   />
-                <KPICard icon={TrendingUp}  label="Faturamento Mês"    value={fmtMoedaK(data.resumo.faturamento_mes)}           subtext="mês atual"                                      variant="purple" />
+                <FabKpiCard icon={Package}     label="Estoque Disponível" value={data.resumo.estoque.toLocaleString('pt-BR')}       subtext="peças prontas p/ venda"                         variant="blue"   />
+                <FabKpiCard icon={Hammer}      label="Em Fabricação"      value={data.resumo.em_fabricacao.toLocaleString('pt-BR')} subtext="peças em andamento"                             variant="amber"  />
+                <FabKpiCard icon={ShoppingCart} label="Vendidos Mês"      value={data.resumo.vendidos_mes.toLocaleString('pt-BR')} subtext={`${data.resumo.vendidos} total vendidos`}         variant="green"  />
+                <FabKpiCard icon={Receipt}     label="Ticket Médio"       value={fmtMoedaK(data.resumo.ticket_medio)}              subtext="mês atual"                                      variant="orange" />
+                <FabKpiCard icon={TrendingUp}  label="Faturamento Mês"    value={fmtMoedaK(data.resumo.faturamento_mes)}           subtext="mês atual"                                      variant="purple" />
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <FabAlertasCard alertas={data.alertas} />

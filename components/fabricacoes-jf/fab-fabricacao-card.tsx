@@ -11,10 +11,10 @@ type Peca = {
 };
 
 function diasVariant(d: number): string {
-  if (d <= 15) return 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
-  if (d <= 30) return 'bg-amber-500/15 text-amber-600 dark:text-amber-400';
-  if (d <= 60) return 'bg-orange-400/15 text-orange-400';
-  return 'bg-red-500/15 text-red-600 dark:text-red-400';
+  if (d <= 15) return 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30';
+  if (d <= 30) return 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30';
+  if (d <= 60) return 'bg-orange-500/15 text-orange-500 dark:text-orange-400 border border-orange-500/30';
+  return 'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30';
 }
 
 interface FabFabricacaoCardProps {
