@@ -24,13 +24,13 @@ const fmtDate = (s: string | null | undefined): string => {
 };
 
 function downloadCSV(rows: JmPeca[]) {
-  const hdr = ['Ref','Tipo','Produto','Subtipo','Pedra','Lapidação','Dest. Manut.','Envio Fab.','Dias','Peso(g)','Custo'];
+  const hdr = ['Ref','Tipo','Produto','Subtipo','Pedra','Lapidação','Dest. Manut.','Saída Manut.','Dias','Peso(g)','Custo'];
   const esc = (v: string | number | null | undefined) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const csv = [
     hdr.join(','),
     ...rows.map(r => [
       r.referencia, r.tipo, r.produto, r.subtipo, r.tipo_pedra, r.lapidacao,
-      r.destino_manutencao, fmtDate(r.data_envio_fabricacao), r.dias,
+      r.destino_manutencao, fmtDate(r.data_saida_manutencao), r.dias,
       r.peso > 0 ? r.peso.toFixed(2) : '',
       r.custo_real > 0 ? r.custo_real.toFixed(2) : '',
     ].map(esc).join(',')),
@@ -199,8 +199,8 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
       },
     },
     {
-      accessorKey: 'data_envio_fabricacao',
-      header: 'Envio Fab.',
+      accessorKey: 'data_saida_manutencao',
+      header: 'Saída Manut.',
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
           {fmtDate(getValue<string | null | undefined>())}

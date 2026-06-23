@@ -23,6 +23,7 @@ const jmPecaSchema = z.object({
   destino_manutencao: z.string().nullable().optional(),
   destino: z.string().nullable().optional(),
   data_envio_fabricacao: z.string().nullable().optional(),
+  data_saida_manutencao: z.string().nullable().optional(),
   peso: coerceNum(),
   custo_real: coerceNum(),
   dias: coerceNum(),
