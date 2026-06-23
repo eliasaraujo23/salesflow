@@ -9,6 +9,7 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table';
+import { Download } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/card';
 import type { CategoriaRow } from '@/lib/actions/fetch-jf-dashboard';
 
@@ -16,20 +17,64 @@ const fmtMoeda = (n: number) =>
   n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 
 const TABS = [
-  { id: 'todos', label: 'Todos' },
-  { id: 'criticos', label: 'Críticos' },
-  { id: 'fabricando', label: 'Em Fab.' },
+  { id: 'todos',      label: 'Todos' },
+  { id: 'carroChefe', label: 'Carro Chefe' },
+  { id: 'criticos',   label: 'Críticos' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
 
-const RIGHT_COLS = new Set(['estoque', 'em_fabricacao', 'vendidos', 'vendidos_90d', 'ticket_medio']);
+function isCarroChefe(row: CategoriaRow): boolean {
+  const s = (row.subtipo  || '').toUpperCase();
+  const p = (row.produto  || '').toUpperCase();
+  if (s === 'SOLITÁRIO'    && p.includes('ANEL'))      return true;
+  if (s === 'SOLITÁRIO'    && p.includes('BRINCO'))    return true;
+  if (s === 'PONTO DE LUZ' || p.includes('PONTO DE LUZ')) return true;
+  if (s === 'MEIA ALIANÇA')                             return true;
+  if (s === 'RIVIERA'      && p.includes('COLAR'))     return true;
+  if (s === 'RIVIERA'      && p.includes('PULSEIRA'))  return true;
+  if (p.includes('ALIANÇA RIVIERA'))                    return true;
+  if (s === 'MARACANÃ'     && p.includes('ANEL'))      return true;
+  if (s === 'MARACANÃ'     && p.includes('COLAR'))     return true;
+  if (s === 'MARACANÃ'     && p.includes('BRINCO'))    return true;
+  if (s === 'PARA RIVIERA' && p.includes('PINGENTE'))  return true;
+  return false;
+}
 
-function getStatus(row: CategoriaRow): { label: string; cls: string } | null {
-  if (row.estoque === 0 && row.vendidos_90d > 0) return { label: 'RUPTURA', cls: 'bg-red-500 text-white' };
-  if (row.estoque <= 3 && row.vendidos_90d > 0) return { label: 'CRÍTICO', cls: 'bg-amber-500 text-white' };
-  if (row.estoque <= 6 && row.vendidos_90d > 0) return { label: 'ATENÇÃO', cls: 'bg-yellow-400 text-black' };
-  return null;
+type BadgeType = 'ruptura' | 'critico' | 'atencao' | 'destaque' | 'ok';
+
+const BADGE_CLS: Record<BadgeType, string> = {
+  ruptura:  'bg-red-500/15 text-red-500 border border-red-500/30',
+  critico:  'bg-amber-500/15 text-amber-500 border border-amber-500/30',
+  atencao:  'bg-yellow-400/[0.12] text-yellow-500 dark:text-yellow-400 border border-yellow-400/30',
+  destaque: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30',
+  ok:       'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25',
+};
+
+function getStatus(row: CategoriaRow): { label: string; type: BadgeType } {
+  const e = row.estoque, v = row.vendidos_90d;
+  if (e === 0 && v > 0)  return { label: 'Ruptura',      type: 'ruptura'  };
+  if (e <= 2  && v >= 3) return { label: 'Crítico',      type: 'critico'  };
+  if (e <= 5  && v >= 5) return { label: 'Atenção',      type: 'atencao'  };
+  if (isCarroChefe(row)) return { label: '★ Carro chefe', type: 'destaque' };
+  return                        { label: 'OK',            type: 'ok'       };
+}
+
+function downloadCSV(rows: CategoriaRow[]) {
+  const hdr = ['Subtipo','Produto','Pedra','Lapidação','Estoque','Em Fab.','Vel. 90d','Total Vend.','Ticket Médio','Status'];
+  const esc = (v: string | number | null | undefined) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const csv = [
+    hdr.join(','),
+    ...rows.map(r => {
+      const s = getStatus(r);
+      return [r.subtipo, r.produto, r.tipo_pedra, r.lapidacao, r.estoque, r.em_fabricacao, r.vendidos_90d, r.vendidos, r.ticket_medio ? fmtMoeda(r.ticket_medio) : '', s.label].map(esc).join(',');
+    }),
+  ].join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'controle-categorias.csv'; a.click();
+  URL.revokeObjectURL(url);
 }
 
 interface FabSubtipoTableProps {
@@ -37,15 +82,24 @@ interface FabSubtipoTableProps {
 }
 
 export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
-  const [tab, setTab] = useState<TabId>('todos');
+  const [tab, setTab]         = useState<TabId>('todos');
+  const [busca, setBusca]     = useState('');
   const [sorting, setSorting] = useState<SortingState>([{ id: 'vendidos', desc: true }]);
 
   const filtered = useMemo(() => {
     let rows = [...data];
-    if (tab === 'criticos') rows = rows.filter(r => r.estoque <= 3 && r.vendidos_90d > 0);
-    if (tab === 'fabricando') rows = rows.filter(r => r.em_fabricacao > 0);
+    if (busca) {
+      const q = busca.toLowerCase();
+      rows = rows.filter(r =>
+        (r.subtipo    || '').toLowerCase().includes(q) ||
+        (r.produto    || '').toLowerCase().includes(q) ||
+        (r.tipo_pedra || '').toLowerCase().includes(q),
+      );
+    }
+    if (tab === 'carroChefe') rows = rows.filter(r => isCarroChefe(r));
+    if (tab === 'criticos')   rows = rows.filter(r => (r.estoque === 0 && r.vendidos_90d > 0) || (r.estoque <= 2 && r.vendidos_90d >= 2));
     return rows;
-  }, [data, tab]);
+  }, [data, tab, busca]);
 
   const maxVend = useMemo(() => Math.max(...filtered.map(r => r.vendidos_90d), 1), [filtered]);
 
@@ -57,16 +111,18 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
         accessorFn: r => r.subtipo,
         cell: ({ row }) => {
           const r = row.original;
-          const status = getStatus(r);
+          const { type } = getStatus(r);
           return (
-            <div>
-              <div className={`font-semibold text-sm ${status?.label === 'RUPTURA' ? 'text-red-600 dark:text-red-400' : status ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-900 dark:text-zinc-100'}`}>
-                {r.produto || r.subtipo}
+            <div className="text-left">
+              <div className={`font-semibold text-sm leading-tight ${type === 'ruptura' ? 'text-red-600 dark:text-red-400' : type === 'critico' ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-900 dark:text-zinc-100'}`}>
+                {r.subtipo || '—'}
               </div>
-              {r.tipo_pedra && (
-                <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5">{r.tipo_pedra}{r.lapidacao ? ` · ${r.lapidacao}` : ''}</div>
+              {(r.produto || r.tipo_pedra) && (
+                <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                  {[r.produto, r.tipo_pedra].filter(Boolean).join(' · ')}
+                  {r.lapidacao ? ` · ${r.lapidacao}` : ''}
+                </div>
               )}
-              <div className="text-xs text-zinc-400 dark:text-zinc-500">{r.subtipo}</div>
             </div>
           );
         },
@@ -95,11 +151,11 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
           const v = row.original.vendidos_90d;
           const pct = Math.round((v / maxVend) * 100);
           return (
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center justify-center gap-2">
               <div className="w-14 h-1.5 bg-zinc-200 dark:bg-white/[0.06] rounded-full overflow-hidden">
                 <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${pct}%` }} />
               </div>
-              <span className="font-semibold w-6 text-right">{v}</span>
+              <span className="font-semibold w-6 text-right tabular-nums">{v}</span>
             </div>
           );
         },
@@ -107,14 +163,14 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
       {
         accessorKey: 'vendidos',
         header: 'Total Vend.',
-        cell: ({ getValue }) => <span className="text-zinc-500 dark:text-zinc-400">{getValue<number>()}</span>,
+        cell: ({ getValue }) => <span className="text-zinc-500 dark:text-zinc-400 tabular-nums">{getValue<number>()}</span>,
       },
       {
         accessorKey: 'ticket_medio',
         header: 'Ticket Médio',
         cell: ({ getValue }) => {
           const v = getValue<number | null | undefined>();
-          return <span className="text-zinc-500 dark:text-zinc-400">{v ? fmtMoeda(v) : '—'}</span>;
+          return <span className="text-zinc-500 dark:text-zinc-400 tabular-nums">{v ? fmtMoeda(v) : '—'}</span>;
         },
       },
       {
@@ -122,15 +178,16 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
         header: 'Status',
         enableSorting: false,
         cell: ({ row }) => {
-          const s = getStatus(row.original);
-          if (!s) return <span className="text-xs text-emerald-600 dark:text-emerald-400">OK</span>;
+          const { label, type } = getStatus(row.original);
           return (
-            <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase ${s.cls}`}>{s.label}</span>
+            <span className={`inline-block text-[9px] font-black uppercase tracking-[0.7px] px-2 py-0.5 rounded-full whitespace-nowrap ${BADGE_CLS[type]}`}>
+              {label}
+            </span>
           );
         },
       },
     ],
-    [maxVend]
+    [maxVend],
   );
 
   const table = useReactTable({
@@ -145,21 +202,44 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
   return (
     <Card variant="bordered">
       <CardHeader>
-        <CardTitle className="text-sm">📦 Estoque por Categoria</CardTitle>
-        <div className="flex gap-3 text-xs text-zinc-500 dark:text-zinc-400">
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-indigo-500 inline-block" />Estoque</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-amber-500 inline-block" />Em Fab.</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-indigo-500/40 inline-block" />Vel. 90d</span>
+        <CardTitle className="text-[13px]">Categorias de Produto</CardTitle>
+        <div className="ml-auto flex items-center gap-4">
+          <div className="flex gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-sm bg-indigo-500 inline-block" />Estoque</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-sm bg-amber-500 inline-block" />Em Fab.</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-sm bg-indigo-500/40 inline-block" />Vel. 90d</span>
+          </div>
+          <button
+            onClick={() => downloadCSV(filtered)}
+            disabled={filtered.length === 0}
+            className="flex items-center gap-1 px-2.5 py-1 text-xs text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded hover:border-emerald-500 hover:text-emerald-600 transition-colors disabled:opacity-40"
+          >
+            <Download size={12} /> Exportar
+          </button>
         </div>
       </CardHeader>
 
-      <div className="flex gap-1 px-5 border-b border-zinc-200 dark:border-white/[0.06]">
+      {/* Search row */}
+      <div className="px-4 py-2 border-b border-zinc-200 dark:border-white/[0.06]">
+        <input
+          type="text"
+          placeholder="Buscar subtipo, produto ou pedra…"
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          className="w-full max-w-xs px-3 py-1.5 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-400"
+        />
+      </div>
+
+      {/* Tabs */}
+      <div className="flex px-[18px] border-b border-zinc-200 dark:border-white/[0.06]">
         {TABS.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`px-3 py-2.5 text-xs font-semibold uppercase tracking-wide border-b-2 transition-colors ${
-              tab === t.id ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+            className={`px-3.5 py-2.5 text-xs font-semibold uppercase tracking-[0.4px] border-b-2 transition-colors ${
+              tab === t.id
+                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
             }`}
           >
             {t.label}
@@ -168,17 +248,17 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm data-table">
+        <table className="w-full" style={{ borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             {table.getHeaderGroups().map(hg => (
-              <tr key={hg.id}>
+              <tr key={hg.id} className="border-b-2 border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/60">
                 {hg.headers.map(h => (
                   <th
                     key={h.id}
                     onClick={h.column.getToggleSortingHandler()}
-                    className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-white/[0.06] whitespace-nowrap select-none ${
-                      h.column.getCanSort() ? 'cursor-pointer hover:text-zinc-900 dark:hover:text-zinc-100' : ''
-                    } ${RIGHT_COLS.has(h.column.id) || h.column.id === 'status' ? 'text-right' : 'text-left'}`}
+                    className={`px-3.5 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.5px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap border-r border-zinc-200 dark:border-white/[0.06] last:border-r-0 ${
+                      h.column.getCanSort() ? 'cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 select-none' : ''
+                    }`}
                   >
                     {flexRender(h.column.columnDef.header, h.getContext())}
                     {h.column.getIsSorted() === 'asc' ? ' ↑' : h.column.getIsSorted() === 'desc' ? ' ↓' : ''}
@@ -195,14 +275,17 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
                 </td>
               </tr>
             ) : (
-              table.getRowModel().rows.map(row => (
-                <tr key={row.id} className="hover:bg-zinc-100 dark:hover:bg-white/[0.03] transition-colors">
+              table.getRowModel().rows.map((row, i) => (
+                <tr
+                  key={row.id}
+                  className={`hover:bg-indigo-50/50 dark:hover:bg-indigo-500/[0.05] transition-colors ${
+                    i % 2 === 1 ? 'bg-zinc-50/80 dark:bg-zinc-800/20' : ''
+                  }`}
+                >
                   {row.getVisibleCells().map(cell => (
                     <td
                       key={cell.id}
-                      className={`px-4 py-2.5 border-b border-zinc-200/50 dark:border-white/[0.03] ${
-                        RIGHT_COLS.has(cell.column.id) || cell.column.id === 'status' ? 'text-right' : ''
-                      }`}
+                      className="px-3.5 py-2.5 text-center border-b border-r border-zinc-100 dark:border-white/[0.04] last:border-r-0"
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>

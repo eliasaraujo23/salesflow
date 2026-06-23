@@ -35,7 +35,7 @@ export default function FabricacoesJFPage() {
     : '—';
 
   const tabBtnCls = (key: Tab) =>
-    `flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+    `flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium rounded-[7px] transition-all ${
       activeTab === key
         ? 'bg-indigo-600 text-white shadow-sm'
         : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'
@@ -43,15 +43,15 @@ export default function FabricacoesJFPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
             Fabricações <span className="text-indigo-600 dark:text-indigo-400">JF</span>
           </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Atualizado: {lastUpdate}</p>
+          <p className="text-[13px] text-zinc-500 dark:text-zinc-400 mt-0.5">Estoque · Em fabricação · Vendidos — tempo real</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-0.5 p-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
             {TABS.map(tab => (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={tabBtnCls(tab.key)}>
                 {tab.icon}
@@ -59,10 +59,11 @@ export default function FabricacoesJFPage() {
               </button>
             ))}
           </nav>
+          <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{lastUpdate}</span>
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50"
           >
             <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
             Atualizar

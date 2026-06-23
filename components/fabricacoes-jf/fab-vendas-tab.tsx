@@ -151,8 +151,6 @@ export function FabVendasTab() {
     setBusca(''); setDateRange(undefined);
   }
 
-  const inputCls = 'px-3 py-1.5 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors';
-
   const columns: ColumnDef<JfVendasItem>[] = [
     {
       accessorKey: 'referencia',
@@ -219,7 +217,7 @@ export function FabVendasTab() {
     {
       accessorKey: 'data_venda',
       header: ({ column }) => (
-        <button className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
+        <button className="flex items-center gap-1 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
           Data <SortIcon dir={column.getIsSorted()} />
         </button>
       ),
@@ -232,14 +230,14 @@ export function FabVendasTab() {
     {
       accessorKey: 'peso',
       header: ({ column }) => (
-        <button className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
+        <button className="flex items-center gap-1 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
           Peso <SortIcon dir={column.getIsSorted()} />
         </button>
       ),
       cell: ({ getValue }) => {
         const v = getValue<number>();
         return (
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
             {v > 0 ? v.toFixed(2) + 'g' : '—'}
           </span>
         );
@@ -248,23 +246,23 @@ export function FabVendasTab() {
     {
       accessorKey: 'custo_real',
       header: ({ column }) => (
-        <button className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
+        <button className="flex items-center gap-1 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
           Custo <SortIcon dir={column.getIsSorted()} />
         </button>
       ),
       cell: ({ getValue }) => (
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">{fmtMoeda(getValue<number>())}</span>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">{fmtMoeda(getValue<number>())}</span>
       ),
     },
     {
       accessorKey: 'preco_cobrado',
       header: ({ column }) => (
-        <button className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
+        <button className="flex items-center gap-1 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
           Ticket <SortIcon dir={column.getIsSorted()} />
         </button>
       ),
       cell: ({ getValue }) => (
-        <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+        <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
           {fmtMoeda(getValue<number | null>())}
         </span>
       ),
@@ -272,7 +270,7 @@ export function FabVendasTab() {
     {
       id: 'lucro',
       header: ({ column }) => (
-        <button className="flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
+        <button className="flex items-center gap-1 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
           Lucro <SortIcon dir={column.getIsSorted()} />
         </button>
       ),
@@ -284,7 +282,7 @@ export function FabVendasTab() {
         const v = getValue<number | null>();
         if (v === null) return <span className="text-xs text-zinc-400">—</span>;
         return (
-          <span className={`text-sm font-semibold ${v >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+          <span className={`text-sm font-semibold tabular-nums ${v >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
             {fmtMoeda(v)}
           </span>
         );
@@ -302,7 +300,7 @@ export function FabVendasTab() {
         const v = getValue<number | null>();
         if (v === null) return <span className="text-xs text-zinc-400">—</span>;
         return (
-          <span className={`text-xs font-semibold ${v >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+          <span className={`text-xs font-semibold tabular-nums ${v >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
             {v.toFixed(1)}%
           </span>
         );
@@ -321,7 +319,7 @@ export function FabVendasTab() {
       accessorKey: 'cts_diamantes',
       header: 'Cts Diam.',
       cell: ({ getValue }) => (
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
           {getValue<number | null | undefined>() ?? '—'}
         </span>
       ),
@@ -339,7 +337,7 @@ export function FabVendasTab() {
       accessorKey: 'cts_pedra_colorida',
       header: 'Cts PC',
       cell: ({ getValue }) => (
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
           {getValue<number | null | undefined>() ?? '—'}
         </span>
       ),
@@ -354,6 +352,15 @@ export function FabVendasTab() {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
+
+  const dimDefs = [
+    { label: 'Tipo',       avail: availTipos,      sel: tipos,      set: setTipos },
+    { label: 'Produto',    avail: availProdutos,   sel: produtos,   set: setProdutos },
+    { label: 'Subtipo',    avail: availSubtipos,   sel: subtipos,   set: setSubtipos },
+    { label: 'Destino',    avail: availDestinos,   sel: destinos,   set: setDestinos },
+    { label: 'Tipo Pedra', avail: availPedras,     sel: pedras,     set: setPedras },
+    { label: 'Lapidação',  avail: availLapidacoes, sel: lapidacoes, set: setLapidacoes },
+  ];
 
   if (isLoading) {
     return (
@@ -379,118 +386,127 @@ export function FabVendasTab() {
     );
   }
 
-  const dimDefs = [
-    { label: 'Tipo',       avail: availTipos,      sel: tipos,      set: setTipos },
-    { label: 'Produto',    avail: availProdutos,   sel: produtos,   set: setProdutos },
-    { label: 'Subtipo',    avail: availSubtipos,   sel: subtipos,   set: setSubtipos },
-    { label: 'Destino',    avail: availDestinos,   sel: destinos,   set: setDestinos },
-    { label: 'Tipo Pedra', avail: availPedras,     sel: pedras,     set: setPedras },
-    { label: 'Lapidação',  avail: availLapidacoes, sel: lapidacoes, set: setLapidacoes },
-  ];
-
   return (
-    <div className="space-y-4">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4">
-        <div className="flex items-start gap-4 overflow-x-auto pb-1">
-          <CalendarDateRangePicker dateRange={dateRange} setDateRange={setDateRange} />
-          <div className="flex flex-col gap-1.5 shrink-0">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Buscar</span>
-            <input
-              type="text"
-              placeholder="Ref ou produto…"
-              value={busca}
-              onChange={e => setBusca(e.target.value)}
-              className={`w-44 ${inputCls} placeholder:text-zinc-400`}
-            />
-          </div>
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl overflow-hidden">
+      {/* Date range row */}
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-zinc-200 dark:border-white/[0.06]">
+        <CalendarDateRangePicker dateRange={dateRange} setDateRange={setDateRange} />
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="p-1.5 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded hover:border-indigo-500 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
+        </button>
+      </div>
 
-          {dimDefs.filter(d => d.avail.length > 0).map(d => (
-            <div key={d.label} className="flex flex-col min-w-[120px] shrink-0">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-1.5">
-                {d.label}
-              </span>
-              <div className="max-h-[88px] overflow-y-auto space-y-0.5 pr-1">
-                {d.avail.map(v => (
-                  <label key={v} className="flex items-center gap-1.5 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={d.sel.includes(v)}
-                      onChange={() => d.set(toggle(d.sel, v))}
-                      className="w-3.5 h-3.5 accent-indigo-600 cursor-pointer shrink-0"
-                    />
-                    <span className="text-xs text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 leading-tight">
-                      {v}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          ))}
+      {/* Filter panel — surface2 background */}
+      <div
+        className="flex items-stretch border-b-2 border-zinc-200 dark:border-white/[0.08] bg-zinc-50 dark:bg-zinc-800/50 overflow-hidden"
+        style={{ maxHeight: '158px' }}
+      >
+        {/* Search column */}
+        <div className="flex-none flex flex-col justify-center gap-1.5 px-3 py-2 border-r border-zinc-200 dark:border-white/[0.06]" style={{ minWidth: '145px', maxWidth: '175px' }}>
+          <span className="text-[9px] font-black uppercase tracking-[0.9px] text-zinc-400 dark:text-zinc-500">Buscar</span>
+          <input
+            type="text"
+            placeholder="Ref ou produto…"
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            className="w-full px-2.5 py-1 text-[12px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-400"
+          />
+        </div>
 
-          <div className="ml-auto flex flex-col items-end gap-1.5 shrink-0">
-            <div className="text-right">
-              <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 leading-none">{filtered.length}</span>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">itens</div>
+        {/* Filter columns */}
+        {dimDefs.filter(d => d.avail.length > 0).map(d => (
+          <div key={d.label} className="flex flex-col overflow-hidden border-r border-zinc-200 dark:border-white/[0.06]" style={{ flex: '1 1 0', minWidth: '86px' }}>
+            <span className="block px-2 py-1 text-[9px] font-black uppercase tracking-[0.9px] text-zinc-400 dark:text-zinc-500 border-b border-zinc-200 dark:border-white/[0.06] flex-shrink-0 bg-zinc-100/50 dark:bg-zinc-800/80">
+              {d.label}
+            </span>
+            <div className="overflow-y-auto flex-1 py-0.5">
+              {d.avail.map(v => (
+                <label
+                  key={v}
+                  className={`flex items-center gap-1.5 px-2 py-0.5 cursor-pointer text-[11.5px] leading-[1.6] transition-colors select-none ${
+                    d.sel.includes(v)
+                      ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/[0.13] font-medium'
+                      : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-indigo-500/[0.07]'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={d.sel.includes(v)}
+                    onChange={() => d.set(toggle(d.sel, v))}
+                    className="w-3 h-3 accent-indigo-600 cursor-pointer flex-shrink-0"
+                  />
+                  {v}
+                </label>
+              ))}
             </div>
-            <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{fmtMoeda(totalFaturamento)}</div>
-            {hasFilters && (
-              <button
-                onClick={clearAll}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-red-400 hover:text-red-500 transition-colors"
-              >
-                <X size={11} /> Limpar
-              </button>
-            )}
-            <button
-              onClick={() => downloadCSV(filtered, 'jf')}
-              disabled={filtered.length === 0}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors disabled:opacity-40"
-            >
-              <Download size={13} /> CSV
-            </button>
-            <button
-              onClick={() => refetch()}
-              disabled={isFetching}
-              className="p-1.5 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
-            </button>
           </div>
+        ))}
+
+        {/* Right panel — count + actions */}
+        <div className="flex-none flex flex-col items-center justify-center gap-2 px-3 py-2" style={{ minWidth: '68px' }}>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 leading-none">{filtered.length}</div>
+            <div className="text-[9px] font-semibold uppercase tracking-[0.5px] text-zinc-400 dark:text-zinc-500 mt-0.5">itens</div>
+          </div>
+          <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{fmtMoeda(totalFaturamento)}</div>
+          {hasFilters && (
+            <button
+              onClick={clearAll}
+              className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded hover:border-red-400 hover:text-red-500 transition-colors"
+            >
+              <X size={10} /> Limpar
+            </button>
+          )}
+          <button
+            onClick={() => downloadCSV(filtered, 'jf')}
+            disabled={filtered.length === 0}
+            className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded hover:border-emerald-500 hover:text-emerald-600 transition-colors disabled:opacity-40"
+          >
+            <Download size={12} /> CSV
+          </button>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm data-table" style={{ minWidth: '1400px' }}>
-            <thead>
-              {table.getHeaderGroups().map(hg => (
-                <tr key={hg.id} className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/60">
-                  {hg.headers.map(h => (
-                    <th key={h.id} className="px-3 py-2.5 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
-                      {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.map(row => (
-                <tr key={row.id} className="border-b border-zinc-100 dark:border-white/[0.04] hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors">
-                  {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="px-3 py-2">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 && (
-            <div className="p-10 text-center text-zinc-500 dark:text-zinc-400 text-sm">
-              {data.length === 0 ? 'Nenhuma venda registrada' : 'Nenhuma venda para os filtros selecionados'}
-            </div>
-          )}
-        </div>
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full" style={{ minWidth: '1400px', borderCollapse: 'collapse', fontSize: '13px' }}>
+          <thead>
+            {table.getHeaderGroups().map(hg => (
+              <tr key={hg.id} className="border-b-2 border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/60">
+                {hg.headers.map(h => (
+                  <th key={h.id} className="px-3.5 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.5px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap border-r border-zinc-200 dark:border-white/[0.06] last:border-r-0">
+                    {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row, i) => (
+              <tr
+                key={row.id}
+                className={`hover:bg-indigo-50/50 dark:hover:bg-indigo-500/[0.05] transition-colors ${
+                  i % 2 === 1 ? 'bg-zinc-50/80 dark:bg-zinc-800/20' : ''
+                }`}
+              >
+                {row.getVisibleCells().map(cell => (
+                  <td key={cell.id} className="px-3.5 py-2.5 text-center border-b border-r border-zinc-100 dark:border-white/[0.04] last:border-r-0">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filtered.length === 0 && (
+          <div className="p-10 text-center text-zinc-500 dark:text-zinc-400 text-sm">
+            {data.length === 0 ? 'Nenhuma venda registrada' : 'Nenhuma venda para os filtros selecionados'}
+          </div>
+        )}
       </div>
     </div>
   );
