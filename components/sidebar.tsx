@@ -27,16 +27,19 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   const sections = useMemo(() => {
+    const isAdmin = currentUser?.role === 'admin';
+    const perms = currentUser?.permissions ?? [];
     return NAVIGATION_ITEMS.reduce(
       (acc, item) => {
-        if (item.adminOnly && currentUser?.role !== 'admin') return acc;
+        if (item.adminOnly && !isAdmin) return acc;
+        if (!isAdmin && item.permission && !perms.includes(item.permission)) return acc;
         if (!acc[item.section]) acc[item.section] = [];
         acc[item.section].push(item);
         return acc;
       },
       {} as Record<string, typeof NAVIGATION_ITEMS>
     );
-  }, [currentUser?.role]);
+  }, [currentUser?.role, currentUser?.permissions]);
 
   const handleLogout = async () => {
     logout(undefined, {

@@ -156,6 +156,22 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         } as AppUser;
       });
       setUsers(parsedUsers);
+
+      // Auto-sync currentUser when admin changes this user's permissions/role
+      setCurrentUser(prev => {
+        if (!prev) return prev;
+        const updated = parsedUsers.find(u => u.email === prev.email);
+        if (!updated) return prev;
+        const changed =
+          updated.role !== prev.role ||
+          updated.name !== prev.name ||
+          updated.cargo !== prev.cargo ||
+          updated.personKey !== prev.personKey ||
+          JSON.stringify(updated.permissions) !== JSON.stringify(prev.permissions);
+        if (!changed) return prev;
+        sessionStorage.setItem('sf_user', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     // Subscribe to Delete Requests

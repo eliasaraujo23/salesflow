@@ -4,25 +4,26 @@ export interface NavigationItem {
   icon: string;
   section: string;
   adminOnly?: boolean;
+  permission?: string;
 }
 
 export const NAVIGATION_ITEMS: NavigationItem[] = [
-  { label: 'Minhas Tarefas', href: '/tasks', icon: 'ti-home-2', section: 'Tarefas' },
-  { label: 'Kanban', href: '/kanban', icon: 'ti-layout-kanban', section: 'Tarefas' },
-  { label: 'Calendário', href: '/calendar', icon: 'ti-calendar', section: 'Tarefas' },
-  { label: 'Equipe', href: '/team', icon: 'ti-users', section: 'Tarefas' },
-  { label: 'Dashboard', href: '/dashboard', icon: 'ti-chart-bar', section: 'Análise' },
-  { label: 'Relatórios', href: '/reports', icon: 'ti-file-analytics', section: 'Análise' },
-  { label: 'Controle de Metais', href: '/metals', icon: 'ti-weight', section: 'Estoque' },
-  { label: 'Fabricações JF', href: '/fabricacoes-jf', icon: 'ti-hammer', section: 'Estoque' },
-  { label: 'Fabricações JM', href: '/fabricacoes-jm', icon: 'ti-hammer', section: 'Estoque' },
-  { label: 'Manutenções', href: '/maintenance', icon: 'ti-hammer', section: 'Estoque' },
-  { label: 'Revenda', href: '/resale', icon: 'ti-shopping-bag', section: 'Estoque' },
-  { label: 'IA de Reuniões', href: '/ia', icon: 'ti-brain', section: 'IA' },
-  { label: 'Fotografia', href: '/photography', icon: 'ti-camera', section: 'Operacional' },
-  { label: 'Parceiros', href: '/partners', icon: 'ti-building-store', section: 'Operacional' },
-  { label: 'Usuários & Acesso', href: '/users', icon: 'ti-shield-check', section: 'Admin', adminOnly: true },
-  { label: 'Configurações', href: '/settings', icon: 'ti-settings-2', section: 'Admin', adminOnly: true },
+  { label: 'Minhas Tarefas',    href: '/tasks',         icon: 'ti-home-2',          section: 'Tarefas',     permission: 'minhas' },
+  { label: 'Kanban',            href: '/kanban',         icon: 'ti-layout-kanban',   section: 'Tarefas',     permission: 'kanban' },
+  { label: 'Calendário',        href: '/calendar',       icon: 'ti-calendar',        section: 'Tarefas',     permission: 'calendario' },
+  { label: 'Equipe',            href: '/team',           icon: 'ti-users',           section: 'Tarefas',     permission: 'equipe' },
+  { label: 'Dashboard',         href: '/dashboard',      icon: 'ti-chart-bar',       section: 'Análise',     permission: 'dashboard' },
+  { label: 'Relatórios',        href: '/reports',        icon: 'ti-file-analytics',  section: 'Análise',     permission: 'relatorios' },
+  { label: 'Controle de Metais',href: '/metals',         icon: 'ti-weight',          section: 'Estoque',     permission: 'metais' },
+  { label: 'Fabricações JF',    href: '/fabricacoes-jf', icon: 'ti-hammer',          section: 'Estoque',     permission: 'fabricacoes' },
+  { label: 'Fabricações JM',    href: '/fabricacoes-jm', icon: 'ti-hammer',          section: 'Estoque',     permission: 'fabricacoes-jm' },
+  { label: 'Manutenções',       href: '/maintenance',    icon: 'ti-hammer',          section: 'Estoque',     permission: 'manutencao' },
+  { label: 'Revenda',           href: '/resale',         icon: 'ti-shopping-bag',    section: 'Estoque',     permission: 'revenda' },
+  { label: 'IA de Reuniões',    href: '/ia',             icon: 'ti-brain',           section: 'IA',          permission: 'ia' },
+  { label: 'Fotografia',        href: '/photography',    icon: 'ti-camera',          section: 'Operacional', permission: 'fotografia' },
+  { label: 'Parceiros',         href: '/partners',       icon: 'ti-building-store',  section: 'Operacional', permission: 'parceiros' },
+  { label: 'Usuários & Acesso', href: '/users',          icon: 'ti-shield-check',    section: 'Admin',       adminOnly: true },
+  { label: 'Configurações',     href: '/settings',       icon: 'ti-settings-2',      section: 'Admin',       adminOnly: true },
 ];
 
 export const TASK_PRIORITIES = ['urgente', 'alta', 'media', 'baixa'] as const;
