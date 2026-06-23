@@ -204,34 +204,39 @@ export function CalendarDateRangePicker({
           </div>
 
           {/* Calendar */}
-          <div className="px-4 py-3">
-            <Calendar
-              mode="range"
-              defaultMonth={pendingRange?.from ?? new Date()}
-              selected={pendingRange}
-              onSelect={(range) => {
-                if (isRangeComplete) {
-                  if (range?.from && range?.to) {
-                    const newDate =
-                      range.to > (dateRange?.to ?? range.to) ? range.to : range.from;
-                    if (
-                      newDate.getTime() !== dateRange?.from?.getTime() &&
-                      newDate.getTime() !== dateRange?.to?.getTime()
-                    ) {
-                      setPendingRange({ from: newDate, to: undefined });
-                      setIsRangeComplete(false);
-                      return;
+          {(() => {
+            const numMonths = typeof window !== 'undefined' && window.innerWidth < 640 ? 1 : 2;
+            return (
+              <div className="px-4 py-3" style={{ minWidth: numMonths === 2 ? 540 : undefined }}>
+                <Calendar
+                  mode="range"
+                  defaultMonth={pendingRange?.from ?? new Date()}
+                  selected={pendingRange}
+                  onSelect={(range) => {
+                    if (isRangeComplete) {
+                      if (range?.from && range?.to) {
+                        const newDate =
+                          range.to > (dateRange?.to ?? range.to) ? range.to : range.from;
+                        if (
+                          newDate.getTime() !== dateRange?.from?.getTime() &&
+                          newDate.getTime() !== dateRange?.to?.getTime()
+                        ) {
+                          setPendingRange({ from: newDate, to: undefined });
+                          setIsRangeComplete(false);
+                          return;
+                        }
+                      }
                     }
-                  }
-                }
-                setPendingRange(range);
-                if (range?.from && range?.to) setIsRangeComplete(true);
-              }}
-              numberOfMonths={typeof window !== 'undefined' && window.innerWidth < 640 ? 1 : 2}
-              locale={pt}
-              className="drp-calendar"
-            />
-          </div>
+                    setPendingRange(range);
+                    if (range?.from && range?.to) setIsRangeComplete(true);
+                  }}
+                  numberOfMonths={numMonths}
+                  locale={pt}
+                  className="drp-calendar"
+                />
+              </div>
+            );
+          })()}
 
           {/* Apply */}
           <div className="flex justify-end px-5 pb-4 pt-2 border-t border-zinc-100 dark:border-white/[0.05]">
