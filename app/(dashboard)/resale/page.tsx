@@ -160,15 +160,15 @@ export default function ResalePage() {
               <ResaleB2b2c b2b={data.b2b} b2c={data.b2c} />
             </SectionCard>
 
-            {/* Canal de Venda — row 2, col 1 */}
-            <SectionCard title="Canal de Venda" className="md:col-start-1 md:row-start-2">
-              <ResaleDonut data={data.canalVenda} horizontal />
-            </SectionCard>
-
-            {/* Tipo de Fabricação — row 2, col 2 */}
-            <SectionCard title="Tipo de Fabricação" className="md:col-start-2 md:row-start-2">
-              <ResaleDonut data={data.byTipo} horizontal />
-            </SectionCard>
+            {/* Canal de Venda + Tipo de Fabricação — empilhados em col 1, row 2 */}
+            <div className="flex flex-col gap-3 md:col-start-1 md:row-start-2">
+              <SectionCard title="Canal de Venda">
+                <ResaleDonut data={data.canalVenda} horizontal />
+              </SectionCard>
+              <SectionCard title="Tipo de Fabricação">
+                <ResaleDonut data={data.byTipo} horizontal />
+              </SectionCard>
+            </div>
 
             {/* Últimas Vendas — col 3 rows 1-2; último no HTML = último no mobile */}
             <SectionCard title="Últimas Vendas" className="md:h-full md:flex md:flex-col md:col-start-3 md:row-start-1 md:row-span-2" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
