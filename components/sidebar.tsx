@@ -7,14 +7,19 @@ import { useFirebase } from '@/components/firebase-provider';
 import { Icon } from '@/components/icon-map';
 import { useLogout } from '@/hooks/use-logout';
 import { toast } from 'sonner';
-import { LogOut, Lock, ChevronUp, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LogOut, Lock, ChevronUp, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { NAVIGATION_ITEMS } from '@/lib/constants';
 
 function getInitials(name: string): string {
   return name.split(' ').slice(0, 2).map(w => w[0].toUpperCase()).join('');
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { currentUser, logOut } = useFirebase();
   const { mutate: logout } = useLogout();
@@ -46,19 +51,32 @@ export function Sidebar() {
   if (!currentUser) return null;
   const initials = getInitials(currentUser.name);
 
+  // Width: mobile always 248px (overlay drawer), desktop respects collapsed state
+  const widthClass = collapsed ? 'w-[248px] md:w-[56px]' : 'w-[248px]';
+
   return (
     <aside
-      className="shrink-0 flex flex-col overflow-hidden bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-white/[0.06] transition-all duration-200"
-      style={{ width: collapsed ? '56px' : '248px' }}
+      className={[
+        'flex flex-col overflow-hidden bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-white/[0.06]',
+        widthClass,
+        // Mobile: fixed overlay, slides in from left (z-50 sits above the backdrop z-40)
+        'fixed inset-y-0 left-0 z-50 transition-transform duration-200',
+        mobileOpen ? 'translate-x-0' : '-translate-x-full',
+        // Desktop: back in normal flow, always visible, width transition
+        'md:relative md:translate-x-0 md:z-auto md:shrink-0 md:transition-[width] md:duration-200',
+      ].join(' ')}
     >
-      {/* Logo + toggle */}
-      {collapsed ? (
-        <div className="h-topbar flex items-center justify-center border-b border-zinc-200 dark:border-white/[0.06] shrink-0">
+      {/* Logo header — collapsed (desktop only) */}
+      {collapsed && (
+        <div className="h-topbar hidden md:flex items-center justify-center border-b border-zinc-200 dark:border-white/[0.06] shrink-0">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-[15px] shadow-md shadow-indigo-500/25">
             S
           </div>
         </div>
-      ) : (
+      )}
+
+      {/* Logo header — expanded */}
+      {!collapsed && (
         <div className="h-topbar px-3.5 flex items-center gap-3 border-b border-zinc-200 dark:border-white/[0.06] shrink-0">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-[15px] shadow-md shadow-indigo-500/25 shrink-0">
             S
@@ -67,32 +85,40 @@ export function Sidebar() {
             <div className="text-[14px] font-bold text-zinc-900 dark:text-zinc-50 leading-tight">SalesFlow</div>
             <div className="text-[11.5px] text-zinc-400 dark:text-zinc-500 leading-tight">Goldtech Joias</div>
           </div>
+          {/* Desktop: collapse button */}
           <button
             onClick={() => { setCollapsed(true); setProfileMenuOpen(false); }}
-            className="shrink-0 p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors"
+            className="hidden md:flex shrink-0 p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors"
             title="Recolher menu"
           >
             <PanelLeftClose size={16} />
+          </button>
+          {/* Mobile: close button */}
+          <button
+            onClick={onMobileClose}
+            className="md:hidden shrink-0 p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors"
+            title="Fechar menu"
+          >
+            <X size={16} />
           </button>
         </div>
       )}
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-1.5 py-3 space-y-4">
-        {!collapsed && (
+        {/* Desktop-only collapse/expand toggle */}
+        {!collapsed ? (
           <button
             onClick={() => setCollapsed(true)}
-            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.05] transition-colors"
+            className="hidden md:flex w-full items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.05] transition-colors"
           >
             <PanelLeftClose size={14} className="shrink-0" />
             <span className="truncate">Recolher</span>
           </button>
-        )}
-
-        {collapsed && (
+        ) : (
           <button
             onClick={() => setCollapsed(false)}
-            className="w-full flex items-center justify-center p-2 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.05] transition-colors"
+            className="w-full hidden md:flex items-center justify-center p-2 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.05] transition-colors"
             title="Expandir menu"
           >
             <PanelLeftOpen size={15} />
@@ -114,6 +140,7 @@ export function Sidebar() {
                     key={item.href}
                     href={item.href}
                     title={collapsed ? item.label : undefined}
+                    onClick={onMobileClose}
                     className={`flex items-center gap-2.5 rounded-lg text-[13px] font-medium transition-all ${
                       collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-[7px]'
                     } ${
@@ -137,7 +164,9 @@ export function Sidebar() {
         <div className="relative">
           <button
             onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-            className={`w-full flex items-center gap-2.5 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/[0.05] transition-colors ${collapsed ? 'justify-center px-0' : 'px-2.5'}`}
+            className={`w-full flex items-center gap-2.5 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/[0.05] transition-colors ${
+              collapsed ? 'justify-center px-0' : 'px-2.5'
+            }`}
             title={collapsed ? currentUser.name : undefined}
           >
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-[11px] font-bold shrink-0">

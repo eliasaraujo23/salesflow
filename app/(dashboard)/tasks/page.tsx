@@ -51,7 +51,7 @@ export default function TasksPage() {
   const filterLabelCls = 'block text-[10px] font-bold text-zinc-400 dark:text-zinc-500 mb-2 uppercase tracking-[0.6px]';
 
   return (
-    <div className="p-6 space-y-5 w-full">
+    <div className="p-3 sm:p-6 space-y-5 w-full">
 
       {/* Header */}
       <div className="flex items-center justify-between gap-4">

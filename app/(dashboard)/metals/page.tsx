@@ -58,7 +58,7 @@ export default function MetalsPage() {
   const isAdmin = currentUser?.role === 'admin';
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Controle de Metais</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
