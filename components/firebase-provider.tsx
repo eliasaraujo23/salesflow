@@ -113,6 +113,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const task = {
           ...data,
           id: isNaN(Number(data.id)) ? d.id : Number(data.id),
+          description: data.description ?? data.desc,
         } as Task;
 
         // Recalculate delays on the client side
