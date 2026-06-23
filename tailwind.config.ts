@@ -15,7 +15,7 @@ const config: Config = {
       },
       spacing: {
         sidebar: '248px',
-        topbar: '64px',
+        topbar: '80px',
       },
       animation: {
         'fade-in':    'fadeIn 0.2s ease-out',
