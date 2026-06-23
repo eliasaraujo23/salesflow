@@ -61,7 +61,6 @@ export default function ResalePage() {
   const ticker = useXauUsd();
   const playChime = useSaleSound();
 
-  // Detecção de vendas novas
   const prevQtdRef = useRef<number | null>(null);
   const prevReferenciasRef = useRef<Set<string>>(new Set());
   const [kpiFlash, setKpiFlash] = useState(false);
@@ -69,45 +68,32 @@ export default function ResalePage() {
 
   useEffect(() => {
     if (!data) return;
-
     const prevQtd = prevQtdRef.current;
-
-    // Na primeira carga apenas inicializa — não dispara animação
     if (prevQtd === null) {
       prevQtdRef.current = data.qtd;
       prevReferenciasRef.current = new Set(data.ultimasVendas.map(v => v.referencia));
       return;
     }
-
     if (data.qtd > prevQtd) {
-      // Identifica quais referências são novas
       const fresh = new Set(
-        data.ultimasVendas
-          .map(v => v.referencia)
-          .filter(r => !prevReferenciasRef.current.has(r))
+        data.ultimasVendas.map(v => v.referencia).filter(r => !prevReferenciasRef.current.has(r))
       );
-
       playChime();
       setKpiFlash(true);
       setNewReferencias(fresh);
-
-      // Limpa as animações após 4s (3 repetições do flash = ~3.6s)
-      const t = setTimeout(() => {
-        setKpiFlash(false);
-        setNewReferencias(new Set());
-      }, 4000);
-
+      const t = setTimeout(() => { setKpiFlash(false); setNewReferencias(new Set()); }, 4000);
       prevQtdRef.current = data.qtd;
       prevReferenciasRef.current = new Set(data.ultimasVendas.map(v => v.referencia));
       return () => clearTimeout(t);
     }
-
     prevQtdRef.current = data.qtd;
     prevReferenciasRef.current = new Set(data.ultimasVendas.map(v => v.referencia));
   }, [data, playChime]);
 
   return (
-    <div className="p-4 flex flex-col gap-3 overflow-hidden" style={{ height: 'calc(100vh - 56px)' }}>
+    /* Mobile: flex col scrollável. Desktop: fixed-height dashboard */
+    <div className="p-3 sm:p-4 flex flex-col gap-3 md:overflow-hidden md:h-full">
+
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap shrink-0">
         <div className="flex items-center gap-2 flex-wrap">
@@ -138,59 +124,54 @@ export default function ResalePage() {
           </div>
         </div>
       ) : (
-        /* Layout principal: Por Destino | grid 3×2 (Scrap/B2B/Vendas | Canal/Tipo) */
-        <div className="flex-1 min-h-0 grid gap-3 min-w-0" style={{ gridTemplateColumns: '2fr 3fr' }}>
+        /* Mobile: flex col (cards empilhados). Desktop: grid 2fr 3fr */
+        <div
+          className="flex flex-col gap-3 md:flex-1 md:min-h-0 md:grid md:min-w-0"
+          style={{ gridTemplateColumns: '2fr 3fr' }}
+        >
 
-          {/* Col 1: KPIs (cima) + Por Destino (baixo) */}
-          <div className="flex flex-col gap-3 min-h-0">
+          {/* Col 1: KPIs + Por Destino */}
+          <div className="flex flex-col gap-3 md:min-h-0">
             <div className="grid gap-2 shrink-0" style={{ gridTemplateColumns: '3fr 2fr' }}>
               <KPIBox label="Faturamento"   value={fmtMoedaK(data.faturamento)} flash={kpiFlash} />
               <KPIBox label="Lucratividade" value={fmtLuc(data.faturamento, data.custo)} valueClass="text-emerald-600 dark:text-emerald-400" flash={kpiFlash} />
               <KPIBox label="Ticket Médio"  value={ticketMedio(data.faturamento, data.qtd)} flash={kpiFlash} />
               <KPIBox label="Quantidade"    value={String(data.qtd)} flash={kpiFlash} />
             </div>
-            <SectionCard title="Por Destino" className="flex-1 flex flex-col min-h-0" contentClass="flex-1 min-h-0">
+            <SectionCard title="Por Destino" className="md:flex-1 md:flex md:flex-col md:min-h-0" contentClass="md:flex-1 md:min-h-0">
               {data.byDestino.length === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados</div>
                 : <ResaleHBar data={data.byDestino} color="#8b5cf6" labelWidth={160} fullHeight />}
             </SectionCard>
           </div>
 
-          {/* Col 2: grid 3 colunas × 2 linhas
-              Linha 1: Scrap | B2B·B2C | Últimas Vendas
-              Linha 2: Canal de Venda | Tipo de Fabricação | (vazio) */}
-          <div className="grid gap-3 min-h-0" style={{ gridTemplateColumns: '1fr 1fr 180px', gridTemplateRows: '1fr 1fr' }}>
-
-            <SectionCard title="Scrap · B2B / B2C" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
+          {/* Col 2: Mobile = coluna simples; Desktop = grid 3×2 */}
+          <div
+            className="flex flex-col gap-3 md:grid md:min-h-0"
+            style={{ gridTemplateColumns: '1fr 1fr 180px', gridTemplateRows: '1fr 1fr' }}
+          >
+            <SectionCard title="Scrap · B2B / B2C" className="md:h-full md:flex md:flex-col" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
               {data.scrapFat === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
-                : <ResaleScrapChannels
-                    scrapB2b={data.scrapB2b}
-                    scrapB2c={data.scrapB2c}
-                  />}
+                : <ResaleScrapChannels scrapB2b={data.scrapB2b} scrapB2c={data.scrapB2c} />}
             </SectionCard>
 
-            <SectionCard title="B2B · B2C" className="h-full flex flex-col" contentClass="flex-1 min-h-0 overflow-y-auto">
-              <ResaleB2b2c
-                b2b={data.b2b}
-                b2c={data.b2c}
-              />
+            <SectionCard title="B2B · B2C" className="md:h-full md:flex md:flex-col" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
+              <ResaleB2b2c b2b={data.b2b} b2c={data.b2c} />
             </SectionCard>
 
-            <SectionCard title="Últimas Vendas" className="h-full flex flex-col row-span-2" contentClass="flex-1 min-h-0 overflow-y-auto">
+            <SectionCard title="Últimas Vendas" className="md:h-full md:flex md:flex-col md:row-span-2" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
               <ResaleUltimasVendas vendas={data.ultimasVendas} totalQtd={data.qtd} newReferencias={newReferencias} />
             </SectionCard>
 
-            {/* Canal + Tipo empilhados verticalmente, apenas col 1 (mesma largura que Scrap) */}
-            <div className="flex flex-col gap-3 min-h-0">
-              <SectionCard title="Canal de Venda" className="flex-1 flex flex-col" contentClass="flex-1 min-h-0 flex">
+            <div className="flex flex-col gap-3 md:min-h-0">
+              <SectionCard title="Canal de Venda" className="md:flex-1 md:flex md:flex-col" contentClass="md:flex-1 md:min-h-0 md:flex">
                 <ResaleDonut data={data.canalVenda} horizontal />
               </SectionCard>
-              <SectionCard title="Tipo de Fabricação" className="flex-1 flex flex-col" contentClass="flex-1 min-h-0 flex">
+              <SectionCard title="Tipo de Fabricação" className="md:flex-1 md:flex md:flex-col" contentClass="md:flex-1 md:min-h-0 md:flex">
                 <ResaleDonut data={data.byTipo} horizontal />
               </SectionCard>
             </div>
-
           </div>
 
         </div>
