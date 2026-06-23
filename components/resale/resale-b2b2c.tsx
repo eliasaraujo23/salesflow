@@ -56,8 +56,8 @@ export function ResaleB2b2c({ b2b, b2c, b2cBreakdown }: ResaleB2b2cProps) {
           <div key={s.label} className={`${s.bg} rounded-lg px-2.5 py-1.5 min-w-0`}>
             {/* Cabeçalho */}
             <div className="flex items-center justify-between mb-1.5">
-              <span className={`text-[11px] font-bold uppercase tracking-wider ${s.text}`}>{s.label}</span>
-              <span className={`text-[11px] font-bold ${s.text}`}>{s.pct.toFixed(1)}%</span>
+              <span className={`text-[13px] font-bold uppercase tracking-wider ${s.text}`}>{s.label}</span>
+              <span className={`text-[13px] font-bold ${s.text}`}>{s.pct.toFixed(1)}%</span>
             </div>
             {/* 4 métricas em 2 colunas */}
             <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
@@ -74,10 +74,10 @@ export function ResaleB2b2c({ b2b, b2c, b2cBreakdown }: ResaleB2b2cProps) {
       {b2cBreakdown.length > 0 && (
         <div className="min-w-0">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
               Canais B2C
             </span>
-            <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
+            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
               {fmtK(b2c.faturamento)}
             </span>
           </div>
@@ -88,13 +88,13 @@ export function ResaleB2b2c({ b2b, b2c, b2cBreakdown }: ResaleB2b2cProps) {
                 <div key={item.name} className="min-w-0">
                   {/* Nome + % + valor na mesma linha */}
                   <div className="flex items-center justify-between gap-1 mb-0.5">
-                    <span className="text-[10px] text-zinc-600 dark:text-zinc-400 truncate min-w-0 flex-1">
+                    <span className="text-[12px] text-zinc-600 dark:text-zinc-400 truncate min-w-0 flex-1">
                       {item.name}
                     </span>
-                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums shrink-0">
+                    <span className="text-[12px] font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums shrink-0">
                       {share.toFixed(0)}%
                     </span>
-                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 tabular-nums shrink-0">
+                    <span className="text-[12px] text-zinc-500 dark:text-zinc-400 tabular-nums shrink-0">
                       {fmtK(item.faturamento)}
                     </span>
                   </div>
@@ -114,8 +114,8 @@ export function ResaleB2b2c({ b2b, b2c, b2cBreakdown }: ResaleB2b2cProps) {
 function Stat({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-1 min-w-0">
-      <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 shrink-0">{label}</span>
-      <span className={`text-[10px] tabular-nums truncate text-right ${bold ? 'font-bold text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-300'}`}>
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 shrink-0">{label}</span>
+      <span className={`text-[12px] tabular-nums truncate text-right ${bold ? 'font-bold text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-300'}`}>
         {value}
       </span>
     </div>

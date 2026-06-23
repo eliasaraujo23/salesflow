@@ -35,7 +35,7 @@ function CustomLabel({ x = 0, y = 0, width = 0, height = 0, value = 0 }: CustomL
       y={y + height / 2}
       dominantBaseline="central"
       fill="#71717a"
-      fontSize={10}
+      fontSize={12}
       textAnchor="start"
     >
       {fmtMoeda(value)}
@@ -53,7 +53,7 @@ function CustomYAxisTick(props: { x?: number; y?: number; payload?: { value: str
         textAnchor="end"
         dominantBaseline="central"
         fill="#71717a"
-        fontSize={10}
+        fontSize={12}
       >
         {payload?.value}
       </text>
@@ -61,15 +61,15 @@ function CustomYAxisTick(props: { x?: number; y?: number; payload?: { value: str
   );
 }
 
-// Approximate pixel width of an uppercase string at 10px sans-serif
+// Approximate pixel width of an uppercase string at 12px sans-serif
 function estimatePx(label: string): number {
   let w = 0;
   for (const ch of label) {
-    if ('MW'.includes(ch))         w += 10;
-    else if ('ADGONQCOU'.includes(ch)) w += 8;
-    else if (' '.includes(ch))     w += 3;
-    else if ('IJ1l'.includes(ch))  w += 4;
-    else                            w += 7;
+    if ('MW'.includes(ch))             w += 12;
+    else if ('ADGONQCOU'.includes(ch)) w += 10;
+    else if (' '.includes(ch))         w += 4;
+    else if ('IJ1l'.includes(ch))      w += 5;
+    else                                w += 8;
   }
   return w;
 }
@@ -106,7 +106,7 @@ export function ResaleHBar({ data, color, labelWidth, barH = 26, fullHeight = fa
         <XAxis
           type="number"
           tickFormatter={fmtAxisX}
-          tick={{ fontSize: 10, fill: '#71717a' }}
+          tick={{ fontSize: 12, fill: '#71717a' }}
           axisLine={false}
           tickLine={false}
         />

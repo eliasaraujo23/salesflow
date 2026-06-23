@@ -18,7 +18,7 @@ export function ResaleDonut({ data, size = 160, fullHeight = false, horizontal =
   const filtered = data.filter(d => d.faturamento > 0);
 
   if (filtered.length === 0) {
-    return <div className="flex items-center justify-center h-20 text-xs text-zinc-500 dark:text-zinc-400">Sem dados</div>;
+    return <div className="flex items-center justify-center h-20 text-[13px] text-zinc-500 dark:text-zinc-400">Sem dados</div>;
   }
 
   const legend = (
@@ -26,8 +26,8 @@ export function ResaleDonut({ data, size = 160, fullHeight = false, horizontal =
       {filtered.map((d, i) => (
         <div key={i} className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ backgroundColor: d.color }} />
-          <span className="text-xs text-zinc-500 dark:text-zinc-400">{d.name}</span>
-          <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">{fmtMoeda(d.faturamento)}</span>
+          <span className="text-[13px] text-zinc-500 dark:text-zinc-400">{d.name}</span>
+          <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">{fmtMoeda(d.faturamento)}</span>
         </div>
       ))}
     </div>

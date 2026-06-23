@@ -41,20 +41,20 @@ export function ResaleScrapChannels({ scrapB2b, scrapB2c, scrapB2cBreakdown }: R
       {/* Resumo total */}
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 pb-2 border-b border-zinc-100 dark:border-white/[0.06]">
         <div>
-          <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Faturamento</div>
-          <div className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100">{fmtK(total)}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Faturamento</div>
+          <div className="text-[15px] font-bold text-zinc-900 dark:text-zinc-100">{fmtK(total)}</div>
         </div>
         <div>
-          <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Quantidade</div>
-          <div className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100">{totalQtd}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Quantidade</div>
+          <div className="text-[15px] font-bold text-zinc-900 dark:text-zinc-100">{totalQtd}</div>
         </div>
         <div>
-          <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Lucratividade</div>
-          <div className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400">{lucTotal}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Lucratividade</div>
+          <div className="text-[15px] font-bold text-emerald-600 dark:text-emerald-400">{lucTotal}</div>
         </div>
         <div>
-          <div className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Ticket Médio</div>
-          <div className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100">{ticketTotal}</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Ticket Médio</div>
+          <div className="text-[15px] font-bold text-zinc-900 dark:text-zinc-100">{ticketTotal}</div>
         </div>
       </div>
 
@@ -75,8 +75,8 @@ export function ResaleScrapChannels({ scrapB2b, scrapB2c, scrapB2cBreakdown }: R
         {segments.map(s => (
           <div key={s.label} className={`${s.bg} rounded-lg px-2.5 py-1.5`}>
             <div className="flex items-center justify-between mb-1">
-              <span className={`text-[11px] font-bold uppercase tracking-wider ${s.text}`}>{s.label}</span>
-              <span className={`text-[11px] font-bold ${s.text}`}>{pct(s.seg.faturamento).toFixed(1)}%</span>
+              <span className={`text-[13px] font-bold uppercase tracking-wider ${s.text}`}>{s.label}</span>
+              <span className={`text-[13px] font-bold ${s.text}`}>{pct(s.seg.faturamento).toFixed(1)}%</span>
             </div>
             <div className="grid grid-cols-2 gap-x-3">
               <MiniRow label="Faturamento" value={fmtK(s.seg.faturamento)} bold />
@@ -92,10 +92,10 @@ export function ResaleScrapChannels({ scrapB2b, scrapB2c, scrapB2cBreakdown }: R
       {scrapB2cBreakdown.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
               Canais B2C · Scrap
             </span>
-            <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
               {fmtK(scrapB2c.faturamento)}
             </span>
           </div>
@@ -107,19 +107,19 @@ export function ResaleScrapChannels({ scrapB2b, scrapB2c, scrapB2cBreakdown }: R
                 : '—';
               return (
                 <div key={item.name} className="flex items-center gap-2">
-                  <span className="text-[10px] text-zinc-600 dark:text-zinc-400 w-24 shrink-0 truncate">
+                  <span className="text-[12px] text-zinc-600 dark:text-zinc-400 w-24 shrink-0 truncate">
                     {item.name}
                   </span>
                   <div className="flex-1 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                     <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${share}%` }} />
                   </div>
-                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 w-7 text-right shrink-0 tabular-nums">
+                  <span className="text-[12px] font-semibold text-emerald-600 dark:text-emerald-400 w-7 text-right shrink-0 tabular-nums">
                     {share.toFixed(0)}%
                   </span>
-                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 w-16 text-right shrink-0 tabular-nums">
+                  <span className="text-[12px] text-zinc-500 dark:text-zinc-400 w-16 text-right shrink-0 tabular-nums">
                     {fmtK(item.faturamento)}
                   </span>
-                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 w-8 text-right shrink-0 tabular-nums">
+                  <span className="text-[12px] text-zinc-400 dark:text-zinc-500 w-8 text-right shrink-0 tabular-nums">
                     {luc}
                   </span>
                 </div>
@@ -135,8 +135,8 @@ export function ResaleScrapChannels({ scrapB2b, scrapB2c, scrapB2cBreakdown }: R
 function MiniRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-1">
-      <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 shrink-0">{label}</span>
-      <span className={`text-[10px] tabular-nums text-right ${bold ? 'font-bold text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-300'}`}>
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 shrink-0">{label}</span>
+      <span className={`text-[12px] tabular-nums text-right ${bold ? 'font-bold text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-300'}`}>
         {value}
       </span>
     </div>

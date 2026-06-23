@@ -23,10 +23,10 @@ export function ResaleUltimasVendas({ vendas, totalQtd, newReferencias }: Resale
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-2 flex-shrink-0">
-        <span className="text-[9px] font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
           Últimas Vendas
         </span>
-        <span className="text-[9px] bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-semibold">
+        <span className="text-[11px] bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-semibold">
           {totalQtd} vendas
         </span>
       </div>
@@ -38,15 +38,15 @@ export function ResaleUltimasVendas({ vendas, totalQtd, newReferencias }: Resale
           >
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1 mb-0.5">
-                <span className="text-[9px] font-mono font-semibold text-zinc-400 dark:text-zinc-500 uppercase leading-none">{v.referencia}</span>
-                <span className={`text-[8px] font-bold px-1 py-px rounded leading-none ${TIPO_COLORS[v.tipo] ?? 'bg-zinc-500/15 text-zinc-500'}`}>
+                <span className="text-[11px] font-mono font-semibold text-zinc-400 dark:text-zinc-500 uppercase leading-none">{v.referencia}</span>
+                <span className={`text-[12px] font-bold px-1 py-px rounded leading-none ${TIPO_COLORS[v.tipo] ?? 'bg-zinc-500/15 text-zinc-500'}`}>
                   {v.tipo}
                 </span>
               </div>
-              <div className="text-[10px] font-semibold text-zinc-900 dark:text-zinc-100 truncate leading-tight capitalize">{v.produto}</div>
-              <div className="text-[9px] text-zinc-500 dark:text-zinc-400 truncate leading-tight">{v.destino}</div>
+              <div className="text-[12px] font-semibold text-zinc-900 dark:text-zinc-100 truncate leading-tight capitalize">{v.produto}</div>
+              <div className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate leading-tight">{v.destino}</div>
             </div>
-            <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 whitespace-nowrap flex-shrink-0">
+            <span className="text-[12px] font-semibold text-indigo-600 dark:text-indigo-400 whitespace-nowrap flex-shrink-0">
               {fmtMoeda(v.preco)}
             </span>
           </div>
