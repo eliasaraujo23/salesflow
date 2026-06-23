@@ -91,24 +91,34 @@ export default function ResalePage() {
   }, [data, playChime]);
 
   return (
-    /* Mobile: flex col scrollável. Desktop: fixed-height dashboard */
     <div className="p-3 sm:p-4 flex flex-col gap-3 md:overflow-hidden md:h-full">
 
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 flex-wrap shrink-0">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
           <ResaleDatePicker from={from} to={to} onApply={(f, t) => { setFrom(f); setTo(t); }} />
           <ResaleTicker data={ticker} />
         </div>
+        {/* Desktop: in-flow button */}
         <button
           onClick={() => refetch()}
           disabled={isFetching}
-          className="flex items-center gap-1.5 px-3 h-8 text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50"
+          className="hidden md:flex ml-auto shrink-0 items-center gap-1.5 px-3 h-8 text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50"
         >
           <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
           Atualizar
         </button>
       </div>
+
+      {/* Mobile: Atualizar fixed top-right (below topbar) */}
+      <button
+        onClick={() => refetch()}
+        disabled={isFetching}
+        className="fixed top-[88px] right-3 z-20 md:hidden flex items-center justify-center w-9 h-9 text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg shadow-sm hover:border-indigo-500 transition-colors disabled:opacity-50"
+        title="Atualizar"
+      >
+        <RefreshCw size={15} className={isFetching ? 'animate-spin' : ''} />
+      </button>
 
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center">
@@ -124,7 +134,6 @@ export default function ResalePage() {
           </div>
         </div>
       ) : (
-        /* Mobile: flex col (cards empilhados). Desktop: grid 2fr 3fr */
         <div
           className="flex flex-col gap-3 md:flex-1 md:min-h-0 md:grid md:min-w-0"
           style={{ gridTemplateColumns: '2fr 3fr' }}
@@ -138,33 +147,31 @@ export default function ResalePage() {
               <KPIBox label="Ticket Médio"  value={ticketMedio(data.faturamento, data.qtd)} flash={kpiFlash} />
               <KPIBox label="Quantidade"    value={String(data.qtd)} flash={kpiFlash} />
             </div>
-            <SectionCard title="Por Destino" className="md:flex-1 md:flex md:flex-col md:min-h-0" contentClass="md:flex-1 md:min-h-0">
+            {/* Por Destino: min-h no mobile resolve recharts height:"100%" sem pai explícito */}
+            <SectionCard title="Por Destino" className="md:flex-1 md:flex md:flex-col md:min-h-0" contentClass="min-h-[220px] md:min-h-0 md:flex-1">
               {data.byDestino.length === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados</div>
                 : <ResaleHBar data={data.byDestino} color="#8b5cf6" labelWidth={160} fullHeight />}
             </SectionCard>
           </div>
 
-          {/* Col 2: Mobile = coluna simples; Desktop = grid 3×2 */}
+          {/* Col 2: Mobile = coluna simples; Desktop = grid 3×2 com placement explícito */}
           <div
             className="flex flex-col gap-3 md:grid md:min-h-0"
             style={{ gridTemplateColumns: '1fr 1fr 180px', gridTemplateRows: '1fr 1fr' }}
           >
-            <SectionCard title="Scrap · B2B / B2C" className="md:h-full md:flex md:flex-col" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
+            <SectionCard title="Scrap · B2B / B2C" className="md:h-full md:flex md:flex-col md:col-start-1 md:row-start-1" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
               {data.scrapFat === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
                 : <ResaleScrapChannels scrapB2b={data.scrapB2b} scrapB2c={data.scrapB2c} />}
             </SectionCard>
 
-            <SectionCard title="B2B · B2C" className="md:h-full md:flex md:flex-col" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
+            <SectionCard title="B2B · B2C" className="md:h-full md:flex md:flex-col md:col-start-2 md:row-start-1" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
               <ResaleB2b2c b2b={data.b2b} b2c={data.b2c} />
             </SectionCard>
 
-            <SectionCard title="Últimas Vendas" className="md:h-full md:flex md:flex-col md:row-span-2" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
-              <ResaleUltimasVendas vendas={data.ultimasVendas} totalQtd={data.qtd} newReferencias={newReferencias} />
-            </SectionCard>
-
-            <div className="flex flex-col gap-3 md:min-h-0">
+            {/* Canal + Tipo — row 2, cols 1-2 */}
+            <div className="flex flex-col gap-3 md:min-h-0 md:col-start-1 md:row-start-2 md:col-span-2">
               <SectionCard title="Canal de Venda" className="md:flex-1 md:flex md:flex-col" contentClass="md:flex-1 md:min-h-0 md:flex">
                 <ResaleDonut data={data.canalVenda} horizontal />
               </SectionCard>
@@ -172,6 +179,11 @@ export default function ResalePage() {
                 <ResaleDonut data={data.byTipo} horizontal />
               </SectionCard>
             </div>
+
+            {/* Últimas Vendas — col 3, rows 1-2; último no HTML = último no mobile */}
+            <SectionCard title="Últimas Vendas" className="md:h-full md:flex md:flex-col md:col-start-3 md:row-start-1 md:row-span-2" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
+              <ResaleUltimasVendas vendas={data.ultimasVendas} totalQtd={data.qtd} newReferencias={newReferencias} />
+            </SectionCard>
           </div>
 
         </div>
