@@ -480,11 +480,22 @@ export function FabVendasTab() {
           <thead>
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id} className="border-b-2 border-zinc-200 dark:border-white/[0.13] bg-zinc-50 dark:bg-zinc-800/60">
-                {hg.headers.map(h => (
-                  <th key={h.id} className="px-3.5 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.5px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap border-r border-zinc-200 dark:border-white/[0.13] last:border-r-0">
-                    {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
-                  </th>
-                ))}
+                {hg.headers.map(h => {
+                  const canSort = h.column.getCanSort();
+                  const sorted = h.column.getIsSorted();
+                  return (
+                    <th
+                      key={h.id}
+                      onClick={canSort ? h.column.getToggleSortingHandler() : undefined}
+                      className={`px-3.5 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.5px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap border-r border-zinc-200 dark:border-white/[0.13] last:border-r-0 ${canSort ? 'cursor-pointer select-none hover:text-indigo-600 dark:hover:text-indigo-400' : ''}`}
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
+                        {canSort && <SortIcon dir={sorted} />}
+                      </div>
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>

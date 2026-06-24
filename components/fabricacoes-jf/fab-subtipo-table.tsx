@@ -9,7 +9,14 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table';
-import { Download } from 'lucide-react';
+import { Download, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+
+type SortDir = 'asc' | 'desc' | false;
+function SortIcon({ dir }: { dir: SortDir }) {
+  if (dir === 'asc')  return <ArrowUp size={11} />;
+  if (dir === 'desc') return <ArrowDown size={11} />;
+  return <ArrowUpDown size={11} className="opacity-40" />;
+}
 import { Card, CardHeader, CardTitle } from '@/components/card';
 import type { CategoriaRow } from '@/lib/actions/fetch-jf-dashboard';
 
@@ -252,18 +259,22 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
           <thead>
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id} className="border-b-2 border-zinc-200 dark:border-white/[0.13] bg-zinc-50 dark:bg-zinc-800/60">
-                {hg.headers.map(h => (
-                  <th
-                    key={h.id}
-                    onClick={h.column.getToggleSortingHandler()}
-                    className={`px-3.5 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.5px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap border-r border-zinc-200 dark:border-white/[0.13] last:border-r-0 ${
-                      h.column.getCanSort() ? 'cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 select-none' : ''
-                    }`}
-                  >
-                    {flexRender(h.column.columnDef.header, h.getContext())}
-                    {h.column.getIsSorted() === 'asc' ? ' ↑' : h.column.getIsSorted() === 'desc' ? ' ↓' : ''}
-                  </th>
-                ))}
+                {hg.headers.map(h => {
+                  const canSort = h.column.getCanSort();
+                  const sorted = h.column.getIsSorted();
+                  return (
+                    <th
+                      key={h.id}
+                      onClick={canSort ? h.column.getToggleSortingHandler() : undefined}
+                      className={`px-3.5 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.5px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap border-r border-zinc-200 dark:border-white/[0.13] last:border-r-0 ${canSort ? 'cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 select-none' : ''}`}
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        {flexRender(h.column.columnDef.header, h.getContext())}
+                        {canSort && <SortIcon dir={sorted} />}
+                      </div>
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>
