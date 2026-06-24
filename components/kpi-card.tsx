@@ -9,6 +9,7 @@ interface KPICardProps {
   value: number | string;
   subtext?: string;
   variant?: 'blue' | 'green' | 'amber' | 'red' | 'purple';
+  compact?: boolean;
   className?: string;
 }
 
@@ -45,35 +46,31 @@ const VARIANTS = {
   },
 } as const;
 
-export function KPICard({ icon: Icon, label, value, subtext, variant = 'blue', className = '' }: KPICardProps) {
+export function KPICard({ icon: Icon, label, value, subtext, variant = 'blue', compact = false, className = '' }: KPICardProps) {
   const v = VARIANTS[variant];
 
   return (
     <div className={`relative overflow-hidden rounded-xl border border-zinc-200 dark:border-white/[0.13] bg-white dark:bg-zinc-900/60 hover:shadow-lg dark:hover:shadow-black/20 hover:border-zinc-300 dark:hover:border-white/[0.10] transition-all duration-200 ${className}`}>
-      {/* Top accent */}
       <div className={`absolute top-0 inset-x-0 h-[3px] ${v.strip}`} />
 
-      <div className="px-5 pt-6 pb-5">
-        {/* Label + Icon */}
-        <div className="flex items-start justify-between mb-3">
+      <div className={compact ? 'px-3 pt-4 pb-3' : 'px-5 pt-6 pb-5'}>
+        <div className={`flex items-start justify-between ${compact ? 'mb-2' : 'mb-3'}`}>
           <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-zinc-500 dark:text-zinc-400 pr-2">
             {label}
           </span>
           {Icon && (
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${v.iconBg}`}>
-              <Icon size={17} className={v.icon} strokeWidth={2} />
+            <div className={`rounded-xl flex items-center justify-center shrink-0 ${v.iconBg} ${compact ? 'w-7 h-7' : 'w-9 h-9'}`}>
+              <Icon size={compact ? 14 : 17} className={v.icon} strokeWidth={2} />
             </div>
           )}
         </div>
 
-        {/* Value */}
-        <div className={`text-[34px] font-black leading-none tracking-tight ${v.value}`}>
+        <div className={`font-black leading-none tracking-tight ${v.value} ${compact ? 'text-[26px]' : 'text-[34px]'}`}>
           {value}
         </div>
 
-        {/* Subtext */}
         {subtext && (
-          <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-2 font-medium">
+          <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1.5 font-medium">
             {subtext}
           </div>
         )}

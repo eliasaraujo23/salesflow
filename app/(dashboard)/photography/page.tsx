@@ -18,7 +18,7 @@ export default function PhotographyPage() {
 
   const stats = useMemo(() => {
     // Em Aberto — bags not yet finalized
-    const openBags = bags.filter(b => !b.data_finalizacao);
+    const openBags    = bags.filter(b => !b.data_finalizacao);
     const sacAbertos  = openBags.length;
     const pecasAberto = openBags.reduce((a, b) => a + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
     const fotoAberto  = openBags.reduce((a, b) => a + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
@@ -26,21 +26,32 @@ export default function PhotographyPage() {
     const faltamFoto  = Math.max(0, pecasAberto - fotoAberto);
     const faltamEdit  = Math.max(0, pecasAberto - editAberto);
 
-    // Esta Semana — bags received since Monday
+    // Date boundaries
     const now = new Date();
     const dow = now.getDay();
     const monday = new Date(now);
     monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
     monday.setHours(0, 0, 0, 0);
-    const mondayStr = monday.toISOString().slice(0, 10);
+    const mondayStr     = monday.toISOString().slice(0, 10);
+    const firstOfMonth  = `${now.toISOString().slice(0, 7)}-01`;
 
-    const weekBags    = bags.filter(b => (b.data_recebimento ?? '') >= mondayStr);
-    const sacSemana   = weekBags.length;
-    const pecasSemana = weekBags.reduce((a, b) => a + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
+    // Produção — by data_recebimento (what was worked on)
+    const weekBags  = bags.filter(b => (b.data_recebimento ?? '') >= mondayStr);
+    const monthBags = bags.filter(b => (b.data_recebimento ?? '') >= firstOfMonth);
+
     const fotoSemana  = weekBags.reduce((a, b) => a + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
+    const fotoMes     = monthBags.reduce((a, b) => a + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
     const editSemana  = weekBags.reduce((a, b) => a + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
+    const editMes     = monthBags.reduce((a, b) => a + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
 
-    return { sacAbertos, pecasAberto, faltamFoto, faltamEdit, sacSemana, pecasSemana, fotoSemana, editSemana };
+    // Finalizados — by data_finalizacao
+    const finSemana = bags.filter(b => b.data_finalizacao && b.data_finalizacao.slice(0, 10) >= mondayStr).length;
+    const finMes    = bags.filter(b => b.data_finalizacao && b.data_finalizacao.slice(0, 10) >= firstOfMonth).length;
+
+    return {
+      sacAbertos, pecasAberto, faltamFoto, faltamEdit,
+      fotoSemana, fotoMes, editSemana, editMes, finSemana, finMes,
+    };
   }, [bags]);
 
   if (isLoading) {
@@ -99,24 +110,24 @@ export default function PhotographyPage() {
           <div className="flex-1 h-px bg-zinc-100 dark:bg-white/[0.06]" />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KPICard icon={Package}    label="Saquinhos Abertos"  value={stats.sacAbertos}  subtext="sem finalização"   variant="amber" />
-          <KPICard icon={ImageIcon}  label="Peças em Aberto"    value={stats.pecasAberto} subtext="total"             variant="amber" />
-          <KPICard icon={Camera}     label="Faltam Fotografar"  value={stats.faltamFoto}  subtext="peças"             variant={stats.faltamFoto > 0 ? 'red' : 'green'} />
-          <KPICard icon={Pencil}     label="Faltam Editar"      value={stats.faltamEdit}  subtext="peças"             variant={stats.faltamEdit > 0 ? 'red' : 'green'} />
+          <KPICard compact icon={Package}    label="Saquinhos Abertos"  value={stats.sacAbertos}  subtext="sem finalização"   variant="amber" />
+          <KPICard compact icon={ImageIcon}  label="Peças em Aberto"    value={stats.pecasAberto} subtext="total"             variant="amber" />
+          <KPICard compact icon={Camera}     label="Faltam Fotografar"  value={stats.faltamFoto}  subtext="peças"             variant={stats.faltamFoto > 0 ? 'red' : 'green'} />
+          <KPICard compact icon={Pencil}     label="Faltam Editar"      value={stats.faltamEdit}  subtext="peças"             variant={stats.faltamEdit > 0 ? 'red' : 'green'} />
         </div>
       </div>
 
-      {/* Esta Semana */}
+      {/* Produção */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Esta Semana</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Produção</span>
+          <span className="text-[10px] text-zinc-400 dark:text-zinc-600">(valor = semana · subtext = mês)</span>
           <div className="flex-1 h-px bg-zinc-100 dark:bg-white/[0.06]" />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KPICard icon={Package}    label="Saquinhos"          value={stats.sacSemana}   subtext="recebidos"         variant="blue" />
-          <KPICard icon={ImageIcon}  label="Peças Recebidas"    value={stats.pecasSemana} subtext="esta semana"       variant="blue" />
-          <KPICard icon={Camera}     label="Fotografadas"       value={stats.fotoSemana}  subtext="esta semana"       variant="blue" />
-          <KPICard icon={Pencil}     label="Editadas"           value={stats.editSemana}  subtext="esta semana"       variant="green" />
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <KPICard compact icon={Camera}     label="Fotografadas"       value={stats.fotoSemana}  subtext={`${stats.fotoMes} no mês`}   variant="blue" />
+          <KPICard compact icon={Pencil}     label="Editadas"           value={stats.editSemana}  subtext={`${stats.editMes} no mês`}   variant="blue" />
+          <KPICard compact icon={Package}    label="Finalizados"        value={stats.finSemana}   subtext={`${stats.finMes} saquinhos no mês`} variant="green" />
         </div>
       </div>
 
