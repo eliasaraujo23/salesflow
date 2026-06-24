@@ -30,7 +30,7 @@ type TipoTab = 'entrada' | 'cadastro' | 'antigo';
 const TABS: { key: TipoTab; label: string; Icon: React.ElementType; desc: string }[] = [
   { key: 'entrada',  label: 'Entrada',  Icon: ArrowUp, desc: 'Adiciona ao saldo' },
   { key: 'cadastro', label: 'Cadastro', Icon: List,    desc: 'Abate do saldo' },
-  { key: 'antigo',   label: 'Antigo',   Icon: Clock,   desc: 'Estoque anterior' },
+  { key: 'antigo',   label: 'Antigo',   Icon: Clock,   desc: 'Abate do saldo' },
 ];
 
 const inputCls =

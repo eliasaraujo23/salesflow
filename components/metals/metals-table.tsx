@@ -61,8 +61,8 @@ interface MetalsTableProps {
 const ALL = '__all__';
 
 function metalDelta(m: Metal): number {
-  if (m.tipo === 'entrada' || m.tipo === 'antigo') return m.chegou ?? m.peso ?? 0;
-  return -(m.peso ?? 0); // cadastro subtrai
+  if (m.tipo === 'entrada') return m.chegou ?? m.peso ?? 0;
+  return -(m.peso ?? 0); // cadastro e antigo subtraem
 }
 
 function pesoDisplay(m: Metal): number {
