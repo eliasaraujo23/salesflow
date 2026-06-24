@@ -76,15 +76,15 @@ function printBagLabel(bag: PhotoBag, code: string) {
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family: Arial, Helvetica, sans-serif; background:#fff; color:#000; }
   table { width:100%; border-collapse:collapse; }
-  td { border: 2px solid #000; padding: 9px 14px; }
-  .lbl { font-size:13pt; font-weight:700; text-transform:uppercase; width:34%; white-space:nowrap; }
-  .val { font-size:15pt; font-weight:700; }
-  .val.code { font-size:28pt; font-weight:900; letter-spacing:3px; text-align:center; padding:12px; }
-  .val.obs { font-size:12pt; font-weight:400; }
+  td { border: 3px solid #000; padding: 12px 16px; }
+  .lbl { font-size:18pt; font-weight:700; text-transform:uppercase; width:34%; white-space:nowrap; }
+  .val { font-size:22pt; font-weight:700; }
+  .val.code { font-size:44pt; font-weight:900; letter-spacing:4px; text-align:center; padding:14px; }
+  .val.obs { font-size:16pt; font-weight:400; }
   .section-header {
-    text-align:center; font-size:12pt; font-weight:700;
+    text-align:center; font-size:16pt; font-weight:700;
     text-transform:uppercase; letter-spacing:1px;
-    background:#000; color:#fff; padding:6px;
+    background:#000; color:#fff; padding:8px;
   }
 </style>
 </head>
