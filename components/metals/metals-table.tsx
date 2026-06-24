@@ -111,7 +111,7 @@ export function MetalsTable({ metals, canDelete }: MetalsTableProps) {
 
   const handleDelete = useCallback(async (item: Metal) => {
     if (!confirm(`Remover registro de ${(item.chegou ?? item.peso ?? 0).toFixed(2)}g de ${item.metal}?`)) return;
-    const result = await deleteMetalAction(String(item.id));
+    const result = await deleteMetalAction(item.docId);
     if (result.success) {
       toast.success('Registro removido');
     } else {

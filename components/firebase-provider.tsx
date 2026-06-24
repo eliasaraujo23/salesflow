@@ -41,6 +41,7 @@ export interface Task {
 
 export interface Metal {
   id: string | number;
+  docId: string;
   tipo: 'entrada' | 'cadastro' | 'antigo';
   metal: 'ouro' | 'prata' | 'platina';
   chegou: number;
@@ -164,6 +165,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return {
           ...data,
           id: isNaN(Number(data.id)) ? d.id : Number(data.id),
+          docId: d.id,
         } as Metal;
       });
       setMetals(parsedMetals);
