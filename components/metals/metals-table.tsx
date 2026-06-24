@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -9,7 +9,14 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { ArrowDown, Trash2, Scale } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Trash2, Scale } from 'lucide-react';
+
+type SortDir = 'asc' | 'desc' | false;
+function SortIcon({ dir }: { dir: SortDir }) {
+  if (dir === 'asc')  return <ArrowUp size={11} />;
+  if (dir === 'desc') return <ArrowDown size={11} />;
+  return <ArrowUpDown size={11} className="opacity-40" />;
+}
 import { type Metal } from '@/components/firebase-provider';
 import { deleteMetalAction } from '@/lib/actions/metals';
 import { toast } from 'sonner';
@@ -102,7 +109,7 @@ export function MetalsTable({ metals, canDelete }: MetalsTableProps) {
     });
   }, [rowsWithSaldo, filterMetal, filterOrigem]);
 
-  const handleDelete = async (item: Metal) => {
+  const handleDelete = useCallback(async (item: Metal) => {
     if (!confirm(`Remover registro de ${(item.chegou ?? item.peso ?? 0).toFixed(2)}g de ${item.metal}?`)) return;
     const result = await deleteMetalAction(String(item.id));
     if (result.success) {
@@ -110,16 +117,12 @@ export function MetalsTable({ metals, canDelete }: MetalsTableProps) {
     } else {
       toast.error(result.error ?? 'Erro ao remover');
     }
-  };
+  }, []);
 
-  const columns: ColumnDef<MetalsTableRow>[] = [
+  const columns = useMemo<ColumnDef<MetalsTableRow>[]>(() => [
     {
       accessorKey: 'data',
-      header: () => (
-        <span className="flex items-center gap-1">
-          Data <ArrowDown size={11} className="opacity-60" />
-        </span>
-      ),
+      header: 'Data',
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
           {fmtDate(getValue<string | null>())}
@@ -158,6 +161,7 @@ export function MetalsTable({ metals, canDelete }: MetalsTableProps) {
     },
     {
       id: 'peso_display',
+      accessorFn: (r) => pesoDisplay(r),
       header: 'Peso',
       cell: ({ row }) => (
         <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
@@ -167,9 +171,7 @@ export function MetalsTable({ metals, canDelete }: MetalsTableProps) {
     },
     {
       accessorKey: 'saldoAcum',
-      header: () => (
-        <span className="text-indigo-600 dark:text-indigo-400 font-semibold text-xs">Saldo Acum.</span>
-      ),
+      header: 'Saldo Acum.',
       cell: ({ getValue }) => (
         <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
           {Number(getValue<number>()).toFixed(2)}g
@@ -191,7 +193,8 @@ export function MetalsTable({ metals, canDelete }: MetalsTableProps) {
           ),
         } as ColumnDef<MetalsTableRow>]
       : []),
-  ];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [canDelete, handleDelete]);
 
   const table = useReactTable({
     data: filtered,
@@ -232,11 +235,22 @@ export function MetalsTable({ metals, canDelete }: MetalsTableProps) {
           <thead>
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id} className="border-b border-zinc-100 dark:border-white/[0.04] bg-zinc-50 dark:bg-zinc-800/60">
-                {hg.headers.map((h) => (
-                  <th key={h.id} className="px-4 py-2.5 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
-                    {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
-                  </th>
-                ))}
+                {hg.headers.map((h) => {
+                  const canSort = h.column.getCanSort();
+                  const sorted = h.column.getIsSorted();
+                  return (
+                    <th
+                      key={h.id}
+                      onClick={canSort ? () => h.column.toggleSorting(h.column.getIsSorted() === 'asc') : undefined}
+                      className={`px-4 py-2.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400 whitespace-nowrap ${canSort ? 'cursor-pointer select-none hover:text-indigo-600 dark:hover:text-indigo-400' : ''}`}
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
+                        {canSort && <SortIcon dir={sorted} />}
+                      </div>
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>
