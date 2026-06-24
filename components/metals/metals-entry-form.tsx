@@ -44,7 +44,6 @@ export function MetalsEntryForm() {
   const {
     register,
     handleSubmit,
-    watch,
     reset,
     formState: { isSubmitting, errors },
   } = useForm<FormData>({
@@ -52,9 +51,6 @@ export function MetalsEntryForm() {
     defaultValues: { chegou: 0, cadastrado: 0 },
   });
 
-  const chegou    = Number(watch('chegou')    ?? 0);
-  const cadastrado = Number(watch('cadastrado') ?? 0);
-  const sobrou    = Math.max(0, chegou - cadastrado);
 
   const handleTabChange = (key: TipoTab) => {
     setTipo(key);
@@ -80,7 +76,7 @@ export function MetalsEntryForm() {
       origem:     data.origem,
       chegou:     tipo === 'entrada' ? data.chegou : 0,
       cadastrado: tipo === 'cadastro' ? data.cadastrado : 0,
-      sobrou:     tipo === 'entrada' ? sobrou : 0,
+      sobrou:     0,
       peso,
       obs: data.obs,
     });
@@ -156,53 +152,20 @@ export function MetalsEntryForm() {
           {errors.origem && <p className={errCls}>{errors.origem.message}</p>}
         </div>
 
-        {/* Weight fields — differ per tab */}
-        {tipo === 'entrada' ? (
-          <>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
-                  Chegou (g)
-                </label>
-                <input
-                  type="number" step="0.01" min="0"
-                  {...register('chegou', { valueAsNumber: true })}
-                  placeholder="0.00"
-                  className={inputCls}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
-                  Cadastrado no sistema (g)
-                </label>
-                <input
-                  type="number" step="0.01" min="0"
-                  {...register('cadastrado', { valueAsNumber: true })}
-                  placeholder="0.00"
-                  className={inputCls}
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-3 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg">
-              <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Sobrou:</span>
-              <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                {sobrou > 0 ? `${sobrou.toFixed(2)}g` : '— g'}
-              </span>
-            </div>
-          </>
-        ) : (
-          <div>
-            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
-              {tipo === 'cadastro' ? 'Peso a cadastrar (g)' : 'Peso antigo (g)'}
-            </label>
-            <input
-              type="number" step="0.01" min="0"
-              {...register(tipo === 'cadastro' ? 'cadastrado' : 'chegou', { valueAsNumber: true })}
-              placeholder="0.00"
-              className={inputCls}
-            />
-          </div>
-        )}
+        {/* Weight field — one per tab */}
+        <div>
+          <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
+            {tipo === 'entrada'  ? 'Chegou (g)'            : null}
+            {tipo === 'cadastro' ? 'Peso a cadastrar (g)'  : null}
+            {tipo === 'antigo'   ? 'Peso antigo (g)'       : null}
+          </label>
+          <input
+            type="number" step="0.01" min="0"
+            {...register(tipo === 'cadastro' ? 'cadastrado' : 'chegou', { valueAsNumber: true })}
+            placeholder="0.00"
+            className={inputCls}
+          />
+        </div>
 
         {/* Obs */}
         <div>
