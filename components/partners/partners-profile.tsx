@@ -1,7 +1,7 @@
 ﻿'use client';
 
-import React from 'react';
-import { Store } from 'lucide-react';
+import React, { useState } from 'react';
+import { Store, ChevronDown, ChevronUp } from 'lucide-react';
 import { type PartnerConsignment, type PartnerSales } from '@/lib/actions/fetch-partners';
 import { type CatDefDynamic } from '@/hooks/use-carros-chefe';
 import { type GapInfo } from '@/hooks/use-partners';
@@ -35,6 +35,8 @@ interface PartnersProfileProps {
 }
 
 export function PartnersProfile({ destino, data, sales, gaps, cats }: PartnersProfileProps) {
+  const [expandedCat, setExpandedCat] = useState<string | null>(null);
+
   const vencidas = data.filter(r => r.dias_campo > 90);
   const alertas = data.filter(r => r.dias_campo >= 75 && r.dias_campo <= 90);
   const diasMed = data.length
@@ -43,16 +45,11 @@ export function PartnersProfile({ destino, data, sales, gaps, cats }: PartnersPr
 
   const coverage = cats.map(cat => ({
     label: cat.label,
+    pieces: data.filter(cat.check).sort((a, b) => b.dias_campo - a.dias_campo),
     count: data.filter(cat.check).length,
   }));
-  const ccHas = coverage.filter(c => c.count > 0).length;
-
-  const tipoMap = new Map<string, number>();
-  data.forEach(r => {
-    const k = (r.produto ?? '—') + (r.subtipo ? ' / ' + r.subtipo : '');
-    tipoMap.set(k, (tipoMap.get(k) ?? 0) + 1);
-  });
-  const topTipos = [...tipoMap.entries()].sort((a, b) => b[1] - a[1]);
+  const coveredCats = coverage.filter(c => c.count > 0);
+  const ccHas = coveredCats.length;
 
   const totalVendas = sales.reduce((s, r) => s + r.total_vendas, 0);
   const totalFat = sales.reduce((s, r) => s + r.total_faturado, 0);
@@ -97,20 +94,59 @@ export function PartnersProfile({ destino, data, sales, gaps, cats }: PartnersPr
           />
         </div>
 
-        {/* Covered categories — compact pills */}
+        {/* Covered categories — clickable pills */}
         <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-2">
           ★ Carros Chefe — {ccHas}/{cats.length} cobertos
         </div>
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {coverage.filter(c => c.count > 0).map(c => (
-            <span
-              key={c.label}
-              className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
-            >
-              ✓ {c.label}{c.count > 1 ? ` ×${c.count}` : ''}
-            </span>
-          ))}
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {coveredCats.map(c => {
+            const open = expandedCat === c.label;
+            return (
+              <button
+                key={c.label}
+                onClick={() => setExpandedCat(open ? null : c.label)}
+                className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border transition-colors ${
+                  open
+                    ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
+                    : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                }`}
+              >
+                ✓ {c.label}{c.count > 1 ? ` ×${c.count}` : ''}
+                {open ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+              </button>
+            );
+          })}
         </div>
+
+        {/* Expanded covered category detail */}
+        {expandedCat && (() => {
+          const cat = coveredCats.find(c => c.label === expandedCat);
+          if (!cat) return null;
+          return (
+            <div className="mb-3 rounded-lg border border-emerald-200 dark:border-emerald-500/20 overflow-hidden">
+              <div className="px-3 py-2 bg-emerald-500/5 dark:bg-emerald-500/10 flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">✓ {cat.label}</span>
+                <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{cat.count} peça{cat.count !== 1 ? 's' : ''} em campo</span>
+              </div>
+              <div className="divide-y divide-zinc-100 dark:divide-white/[0.04]">
+                {cat.pieces.map((r, i) => (
+                  <div key={i} className="px-3 py-2 flex items-center gap-2 flex-wrap text-xs">
+                    <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 shrink-0">{r.referencia || '—'}</span>
+                    <span className="text-zinc-600 dark:text-zinc-300">{up(r.produto)}{r.subtipo ? ' / ' + up(r.subtipo) : ''}</span>
+                    {r.tipo_pedra && <span className="text-zinc-400 dark:text-zinc-500">· {r.tipo_pedra}</span>}
+                    {r.lapidacao  && <span className="text-zinc-400 dark:text-zinc-500">· {r.lapidacao}</span>}
+                    {r.tipo && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
+                        {r.tipo}
+                      </span>
+                    )}
+                    <span className={`ml-auto font-semibold shrink-0 ${diasCor(r.dias_campo)}`}>{r.dias_campo}d</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Missing categories — detailed gap view */}
         {gaps.length > 0 && (
@@ -191,26 +227,8 @@ export function PartnersProfile({ destino, data, sales, gaps, cats }: PartnersPr
         )}
       </div>
 
-      {/* Type breakdown + Sales history */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-4">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">
-            Em Campo por Tipo
-          </div>
-          {topTipos.length === 0 ? (
-            <p className="text-xs text-zinc-400 dark:text-zinc-500">Nenhuma peça em campo</p>
-          ) : (
-            <div className="space-y-0 divide-y divide-zinc-100 dark:divide-white/[0.04]">
-              {topTipos.map(([tipo, cnt]) => (
-                <div key={tipo} className="flex items-center justify-between py-2">
-                  <span className="text-xs text-zinc-700 dark:text-zinc-300">{tipo}</span>
-                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{cnt}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
+      {/* Sales history */}
+      <div>
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-4">
           <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">
             Histórico de Vendas
