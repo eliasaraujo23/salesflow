@@ -56,61 +56,112 @@ function SortIcon({ dir }: { dir: false | 'asc' | 'desc' }) {
 }
 
 function printBagLabel(bag: PhotoBag, code: string) {
-  const total = bag.qtd_fabricado + bag.qtd_second + bag.qtd_scrap;
-  const date  = fmtDate(bag.data_recebimento);
+  const total  = bag.qtd_fabricado + bag.qtd_second + bag.qtd_scrap;
+  const totFoto = bag.foto_fabricado + bag.foto_second + bag.foto_scrap;
+  const totEdit = bag.edit_fabricado + bag.edit_second + bag.edit_scrap;
+  const date   = fmtDate(bag.data_recebimento);
+  const dateFin = fmtDate(bag.data_finalizacao);
 
-  const cats = [
-    bag.qtd_fabricado > 0 ? `Fabricado: ${bag.qtd_fabricado}` : '',
-    bag.qtd_second    > 0 ? `Second: ${bag.qtd_second}`       : '',
-    bag.qtd_scrap     > 0 ? `Scrap: ${bag.qtd_scrap}`         : '',
-  ].filter(Boolean);
+  const statusMap: Record<string, string> = {
+    aguardando: 'AGUARDANDO',
+    andamento:  'EM ANDAMENTO',
+    finalizado: 'FINALIZADO',
+  };
+  const st = bag.data_finalizacao ? 'finalizado'
+    : (bag.foto_fabricado + bag.foto_second + bag.foto_scrap + bag.edit_fabricado + bag.edit_second + bag.edit_scrap) > 0
+      ? 'andamento' : 'aguardando';
 
-  const catsHtml = cats.map(c => `<div class="cat">${c}</div>`).join('');
+  const rowFab  = bag.qtd_fabricado > 0
+    ? `<tr><td class="lbl">FABRICADO</td><td class="val">${bag.qtd_fabricado} rec &nbsp;/&nbsp; ${bag.foto_fabricado} foto &nbsp;/&nbsp; ${bag.edit_fabricado} edit</td></tr>` : '';
+  const rowSec  = bag.qtd_second > 0
+    ? `<tr><td class="lbl">SECOND</td><td class="val">${bag.qtd_second} rec &nbsp;/&nbsp; ${bag.foto_second} foto &nbsp;/&nbsp; ${bag.edit_second} edit</td></tr>` : '';
+  const rowScrap = bag.qtd_scrap > 0
+    ? `<tr><td class="lbl">SCRAP</td><td class="val">${bag.qtd_scrap} rec &nbsp;/&nbsp; ${bag.foto_scrap} foto &nbsp;/&nbsp; ${bag.edit_scrap} edit</td></tr>` : '';
+
+  const obsRow = bag.observacao
+    ? `<tr><td class="lbl">OBS.</td><td class="val obs">${bag.observacao}</td></tr>` : '';
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
 <style>
-  @page { size: 70mm 50mm; margin: 0; }
+  @page { size: A5 portrait; margin: 10mm; }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body {
-    width:70mm; height:50mm;
-    font-family:Arial,Helvetica,sans-serif;
-    padding:3mm 4mm;
-    display:flex; flex-direction:column; justify-content:space-between;
-    background:#fff; color:#000; overflow:hidden;
+  body { font-family: Arial, Helvetica, sans-serif; background:#fff; color:#000; }
+  table { width:100%; border-collapse:collapse; }
+  td, th { border: 2px solid #000; padding: 6px 10px; }
+  .lbl {
+    font-size: 10pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    width: 38%;
+    white-space: nowrap;
   }
-  .header { display:flex; justify-content:space-between; align-items:flex-start; }
-  .brand  { font-size:7pt; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#555; }
-  .tag    { font-size:6.5pt; font-weight:700; color:#555; border:1px solid #999; border-radius:3px; padding:0 3px; line-height:1.6; }
-  .code   { font-size:22pt; font-weight:900; letter-spacing:2px; line-height:1; text-align:center; margin:1.5mm 0 .5mm; }
-  hr      { border:none; border-top:.5px solid #ccc; margin:1mm 0; }
-  .info   { display:flex; justify-content:space-between; align-items:center; }
-  .date   { font-size:8.5pt; font-weight:600; color:#333; }
-  .total  { font-size:10pt; font-weight:900; }
-  .cats   { display:flex; gap:4mm; flex-wrap:wrap; }
-  .cat    { font-size:7.5pt; font-weight:600; color:#444; }
-  .foot   { font-size:6pt; color:#aaa; text-align:right; }
+  .val {
+    font-size: 11pt;
+    font-weight: 700;
+  }
+  .val.big {
+    font-size: 16pt;
+    font-weight: 900;
+    letter-spacing: 1px;
+  }
+  .val.obs {
+    font-size: 9.5pt;
+    font-weight: 400;
+  }
+  .section-header {
+    text-align: center;
+    font-size: 10pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: #000;
+    color: #fff;
+    padding: 4px;
+  }
+  .sub { font-size:8pt; font-weight:400; color:#333; margin-left:6px; }
 </style>
 </head>
 <body>
-  <div class="header">
-    <div class="brand">Goldtech Joias &middot; Fotografia</div>
-    <div class="tag">SAQUINHO</div>
-  </div>
-  <div class="code">#${code}</div>
-  <hr/>
-  <div class="info">
-    <div class="date">${date}</div>
-    <div class="total">${total} pe&ccedil;as</div>
-  </div>
-  <div class="cats">${catsHtml || '<div class="cat">Sem itens</div>'}</div>
-  <div class="foot">SalesFlow</div>
+<table>
+  <tr>
+    <td class="lbl">LOJA</td>
+    <td class="val">GOLDTECH JOIAS</td>
+    <td class="lbl" style="width:22%">SAQUINHO</td>
+    <td class="val big" style="width:20%">#${code}</td>
+  </tr>
+  <tr>
+    <td class="lbl">DATA REC.</td>
+    <td class="val">${date}</td>
+    <td class="lbl">STATUS</td>
+    <td class="val">${statusMap[st] ?? st.toUpperCase()}</td>
+  </tr>
+  <tr>
+    <td class="lbl">TOTAL PE&Ccedil;AS</td>
+    <td class="val">${total}</td>
+    <td class="lbl">DATA FIN.</td>
+    <td class="val">${dateFin}</td>
+  </tr>
+  <tr>
+    <td colspan="4" class="section-header">COMPOSI&Ccedil;&Atilde;O &nbsp;<span class="sub" style="color:#ccc">Rec / Foto / Edit</span></td>
+  </tr>
+  ${rowFab}${rowSec}${rowScrap}
+  <tr>
+    <td class="lbl">FOTOGRAFADO</td>
+    <td colspan="3" class="val">${totFoto} de ${total} pe&ccedil;as</td>
+  </tr>
+  <tr>
+    <td class="lbl">EDITADO</td>
+    <td colspan="3" class="val">${totEdit} de ${total} pe&ccedil;as</td>
+  </tr>
+  ${obsRow}
+</table>
 </body>
 </html>`;
 
-  const win = window.open('', '_blank', 'width=320,height=240,toolbar=0,menubar=0');
+  const win = window.open('', '_blank', 'width=500,height=680,toolbar=0,menubar=0');
   if (!win) { toast.error('Permita pop-ups para imprimir'); return; }
   win.document.write(html);
   win.document.close();
