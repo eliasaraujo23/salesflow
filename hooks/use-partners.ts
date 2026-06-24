@@ -5,8 +5,10 @@ import { useQuery } from '@tanstack/react-query';
 import {
   fetchPartnerSalesAction,
   fetchPartnerConsignmentsAction,
+  fetchJmStockAction,
   type PartnerSales,
   type PartnerConsignment,
+  type JmStockItem,
 } from '@/lib/actions/fetch-partners';
 
 const EXCLUDED = new Set([
@@ -21,6 +23,23 @@ const NOBLE_STONES = new Set([
 
 function up(s: string | null | undefined): string {
   return (s ?? '').toUpperCase();
+}
+
+function normalizeJmItem(j: JmStockItem): PartnerConsignment {
+  return {
+    referencia: j.referencia,
+    produto: j.produto,
+    subtipo: j.subtipo,
+    tipo_pedra: j.tipo_pedra,
+    lapidacao: j.lapidacao,
+    destino: j.destino,
+    tipo: 'JM',
+    data_saida: null,
+    dias_campo: j.dias,
+    custo_real: j.custo_real,
+    preco_minimo: null,
+    preco_loja: j.preco_cobrado ?? 0,
+  };
 }
 
 export interface CatDef {
@@ -58,6 +77,28 @@ export interface MatrixRow {
   variants: MatrixVariant[];
 }
 
+export interface GapStockItem {
+  referencia: string;
+  produto: string | null | undefined;
+  subtipo: string | null | undefined;
+  tipo_pedra: string | null | undefined;
+  lapidacao: string | null | undefined;
+  dias: number;
+}
+
+export interface GapRedist {
+  partner: string;
+  count: number;
+  oldest: PartnerConsignment;
+}
+
+export interface GapInfo {
+  catLabel: string;
+  partnersMissing: string[];
+  stockItems: GapStockItem[];
+  redistFrom: GapRedist[];
+}
+
 export function usePartnersPage() {
   const [activePartner, setActivePartner] = useState<string | null>(null);
 
@@ -85,10 +126,39 @@ export function usePartnersPage() {
     staleTime: 1000 * 60 * 5,
   });
 
+  const jmStockQuery = useQuery({
+    queryKey: ['jm-stock-partners'],
+    queryFn: async (): Promise<JmStockItem[]> => {
+      const result = await fetchJmStockAction();
+      return result.data ?? [];
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // JM items currently at partners (destino ≠ ESTOQUE, has category data)
+  const jmAtPartners = useMemo(() => {
+    return (jmStockQuery.data ?? [])
+      .filter(j => {
+        const d = up(j.destino);
+        return d !== 'ESTOQUE' && d !== '' && j.destino != null && !EXCLUDED.has(d);
+      })
+      .filter(j => !!(j.produto && j.subtipo))
+      .map(normalizeJmItem);
+  }, [jmStockQuery.data]);
+
+  // JM items in stock available to send (destino === ESTOQUE, has category data)
+  const jmInStock = useMemo(() => {
+    return (jmStockQuery.data ?? []).filter(j => {
+      const d = up(j.destino);
+      return (d === 'ESTOQUE' || d === '' || j.destino == null) && !!(j.produto && j.subtipo);
+    });
+  }, [jmStockQuery.data]);
+
+  // Merged: comodato (JF/JMF) + JM at partners
   const data = useMemo(() => {
-    const raw = consignmentQuery.data ?? [];
-    return raw.filter(r => !EXCLUDED.has(up(r.destino)));
-  }, [consignmentQuery.data]);
+    const comodato = (consignmentQuery.data ?? []).filter(r => !EXCLUDED.has(up(r.destino)));
+    return [...comodato, ...jmAtPartners];
+  }, [consignmentQuery.data, jmAtPartners]);
 
   const partnerList = useMemo(
     () => [...new Set(data.map(r => r.destino).filter((d): d is string => !!d))].sort(),
@@ -132,6 +202,37 @@ export function usePartnersPage() {
     });
   }, [data, partnerList]);
 
+  const gaps = useMemo((): GapInfo[] => {
+    return CC_CATS.map(cat => {
+      const partnersMissing = partnerList.filter(p =>
+        !data.some(r => r.destino === p && cat.check(r))
+      );
+
+      const stockItems: GapStockItem[] = jmInStock
+        .filter(j => cat.check(normalizeJmItem(j)))
+        .map(j => ({
+          referencia: j.referencia,
+          produto: j.produto,
+          subtipo: j.subtipo,
+          tipo_pedra: j.tipo_pedra,
+          lapidacao: j.lapidacao,
+          dias: j.dias,
+        }));
+
+      const redistFrom: GapRedist[] = partnerList
+        .map(p => {
+          const pieces = data.filter(r => r.destino === p && cat.check(r));
+          if (pieces.length < 2) return null;
+          const oldest = pieces.reduce((a, b) => (a.dias_campo > b.dias_campo ? a : b));
+          return { partner: p, count: pieces.length, oldest };
+        })
+        .filter((x): x is GapRedist => x !== null)
+        .sort((a, b) => b.oldest.dias_campo - a.oldest.dias_campo);
+
+      return { catLabel: cat.label, partnersMissing, stockItems, redistFrom };
+    }).filter(g => g.partnersMissing.length > 0);
+  }, [data, partnerList, jmInStock]);
+
   const partnerData = useMemo(
     () => (activePartner ? data.filter(r => r.destino === activePartner) : []),
     [data, activePartner],
@@ -145,15 +246,17 @@ export function usePartnersPage() {
   function refresh() {
     void consignmentQuery.refetch();
     void salesQuery.refetch();
+    void jmStockQuery.refetch();
   }
 
   return {
     isLoading: consignmentQuery.isLoading,
     isError: consignmentQuery.isError,
-    isFetching: consignmentQuery.isFetching || salesQuery.isFetching,
+    isFetching: consignmentQuery.isFetching || salesQuery.isFetching || jmStockQuery.isFetching,
     partnerList,
     kpis,
     matrix,
+    gaps,
     activePartner,
     setActivePartner,
     partnerData,

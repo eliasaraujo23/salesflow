@@ -28,6 +28,21 @@ const comodatoItemSchema = z.object({
 export type PartnerSales = z.infer<typeof partnerSalesSchema>;
 export type PartnerConsignment = z.infer<typeof comodatoItemSchema>;
 
+const jmStockItemSchema = z.object({
+  referencia: z.string().default(''),
+  produto: z.string().nullable().optional(),
+  subtipo: z.string().nullable().optional(),
+  tipo_pedra: z.string().nullable().optional(),
+  lapidacao: z.string().nullable().optional(),
+  destino: z.string().nullable().optional(),
+  tipo: z.string().nullable().optional(),
+  dias: z.coerce.number().default(0),
+  custo_real: z.coerce.number().default(0),
+  preco_cobrado: z.coerce.number().nullable().optional(),
+});
+
+export type JmStockItem = z.infer<typeof jmStockItemSchema>;
+
 export interface ResponseApi<T> {
   httpStatus?: number;
   message?: string;
@@ -47,6 +62,22 @@ export async function fetchPartnerSalesAction(): Promise<ResponseApi<PartnerSale
     return { httpStatus: 200, data: parsed.data };
   } catch (error: unknown) {
     return { httpStatus: 500, message: error instanceof Error ? error.message : 'Erro ao obter vendas de parceiros' };
+  }
+}
+
+export async function fetchJmStockAction(): Promise<ResponseApi<JmStockItem[]>> {
+  try {
+    const res = await authFetch(`${API_BASE}/jm/lista-estoque`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rawData = await res.json();
+    const arr = Array.isArray(rawData) ? rawData : [];
+    const parsed = z.array(jmStockItemSchema).safeParse(arr);
+    if (!parsed.success) {
+      return { httpStatus: 400, message: 'Dados JM inválidos', errors: parsed.error };
+    }
+    return { httpStatus: 200, data: parsed.data };
+  } catch (error: unknown) {
+    return { httpStatus: 500, message: error instanceof Error ? error.message : 'Erro ao obter estoque JM' };
   }
 }
 

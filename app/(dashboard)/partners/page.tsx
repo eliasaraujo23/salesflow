@@ -7,6 +7,7 @@ import { PartnersKpis } from '@/components/partners/partners-kpis';
 import { PartnersChips } from '@/components/partners/partners-chips';
 import { PartnersMatrix } from '@/components/partners/partners-matrix';
 import { PartnersProfile } from '@/components/partners/partners-profile';
+import { PartnersGaps } from '@/components/partners/partners-gaps';
 
 export default function PartnersPage() {
   const {
@@ -16,6 +17,7 @@ export default function PartnersPage() {
     partnerList,
     kpis,
     matrix,
+    gaps,
     activePartner,
     setActivePartner,
     partnerData,
@@ -82,7 +84,10 @@ export default function PartnersPage() {
 
       {/* Content: matrix or partner profile */}
       {activePartner === null ? (
-        <PartnersMatrix rows={matrix} partners={partnerList} />
+        <>
+          <PartnersMatrix rows={matrix} partners={partnerList} />
+          <PartnersGaps gaps={gaps} />
+        </>
       ) : (
         <PartnersProfile
           destino={activePartner}
