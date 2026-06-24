@@ -72,7 +72,7 @@ function printBagLabel(bag: PhotoBag, code: string) {
 <head>
 <meta charset="UTF-8"/>
 <style>
-  @page { size: A5 portrait; margin: 10mm; }
+  @page { size: A5 landscape; margin: 10mm; }
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family: Arial, Helvetica, sans-serif; background:#fff; color:#000; }
   table { width:100%; border-collapse:collapse; }
