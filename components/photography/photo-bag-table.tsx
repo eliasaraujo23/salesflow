@@ -178,8 +178,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
       if (filterStatus === 'finalizado' && st !== 'finalizado') return false;
       if (filterStatus && filterStatus !== 'todos' && filterStatus !== 'finalizado' && st !== filterStatus) return false;
       if (buscaLc) {
-        const hay = [r._code, r.data_recebimento, r.data_finalizacao, r.observacao].join(' ').toLowerCase();
-        if (!hay.includes(buscaLc)) return false;
+        if (!r._code.includes(buscaLc)) return false;
       }
       return true;
     });
@@ -377,7 +376,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
           type="text"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar código, data ou obs…"
+          placeholder="Buscar pelo código… ex: 00024"
           className={`${selectCls} w-52`}
         />
       </div>
