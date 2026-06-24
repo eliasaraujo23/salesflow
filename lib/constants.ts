@@ -22,6 +22,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { label: 'IA de Reuniões',    href: '/ia',             icon: 'ti-brain',           section: 'IA',          permission: 'ia' },
   { label: 'Fotografia',        href: '/photography',    icon: 'ti-camera',          section: 'Operacional', permission: 'fotografia' },
   { label: 'Parceiros',         href: '/partners',       icon: 'ti-building-store',  section: 'Operacional', permission: 'parceiros' },
+  { label: 'Carros-Chefe',      href: '/carros-chefe',   icon: 'ti-star',            section: 'Operacional', permission: 'parceiros' },
   { label: 'Usuários & Acesso', href: '/users',          icon: 'ti-shield-check',    section: 'Admin',       adminOnly: true },
   { label: 'Configurações',     href: '/settings',       icon: 'ti-settings-2',      section: 'Admin',       adminOnly: true },
 ];

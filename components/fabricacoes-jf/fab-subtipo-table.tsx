@@ -31,23 +31,6 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
-function isCarroChefe(row: CategoriaRow): boolean {
-  const s = (row.subtipo  || '').toUpperCase();
-  const p = (row.produto  || '').toUpperCase();
-  if (s === 'SOLITÁRIO'    && p.includes('ANEL'))      return true;
-  if (s === 'SOLITÁRIO'    && p.includes('BRINCO'))    return true;
-  if (s === 'PONTO DE LUZ' || p.includes('PONTO DE LUZ')) return true;
-  if (s === 'MEIA ALIANÇA')                             return true;
-  if (s === 'RIVIERA'      && p.includes('COLAR'))     return true;
-  if (s === 'RIVIERA'      && p.includes('PULSEIRA'))  return true;
-  if (p.includes('ALIANÇA RIVIERA'))                    return true;
-  if (s === 'MARACANÃ'     && p.includes('ANEL'))      return true;
-  if (s === 'MARACANÃ'     && p.includes('COLAR'))     return true;
-  if (s === 'MARACANÃ'     && p.includes('BRINCO'))    return true;
-  if (s === 'PARA RIVIERA' && p.includes('PINGENTE'))  return true;
-  return false;
-}
-
 type BadgeType = 'ruptura' | 'critico' | 'atencao' | 'destaque' | 'ok';
 
 const BADGE_CLS: Record<BadgeType, string> = {
@@ -58,22 +41,22 @@ const BADGE_CLS: Record<BadgeType, string> = {
   ok:       'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25',
 };
 
-function getStatus(row: CategoriaRow): { label: string; type: BadgeType } {
+function getStatus(row: CategoriaRow, checkCC?: (row: CategoriaRow) => boolean): { label: string; type: BadgeType } {
   const e = row.estoque, v = row.vendidos_90d;
-  if (e === 0 && v > 0)  return { label: 'Ruptura',      type: 'ruptura'  };
-  if (e <= 2  && v >= 3) return { label: 'Crítico',      type: 'critico'  };
-  if (e <= 5  && v >= 5) return { label: 'Atenção',      type: 'atencao'  };
-  if (isCarroChefe(row)) return { label: '★ Carro chefe', type: 'destaque' };
-  return                        { label: 'OK',            type: 'ok'       };
+  if (e === 0 && v > 0)   return { label: 'Ruptura',       type: 'ruptura'  };
+  if (e <= 2  && v >= 3)  return { label: 'Crítico',       type: 'critico'  };
+  if (e <= 5  && v >= 5)  return { label: 'Atenção',       type: 'atencao'  };
+  if (checkCC?.(row))     return { label: '★ Carro chefe', type: 'destaque' };
+  return                         { label: 'OK',             type: 'ok'       };
 }
 
-function downloadCSV(rows: CategoriaRow[]) {
+function downloadCSV(rows: CategoriaRow[], checkCC?: (row: CategoriaRow) => boolean) {
   const hdr = ['Subtipo','Produto','Pedra','Lapidação','Estoque','Em Fab.','Vel. 90d','Total Vend.','Ticket Médio','Status'];
   const esc = (v: string | number | null | undefined) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const csv = [
     hdr.join(','),
     ...rows.map(r => {
-      const s = getStatus(r);
+      const s = getStatus(r, checkCC);
       return [r.subtipo, r.produto, r.tipo_pedra, r.lapidacao, r.estoque, r.em_fabricacao, r.vendidos_90d, r.vendidos, r.ticket_medio ? fmtMoeda(r.ticket_medio) : '', s.label].map(esc).join(',');
     }),
   ].join('\n');
@@ -86,9 +69,10 @@ function downloadCSV(rows: CategoriaRow[]) {
 
 interface FabSubtipoTableProps {
   data: CategoriaRow[];
+  isCarroChefe?: (row: CategoriaRow) => boolean;
 }
 
-export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
+export function FabSubtipoTable({ data, isCarroChefe }: FabSubtipoTableProps) {
   const [tab, setTab]         = useState<TabId>('todos');
   const [busca, setBusca]     = useState('');
   const [sorting, setSorting] = useState<SortingState>([{ id: 'vendidos', desc: true }]);
@@ -103,7 +87,7 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
         (r.tipo_pedra || '').toLowerCase().includes(q),
       );
     }
-    if (tab === 'carroChefe') rows = rows.filter(r => isCarroChefe(r));
+    if (tab === 'carroChefe') rows = rows.filter(r => isCarroChefe?.(r));
     if (tab === 'criticos')   rows = rows.filter(r => (r.estoque === 0 && r.vendidos_90d > 0) || (r.estoque <= 2 && r.vendidos_90d >= 2));
     return rows;
   }, [data, tab, busca]);
@@ -118,7 +102,7 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
         accessorFn: r => r.subtipo,
         cell: ({ row }) => {
           const r = row.original;
-          const { type } = getStatus(r);
+          const { type } = getStatus(r, isCarroChefe);
           return (
             <div className="text-left">
               <div className={`font-semibold text-sm leading-tight ${type === 'ruptura' ? 'text-red-600 dark:text-red-400' : type === 'critico' ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-900 dark:text-zinc-100'}`}>
@@ -185,7 +169,7 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
         header: 'Status',
         enableSorting: false,
         cell: ({ row }) => {
-          const { label, type } = getStatus(row.original);
+          const { label, type } = getStatus(row.original, isCarroChefe);
           return (
             <span className={`inline-block text-[9px] font-black uppercase tracking-[0.7px] px-2 py-0.5 rounded-full whitespace-nowrap ${BADGE_CLS[type]}`}>
               {label}
@@ -194,7 +178,7 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
         },
       },
     ],
-    [maxVend],
+    [maxVend, isCarroChefe],
   );
 
   const table = useReactTable({
@@ -217,7 +201,7 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
             <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-sm bg-indigo-500/40 inline-block" />Vel. 90d</span>
           </div>
           <button
-            onClick={() => downloadCSV(filtered)}
+            onClick={() => downloadCSV(filtered, isCarroChefe)}
             disabled={filtered.length === 0}
             className="flex items-center gap-1 px-2.5 py-1 text-xs text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.13] rounded hover:border-emerald-500 hover:text-emerald-600 transition-colors disabled:opacity-40"
           >

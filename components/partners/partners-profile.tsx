@@ -3,7 +3,8 @@
 import React from 'react';
 import { Store } from 'lucide-react';
 import { type PartnerConsignment, type PartnerSales } from '@/lib/actions/fetch-partners';
-import { CC_CATS, type GapInfo } from '@/hooks/use-partners';
+import { type CatDefDynamic } from '@/hooks/use-carros-chefe';
+import { type GapInfo } from '@/hooks/use-partners';
 
 function up(s: string | null | undefined): string {
   return (s ?? '').toUpperCase();
@@ -30,16 +31,17 @@ interface PartnersProfileProps {
   data: PartnerConsignment[];
   sales: PartnerSales[];
   gaps: GapInfo[];
+  cats: CatDefDynamic[];
 }
 
-export function PartnersProfile({ destino, data, sales, gaps }: PartnersProfileProps) {
+export function PartnersProfile({ destino, data, sales, gaps, cats }: PartnersProfileProps) {
   const vencidas = data.filter(r => r.dias_campo > 90);
   const alertas = data.filter(r => r.dias_campo >= 75 && r.dias_campo <= 90);
   const diasMed = data.length
     ? Math.round(data.reduce((s, r) => s + r.dias_campo, 0) / data.length)
     : 0;
 
-  const coverage = CC_CATS.map(cat => ({
+  const coverage = cats.map(cat => ({
     label: cat.label,
     count: data.filter(cat.check).length,
   }));
@@ -80,7 +82,7 @@ export function PartnersProfile({ destino, data, sales, gaps }: PartnersProfileP
           <ProfileKpi label="Em Campo" value={String(data.length)} />
           <ProfileKpi
             label={`CC Cobertos`}
-            value={`${ccHas}/${CC_CATS.length}`}
+            value={`${ccHas}/${cats.length}`}
             valueClass={ccCor(ccHas)}
           />
           <ProfileKpi
@@ -97,7 +99,7 @@ export function PartnersProfile({ destino, data, sales, gaps }: PartnersProfileP
 
         {/* Covered categories — compact pills */}
         <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-2">
-          ★ Carros Chefe — {ccHas}/{CC_CATS.length} cobertos
+          ★ Carros Chefe — {ccHas}/{cats.length} cobertos
         </div>
         <div className="flex flex-wrap gap-1.5 mb-3">
           {coverage.filter(c => c.count > 0).map(c => (

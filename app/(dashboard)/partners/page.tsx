@@ -14,6 +14,7 @@ export default function PartnersPage() {
     isLoading,
     isError,
     isFetching,
+    cats,
     partnerList,
     kpis,
     matrix,
@@ -94,6 +95,7 @@ export default function PartnersPage() {
           data={partnerData}
           sales={partnerSales}
           gaps={gaps.filter(g => g.partnersMissing.includes(activePartner))}
+          cats={cats}
         />
       )}
     </div>

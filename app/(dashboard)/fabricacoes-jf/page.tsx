@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Archive, Hammer, ShoppingCart, Receipt, TrendingUp, Package, RefreshCw, TableProperties, BarChart3 } from 'lucide-react';
 import { useJfDashboard } from '@/hooks/use-jf-dashboard';
+import { useCarrosChefe } from '@/hooks/use-carros-chefe';
 import { FabKpiCard } from '@/components/fabricacoes-jf/fab-kpi-card';
 import { FabFabricacaoTab } from '@/components/fabricacoes-jf/fab-fabricacao-tab';
 import { FabSubtipoTable } from '@/components/fabricacoes-jf/fab-subtipo-table';
@@ -23,6 +24,7 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
 
 export default function FabricacoesJFPage() {
   const { data, isLoading, isError, refetch, isFetching, dataUpdatedAt } = useJfDashboard();
+  const { isCarroChefe } = useCarrosChefe();
   const [activeTab, setActiveTab] = useState<Tab>('estoque');
 
   const lastUpdate = dataUpdatedAt
@@ -107,7 +109,7 @@ export default function FabricacoesJFPage() {
           )}
 
           {activeTab === 'controle' && (
-            <FabSubtipoTable data={data.estoqueCategoria} />
+            <FabSubtipoTable data={data.estoqueCategoria} isCarroChefe={isCarroChefe} />
           )}
         </>
       )}

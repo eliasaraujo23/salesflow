@@ -10,6 +10,7 @@ import {
   type PartnerConsignment,
   type JmStockItem,
 } from '@/lib/actions/fetch-partners';
+import { useCarrosChefe, type CatDefDynamic } from '@/hooks/use-carros-chefe';
 
 const EXCLUDED = new Set([
   'LUCIMARY', 'HELTON', 'EDUARDO', 'THAÍS', 'THAIS',
@@ -42,24 +43,7 @@ function normalizeJmItem(j: JmStockItem): PartnerConsignment {
   };
 }
 
-export interface CatDef {
-  label: string;
-  check: (r: PartnerConsignment) => boolean;
-}
-
-export const CC_CATS: CatDef[] = [
-  { label: 'Anel Solitário',      check: r => up(r.subtipo) === 'SOLITÁRIO'    && up(r.produto).includes('ANEL') },
-  { label: 'Brinco Solitário',    check: r => up(r.subtipo) === 'SOLITÁRIO'    && up(r.produto).includes('BRINCO') },
-  { label: 'Ponto de Luz',        check: r => up(r.subtipo) === 'PONTO DE LUZ' || up(r.produto).includes('PONTO DE LUZ') },
-  { label: 'Meia Aliança',        check: r => up(r.subtipo) === 'MEIA ALIANÇA' },
-  { label: 'Colar Riviera',       check: r => up(r.subtipo) === 'RIVIERA'      && up(r.produto).includes('COLAR') },
-  { label: 'Pulseira Riviera',    check: r => up(r.subtipo) === 'RIVIERA'      && up(r.produto).includes('PULSEIRA') },
-  { label: 'Aliança Riviera',     check: r => up(r.produto).includes('ALIANÇA RIVIERA') },
-  { label: 'Anel Maracanã',       check: r => up(r.subtipo) === 'MARACANÃ'     && up(r.produto).includes('ANEL') },
-  { label: 'Colar Maracanã',      check: r => up(r.subtipo) === 'MARACANÃ'     && up(r.produto).includes('COLAR') },
-  { label: 'Brinco Maracanã',     check: r => up(r.subtipo) === 'MARACANÃ'     && up(r.produto).includes('BRINCO') },
-  { label: 'Pingente P/ Riviera', check: r => up(r.subtipo) === 'PARA RIVIERA' && up(r.produto).includes('PINGENTE') },
-];
+export type { CatDefDynamic };
 
 export interface MatrixVariant {
   sub: string;
@@ -101,6 +85,7 @@ export interface GapInfo {
 
 export function usePartnersPage() {
   const [activePartner, setActivePartner] = useState<string | null>(null);
+  const { cats } = useCarrosChefe();
 
   const consignmentQuery = useQuery({
     queryKey: ['partner-consignments'],
@@ -173,7 +158,7 @@ export function usePartnersPage() {
   }, [data]);
 
   const matrix = useMemo((): MatrixRow[] => {
-    return CC_CATS.map((cat, catIdx) => {
+    return cats.map((cat, catIdx) => {
       const pieces = data.filter(cat.check);
       const counts = partnerList.map(p => pieces.filter(r => r.destino === p).length);
 
@@ -200,10 +185,10 @@ export function usePartnersPage() {
       const variants = [...varMap.values()].sort((a, b) => b.total - a.total);
       return { catIdx, label: cat.label, counts, total: pieces.length, variants };
     });
-  }, [data, partnerList]);
+  }, [data, partnerList, cats]);
 
   const gaps = useMemo((): GapInfo[] => {
-    return CC_CATS.map(cat => {
+    return cats.map(cat => {
       const partnersMissing = partnerList.filter(p =>
         !data.some(r => r.destino === p && cat.check(r))
       );
@@ -231,7 +216,7 @@ export function usePartnersPage() {
 
       return { catLabel: cat.label, partnersMissing, stockItems, redistFrom };
     }).filter(g => g.partnersMissing.length > 0);
-  }, [data, partnerList, jmInStock]);
+  }, [data, partnerList, jmInStock, cats]);
 
   const partnerData = useMemo(
     () => (activePartner ? data.filter(r => r.destino === activePartner) : []),
@@ -253,6 +238,7 @@ export function usePartnersPage() {
     isLoading: consignmentQuery.isLoading,
     isError: consignmentQuery.isError,
     isFetching: consignmentQuery.isFetching || salesQuery.isFetching || jmStockQuery.isFetching,
+    cats,
     partnerList,
     kpis,
     matrix,
