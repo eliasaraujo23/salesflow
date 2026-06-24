@@ -65,8 +65,7 @@ function printBagLabel(bag: PhotoBag, code: string) {
     ? `<tr><td class="lbl">SECOND</td><td class="val">${bag.qtd_second} pe&ccedil;as</td></tr>` : '';
   const rowScrap = bag.qtd_scrap > 0
     ? `<tr><td class="lbl">SCRAP</td><td class="val">${bag.qtd_scrap} pe&ccedil;as</td></tr>` : '';
-  const obsRow   = bag.observacao
-    ? `<tr><td class="lbl">OBS.</td><td class="val obs">${bag.observacao}</td></tr>` : '';
+  const obsRow = `<tr><td class="lbl">OBS.</td><td class="val obs">${bag.observacao ?? '—'}</td></tr>`;
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -111,12 +110,19 @@ function printBagLabel(bag: PhotoBag, code: string) {
 </body>
 </html>`;
 
-  const win = window.open('', '_blank', 'width=500,height=680,toolbar=0,menubar=0');
-  if (!win) { toast.error('Permita pop-ups para imprimir'); return; }
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => { win.print(); }, 300);
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:0;';
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+  if (!doc) { document.body.removeChild(iframe); toast.error('Erro ao preparar impressão'); return; }
+  doc.open();
+  doc.write(html);
+  doc.close();
+  setTimeout(() => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    setTimeout(() => document.body.removeChild(iframe), 1000);
+  }, 300);
 }
 
 interface Row extends PhotoBag {
