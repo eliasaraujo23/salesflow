@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { type LucideIcon } from 'lucide-react';
@@ -49,7 +49,7 @@ export function KPICard({ icon: Icon, label, value, subtext, variant = 'blue', c
   const v = VARIANTS[variant];
 
   return (
-    <div className={`relative overflow-hidden rounded-xl border border-zinc-200 dark:border-white/[0.06] bg-white dark:bg-zinc-900/60 hover:shadow-lg dark:hover:shadow-black/20 hover:border-zinc-300 dark:hover:border-white/[0.10] transition-all duration-200 ${className}`}>
+    <div className={`relative overflow-hidden rounded-xl border border-zinc-200 dark:border-white/[0.13] bg-white dark:bg-zinc-900/60 hover:shadow-lg dark:hover:shadow-black/20 hover:border-zinc-300 dark:hover:border-white/[0.10] transition-all duration-200 ${className}`}>
       {/* Top accent */}
       <div className={`absolute top-0 inset-x-0 h-[3px] ${v.strip}`} />
 

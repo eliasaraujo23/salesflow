@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { Hammer } from 'lucide-react';
@@ -19,11 +19,11 @@ export function JmFabricacaoCard({ pecas, expanded }: JmFabricacaoCardProps) {
   const totalPeso = pecas.reduce((s, p) => s + p.peso, 0);
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-5">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-5">
       <div className="flex items-center gap-2 mb-4">
         <Hammer size={18} className="text-amber-500" />
         <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Em Fabricação</h3>
-        <span className="ml-auto text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-950 px-2 py-0.5 rounded-full border border-zinc-200 dark:border-white/[0.06]">
+        <span className="ml-auto text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-950 px-2 py-0.5 rounded-full border border-zinc-200 dark:border-white/[0.13]">
           {pecas.length}
         </span>
       </div>
@@ -39,7 +39,7 @@ export function JmFabricacaoCard({ pecas, expanded }: JmFabricacaoCardProps) {
       ) : (
         <div className={`space-y-2 overflow-y-auto pr-1 ${expanded ? '' : 'max-h-96'}`}>
           {pecas.map((p, i) => (
-            <div key={i} className="flex items-center justify-between gap-3 p-2.5 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-white/[0.06]">
+            <div key={i} className="flex items-center justify-between gap-3 p-2.5 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-white/[0.13]">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400">{p.referencia}</span>

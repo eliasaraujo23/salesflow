@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useMemo } from 'react';
 import { CheckCircle, Clock, AlertTriangle, Users, ClipboardList, TrendingUp } from 'lucide-react';
@@ -87,7 +87,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-5">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-5">
           <h3 className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.5px] mb-4">
             Tarefas por Status
           </h3>
@@ -125,7 +125,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-5">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-5">
           <h3 className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.5px] mb-4">
             Tarefas por Prioridade
           </h3>
@@ -148,7 +148,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-5">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-5">
         <h3 className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.5px] mb-4">
           Ranking da Equipe
         </h3>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useMemo } from 'react';
 import {
@@ -286,9 +286,9 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
   ];
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl overflow-hidden">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl overflow-hidden">
       {/* Card header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-white/[0.06]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-white/[0.13]">
         <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">Estoque Disponível</span>
         <div className="flex items-center gap-3">
           <span className="text-xs bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full font-semibold">
@@ -297,7 +297,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
           <button
             onClick={() => downloadCSV(filtered)}
             disabled={filtered.length === 0}
-            className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded hover:border-emerald-500 hover:text-emerald-600 transition-colors disabled:opacity-40"
+            className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.13] rounded hover:border-emerald-500 hover:text-emerald-600 transition-colors disabled:opacity-40"
           >
             <Download size={12} /> Exportar
           </button>
@@ -312,7 +312,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
         style={{ maxHeight: '158px', minWidth: 'max-content' }}
       >
         {/* Search column */}
-        <div className="flex-none flex flex-col justify-center gap-1.5 px-3 py-2 border-r border-zinc-200 dark:border-white/[0.06]" style={{ minWidth: '145px', maxWidth: '175px' }}>
+        <div className="flex-none flex flex-col justify-center gap-1.5 px-3 py-2 border-r border-zinc-200 dark:border-white/[0.13]" style={{ minWidth: '145px', maxWidth: '175px' }}>
           <span className="text-[9px] font-black uppercase tracking-[0.9px] text-zinc-400 dark:text-zinc-500">Buscar</span>
           <input
             type="text"
@@ -325,8 +325,8 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
 
         {/* Filter columns */}
         {dimDefs.filter(d => d.avail.length > 0).map(d => (
-          <div key={d.label} className="flex flex-col overflow-hidden border-r border-zinc-200 dark:border-white/[0.06]" style={{ flex: '1 1 0', minWidth: '86px' }}>
-            <span className="block px-2 py-1 text-[9px] font-black uppercase tracking-[0.9px] text-zinc-400 dark:text-zinc-500 border-b border-zinc-200 dark:border-white/[0.06] flex-shrink-0 bg-zinc-100/50 dark:bg-zinc-800/80">
+          <div key={d.label} className="flex flex-col overflow-hidden border-r border-zinc-200 dark:border-white/[0.13]" style={{ flex: '1 1 0', minWidth: '86px' }}>
+            <span className="block px-2 py-1 text-[9px] font-black uppercase tracking-[0.9px] text-zinc-400 dark:text-zinc-500 border-b border-zinc-200 dark:border-white/[0.13] flex-shrink-0 bg-zinc-100/50 dark:bg-zinc-800/80">
               {d.label}
             </span>
             <div className="overflow-y-auto flex-1 py-0.5">
@@ -361,7 +361,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
           {hasFilters && (
             <button
               onClick={clearAll}
-              className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded hover:border-red-400 hover:text-red-500 transition-colors"
+              className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.13] rounded hover:border-red-400 hover:text-red-500 transition-colors"
             >
               <X size={10} /> Limpar
             </button>
@@ -375,9 +375,9 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
         <table className="w-full" style={{ minWidth: '1300px', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             {table.getHeaderGroups().map(hg => (
-              <tr key={hg.id} className="border-b-2 border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/60">
+              <tr key={hg.id} className="border-b-2 border-zinc-200 dark:border-white/[0.13] bg-zinc-50 dark:bg-zinc-800/60">
                 {hg.headers.map(h => (
-                  <th key={h.id} className="px-3.5 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.5px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap border-r border-zinc-200 dark:border-white/[0.06] last:border-r-0">
+                  <th key={h.id} className="px-3.5 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.5px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap border-r border-zinc-200 dark:border-white/[0.13] last:border-r-0">
                     {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
                   </th>
                 ))}

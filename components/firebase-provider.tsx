@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { 
   onAuthStateChanged, 
   signInWithCustomToken, 
@@ -75,6 +75,8 @@ interface FirebaseContextType {
 
 const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
 
+const SESSION_MAX_MS = 12 * 60 * 60 * 1000;
+
 export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,14 +84,38 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [metals, setMetals] = useState<Metal[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [deleteRequests, setDeleteRequests] = useState<DeleteRequest[]>([]);
+  const sessionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const forceExpire = () => {
+    signOut(auth).catch(() => {});
+    setCurrentUser(null);
+    sessionStorage.removeItem('sf_user');
+    localStorage.removeItem('sf_login_time');
+    toast.info('Sessão expirada. Faça login novamente.');
+  };
+
+  const scheduleExpiry = (loginTime: number) => {
+    if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
+    const remaining = SESSION_MAX_MS - (Date.now() - loginTime);
+    if (remaining <= 0) { forceExpire(); return; }
+    sessionTimerRef.current = setTimeout(forceExpire, remaining);
+  };
 
   // Restore user session from sessionStorage on load
   useEffect(() => {
     const savedUser = sessionStorage.getItem('sf_user');
-    if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
+    const loginTime = parseInt(localStorage.getItem('sf_login_time') || '0', 10);
+    if (savedUser && loginTime) {
+      if (Date.now() - loginTime >= SESSION_MAX_MS) {
+        sessionStorage.removeItem('sf_user');
+        localStorage.removeItem('sf_login_time');
+      } else {
+        setCurrentUser(JSON.parse(savedUser));
+        scheduleExpiry(loginTime);
+      }
     }
     setLoading(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Listen for database collections when user is logged in
@@ -207,10 +233,13 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
     setCurrentUser(user);
     sessionStorage.setItem('sf_user', JSON.stringify(user));
-    localStorage.setItem('sf_login_time', Date.now().toString());
+    const now = Date.now();
+    localStorage.setItem('sf_login_time', now.toString());
+    scheduleExpiry(now);
   };
 
   const logOut = async () => {
+    if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
     await signOut(auth);
     setCurrentUser(null);
     sessionStorage.removeItem('sf_user');

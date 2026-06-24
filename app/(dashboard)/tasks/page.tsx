@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { KPICard } from '@/components/kpi-card';
@@ -46,7 +46,7 @@ export default function TasksPage() {
 
   const pendingDeleteIds = new Set(deleteRequests.map((r) => String(r.taskId)));
 
-  const panelCls = 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4 shadow-sm';
+  const panelCls = 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-4 shadow-sm';
   const selectCls = 'w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-700 dark:text-zinc-300 text-[13px] focus:border-indigo-400 dark:focus:border-indigo-500 outline-none transition-colors';
   const filterLabelCls = 'block text-[10px] font-bold text-zinc-400 dark:text-zinc-500 mb-2 uppercase tracking-[0.6px]';
 
@@ -190,7 +190,7 @@ export default function TasksPage() {
       )}
 
       {/* Task list */}
-      <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-white/[0.06] rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-white/[0.13] rounded-xl overflow-hidden shadow-sm">
         {filteredTasks.length > 0 ? (
           <div className="divide-y divide-zinc-100 dark:divide-white/[0.04]">
             {filteredTasks.map((task) => (

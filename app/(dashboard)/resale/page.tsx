@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw } from 'lucide-react';
@@ -33,7 +33,7 @@ const ticketMedio = (fat: number, qtd: number) =>
 
 function KPIBox({ label, value, valueClass = '', flash = false }: { label: string; value: string; valueClass?: string; flash?: boolean }) {
   return (
-    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg px-3 py-2 flex flex-col gap-0.5 ${flash ? 'animate-sale-kpi' : ''}`}>
+    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-lg px-3 py-2 flex flex-col gap-0.5 ${flash ? 'animate-sale-kpi' : ''}`}>
       <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{label}</span>
       <span className={`text-base font-bold truncate ${valueClass || 'text-zinc-900 dark:text-zinc-100'}`}>{value}</span>
     </div>
@@ -47,7 +47,7 @@ function SectionCard({ title, children, className = '', contentClass }: {
   contentClass?: string;
 }) {
   return (
-    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4 ${className}`}>
+    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-4 ${className}`}>
       <div className="text-[12px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-3 shrink-0">{title}</div>
       {contentClass ? <div className={contentClass}>{children}</div> : children}
     </div>
@@ -103,7 +103,7 @@ export default function ResalePage() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="shrink-0 flex items-center gap-1.5 px-3 h-8 text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50"
+            className="shrink-0 flex items-center gap-1.5 px-3 h-8 text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50"
           >
             <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
             <span className="hidden sm:inline">Atualizar</span>

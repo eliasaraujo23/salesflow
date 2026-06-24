@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
@@ -60,7 +60,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   return (
     <aside
       className={[
-        'flex flex-col overflow-hidden bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-white/[0.06]',
+        'flex flex-col overflow-hidden bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-white/[0.13]',
         widthClass,
         // Mobile: fixed overlay, slides in from left (z-50 sits above the backdrop z-40)
         'fixed inset-y-0 left-0 z-50 transition-transform duration-200',
@@ -71,7 +71,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     >
       {/* Logo header — collapsed (desktop only) */}
       {collapsed && (
-        <div className="h-topbar hidden md:flex items-center justify-center border-b border-zinc-200 dark:border-white/[0.06] shrink-0">
+        <div className="h-topbar hidden md:flex items-center justify-center border-b border-zinc-200 dark:border-white/[0.13] shrink-0">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-[15px] shadow-md shadow-indigo-500/25">
             S
           </div>
@@ -80,7 +80,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
       {/* Logo header — expanded */}
       {!collapsed && (
-        <div className="h-topbar px-3.5 flex items-center gap-3 border-b border-zinc-200 dark:border-white/[0.06] shrink-0">
+        <div className="h-topbar px-3.5 flex items-center gap-3 border-b border-zinc-200 dark:border-white/[0.13] shrink-0">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-[15px] shadow-md shadow-indigo-500/25 shrink-0">
             S
           </div>
@@ -163,7 +163,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       </nav>
 
       {/* User */}
-      <div className="border-t border-zinc-200 dark:border-white/[0.06] p-1.5">
+      <div className="border-t border-zinc-200 dark:border-white/[0.13] p-1.5">
         <div className="relative">
           <button
             onClick={() => setProfileMenuOpen(!profileMenuOpen)}
@@ -199,7 +199,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                 <Lock size={13} />
                 Alterar Senha
               </button>
-              <div className="border-t border-zinc-100 dark:border-white/[0.06]" />
+              <div className="border-t border-zinc-100 dark:border-white/[0.13]" />
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors text-left"

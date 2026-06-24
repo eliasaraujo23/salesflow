@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useMemo } from 'react';
 import {
@@ -245,7 +245,7 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-4">
         <div className="flex items-start gap-4 overflow-x-auto pb-1">
           <div className="flex flex-col gap-1.5 shrink-0">
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Buscar</span>
@@ -292,7 +292,7 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
                   setTipos([]); setProdutos([]); setSubtipos([]);
                   setDestManut([]); setDestinos([]); setPedras([]); setLapidacoes([]); setBusca('');
                 }}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-red-400 hover:text-red-500 transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.13] rounded-lg hover:border-red-400 hover:text-red-500 transition-colors"
               >
                 <X size={11} /> Limpar
               </button>
@@ -300,7 +300,7 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
             <button
               onClick={() => downloadCSV(filtered)}
               disabled={filtered.length === 0}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded-lg hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors disabled:opacity-40"
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.13] rounded-lg hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors disabled:opacity-40"
             >
               <Download size={13} /> CSV
             </button>
@@ -308,12 +308,12 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl overflow-hidden">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm data-table" style={{ minWidth: '1100px' }}>
             <thead>
               {table.getHeaderGroups().map(hg => (
-                <tr key={hg.id} className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/60">
+                <tr key={hg.id} className="border-b border-zinc-200 dark:border-white/[0.13] bg-zinc-50 dark:bg-zinc-800/60">
                   {hg.headers.map(h => {
                     const canSort = h.column.getCanSort();
                     const sorted = h.column.getIsSorted();

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { Clock } from 'lucide-react';
@@ -44,7 +44,7 @@ export function KanbanTaskCard({ task, isDragging, person, onDragStart, onDragEn
       onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; onDragStart(task); }}
       onDragEnd={onDragEnd}
       onClick={() => onEdit(task)}
-      className={`border-l-4 ${strip} bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-r-lg p-3 select-none transition-all ${
+      className={`border-l-4 ${strip} bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-r-lg p-3 select-none transition-all ${
         isDragging
           ? 'opacity-30 scale-95 cursor-grabbing'
           : 'cursor-grab hover:border-indigo-500/40 hover:-translate-y-0.5 hover:shadow-md dark:hover:shadow-black/30 active:cursor-grabbing active:shadow-lg active:scale-[1.02]'

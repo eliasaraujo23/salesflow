@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -76,7 +76,7 @@ export function MetalsEntryForm() {
   };
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-5">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-5">
       <div className="flex gap-2 mb-5">
         {TABS.map(({ key, label, Icon }) => (
           <button

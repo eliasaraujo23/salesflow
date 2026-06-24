@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { type ChannelSegment } from '@/lib/actions/fetch-resale';
@@ -38,7 +38,7 @@ export function ResaleScrapChannels({ scrapB2b, scrapB2c }: ResaleScrapChannelsP
   return (
     <div className="space-y-2 overflow-x-hidden">
       {/* Resumo total */}
-      <div className="grid grid-cols-2 gap-x-3 gap-y-1 pb-2 border-b border-zinc-100 dark:border-white/[0.06]">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 pb-2 border-b border-zinc-100 dark:border-white/[0.13]">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Faturamento</div>
           <div className="text-[15px] font-bold text-zinc-900 dark:text-zinc-100">{fmtK(total)}</div>

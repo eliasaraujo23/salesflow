@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { Store } from 'lucide-react';
@@ -61,7 +61,7 @@ export function PartnersProfile({ destino, data, sales }: PartnersProfileProps) 
   return (
     <div className="space-y-4">
       {/* Partner header */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-4">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
             <Store size={16} className="text-indigo-600 dark:text-indigo-400" />
@@ -117,7 +117,7 @@ export function PartnersProfile({ destino, data, sales }: PartnersProfileProps) 
 
       {/* Type breakdown + Sales history */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-4">
           <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">
             Em Campo por Tipo
           </div>
@@ -135,7 +135,7 @@ export function PartnersProfile({ destino, data, sales }: PartnersProfileProps) 
           )}
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-4">
           <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">
             Histórico de Vendas
           </div>
@@ -188,7 +188,7 @@ export function PartnersProfile({ destino, data, sales }: PartnersProfileProps) 
 
       {/* Expired items */}
       {expired.length > 0 && (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl overflow-hidden">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl overflow-hidden">
           <div className={`px-4 py-2.5 border-b border-zinc-100 dark:border-white/[0.04] ${
             vencidas.length > 0 ? 'bg-red-500/10' : 'bg-amber-500/10'
           }`}>
@@ -244,7 +244,7 @@ interface ProfileKpiProps {
 
 function ProfileKpi({ label, value, valueClass = 'text-zinc-900 dark:text-zinc-100' }: ProfileKpiProps) {
   return (
-    <div className="bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-white/[0.06] rounded-lg p-3 text-center">
+    <div className="bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-white/[0.13] rounded-lg p-3 text-center">
       <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1">
         {label}
       </div>

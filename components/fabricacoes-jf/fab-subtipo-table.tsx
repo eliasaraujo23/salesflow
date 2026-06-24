@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useMemo } from 'react';
 import {
@@ -212,7 +212,7 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
           <button
             onClick={() => downloadCSV(filtered)}
             disabled={filtered.length === 0}
-            className="flex items-center gap-1 px-2.5 py-1 text-xs text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded hover:border-emerald-500 hover:text-emerald-600 transition-colors disabled:opacity-40"
+            className="flex items-center gap-1 px-2.5 py-1 text-xs text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.13] rounded hover:border-emerald-500 hover:text-emerald-600 transition-colors disabled:opacity-40"
           >
             <Download size={12} /> Exportar
           </button>
@@ -220,7 +220,7 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
       </CardHeader>
 
       {/* Search row */}
-      <div className="px-4 py-2 border-b border-zinc-200 dark:border-white/[0.06]">
+      <div className="px-4 py-2 border-b border-zinc-200 dark:border-white/[0.13]">
         <input
           type="text"
           placeholder="Buscar subtipo, produto ou pedra…"
@@ -231,7 +231,7 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
       </div>
 
       {/* Tabs */}
-      <div className="flex px-[18px] border-b border-zinc-200 dark:border-white/[0.06]">
+      <div className="flex px-[18px] border-b border-zinc-200 dark:border-white/[0.13]">
         {TABS.map(t => (
           <button
             key={t.id}
@@ -251,12 +251,12 @@ export function FabSubtipoTable({ data }: FabSubtipoTableProps) {
         <table className="w-full" style={{ borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             {table.getHeaderGroups().map(hg => (
-              <tr key={hg.id} className="border-b-2 border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/60">
+              <tr key={hg.id} className="border-b-2 border-zinc-200 dark:border-white/[0.13] bg-zinc-50 dark:bg-zinc-800/60">
                 {hg.headers.map(h => (
                   <th
                     key={h.id}
                     onClick={h.column.getToggleSortingHandler()}
-                    className={`px-3.5 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.5px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap border-r border-zinc-200 dark:border-white/[0.06] last:border-r-0 ${
+                    className={`px-3.5 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.5px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap border-r border-zinc-200 dark:border-white/[0.13] last:border-r-0 ${
                       h.column.getCanSort() ? 'cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 select-none' : ''
                     }`}
                   >

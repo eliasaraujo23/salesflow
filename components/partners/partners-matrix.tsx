@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
@@ -26,7 +26,7 @@ export function PartnersMatrix({ rows, partners }: PartnersMatrixProps) {
   }
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl overflow-hidden">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm data-table">
           <thead>

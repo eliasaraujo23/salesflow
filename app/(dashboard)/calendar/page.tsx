@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { ChevronLeft, ChevronRight, Plus, CalendarDays } from 'lucide-react';
@@ -63,7 +63,7 @@ export default function CalendarPage() {
       {/* Calendar + Day panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 flex-1 min-h-0">
         {/* Grid */}
-        <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4 overflow-auto">
+        <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-4 overflow-auto">
           <CalendarGrid
             year={viewYear}
             month={viewMonth}
@@ -87,7 +87,7 @@ export default function CalendarPage() {
               onEdit={setEditingTask}
             />
           ) : (
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4 flex flex-col items-center justify-center h-full text-center">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-4 flex flex-col items-center justify-center h-full text-center">
               <CalendarDays size={28} className="text-zinc-300 dark:text-zinc-600 mb-3" />
               <p className="text-sm text-zinc-500 dark:text-zinc-400">Clique em um dia para ver as tarefas</p>
             </div>

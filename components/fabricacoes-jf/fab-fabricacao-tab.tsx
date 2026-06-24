@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useMemo } from 'react';
 import {
@@ -238,7 +238,7 @@ export function FabFabricacaoTab({ pecas }: FabFabricacaoTabProps) {
   });
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl overflow-hidden">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl overflow-hidden">
       {/* Filter panel — surface2 background, inside the card */}
       {/* Filter panel — scrolls horizontally on mobile */}
       <div className="overflow-x-auto border-b-2 border-zinc-200 dark:border-white/[0.08]">
@@ -247,7 +247,7 @@ export function FabFabricacaoTab({ pecas }: FabFabricacaoTabProps) {
         style={{ maxHeight: '158px', minWidth: 'max-content' }}
       >
         {/* Search column */}
-        <div className="flex-none flex flex-col justify-center gap-1.5 px-3 py-2 border-r border-zinc-200 dark:border-white/[0.06]" style={{ minWidth: '145px', maxWidth: '175px' }}>
+        <div className="flex-none flex flex-col justify-center gap-1.5 px-3 py-2 border-r border-zinc-200 dark:border-white/[0.13]" style={{ minWidth: '145px', maxWidth: '175px' }}>
           <span className="text-[9px] font-black uppercase tracking-[0.9px] text-zinc-400 dark:text-zinc-500">Buscar</span>
           <input
             type="text"
@@ -260,8 +260,8 @@ export function FabFabricacaoTab({ pecas }: FabFabricacaoTabProps) {
 
         {/* Filter columns */}
         {dimDefs.filter(d => d.avail.length > 0).map(d => (
-          <div key={d.label} className="flex flex-col overflow-hidden border-r border-zinc-200 dark:border-white/[0.06]" style={{ flex: '1 1 0', minWidth: '86px' }}>
-            <span className="block px-2 py-1 text-[9px] font-black uppercase tracking-[0.9px] text-zinc-400 dark:text-zinc-500 border-b border-zinc-200 dark:border-white/[0.06] flex-shrink-0 bg-zinc-100/50 dark:bg-zinc-800/80">
+          <div key={d.label} className="flex flex-col overflow-hidden border-r border-zinc-200 dark:border-white/[0.13]" style={{ flex: '1 1 0', minWidth: '86px' }}>
+            <span className="block px-2 py-1 text-[9px] font-black uppercase tracking-[0.9px] text-zinc-400 dark:text-zinc-500 border-b border-zinc-200 dark:border-white/[0.13] flex-shrink-0 bg-zinc-100/50 dark:bg-zinc-800/80">
               {d.label}
             </span>
             <div className="overflow-y-auto flex-1 py-0.5">
@@ -296,7 +296,7 @@ export function FabFabricacaoTab({ pecas }: FabFabricacaoTabProps) {
           {hasFilters && (
             <button
               onClick={() => { setTipos([]); setProdutos([]); setSubtipos([]); setDestManut([]); setDestinos([]); setPedras([]); setLapidacoes([]); setBusca(''); }}
-              className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded hover:border-red-400 hover:text-red-500 transition-colors"
+              className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.13] rounded hover:border-red-400 hover:text-red-500 transition-colors"
             >
               <X size={10} /> Limpar
             </button>
@@ -304,7 +304,7 @@ export function FabFabricacaoTab({ pecas }: FabFabricacaoTabProps) {
           <button
             onClick={() => downloadCSV(filtered)}
             disabled={filtered.length === 0}
-            className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] rounded hover:border-emerald-500 hover:text-emerald-600 transition-colors disabled:opacity-40"
+            className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.13] rounded hover:border-emerald-500 hover:text-emerald-600 transition-colors disabled:opacity-40"
           >
             <Download size={12} /> CSV
           </button>
@@ -317,7 +317,7 @@ export function FabFabricacaoTab({ pecas }: FabFabricacaoTabProps) {
         <table className="w-full" style={{ minWidth: '1000px', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             {table.getHeaderGroups().map(hg => (
-              <tr key={hg.id} className="border-b-2 border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/60">
+              <tr key={hg.id} className="border-b-2 border-zinc-200 dark:border-white/[0.13] bg-zinc-50 dark:bg-zinc-800/60">
                 {hg.headers.map(h => {
                   const canSort = h.column.getCanSort();
                   const sorted = h.column.getIsSorted();
@@ -325,7 +325,7 @@ export function FabFabricacaoTab({ pecas }: FabFabricacaoTabProps) {
                     <th
                       key={h.id}
                       onClick={canSort ? h.column.getToggleSortingHandler() : undefined}
-                      className={`px-3.5 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.5px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap border-r border-zinc-200 dark:border-white/[0.06] last:border-r-0 ${canSort ? 'cursor-pointer select-none hover:text-indigo-600 dark:hover:text-indigo-400' : ''}`}
+                      className={`px-3.5 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.5px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap border-r border-zinc-200 dark:border-white/[0.13] last:border-r-0 ${canSort ? 'cursor-pointer select-none hover:text-indigo-600 dark:hover:text-indigo-400' : ''}`}
                     >
                       <div className="flex items-center justify-center gap-1">
                         {flexRender(h.column.columnDef.header, h.getContext())}

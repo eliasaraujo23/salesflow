@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useMemo } from 'react';
 import {
@@ -231,7 +231,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
             className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
               activeFilter === s.key
                 ? 'bg-indigo-600 text-white'
-                : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+                : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
             }`}
           >
             {s.label}
@@ -239,11 +239,11 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-white/[0.06]">
+      <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-white/[0.13]">
         <table className="w-full text-sm data-table">
           <thead>
             {table.getHeaderGroups().map((hg) => (
-              <tr key={hg.id} className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800">
+              <tr key={hg.id} className="border-b border-zinc-200 dark:border-white/[0.13] bg-zinc-50 dark:bg-zinc-800">
                 {hg.headers.map((h) => (
                   <th key={h.id} className="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                     {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
@@ -256,7 +256,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="border-b border-zinc-200 dark:border-white/[0.06] hover:bg-zinc-50 dark:hover:bg-zinc-900/60 transition-colors"
+                className="border-b border-zinc-200 dark:border-white/[0.13] hover:bg-zinc-50 dark:hover:bg-zinc-900/60 transition-colors"
               >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-4 py-3">

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
@@ -44,7 +44,7 @@ export function Topbar({ title, subtitle, onSearch, onMobileMenu }: TopbarProps)
   };
 
   return (
-    <header className="h-topbar bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] px-3 md:px-6 flex items-center justify-between shrink-0 gap-2">
+    <header className="h-topbar bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.13] px-3 md:px-6 flex items-center justify-between shrink-0 gap-2">
       {/* Left: hamburger (mobile) + page title */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <button
@@ -70,7 +70,7 @@ export function Topbar({ title, subtitle, onSearch, onMobileMenu }: TopbarProps)
 
       {/* Right: search + actions */}
       <div className="flex items-center gap-1">
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-white/[0.06] border border-zinc-200 dark:border-white/[0.06] focus-within:border-indigo-400 dark:focus-within:border-indigo-500 transition-colors">
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-white/[0.06] border border-zinc-200 dark:border-white/[0.13] focus-within:border-indigo-400 dark:focus-within:border-indigo-500 transition-colors">
           <Search size={13} className="text-zinc-400 shrink-0" />
           <input
             type="text"

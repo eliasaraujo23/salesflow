@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useMemo } from 'react';
 import {
@@ -80,7 +80,7 @@ export function MetalsChart({ metals }: MetalsChartProps) {
   }
 
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-5 flex flex-col">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-5 flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
           Saldo acumulado — últimos 14 dias

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { Pencil, X, Clock } from 'lucide-react';
@@ -45,7 +45,7 @@ interface Props {
 
 export function CalendarDayPanel({ day, month, year, tasks, personMap, onClose, onToggleDone, onEdit }: Props) {
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl p-4 h-full">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-4 h-full">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
           {day} de {MONTHS[month]} de {year}
@@ -75,7 +75,7 @@ export function CalendarDayPanel({ day, month, year, tasks, personMap, onClose, 
             return (
               <div
                 key={task.id}
-                className={`border-l-4 ${strip} bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-white/[0.06] rounded-r-lg p-3`}
+                className={`border-l-4 ${strip} bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-white/[0.13] rounded-r-lg p-3`}
               >
                 <div className="flex items-start gap-2">
                   {/* Checkbox */}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { X, Trash2, Send } from 'lucide-react';
@@ -98,8 +98,8 @@ export function TaskFormModal({
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-white/[0.06] w-full max-w-md">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 dark:border-white/[0.06]">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-white/[0.13] w-full max-w-md">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 dark:border-white/[0.13]">
           <h2 className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-100">
             {isNew ? 'Nova Tarefa' : 'Editar Tarefa'}
           </h2>

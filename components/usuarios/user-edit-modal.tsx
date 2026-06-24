@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -198,7 +198,7 @@ export function UserEditModal({ open, onClose, user }: UserEditModalProps) {
                     className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-colors select-none text-sm ${
                       checked
                         ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-700 dark:text-indigo-300'
-                        : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-white/[0.06] text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-white/[0.12]'
+                        : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-white/[0.13] text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-white/[0.12]'
                     }`}
                   >
                     <input
@@ -216,7 +216,7 @@ export function UserEditModal({ open, onClose, user }: UserEditModalProps) {
 
           {/* Firebase note for new users */}
           {!isEditing && (
-            <p className="text-xs text-zinc-400 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/[0.06] rounded-lg px-3 py-2">
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/[0.13] rounded-lg px-3 py-2">
               A senha deve ser definida no Firebase Console → Authentication após criar o usuário.
             </p>
           )}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 
@@ -14,7 +14,7 @@ interface PartnersKpisProps {
 
 export function PartnersKpis({ partners, pecasEmCampo, vencidas, valorEmCampo }: PartnersKpisProps) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-zinc-200 dark:bg-white/[0.06] rounded-xl overflow-hidden border border-zinc-200 dark:border-white/[0.06]">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-zinc-200 dark:bg-white/[0.06] rounded-xl overflow-hidden border border-zinc-200 dark:border-white/[0.13]">
       <KpiCell label="Parceiros" value={String(partners)} />
       <KpiCell label="Peças em Campo" value={String(pecasEmCampo)} />
       <KpiCell

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
 import { CalendarIcon, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -115,7 +115,7 @@ export function ResaleDatePicker({ from, to, onApply }: Props) {
       {open && (
         <div className="absolute top-full left-0 mt-1.5 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl shadow-xl shadow-black/10 dark:shadow-black/40">
           {/* Manual inputs */}
-          <div className="flex items-center gap-4 px-4 pt-3 pb-2.5 border-b border-zinc-100 dark:border-white/[0.06]">
+          <div className="flex items-center gap-4 px-4 pt-3 pb-2.5 border-b border-zinc-100 dark:border-white/[0.13]">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Início:</span>
               <input value={startText} onChange={e => setStartText(e.target.value)} onBlur={handleStartBlur} placeholder="dd/mm/aaaa" className={inputCls} />

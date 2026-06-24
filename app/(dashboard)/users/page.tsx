@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { Users, ShieldCheck, User, UserPlus, Pencil } from 'lucide-react';
@@ -84,7 +84,7 @@ export default function UsersPage() {
               } ${
                 isCurrentUser
                   ? 'border-indigo-500/40'
-                  : 'border-zinc-200 dark:border-white/[0.06] hover:border-zinc-300 dark:hover:border-white/[0.10]'
+                  : 'border-zinc-200 dark:border-white/[0.13] hover:border-zinc-300 dark:hover:border-white/[0.10]'
               }`}
             >
               <div className="flex items-start gap-3">

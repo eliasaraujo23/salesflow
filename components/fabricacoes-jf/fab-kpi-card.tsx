@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { type LucideIcon } from 'lucide-react';
@@ -22,7 +22,7 @@ const VARIANTS = {
 export function FabKpiCard({ icon: Icon, label, value, subtext, variant = 'blue' }: FabKpiCardProps) {
   const v = VARIANTS[variant];
   return (
-    <div className="flex items-start gap-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.06] rounded-xl px-4 py-4 min-w-0 hover:border-zinc-300 dark:hover:border-white/10 hover:shadow-md transition-all duration-200">
+    <div className="flex items-start gap-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl px-4 py-4 min-w-0 hover:border-zinc-300 dark:hover:border-white/10 hover:shadow-md transition-all duration-200">
       <div className={`w-[38px] h-[38px] flex-shrink-0 flex items-center justify-center rounded-lg ${v.iconBg} ${v.iconColor}`}>
         <Icon size={17} strokeWidth={2} />
       </div>
