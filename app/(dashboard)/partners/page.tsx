@@ -93,6 +93,7 @@ export default function PartnersPage() {
           destino={activePartner}
           data={partnerData}
           sales={partnerSales}
+          gaps={gaps.filter(g => g.partnersMissing.includes(activePartner))}
         />
       )}
     </div>
