@@ -121,6 +121,7 @@
 @layer base {
   * { @apply border-border; }
   body { @apply bg-background text-foreground; }
+  button:not(:disabled) { cursor: pointer; }
   html {
     font-family: 'DM Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
