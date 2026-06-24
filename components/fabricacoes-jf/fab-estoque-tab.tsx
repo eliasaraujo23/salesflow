@@ -117,7 +117,7 @@ export function FabEstoqueTab() {
   }
 
   const SortBtn = ({ column, label }: { column: { toggleSorting: () => void; getIsSorted: () => false | 'asc' | 'desc' }; label: string }) => (
-    <button className="flex items-center gap-1 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
+    <button className="flex items-center justify-center gap-1 w-full text-[11px] font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
       {label} <SortIcon dir={column.getIsSorted()} />
     </button>
   );
@@ -166,7 +166,7 @@ export function FabEstoqueTab() {
       accessorKey: 'tipo_pedra',
       header: ({ column }) => <SortBtn column={column} label="Tipo Pedra" />,
       cell: ({ row }) => (
-        <div>
+        <div className="text-center">
           <div className="text-xs text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
             {row.original.tipo_pedra ?? '—'}
           </div>
@@ -197,7 +197,7 @@ export function FabEstoqueTab() {
     {
       accessorKey: 'peso',
       header: ({ column }) => (
-        <button className="flex items-center gap-1 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
+        <button className="flex items-center justify-center gap-1 w-full text-[11px] font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
           Peso <SortIcon dir={column.getIsSorted()} />
         </button>
       ),
@@ -213,7 +213,7 @@ export function FabEstoqueTab() {
     {
       accessorKey: 'custo_real',
       header: ({ column }) => (
-        <button className="flex items-center gap-1 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
+        <button className="flex items-center justify-center gap-1 w-full text-[11px] font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
           Custo <SortIcon dir={column.getIsSorted()} />
         </button>
       ),
@@ -224,7 +224,7 @@ export function FabEstoqueTab() {
     {
       accessorKey: 'preco_cobrado',
       header: ({ column }) => (
-        <button className="flex items-center gap-1 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
+        <button className="flex items-center justify-center gap-1 w-full text-[11px] font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
           Preço Cobrado <SortIcon dir={column.getIsSorted()} />
         </button>
       ),
@@ -408,7 +408,7 @@ export function FabEstoqueTab() {
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full" style={{ minWidth: '1300px', borderCollapse: 'collapse', fontSize: '13px' }}>
+        <table className="w-full data-table" style={{ minWidth: '1300px', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id} className="border-b-2 border-zinc-200 dark:border-white/[0.13] bg-zinc-50 dark:bg-zinc-800/60">
