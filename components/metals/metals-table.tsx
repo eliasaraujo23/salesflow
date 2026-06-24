@@ -123,10 +123,17 @@ export function MetalsTable({ metals, canDelete }: MetalsTableProps) {
     {
       accessorKey: 'data',
       header: 'Data',
-      cell: ({ getValue }) => (
-        <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
-          {fmtDate(getValue<string | null>())}
-        </span>
+      cell: ({ row }) => (
+        <div className="flex flex-col gap-0.5">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+            {fmtDate(row.original.data)}
+          </span>
+          {row.original.obs && (
+            <span className="text-[10px] text-zinc-400 dark:text-zinc-500 italic max-w-[140px] truncate" title={row.original.obs}>
+              {row.original.obs}
+            </span>
+          )}
+        </div>
       ),
     },
     {
