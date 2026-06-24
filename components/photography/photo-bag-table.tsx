@@ -149,7 +149,7 @@ const FILTER_OPTIONS = [
 export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
   const [filterStatus, setFilterStatus] = useState('');
   const [busca, setBusca] = useState('');
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'data_recebimento', desc: true }]);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'codigo', desc: true }]);
   const deleteMutation = useDeletePhotoBag();
   const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
 
