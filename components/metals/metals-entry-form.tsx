@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -10,32 +10,33 @@ import { toast } from 'sonner';
 
 const ORIGENS = [
   { value: 'second', label: 'Second Hand' },
-  { value: 'scrap', label: 'Scrap' },
-  { value: 'novo', label: 'Novo' },
+  { value: 'scrap',  label: 'Scrap' },
+  { value: 'novo',   label: 'Novo' },
   { value: 'proprio', label: 'Próprio' },
 ];
 
 const schema = z.object({
-  data: z.string().min(1, 'Data obrigatória'),
-  metal: z.enum(['ouro', 'prata', 'platina'], { error: 'Selecione o metal' }),
-  origem: z.string().min(1, 'Selecione a origem'),
-  chegou: z.number().min(0),
+  data:       z.string().min(1, 'Data obrigatória'),
+  metal:      z.enum(['ouro', 'prata', 'platina'], { message: 'Selecione o metal' }),
+  origem:     z.string().min(1, 'Selecione a origem'),
+  chegou:     z.number().min(0),
   cadastrado: z.number().min(0),
-  obs: z.string().optional(),
+  obs:        z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
-
 type TipoTab = 'entrada' | 'cadastro' | 'antigo';
 
-const TABS: { key: TipoTab; label: string; Icon: React.ElementType }[] = [
-  { key: 'entrada', label: 'Entrada', Icon: ArrowUp },
-  { key: 'cadastro', label: 'Cadastro', Icon: List },
-  { key: 'antigo', label: 'Antigo', Icon: Clock },
+const TABS: { key: TipoTab; label: string; Icon: React.ElementType; desc: string }[] = [
+  { key: 'entrada',  label: 'Entrada',  Icon: ArrowUp, desc: 'Adiciona ao saldo' },
+  { key: 'cadastro', label: 'Cadastro', Icon: List,    desc: 'Abate do saldo' },
+  { key: 'antigo',   label: 'Antigo',   Icon: Clock,   desc: 'Estoque anterior' },
 ];
 
 const inputCls =
   'w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:border-indigo-500 transition-colors';
+
+const errCls = 'text-xs text-red-500 mt-1';
 
 export function MetalsEntryForm() {
   const [tipo, setTipo] = useState<TipoTab>('entrada');
@@ -45,30 +46,52 @@ export function MetalsEntryForm() {
     handleSubmit,
     watch,
     reset,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { chegou: 0, cadastrado: 0 },
   });
 
-  const chegou = watch('chegou') ?? 0;
-  const cadastrado = watch('cadastrado') ?? 0;
-  const sobrou = Math.max(0, Number(chegou) - Number(cadastrado));
+  const chegou    = Number(watch('chegou')    ?? 0);
+  const cadastrado = Number(watch('cadastrado') ?? 0);
+  const sobrou    = Math.max(0, chegou - cadastrado);
+
+  const handleTabChange = (key: TipoTab) => {
+    setTipo(key);
+    reset({ chegou: 0, cadastrado: 0 });
+  };
 
   const onSubmit = async (data: FormData) => {
+    // Each tab type maps weight differently:
+    // entrada  → peso = chegou  (total received, ADDS to balance)
+    // cadastro → peso = cadastrado (weight used in pieces, SUBTRACTS)
+    // antigo   → peso = chegou  (old existing stock, ADDS to balance)
+    const peso = tipo === 'cadastro' ? data.cadastrado : data.chegou;
+
+    if (peso <= 0) {
+      toast.error('Informe um peso maior que zero');
+      return;
+    }
+
     const result = await addMetalAction({
       tipo,
-      metal: data.metal,
-      data: data.data,
-      origem: data.origem,
-      chegou: data.chegou,
-      cadastrado: data.cadastrado,
-      sobrou,
-      peso: data.chegou,
+      metal:      data.metal,
+      data:       data.data,
+      origem:     data.origem,
+      chegou:     tipo === 'entrada' ? data.chegou : 0,
+      cadastrado: tipo === 'cadastro' ? data.cadastrado : 0,
+      sobrou:     tipo === 'entrada' ? sobrou : 0,
+      peso,
       obs: data.obs,
     });
+
     if (result.success) {
-      toast.success('Entrada registrada com sucesso!');
+      const msgs: Record<TipoTab, string> = {
+        entrada:  'Entrada registrada com sucesso!',
+        cadastro: 'Cadastro registrado — saldo abatido',
+        antigo:   'Estoque antigo declarado com sucesso!',
+      };
+      toast.success(msgs[tipo]);
       reset({ chegou: 0, cadastrado: 0 });
     } else {
       toast.error(result.error ?? 'Erro ao registrar');
@@ -77,12 +100,13 @@ export function MetalsEntryForm() {
 
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-5">
-      <div className="flex gap-2 mb-5">
+      {/* Tab selector */}
+      <div className="flex gap-2 mb-2">
         {TABS.map(({ key, label, Icon }) => (
           <button
             key={key}
             type="button"
-            onClick={() => setTipo(key)}
+            onClick={() => handleTabChange(key)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex-1 justify-center ${
               tipo === key
                 ? 'bg-indigo-600 text-white shadow-sm'
@@ -95,82 +119,92 @@ export function MetalsEntryForm() {
         ))}
       </div>
 
+      {/* Tab description */}
+      <p className="text-[11px] text-center text-zinc-400 dark:text-zinc-500 mb-4">
+        {TABS.find(t => t.key === tipo)?.desc}
+      </p>
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Data + Metal */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
-              Data
-            </label>
+            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Data</label>
             <input type="date" {...register('data')} className={inputCls} />
+            {errors.data && <p className={errCls}>{errors.data.message}</p>}
           </div>
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
-              Metal
-            </label>
+            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Metal</label>
             <select {...register('metal')} className={inputCls}>
               <option value="">Selecione</option>
               <option value="ouro">Ouro</option>
               <option value="prata">Prata</option>
               <option value="platina">Platina</option>
             </select>
+            {errors.metal && <p className={errCls}>Selecione o metal</p>}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
-              Origem
-            </label>
-            <select {...register('origem')} className={inputCls}>
-              <option value="">Selecione</option>
-              {ORIGENS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
-              Chegou (g)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              {...register('chegou', { valueAsNumber: true })}
-              placeholder="0.00"
-              className={inputCls}
-            />
-          </div>
+        {/* Origem */}
+        <div>
+          <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Origem</label>
+          <select {...register('origem')} className={inputCls}>
+            <option value="">Selecione</option>
+            {ORIGENS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+          {errors.origem && <p className={errCls}>{errors.origem.message}</p>}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
-              Cadastrado no sistema (g)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              {...register('cadastrado', { valueAsNumber: true })}
-              placeholder="0.00"
-              className={inputCls}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
-              Sobrou
-            </label>
-            <div className="flex items-center px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg min-h-[38px]">
+        {/* Weight fields — differ per tab */}
+        {tipo === 'entrada' ? (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
+                  Chegou (g)
+                </label>
+                <input
+                  type="number" step="0.01" min="0"
+                  {...register('chegou', { valueAsNumber: true })}
+                  placeholder="0.00"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
+                  Cadastrado no sistema (g)
+                </label>
+                <input
+                  type="number" step="0.01" min="0"
+                  {...register('cadastrado', { valueAsNumber: true })}
+                  placeholder="0.00"
+                  className={inputCls}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-3 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg">
+              <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Sobrou:</span>
               <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                 {sobrou > 0 ? `${sobrou.toFixed(2)}g` : '— g'}
               </span>
             </div>
+          </>
+        ) : (
+          <div>
+            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
+              {tipo === 'cadastro' ? 'Peso a cadastrar (g)' : 'Peso antigo (g)'}
+            </label>
+            <input
+              type="number" step="0.01" min="0"
+              {...register(tipo === 'cadastro' ? 'cadastrado' : 'chegou', { valueAsNumber: true })}
+              placeholder="0.00"
+              className={inputCls}
+            />
           </div>
-        </div>
+        )}
 
+        {/* Obs */}
         <div>
           <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">
             Observação (opcional)

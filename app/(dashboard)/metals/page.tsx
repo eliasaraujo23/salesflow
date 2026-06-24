@@ -15,8 +15,8 @@ const METAL_CARD_STYLES = {
 type MetalType = 'ouro' | 'prata' | 'platina';
 
 function metalDelta(m: ReturnType<typeof useFirebase>['metals'][number]): number {
-  if (m.tipo === 'entrada') return m.chegou ?? m.peso ?? 0;
-  return -(m.peso ?? 0);
+  if (m.tipo === 'entrada' || m.tipo === 'antigo') return m.chegou ?? m.peso ?? 0;
+  return -(m.peso ?? 0); // cadastro subtrai
 }
 
 function MetalKPICard({ metal, metals }: { metal: MetalType; metals: ReturnType<typeof useFirebase>['metals'] }) {
