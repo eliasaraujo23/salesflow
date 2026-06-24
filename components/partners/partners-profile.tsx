@@ -36,6 +36,7 @@ interface PartnersProfileProps {
 
 export function PartnersProfile({ destino, data, sales, gaps, cats }: PartnersProfileProps) {
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
+  const [expandedGap, setExpandedGap] = useState<string | null>(null);
 
   const vencidas = data.filter(r => r.dias_campo > 90);
   const alertas = data.filter(r => r.dias_campo >= 75 && r.dias_campo <= 90);
@@ -154,74 +155,91 @@ export function PartnersProfile({ destino, data, sales, gaps, cats }: PartnersPr
             <div className="text-[10px] font-bold uppercase tracking-widest text-red-500 dark:text-red-400 mb-2">
               ✗ Em Falta ({gaps.length})
             </div>
-            <div className="space-y-2">
-              {gaps.map(g => (
-                <div key={g.catLabel} className="rounded-lg border border-red-200 dark:border-red-500/20 overflow-hidden">
-                  <div className="px-3 py-2 bg-red-500/5 dark:bg-red-500/10">
-                    <span className="text-xs font-bold text-red-600 dark:text-red-400">{g.catLabel}</span>
-                    {g.stockItems.length === 0 && g.redistFrom.length === 0 && (
-                      <span className="ml-2 text-[10px] text-zinc-400 dark:text-zinc-500">Sem opção disponível no momento</span>
+            <div className="space-y-1.5">
+              {gaps.map(g => {
+                const gOpen = expandedGap === g.catLabel;
+                const hasDetail = g.stockItems.length > 0 || g.redistFrom.length > 0;
+                return (
+                  <div key={g.catLabel} className="rounded-lg border border-red-200 dark:border-red-500/20 overflow-hidden">
+                    <button
+                      onClick={() => setExpandedGap(gOpen ? null : g.catLabel)}
+                      className="w-full px-3 py-2 bg-red-500/5 dark:bg-red-500/10 hover:bg-red-500/10 dark:hover:bg-red-500/15 transition-colors flex items-center justify-between text-left"
+                    >
+                      <span className="text-xs font-bold text-red-600 dark:text-red-400">{g.catLabel}</span>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        {!hasDetail && (
+                          <span className="text-[10px] text-zinc-400 dark:text-zinc-500">Sem opção disponível</span>
+                        )}
+                        {hasDetail && (
+                          <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                            {g.stockItems.length > 0 ? `${g.stockItems.length} em estoque` : ''}
+                            {g.stockItems.length > 0 && g.redistFrom.length > 0 ? ' · ' : ''}
+                            {g.redistFrom.length > 0 ? `redistribuir de ${g.redistFrom.length}` : ''}
+                          </span>
+                        )}
+                        {gOpen ? <ChevronUp size={12} className="text-red-400" /> : <ChevronDown size={12} className="text-red-400" />}
+                      </div>
+                    </button>
+                    {gOpen && hasDetail && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-zinc-100 dark:divide-white/[0.04]">
+                        <div className="px-3 py-2.5">
+                          <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1.5">
+                            Estoque JM disponível
+                          </div>
+                          {g.stockItems.length === 0 ? (
+                            <span className="text-xs text-zinc-300 dark:text-zinc-600">—</span>
+                          ) : (
+                            <div className="space-y-1">
+                              {g.stockItems.map(s => (
+                                <div key={s.referencia} className="flex items-center gap-1.5 flex-wrap text-xs">
+                                  <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{s.referencia}</span>
+                                  {s.subtipo && <span className="text-zinc-500 dark:text-zinc-400">{s.subtipo}</span>}
+                                  {s.tipo_pedra && <span className="text-zinc-400 dark:text-zinc-500">· {s.tipo_pedra}</span>}
+                                  {s.lapidacao && <span className="text-zinc-400 dark:text-zinc-500">· {s.lapidacao}</span>}
+                                  <span className="text-zinc-300 dark:text-zinc-600">{s.dias}d</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="px-3 py-2.5">
+                          <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1.5">
+                            Redistribuir de (mais antigo)
+                          </div>
+                          {g.redistFrom.length === 0 ? (
+                            <span className="text-xs text-zinc-300 dark:text-zinc-600">—</span>
+                          ) : (
+                            <div className="space-y-1">
+                              {g.redistFrom.map(r => (
+                                <div key={r.partner} className="flex items-center gap-1.5 flex-wrap text-xs">
+                                  <span className="font-semibold text-amber-600 dark:text-amber-400">
+                                    {r.partner} ×{r.count}
+                                  </span>
+                                  <span className="text-zinc-300 dark:text-zinc-600">→</span>
+                                  <span className="font-mono text-zinc-600 dark:text-zinc-400">{r.oldest.referencia || '—'}</span>
+                                  {r.oldest.produto && (
+                                    <span className="text-zinc-500 dark:text-zinc-400">{up(r.oldest.produto)}</span>
+                                  )}
+                                  {r.oldest.tipo_pedra && (
+                                    <span className="text-zinc-400 dark:text-zinc-500">· {r.oldest.tipo_pedra}</span>
+                                  )}
+                                  <span className={`font-semibold ${
+                                    r.oldest.dias_campo > 90 ? 'text-red-500 dark:text-red-400' :
+                                    r.oldest.dias_campo >= 75 ? 'text-amber-500 dark:text-amber-400' :
+                                    'text-zinc-400 dark:text-zinc-500'
+                                  }`}>
+                                    {r.oldest.dias_campo}d
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
-                  {(g.stockItems.length > 0 || g.redistFrom.length > 0) && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-zinc-100 dark:divide-white/[0.04]">
-                      <div className="px-3 py-2.5">
-                        <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1.5">
-                          Estoque JM disponível
-                        </div>
-                        {g.stockItems.length === 0 ? (
-                          <span className="text-xs text-zinc-300 dark:text-zinc-600">—</span>
-                        ) : (
-                          <div className="space-y-1">
-                            {g.stockItems.map(s => (
-                              <div key={s.referencia} className="flex items-center gap-1.5 flex-wrap text-xs">
-                                <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{s.referencia}</span>
-                                {s.subtipo && <span className="text-zinc-500 dark:text-zinc-400">{s.subtipo}</span>}
-                                {s.tipo_pedra && <span className="text-zinc-400 dark:text-zinc-500">· {s.tipo_pedra}</span>}
-                                {s.lapidacao && <span className="text-zinc-400 dark:text-zinc-500">· {s.lapidacao}</span>}
-                                <span className="text-zinc-300 dark:text-zinc-600">{s.dias}d</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="px-3 py-2.5">
-                        <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1.5">
-                          Redistribuir de (mais antigo)
-                        </div>
-                        {g.redistFrom.length === 0 ? (
-                          <span className="text-xs text-zinc-300 dark:text-zinc-600">—</span>
-                        ) : (
-                          <div className="space-y-1">
-                            {g.redistFrom.map(r => (
-                              <div key={r.partner} className="flex items-center gap-1.5 flex-wrap text-xs">
-                                <span className="font-semibold text-amber-600 dark:text-amber-400">
-                                  {r.partner} ×{r.count}
-                                </span>
-                                <span className="text-zinc-300 dark:text-zinc-600">→</span>
-                                <span className="font-mono text-zinc-600 dark:text-zinc-400">{r.oldest.referencia || '—'}</span>
-                                {r.oldest.produto && (
-                                  <span className="text-zinc-500 dark:text-zinc-400">{up(r.oldest.produto)}</span>
-                                )}
-                                {r.oldest.tipo_pedra && (
-                                  <span className="text-zinc-400 dark:text-zinc-500">· {r.oldest.tipo_pedra}</span>
-                                )}
-                                <span className={`font-semibold ${
-                                  r.oldest.dias_campo > 90 ? 'text-red-500 dark:text-red-400' :
-                                  r.oldest.dias_campo >= 75 ? 'text-amber-500 dark:text-amber-400' :
-                                  'text-zinc-400 dark:text-zinc-500'
-                                }`}>
-                                  {r.oldest.dias_campo}d
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
