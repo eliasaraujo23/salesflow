@@ -126,6 +126,20 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
 
   const columns: ColumnDef<Row>[] = [
     {
+      id: 'codigo',
+      accessorFn: (r) => Number(r.id),
+      header: ({ column }) => (
+        <button className={thBtn} onClick={() => column.toggleSorting()}>
+          # <SortIcon dir={column.getIsSorted()} />
+        </button>
+      ),
+      cell: ({ row }) => (
+        <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 tabular-nums tracking-wider">
+          {String(Number(row.original.id)).padStart(5, '0')}
+        </span>
+      ),
+    },
+    {
       accessorKey: 'data_recebimento',
       header: ({ column }) => (
         <button className={thBtn} onClick={() => column.toggleSorting()}>

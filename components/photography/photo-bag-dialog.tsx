@@ -109,6 +109,11 @@ export function PhotoBagDialog({ bag, onClose }: PhotoBagDialogProps) {
             <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
               {isEdit ? 'Editar Saquinho' : 'Novo Saquinho'}
             </h2>
+            {isEdit && bag && (
+              <span className="text-xs font-mono font-bold text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded">
+                #{String(Number(bag.id)).padStart(5, '0')}
+              </span>
+            )}
           </div>
           <button onClick={onClose} className="p-1 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">
             <X size={15} />
