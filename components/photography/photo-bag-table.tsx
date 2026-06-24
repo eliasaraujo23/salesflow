@@ -56,29 +56,16 @@ function SortIcon({ dir }: { dir: false | 'asc' | 'desc' }) {
 }
 
 function printBagLabel(bag: PhotoBag, code: string) {
-  const total  = bag.qtd_fabricado + bag.qtd_second + bag.qtd_scrap;
-  const totFoto = bag.foto_fabricado + bag.foto_second + bag.foto_scrap;
-  const totEdit = bag.edit_fabricado + bag.edit_second + bag.edit_scrap;
-  const date   = fmtDate(bag.data_recebimento);
-  const dateFin = fmtDate(bag.data_finalizacao);
+  const total = bag.qtd_fabricado + bag.qtd_second + bag.qtd_scrap;
+  const date  = fmtDate(bag.data_recebimento);
 
-  const statusMap: Record<string, string> = {
-    aguardando: 'AGUARDANDO',
-    andamento:  'EM ANDAMENTO',
-    finalizado: 'FINALIZADO',
-  };
-  const st = bag.data_finalizacao ? 'finalizado'
-    : (bag.foto_fabricado + bag.foto_second + bag.foto_scrap + bag.edit_fabricado + bag.edit_second + bag.edit_scrap) > 0
-      ? 'andamento' : 'aguardando';
-
-  const rowFab  = bag.qtd_fabricado > 0
-    ? `<tr><td class="lbl">FABRICADO</td><td class="val">${bag.qtd_fabricado} rec &nbsp;/&nbsp; ${bag.foto_fabricado} foto &nbsp;/&nbsp; ${bag.edit_fabricado} edit</td></tr>` : '';
-  const rowSec  = bag.qtd_second > 0
-    ? `<tr><td class="lbl">SECOND</td><td class="val">${bag.qtd_second} rec &nbsp;/&nbsp; ${bag.foto_second} foto &nbsp;/&nbsp; ${bag.edit_second} edit</td></tr>` : '';
+  const rowFab   = bag.qtd_fabricado > 0
+    ? `<tr><td class="lbl">FABRICADO</td><td class="val">${bag.qtd_fabricado} pe&ccedil;as</td></tr>` : '';
+  const rowSec   = bag.qtd_second > 0
+    ? `<tr><td class="lbl">SECOND</td><td class="val">${bag.qtd_second} pe&ccedil;as</td></tr>` : '';
   const rowScrap = bag.qtd_scrap > 0
-    ? `<tr><td class="lbl">SCRAP</td><td class="val">${bag.qtd_scrap} rec &nbsp;/&nbsp; ${bag.foto_scrap} foto &nbsp;/&nbsp; ${bag.edit_scrap} edit</td></tr>` : '';
-
-  const obsRow = bag.observacao
+    ? `<tr><td class="lbl">SCRAP</td><td class="val">${bag.qtd_scrap} pe&ccedil;as</td></tr>` : '';
+  const obsRow   = bag.observacao
     ? `<tr><td class="lbl">OBS.</td><td class="val obs">${bag.observacao}</td></tr>` : '';
 
   const html = `<!DOCTYPE html>
@@ -90,38 +77,16 @@ function printBagLabel(bag: PhotoBag, code: string) {
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family: Arial, Helvetica, sans-serif; background:#fff; color:#000; }
   table { width:100%; border-collapse:collapse; }
-  td, th { border: 2px solid #000; padding: 6px 10px; }
-  .lbl {
-    font-size: 10pt;
-    font-weight: 700;
-    text-transform: uppercase;
-    width: 38%;
-    white-space: nowrap;
-  }
-  .val {
-    font-size: 11pt;
-    font-weight: 700;
-  }
-  .val.big {
-    font-size: 16pt;
-    font-weight: 900;
-    letter-spacing: 1px;
-  }
-  .val.obs {
-    font-size: 9.5pt;
-    font-weight: 400;
-  }
+  td { border: 2px solid #000; padding: 7px 10px; }
+  .lbl { font-size:10pt; font-weight:700; text-transform:uppercase; width:38%; white-space:nowrap; }
+  .val { font-size:11pt; font-weight:700; }
+  .val.big { font-size:18pt; font-weight:900; letter-spacing:1px; }
+  .val.obs { font-size:9.5pt; font-weight:400; }
   .section-header {
-    text-align: center;
-    font-size: 10pt;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    background: #000;
-    color: #fff;
-    padding: 4px;
+    text-align:center; font-size:10pt; font-weight:700;
+    text-transform:uppercase; letter-spacing:1px;
+    background:#000; color:#fff; padding:5px;
   }
-  .sub { font-size:8pt; font-weight:400; color:#333; margin-left:6px; }
 </style>
 </head>
 <body>
@@ -129,33 +94,21 @@ function printBagLabel(bag: PhotoBag, code: string) {
   <tr>
     <td class="lbl">LOJA</td>
     <td class="val">GOLDTECH JOIAS</td>
-    <td class="lbl" style="width:22%">SAQUINHO</td>
+    <td class="lbl" style="width:24%">SAQUINHO</td>
     <td class="val big" style="width:20%">#${code}</td>
   </tr>
   <tr>
     <td class="lbl">DATA REC.</td>
-    <td class="val">${date}</td>
-    <td class="lbl">STATUS</td>
-    <td class="val">${statusMap[st] ?? st.toUpperCase()}</td>
+    <td colspan="3" class="val">${date}</td>
   </tr>
   <tr>
     <td class="lbl">TOTAL PE&Ccedil;AS</td>
-    <td class="val">${total}</td>
-    <td class="lbl">DATA FIN.</td>
-    <td class="val">${dateFin}</td>
+    <td colspan="3" class="val">${total}</td>
   </tr>
   <tr>
-    <td colspan="4" class="section-header">COMPOSI&Ccedil;&Atilde;O &nbsp;<span class="sub" style="color:#ccc">Rec / Foto / Edit</span></td>
+    <td colspan="4" class="section-header">COMPOSI&Ccedil;&Atilde;O</td>
   </tr>
   ${rowFab}${rowSec}${rowScrap}
-  <tr>
-    <td class="lbl">FOTOGRAFADO</td>
-    <td colspan="3" class="val">${totFoto} de ${total} pe&ccedil;as</td>
-  </tr>
-  <tr>
-    <td class="lbl">EDITADO</td>
-    <td colspan="3" class="val">${totEdit} de ${total} pe&ccedil;as</td>
-  </tr>
   ${obsRow}
 </table>
 </body>
