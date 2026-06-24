@@ -10,6 +10,7 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import { ArrowDown, ArrowUp, ArrowUpDown, Trash2, Scale } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 type SortDir = 'asc' | 'desc' | false;
 function SortIcon({ dir }: { dir: SortDir }) {
@@ -109,15 +110,22 @@ export function MetalsTable({ metals, canDelete }: MetalsTableProps) {
     });
   }, [rowsWithSaldo, filterMetal, filterOrigem]);
 
-  const handleDelete = useCallback(async (item: Metal) => {
-    if (!confirm(`Remover registro de ${(item.chegou ?? item.peso ?? 0).toFixed(2)}g de ${item.metal}?`)) return;
-    const result = await deleteMetalAction(item.docId);
+  const [pendingDelete, setPendingDelete] = useState<Metal | null>(null);
+
+  const handleDelete = useCallback((item: Metal) => {
+    setPendingDelete(item);
+  }, []);
+
+  const doDelete = async () => {
+    if (!pendingDelete) return;
+    const result = await deleteMetalAction(pendingDelete.docId);
     if (result.success) {
       toast.success('Registro removido');
     } else {
       toast.error(result.error ?? 'Erro ao remover');
     }
-  }, []);
+    setPendingDelete(null);
+  };
 
   const columns = useMemo<ColumnDef<MetalsTableRow>[]>(() => [
     {
@@ -277,6 +285,15 @@ export function MetalsTable({ metals, canDelete }: MetalsTableProps) {
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        onOpenChange={(open) => { if (!open) setPendingDelete(null); }}
+        title="Remover registro"
+        description={pendingDelete ? `Remover registro de ${(pendingDelete.chegou ?? pendingDelete.peso ?? 0).toFixed(2)}g de ${pendingDelete.metal}?` : ''}
+        confirmLabel="Remover"
+        onConfirm={doDelete}
+      />
 
       {filtered.length === 0 && (
         <div className="py-14 flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 gap-3">

@@ -11,6 +11,7 @@ import { updateTaskAction, type UpdateTaskInput } from '@/lib/actions/update-tas
 import { deleteTaskAction } from '@/lib/actions/delete-task';
 import { requestDeleteTaskAction } from '@/lib/actions/request-delete-task';
 import { toast } from 'sonner';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function KanbanPage() {
   const {
@@ -21,9 +22,10 @@ export default function KanbanPage() {
 
   const { currentUser, users, deleteRequests } = useFirebase();
 
-  const [showNewModal,  setShowNewModal]  = useState(false);
-  const [editingTask,   setEditingTask]   = useState<Task | null>(null);
-  const [submitting,    setSubmitting]    = useState(false);
+  const [showNewModal,   setShowNewModal]   = useState(false);
+  const [editingTask,    setEditingTask]    = useState<Task | null>(null);
+  const [submitting,     setSubmitting]     = useState(false);
+  const [deleteTaskId,   setDeleteTaskId]   = useState<string | number | null>(null);
 
   async function saveNewTask(data: CreateTaskInput) {
     setSubmitting(true);
@@ -41,11 +43,16 @@ export default function KanbanPage() {
     else toast.error(res.message ?? 'Erro ao atualizar tarefa');
   }
 
-  async function adminDeleteTask(taskId: string | number) {
-    if (!confirm('Excluir esta tarefa definitivamente?')) return;
-    const res = await deleteTaskAction(taskId);
+  function adminDeleteTask(taskId: string | number) {
+    setDeleteTaskId(taskId);
+  }
+
+  async function doDeleteTask() {
+    if (deleteTaskId === null) return;
+    const res = await deleteTaskAction(deleteTaskId);
     if (res.httpStatus === 200) { toast.success('Tarefa excluída'); setEditingTask(null); }
     else toast.error(res.message ?? 'Erro ao excluir');
+    setDeleteTaskId(null);
   }
 
   async function requestDelete(task: Task) {
@@ -97,6 +104,15 @@ export default function KanbanPage() {
           />
         ))}
       </div>
+
+      <ConfirmDialog
+        open={deleteTaskId !== null}
+        onOpenChange={(open) => { if (!open) setDeleteTaskId(null); }}
+        title="Excluir tarefa"
+        description="Esta ação não pode ser desfeita. Deseja excluir esta tarefa definitivamente?"
+        confirmLabel="Excluir"
+        onConfirm={doDeleteTask}
+      />
 
       {showNewModal && (
         <TaskFormModal

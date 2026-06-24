@@ -10,6 +10,7 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import { ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { type PhotoBag, getBatchStatus, getBatchDias, type BatchStatus } from '@/lib/actions/photo-bags';
 import { useDeletePhotoBag } from '@/hooks/use-photo-bags';
 import { toast } from 'sonner';
@@ -95,14 +96,21 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
     [rows, activeFilter],
   );
 
-  const handleDelete = async (bag: Row) => {
-    if (!confirm(`Remover lote de ${fmtDate(bag.data_recebimento)}?`)) return;
-    const result = await deleteMutation.mutateAsync(bag.id);
+  const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
+
+  const handleDelete = (bag: Row) => {
+    setPendingDelete(bag);
+  };
+
+  const doDelete = async () => {
+    if (!pendingDelete) return;
+    const result = await deleteMutation.mutateAsync(pendingDelete.id);
     if (result.httpStatus === 200) {
       toast.success('Lote removido');
     } else {
       toast.error(result.message ?? 'Erro ao remover');
     }
+    setPendingDelete(null);
   };
 
   const thBtn = 'flex items-center gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100';
@@ -222,6 +230,15 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
   });
 
   return (
+    <>
+    <ConfirmDialog
+      open={!!pendingDelete}
+      onOpenChange={(open) => { if (!open) setPendingDelete(null); }}
+      title="Remover lote"
+      description={pendingDelete ? `Remover lote de ${fmtDate(pendingDelete.data_recebimento)}?` : ''}
+      confirmLabel="Remover"
+      onConfirm={doDelete}
+    />
     <div className="space-y-3">
       <div className="flex gap-2 overflow-x-auto pb-1">
         {STATUS_FILTERS.map((s) => (
@@ -274,5 +291,6 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
         )}
       </div>
     </div>
+    </>
   );
 }
