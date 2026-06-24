@@ -20,24 +20,14 @@ const photoBagSchema = z.object({
 
 export type PhotoBag = z.infer<typeof photoBagSchema>;
 
-export type BatchStatus = 'pendente' | 'fotografando' | 'editando' | 'finalizado';
+export type BatchStatus = 'aguardando' | 'andamento' | 'finalizado';
 
 export function getBatchStatus(b: PhotoBag): BatchStatus {
   if (b.data_finalizacao) return 'finalizado';
-  const totalQtd = b.qtd_fabricado + b.qtd_second + b.qtd_scrap;
-  const totalFoto = b.foto_fabricado + b.foto_second + b.foto_scrap;
-  const totalEdit = b.edit_fabricado + b.edit_second + b.edit_scrap;
-  if (totalQtd > 0 && totalEdit >= totalQtd) return 'finalizado';
-  if (totalQtd > 0 && totalFoto >= totalQtd) return 'editando';
-  if (totalFoto > 0) return 'fotografando';
-  return 'pendente';
-}
-
-export function getBatchDias(b: PhotoBag): number {
-  if (!b.data_recebimento) return 0;
-  const from = new Date(b.data_recebimento.slice(0, 10) + 'T00:00:00');
-  const now = new Date();
-  return Math.max(0, Math.floor((now.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)));
+  const totFoto = b.foto_fabricado + b.foto_second + b.foto_scrap;
+  const totEdit = b.edit_fabricado + b.edit_second + b.edit_scrap;
+  if (totFoto > 0 || totEdit > 0) return 'andamento';
+  return 'aguardando';
 }
 
 export interface ResponseApi<T> {

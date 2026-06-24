@@ -1,12 +1,12 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Camera, Clock, CheckCircle, Image, RefreshCw, Plus } from 'lucide-react';
+import { Camera, ImageIcon, Pencil, AlertCircle, RefreshCw, Plus } from 'lucide-react';
 import { usePhotoBags } from '@/hooks/use-photo-bags';
 import { KPICard } from '@/components/kpi-card';
 import { PhotoBagTable } from '@/components/photography/photo-bag-table';
 import { PhotoBagDialog } from '@/components/photography/photo-bag-dialog';
-import { type PhotoBag, getBatchStatus } from '@/lib/actions/photo-bags';
+import { type PhotoBag } from '@/lib/actions/photo-bags';
 
 export default function PhotographyPage() {
   const { data, isLoading, isError, refetch, isFetching } = usePhotoBags();
@@ -16,13 +16,11 @@ export default function PhotographyPage() {
   const bags = data ?? [];
 
   const stats = useMemo(() => {
-    const statuses = bags.map(b => getBatchStatus(b));
-    return {
-      total: bags.length,
-      pendente: statuses.filter(s => s === 'pendente').length,
-      fotografando: statuses.filter(s => s === 'fotografando').length,
-      finalizado: statuses.filter(s => s === 'finalizado').length,
-    };
+    const totRec    = bags.reduce((a, b) => a + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
+    const totFoto   = bags.reduce((a, b) => a + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
+    const totEdit   = bags.reduce((a, b) => a + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
+    const pendente  = Math.max(0, totRec - totEdit);
+    return { total: bags.length, totRec, totFoto, totEdit, pendente };
   }, [bags]);
 
   if (isLoading) {
@@ -50,11 +48,11 @@ export default function PhotographyPage() {
   }
 
   return (
-    <div className="p-3 sm:p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-5">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Fotografia</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Acompanhamento de lotes para fotografar e editar</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Controle de saquinhos</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -69,16 +67,17 @@ export default function PhotographyPage() {
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
           >
             <Plus size={16} />
-            Novo Lote
+            Novo Saquinho
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard icon={Camera} label="Total" value={stats.total} subtext="lotes registrados" variant="blue" />
-        <KPICard icon={Clock} label="Pendentes" value={stats.pendente} subtext="aguardando fotos" variant="amber" />
-        <KPICard icon={Image} label="Fotografando" value={stats.fotografando} subtext="em andamento" variant="purple" />
-        <KPICard icon={CheckCircle} label="Finalizados" value={stats.finalizado} subtext="concluídos" variant="green" />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <KPICard icon={Camera}     label="Saquinhos"      value={stats.total}   subtext="registrados"     variant="blue" />
+        <KPICard icon={ImageIcon}  label="Peças Recebidas" value={stats.totRec}  subtext="no total"        variant="blue" />
+        <KPICard icon={ImageIcon}  label="Fotografadas"   value={stats.totFoto} subtext="peças"           variant="blue" />
+        <KPICard icon={Pencil}     label="Editadas"       value={stats.totEdit} subtext="peças"           variant="green" />
+        <KPICard icon={AlertCircle} label="Pendentes"     value={stats.pendente} subtext="sem edição"     variant={stats.pendente > 0 ? 'amber' : 'blue'} />
       </div>
 
       <PhotoBagTable
