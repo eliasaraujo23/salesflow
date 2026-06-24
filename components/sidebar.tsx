@@ -96,6 +96,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const widthClass = collapsed ? 'w-[248px] md:w-[56px]' : 'w-[248px]';
 
   return (
+    <>
     <aside
       className={[
         'flex flex-col overflow-hidden bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-white/[0.13]',
@@ -310,5 +311,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         </div>
       </div>
     )}
+    </>
   );
 }
