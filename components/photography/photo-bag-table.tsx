@@ -80,7 +80,7 @@ function printBagLabel(bag: PhotoBag, code: string) {
   td { border: 2px solid #000; padding: 7px 10px; }
   .lbl { font-size:10pt; font-weight:700; text-transform:uppercase; width:38%; white-space:nowrap; }
   .val { font-size:11pt; font-weight:700; }
-  .val.big { font-size:18pt; font-weight:900; letter-spacing:1px; }
+  .val.code { font-size:20pt; font-weight:900; letter-spacing:2px; text-align:center; }
   .val.obs { font-size:9.5pt; font-weight:400; }
   .section-header {
     text-align:center; font-size:10pt; font-weight:700;
@@ -92,21 +92,18 @@ function printBagLabel(bag: PhotoBag, code: string) {
 <body>
 <table>
   <tr>
-    <td class="lbl">LOJA</td>
-    <td class="val">GOLDTECH JOIAS</td>
-    <td class="lbl" style="width:24%">SAQUINHO</td>
-    <td class="val big" style="width:20%">#${code}</td>
+    <td colspan="2" class="val code">SAQUINHO &nbsp; #${code}</td>
   </tr>
   <tr>
     <td class="lbl">DATA REC.</td>
-    <td colspan="3" class="val">${date}</td>
+    <td class="val">${date}</td>
   </tr>
   <tr>
     <td class="lbl">TOTAL PE&Ccedil;AS</td>
-    <td colspan="3" class="val">${total}</td>
+    <td class="val">${total}</td>
   </tr>
   <tr>
-    <td colspan="4" class="section-header">COMPOSI&Ccedil;&Atilde;O</td>
+    <td colspan="2" class="section-header">COMPOSI&Ccedil;&Atilde;O</td>
   </tr>
   ${rowFab}${rowSec}${rowScrap}
   ${obsRow}
