@@ -39,7 +39,6 @@ export function PartnersProfile({ destino, data, sales, gaps, cats }: PartnersPr
   const [expandedGap, setExpandedGap] = useState<string | null>(null);
 
   const vencidas = data.filter(r => r.dias_campo > 90);
-  const alertas = data.filter(r => r.dias_campo >= 75 && r.dias_campo <= 90);
   const diasMed = data.length
     ? Math.round(data.reduce((s, r) => s + r.dias_campo, 0) / data.length)
     : 0;
@@ -56,8 +55,6 @@ export function PartnersProfile({ destino, data, sales, gaps, cats }: PartnersPr
   const totalFat = sales.reduce((s, r) => s + r.total_faturado, 0);
   const ticketMed = totalVendas > 0 ? totalFat / totalVendas : 0;
   const topVendidos = [...sales].sort((a, b) => b.total_vendas - a.total_vendas).slice(0, 6);
-
-  const expired = [...vencidas, ...alertas].sort((a, b) => b.dias_campo - a.dias_campo);
 
   return (
     <div className="space-y-4">
@@ -298,52 +295,6 @@ export function PartnersProfile({ destino, data, sales, gaps, cats }: PartnersPr
         </div>
       </div>
 
-      {/* Expired items */}
-      {expired.length > 0 && (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl overflow-hidden">
-          <div className={`px-4 py-2.5 border-b border-zinc-100 dark:border-white/[0.04] ${
-            vencidas.length > 0 ? 'bg-red-500/10' : 'bg-amber-500/10'
-          }`}>
-            <span className={`text-[10px] font-bold uppercase tracking-widest ${
-              vencidas.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'
-            }`}>
-              {vencidas.length > 0
-                ? `⚠ ${vencidas.length} peça${vencidas.length > 1 ? 's' : ''} com prazo vencido (>90d)`
-                : `${alertas.length} peça${alertas.length > 1 ? 's' : ''} próximas de vencer (75–90d)`}
-            </span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm data-table">
-              <thead>
-                <tr className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-100 dark:border-white/[0.04]">
-                  <th className="px-4 py-2 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400">Ref</th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400">Produto / Subtipo</th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400">Pedra</th>
-                  <th className="px-4 py-2 text-right text-xs font-semibold text-zinc-500 dark:text-zinc-400">Dias em Campo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {expired.map((r, i) => (
-                  <tr key={i} className="border-b border-zinc-100 dark:border-white/[0.04]">
-                    <td className="px-4 py-2.5 text-xs font-bold text-zinc-800 dark:text-zinc-200">
-                      {r.referencia || '—'}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-zinc-700 dark:text-zinc-300">
-                      {up(r.produto)} {up(r.subtipo)}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-zinc-500 dark:text-zinc-400">
-                      {r.tipo_pedra ?? '—'}
-                    </td>
-                    <td className={`px-4 py-2.5 text-xs font-bold text-right ${diasCor(r.dias_campo)}`}>
-                      {r.dias_campo}d
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
