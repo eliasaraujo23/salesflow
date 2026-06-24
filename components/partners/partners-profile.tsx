@@ -156,13 +156,16 @@ export function PartnersProfile({ destino, data, sales, gaps, cats }: PartnersPr
               {gaps.map(g => {
                 const gOpen = expandedGap === g.catLabel;
                 const hasDetail = g.stockItems.length > 0 || g.redistFrom.length > 0;
+                const clr = hasDetail
+                  ? { border: 'border-amber-200 dark:border-amber-500/20', bg: 'bg-amber-500/5 dark:bg-amber-500/10 hover:bg-amber-500/10 dark:hover:bg-amber-500/15', text: 'text-amber-600 dark:text-amber-400', chevron: 'text-amber-400' }
+                  : { border: 'border-red-200 dark:border-red-500/20',    bg: 'bg-red-500/5 dark:bg-red-500/10 hover:bg-red-500/10 dark:hover:bg-red-500/15',       text: 'text-red-600 dark:text-red-400',     chevron: 'text-red-400'   };
                 return (
-                  <div key={g.catLabel} className="rounded-lg border border-red-200 dark:border-red-500/20 overflow-hidden">
+                  <div key={g.catLabel} className={`rounded-lg border ${clr.border} overflow-hidden`}>
                     <button
                       onClick={() => setExpandedGap(gOpen ? null : g.catLabel)}
-                      className="w-full px-3 py-2 bg-red-500/5 dark:bg-red-500/10 hover:bg-red-500/10 dark:hover:bg-red-500/15 transition-colors flex items-center justify-between text-left"
+                      className={`w-full px-3 py-2 ${clr.bg} transition-colors flex items-center justify-between text-left`}
                     >
-                      <span className="text-xs font-bold text-red-600 dark:text-red-400">{g.catLabel}</span>
+                      <span className={`text-xs font-bold ${clr.text}`}>{g.catLabel}</span>
                       <div className="flex items-center gap-2 shrink-0 ml-2">
                         {!hasDetail && (
                           <span className="text-[10px] text-zinc-400 dark:text-zinc-500">Sem opção disponível</span>
@@ -174,7 +177,7 @@ export function PartnersProfile({ destino, data, sales, gaps, cats }: PartnersPr
                             {g.redistFrom.length > 0 ? `redistribuir de ${g.redistFrom.length}` : ''}
                           </span>
                         )}
-                        {gOpen ? <ChevronUp size={12} className="text-red-400" /> : <ChevronDown size={12} className="text-red-400" />}
+                        {gOpen ? <ChevronUp size={12} className={clr.chevron} /> : <ChevronDown size={12} className={clr.chevron} />}
                       </div>
                     </button>
                     {gOpen && hasDetail && (
