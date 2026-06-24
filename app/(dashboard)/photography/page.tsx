@@ -11,6 +11,7 @@ import { type PhotoBag } from '@/lib/actions/photo-bags';
 export default function PhotographyPage() {
   const { data, isLoading, isError, refetch, isFetching } = usePhotoBags();
   const [editingBag, setEditingBag] = useState<PhotoBag | null>(null);
+  const [editingCode, setEditingCode] = useState<string | undefined>(undefined);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const bags = data ?? [];
@@ -82,14 +83,16 @@ export default function PhotographyPage() {
 
       <PhotoBagTable
         data={bags}
-        onEdit={(bag) => setEditingBag(bag)}
+        onEdit={(bag, code) => { setEditingBag(bag); setEditingCode(code); }}
       />
 
       {(editingBag || showCreateDialog) && (
         <PhotoBagDialog
           bag={editingBag ?? undefined}
+          code={editingCode}
           onClose={() => {
             setEditingBag(null);
+            setEditingCode(undefined);
             setShowCreateDialog(false);
           }}
         />

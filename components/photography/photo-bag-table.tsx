@@ -9,7 +9,7 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2 } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Pencil, Trash2, Printer } from 'lucide-react';
 import { type PhotoBag, getBatchStatus, type BatchStatus } from '@/lib/actions/photo-bags';
 import { useDeletePhotoBag } from '@/hooks/use-photo-bags';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -26,14 +26,6 @@ const STATUS_LABEL: Record<BatchStatus, string> = {
   andamento:  'Em andamento',
   finalizado: 'Finalizado',
 };
-
-const diasClass = (d: number): string => {
-  if (d <= 3) return 'text-emerald-600 dark:text-emerald-400';
-  if (d <= 7) return 'text-amber-600 dark:text-amber-400';
-  return 'text-red-600 dark:text-red-400';
-};
-// Keep for potential future use
-void diasClass;
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -63,17 +55,81 @@ function SortIcon({ dir }: { dir: false | 'asc' | 'desc' }) {
   return <ArrowUpDown size={12} />;
 }
 
+function printBagLabel(bag: PhotoBag, code: string) {
+  const total = bag.qtd_fabricado + bag.qtd_second + bag.qtd_scrap;
+  const date  = fmtDate(bag.data_recebimento);
+
+  const cats = [
+    bag.qtd_fabricado > 0 ? `Fabricado: ${bag.qtd_fabricado}` : '',
+    bag.qtd_second    > 0 ? `Second: ${bag.qtd_second}`       : '',
+    bag.qtd_scrap     > 0 ? `Scrap: ${bag.qtd_scrap}`         : '',
+  ].filter(Boolean);
+
+  const catsHtml = cats.map(c => `<div class="cat">${c}</div>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @page { size: 70mm 50mm; margin: 0; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    width:70mm; height:50mm;
+    font-family:Arial,Helvetica,sans-serif;
+    padding:3mm 4mm;
+    display:flex; flex-direction:column; justify-content:space-between;
+    background:#fff; color:#000; overflow:hidden;
+  }
+  .header { display:flex; justify-content:space-between; align-items:flex-start; }
+  .brand  { font-size:7pt; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#555; }
+  .tag    { font-size:6.5pt; font-weight:700; color:#555; border:1px solid #999; border-radius:3px; padding:0 3px; line-height:1.6; }
+  .code   { font-size:22pt; font-weight:900; letter-spacing:2px; line-height:1; text-align:center; margin:1.5mm 0 .5mm; }
+  hr      { border:none; border-top:.5px solid #ccc; margin:1mm 0; }
+  .info   { display:flex; justify-content:space-between; align-items:center; }
+  .date   { font-size:8.5pt; font-weight:600; color:#333; }
+  .total  { font-size:10pt; font-weight:900; }
+  .cats   { display:flex; gap:4mm; flex-wrap:wrap; }
+  .cat    { font-size:7.5pt; font-weight:600; color:#444; }
+  .foot   { font-size:6pt; color:#aaa; text-align:right; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">Goldtech Joias &middot; Fotografia</div>
+    <div class="tag">SAQUINHO</div>
+  </div>
+  <div class="code">#${code}</div>
+  <hr/>
+  <div class="info">
+    <div class="date">${date}</div>
+    <div class="total">${total} pe&ccedil;as</div>
+  </div>
+  <div class="cats">${catsHtml || '<div class="cat">Sem itens</div>'}</div>
+  <div class="foot">SalesFlow</div>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=320,height=240,toolbar=0,menubar=0');
+  if (!win) { toast.error('Permita pop-ups para imprimir'); return; }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 300);
+}
+
 interface Row extends PhotoBag {
   _status: BatchStatus;
+  _code: string;
 }
 
 interface PhotoBagTableProps {
   data: PhotoBag[];
-  onEdit: (bag: PhotoBag) => void;
+  onEdit: (bag: PhotoBag, code: string) => void;
 }
 
 const FILTER_OPTIONS = [
-  { value: '',          label: 'Em aberto' },
+  { value: '',           label: 'Em aberto' },
   { value: 'aguardando', label: 'Aguardando' },
   { value: 'andamento',  label: 'Em andamento' },
   { value: 'finalizado', label: 'Arquivados (Finalizado)' },
@@ -87,9 +143,21 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
   const deleteMutation = useDeletePhotoBag();
   const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
 
+  // Sequential code: sort all bags by created_at (or data_recebimento) ascending → 00001, 00002 …
+  const codeMap = useMemo(() => {
+    const sorted = [...data].sort((a, b) => {
+      const ca = a.created_at ?? a.data_recebimento ?? '';
+      const cb = b.created_at ?? b.data_recebimento ?? '';
+      return ca < cb ? -1 : ca > cb ? 1 : 0;
+    });
+    const map = new Map<string | number, string>();
+    sorted.forEach((b, i) => map.set(b.id, String(i + 1).padStart(5, '0')));
+    return map;
+  }, [data]);
+
   const rows: Row[] = useMemo(
-    () => data.map((b) => ({ ...b, _status: getBatchStatus(b) })),
-    [data],
+    () => data.map((b) => ({ ...b, _status: getBatchStatus(b), _code: codeMap.get(b.id) ?? '?????' })),
+    [data, codeMap],
   );
 
   const filtered = useMemo(() => {
@@ -100,25 +168,20 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
       if (filterStatus === 'finalizado' && st !== 'finalizado') return false;
       if (filterStatus && filterStatus !== 'todos' && filterStatus !== 'finalizado' && st !== filterStatus) return false;
       if (buscaLc) {
-        const hay = [r.data_recebimento, r.data_finalizacao, r.observacao].join(' ').toLowerCase();
+        const hay = [r._code, r.data_recebimento, r.data_finalizacao, r.observacao].join(' ').toLowerCase();
         if (!hay.includes(buscaLc)) return false;
       }
       return true;
     });
   }, [rows, filterStatus, busca]);
 
-  const handleDelete = (bag: Row) => {
-    setPendingDelete(bag);
-  };
+  const handleDelete = (bag: Row) => setPendingDelete(bag);
 
   const doDelete = async () => {
     if (!pendingDelete) return;
     const result = await deleteMutation.mutateAsync(pendingDelete.id);
-    if (result.httpStatus === 200) {
-      toast.success('Lote removido');
-    } else {
-      toast.error(result.message ?? 'Erro ao remover');
-    }
+    if (result.httpStatus === 200) toast.success('Lote removido');
+    else toast.error(result.message ?? 'Erro ao remover');
     setPendingDelete(null);
   };
 
@@ -127,7 +190,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
   const columns: ColumnDef<Row>[] = [
     {
       id: 'codigo',
-      accessorFn: (r) => Number(r.id),
+      accessorFn: (r) => r._code,
       header: ({ column }) => (
         <button className={thBtn} onClick={() => column.toggleSorting()}>
           # <SortIcon dir={column.getIsSorted()} />
@@ -135,7 +198,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
       ),
       cell: ({ row }) => (
         <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 tabular-nums tracking-wider">
-          {String(Number(row.original.id)).padStart(5, '0')}
+          {row.original._code}
         </span>
       ),
     },
@@ -154,12 +217,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
     },
     {
       id: 'fabricado',
-      header: () => (
-        <div className="text-center">
-          <div>Fabricado</div>
-          <div className="text-[10px] font-normal opacity-60">Rec / Foto / Edit</div>
-        </div>
-      ),
+      header: () => <div className="text-center"><div>Fabricado</div><div className="text-[10px] font-normal opacity-60">Rec / Foto / Edit</div></div>,
       cell: ({ row }) => {
         const { qtd_fabricado: q, foto_fabricado: f, edit_fabricado: e } = row.original;
         if (!q) return <span className="text-zinc-400 dark:text-zinc-600">—</span>;
@@ -168,12 +226,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
     },
     {
       id: 'second',
-      header: () => (
-        <div className="text-center">
-          <div>Second</div>
-          <div className="text-[10px] font-normal opacity-60">Rec / Foto / Edit</div>
-        </div>
-      ),
+      header: () => <div className="text-center"><div>Second</div><div className="text-[10px] font-normal opacity-60">Rec / Foto / Edit</div></div>,
       cell: ({ row }) => {
         const { qtd_second: q, foto_second: f, edit_second: e } = row.original;
         if (!q) return <span className="text-zinc-400 dark:text-zinc-600">—</span>;
@@ -182,12 +235,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
     },
     {
       id: 'scrap',
-      header: () => (
-        <div className="text-center">
-          <div>Scrap</div>
-          <div className="text-[10px] font-normal opacity-60">Rec / Foto / Edit</div>
-        </div>
-      ),
+      header: () => <div className="text-center"><div>Scrap</div><div className="text-[10px] font-normal opacity-60">Rec / Foto / Edit</div></div>,
       cell: ({ row }) => {
         const { qtd_scrap: q, foto_scrap: f, edit_scrap: e } = row.original;
         if (!q) return <span className="text-zinc-400 dark:text-zinc-600">—</span>;
@@ -259,7 +307,14 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
           <button
-            onClick={() => onEdit(row.original)}
+            onClick={() => printBagLabel(row.original, row.original._code)}
+            className="p-1.5 text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded"
+            title="Imprimir etiqueta"
+          >
+            <Printer size={14} />
+          </button>
+          <button
+            onClick={() => onEdit(row.original, row.original._code)}
             className="p-1.5 text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded"
             title="Editar"
           >
@@ -294,7 +349,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
       open={!!pendingDelete}
       onOpenChange={(open) => { if (!open) setPendingDelete(null); }}
       title="Remover lote"
-      description={pendingDelete ? `Remover lote de ${fmtDate(pendingDelete.data_recebimento)}?` : ''}
+      description={pendingDelete ? `Remover saquinho #${pendingDelete._code}?` : ''}
       confirmLabel="Remover"
       onConfirm={doDelete}
     />
@@ -303,11 +358,7 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
       <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-100 dark:border-white/[0.04]">
         <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">Saquinhos</span>
         <div className="flex-1" />
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className={selectCls}
-        >
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={selectCls}>
           {FILTER_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
@@ -316,13 +367,13 @@ export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
           type="text"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar data ou obs…"
-          className={`${selectCls} w-44`}
+          placeholder="Buscar código, data ou obs…"
+          className={`${selectCls} w-52`}
         />
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm data-table" style={{ minWidth: 900 }}>
+        <table className="w-full text-sm data-table" style={{ minWidth: 960 }}>
           <thead>
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id} className="border-b border-zinc-100 dark:border-white/[0.04] bg-zinc-50 dark:bg-zinc-800/60">

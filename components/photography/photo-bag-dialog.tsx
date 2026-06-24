@@ -28,6 +28,7 @@ type FormValues = z.infer<typeof schema>;
 
 interface PhotoBagDialogProps {
   bag?: PhotoBag;
+  code?: string;
   onClose: () => void;
 }
 
@@ -58,7 +59,7 @@ function TypeRow({ label, color, bg, recField, fotoField, editField, register }:
   );
 }
 
-export function PhotoBagDialog({ bag, onClose }: PhotoBagDialogProps) {
+export function PhotoBagDialog({ bag, code, onClose }: PhotoBagDialogProps) {
   const isEdit = !!bag;
   const createMutation = useCreatePhotoBag();
   const updateMutation = useUpdatePhotoBag();
@@ -109,9 +110,9 @@ export function PhotoBagDialog({ bag, onClose }: PhotoBagDialogProps) {
             <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
               {isEdit ? 'Editar Saquinho' : 'Novo Saquinho'}
             </h2>
-            {isEdit && bag && (
+            {isEdit && code && (
               <span className="text-xs font-mono font-bold text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded">
-                #{String(Number(bag.id)).padStart(5, '0')}
+                #{code}
               </span>
             )}
           </div>
