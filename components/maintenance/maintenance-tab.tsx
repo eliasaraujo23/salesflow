@@ -134,10 +134,16 @@ export function MaintenanceTab({ data }: MaintenanceTabProps) {
     { label: 'Lapidação',    avail: availLapidacoes, sel: lapidacoes, set: setLapidacoes },
   ];
 
+  const SortBtn = ({ column, label }: { column: { toggleSorting: () => void; getIsSorted: () => false | 'asc' | 'desc' }; label: string }) => (
+    <button className="flex items-center gap-1 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100" onClick={() => column.toggleSorting()}>
+      {label} <SortIcon dir={column.getIsSorted()} />
+    </button>
+  );
+
   const columns: ColumnDef<MaintenanceItem>[] = [
     {
       accessorKey: 'referencia',
-      header: 'Ref',
+      header: ({ column }) => <SortBtn column={column} label="Ref" />,
       cell: ({ getValue }) => (
         <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
           {getValue<string>()}
@@ -146,7 +152,7 @@ export function MaintenanceTab({ data }: MaintenanceTabProps) {
     },
     {
       accessorKey: 'tipo',
-      header: 'Tipo',
+      header: ({ column }) => <SortBtn column={column} label="Tipo" />,
       cell: ({ getValue }) => {
         const v = getValue<string | null | undefined>() ?? '';
         return v
@@ -156,7 +162,7 @@ export function MaintenanceTab({ data }: MaintenanceTabProps) {
     },
     {
       accessorKey: 'produto',
-      header: 'Produto',
+      header: ({ column }) => <SortBtn column={column} label="Produto" />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
           {getValue<string | null | undefined>() ?? '—'}
@@ -165,7 +171,7 @@ export function MaintenanceTab({ data }: MaintenanceTabProps) {
     },
     {
       accessorKey: 'subtipo',
-      header: 'Subtipo',
+      header: ({ column }) => <SortBtn column={column} label="Subtipo" />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {getValue<string | null | undefined>() ?? '—'}
@@ -174,7 +180,7 @@ export function MaintenanceTab({ data }: MaintenanceTabProps) {
     },
     {
       accessorKey: 'tipo_pedra',
-      header: 'Pedra',
+      header: ({ column }) => <SortBtn column={column} label="Pedra" />,
       cell: ({ row }) => (
         <div>
           <div className="text-xs text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
@@ -188,7 +194,7 @@ export function MaintenanceTab({ data }: MaintenanceTabProps) {
     },
     {
       accessorKey: 'lapidacao',
-      header: 'Lapidação',
+      header: ({ column }) => <SortBtn column={column} label="Lapidação" />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {getValue<string | null | undefined>() ?? '—'}
@@ -197,7 +203,7 @@ export function MaintenanceTab({ data }: MaintenanceTabProps) {
     },
     {
       accessorKey: 'destino_manutencao',
-      header: 'Dest. Manut.',
+      header: ({ column }) => <SortBtn column={column} label="Dest. Manut." />,
       cell: ({ getValue }) => {
         const v = getValue<string | null | undefined>() ?? '';
         return v
@@ -207,7 +213,7 @@ export function MaintenanceTab({ data }: MaintenanceTabProps) {
     },
     {
       accessorKey: 'destino',
-      header: 'Destino',
+      header: ({ column }) => <SortBtn column={column} label="Destino" />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
           {getValue<string | null | undefined>() ?? '—'}
