@@ -60,12 +60,12 @@ function printBagLabel(bag: PhotoBag, code: string) {
   const date  = fmtDate(bag.data_recebimento);
 
   const rowFab   = bag.qtd_fabricado > 0
-    ? `<tr><td class="lbl">FABRICADO</td><td class="val">${bag.qtd_fabricado} pe&ccedil;as</td></tr>` : '';
+    ? `<tr><td class="lbl" colspan="2">FABRICADO</td><td class="val" colspan="2">${bag.qtd_fabricado} pe&ccedil;as</td></tr>` : '';
   const rowSec   = bag.qtd_second > 0
-    ? `<tr><td class="lbl">SECOND</td><td class="val">${bag.qtd_second} pe&ccedil;as</td></tr>` : '';
+    ? `<tr><td class="lbl" colspan="2">SECOND</td><td class="val" colspan="2">${bag.qtd_second} pe&ccedil;as</td></tr>` : '';
   const rowScrap = bag.qtd_scrap > 0
-    ? `<tr><td class="lbl">SCRAP</td><td class="val">${bag.qtd_scrap} pe&ccedil;as</td></tr>` : '';
-  const obsRow = `<tr><td class="lbl">OBS.</td><td class="val obs">${bag.observacao ?? '—'}</td></tr>`;
+    ? `<tr><td class="lbl" colspan="2">SCRAP</td><td class="val" colspan="2">${bag.qtd_scrap} pe&ccedil;as</td></tr>` : '';
+  const obsRow = `<tr><td class="lbl" colspan="2">OBS.</td><td class="val obs" colspan="2">${bag.observacao ?? '—'}</td></tr>`;
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -76,10 +76,14 @@ function printBagLabel(bag: PhotoBag, code: string) {
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family: Arial, Helvetica, sans-serif; background:#fff; color:#000; }
   table { width:100%; border-collapse:collapse; }
+  colgroup col:nth-child(1),
+  colgroup col:nth-child(3) { width:22%; }
+  colgroup col:nth-child(2),
+  colgroup col:nth-child(4) { width:28%; }
   td { border: 3px solid #000; padding: 12px 16px; }
-  .lbl { font-size:18pt; font-weight:700; text-transform:uppercase; width:34%; white-space:nowrap; }
+  .lbl { font-size:18pt; font-weight:700; text-transform:uppercase; white-space:nowrap; }
   .val { font-size:22pt; font-weight:700; }
-  .val.code { font-size:44pt; font-weight:900; letter-spacing:4px; text-align:center; padding:14px; }
+  .val.code { font-size:38pt; font-weight:900; letter-spacing:4px; text-align:center; padding:14px; }
   .val.obs { font-size:16pt; font-weight:400; }
   .section-header {
     text-align:center; font-size:16pt; font-weight:700;
@@ -90,19 +94,18 @@ function printBagLabel(bag: PhotoBag, code: string) {
 </head>
 <body>
 <table>
+  <colgroup><col/><col/><col/><col/></colgroup>
   <tr>
-    <td colspan="2" class="val code">SAQUINHO &nbsp; #${code}</td>
+    <td colspan="4" class="val code">#${code}</td>
   </tr>
   <tr>
     <td class="lbl">DATA REC.</td>
     <td class="val">${date}</td>
-  </tr>
-  <tr>
     <td class="lbl">TOTAL PE&Ccedil;AS</td>
     <td class="val">${total}</td>
   </tr>
   <tr>
-    <td colspan="2" class="section-header">COMPOSI&Ccedil;&Atilde;O</td>
+    <td colspan="4" class="section-header">COMPOSI&Ccedil;&Atilde;O</td>
   </tr>
   ${rowFab}${rowSec}${rowScrap}
   ${obsRow}

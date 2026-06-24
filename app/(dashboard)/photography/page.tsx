@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Camera, ImageIcon, Pencil, AlertCircle, RefreshCw, Plus } from 'lucide-react';
+import { Camera, ImageIcon, Pencil, Package, RefreshCw, Plus } from 'lucide-react';
 import { usePhotoBags } from '@/hooks/use-photo-bags';
 import { KPICard } from '@/components/kpi-card';
 import { PhotoBagTable } from '@/components/photography/photo-bag-table';
@@ -17,11 +17,30 @@ export default function PhotographyPage() {
   const bags = data ?? [];
 
   const stats = useMemo(() => {
-    const totRec    = bags.reduce((a, b) => a + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
-    const totFoto   = bags.reduce((a, b) => a + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
-    const totEdit   = bags.reduce((a, b) => a + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
-    const pendente  = Math.max(0, totRec - totEdit);
-    return { total: bags.length, totRec, totFoto, totEdit, pendente };
+    // Em Aberto — bags not yet finalized
+    const openBags = bags.filter(b => !b.data_finalizacao);
+    const sacAbertos  = openBags.length;
+    const pecasAberto = openBags.reduce((a, b) => a + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
+    const fotoAberto  = openBags.reduce((a, b) => a + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
+    const editAberto  = openBags.reduce((a, b) => a + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
+    const faltamFoto  = Math.max(0, pecasAberto - fotoAberto);
+    const faltamEdit  = Math.max(0, pecasAberto - editAberto);
+
+    // Esta Semana — bags received since Monday
+    const now = new Date();
+    const dow = now.getDay();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
+    monday.setHours(0, 0, 0, 0);
+    const mondayStr = monday.toISOString().slice(0, 10);
+
+    const weekBags    = bags.filter(b => (b.data_recebimento ?? '') >= mondayStr);
+    const sacSemana   = weekBags.length;
+    const pecasSemana = weekBags.reduce((a, b) => a + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
+    const fotoSemana  = weekBags.reduce((a, b) => a + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
+    const editSemana  = weekBags.reduce((a, b) => a + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
+
+    return { sacAbertos, pecasAberto, faltamFoto, faltamEdit, sacSemana, pecasSemana, fotoSemana, editSemana };
   }, [bags]);
 
   if (isLoading) {
@@ -73,12 +92,32 @@ export default function PhotographyPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        <KPICard icon={Camera}     label="Saquinhos"      value={stats.total}   subtext="registrados"     variant="blue" />
-        <KPICard icon={ImageIcon}  label="Peças Recebidas" value={stats.totRec}  subtext="no total"        variant="blue" />
-        <KPICard icon={ImageIcon}  label="Fotografadas"   value={stats.totFoto} subtext="peças"           variant="blue" />
-        <KPICard icon={Pencil}     label="Editadas"       value={stats.totEdit} subtext="peças"           variant="green" />
-        <KPICard icon={AlertCircle} label="Pendentes"     value={stats.pendente} subtext="sem edição"     variant={stats.pendente > 0 ? 'amber' : 'blue'} />
+      {/* Em Aberto */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Em Aberto</span>
+          <div className="flex-1 h-px bg-zinc-100 dark:bg-white/[0.06]" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <KPICard icon={Package}    label="Saquinhos Abertos"  value={stats.sacAbertos}  subtext="sem finalização"   variant="amber" />
+          <KPICard icon={ImageIcon}  label="Peças em Aberto"    value={stats.pecasAberto} subtext="total"             variant="amber" />
+          <KPICard icon={Camera}     label="Faltam Fotografar"  value={stats.faltamFoto}  subtext="peças"             variant={stats.faltamFoto > 0 ? 'red' : 'green'} />
+          <KPICard icon={Pencil}     label="Faltam Editar"      value={stats.faltamEdit}  subtext="peças"             variant={stats.faltamEdit > 0 ? 'red' : 'green'} />
+        </div>
+      </div>
+
+      {/* Esta Semana */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Esta Semana</span>
+          <div className="flex-1 h-px bg-zinc-100 dark:bg-white/[0.06]" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <KPICard icon={Package}    label="Saquinhos"          value={stats.sacSemana}   subtext="recebidos"         variant="blue" />
+          <KPICard icon={ImageIcon}  label="Peças Recebidas"    value={stats.pecasSemana} subtext="esta semana"       variant="blue" />
+          <KPICard icon={Camera}     label="Fotografadas"       value={stats.fotoSemana}  subtext="esta semana"       variant="blue" />
+          <KPICard icon={Pencil}     label="Editadas"           value={stats.editSemana}  subtext="esta semana"       variant="green" />
+        </div>
       </div>
 
       <PhotoBagTable
