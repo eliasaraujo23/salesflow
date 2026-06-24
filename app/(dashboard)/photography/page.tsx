@@ -39,6 +39,8 @@ export default function PhotographyPage() {
     const weekBags  = bags.filter(b => (b.data_recebimento ?? '') >= mondayStr);
     const monthBags = bags.filter(b => (b.data_recebimento ?? '') >= firstOfMonth);
 
+    const pecasSemana = weekBags.reduce((a, b) => a + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
+    const pecasMes    = monthBags.reduce((a, b) => a + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
     const fotoSemana  = weekBags.reduce((a, b) => a + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
     const fotoMes     = monthBags.reduce((a, b) => a + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
     const editSemana  = weekBags.reduce((a, b) => a + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
@@ -50,7 +52,7 @@ export default function PhotographyPage() {
 
     return {
       sacAbertos, pecasAberto, faltamFoto, faltamEdit,
-      fotoSemana, fotoMes, editSemana, editMes, finSemana, finMes,
+      pecasSemana, pecasMes, fotoSemana, fotoMes, editSemana, editMes, finSemana, finMes,
     };
   }, [bags]);
 
@@ -124,7 +126,8 @@ export default function PhotographyPage() {
           <span className="text-[10px] text-zinc-400 dark:text-zinc-600">(valor = semana · subtext = mês)</span>
           <div className="flex-1 h-px bg-zinc-100 dark:bg-white/[0.06]" />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <KPICard compact icon={ImageIcon}  label="Peças Recebidas"    value={stats.pecasSemana} subtext={`${stats.pecasMes} no mês`}  variant="blue" />
           <KPICard compact icon={Camera}     label="Fotografadas"       value={stats.fotoSemana}  subtext={`${stats.fotoMes} no mês`}   variant="blue" />
           <KPICard compact icon={Pencil}     label="Editadas"           value={stats.editSemana}  subtext={`${stats.editMes} no mês`}   variant="blue" />
           <KPICard compact icon={Package}    label="Finalizados"        value={stats.finSemana}   subtext={`${stats.finMes} saquinhos no mês`} variant="green" />
