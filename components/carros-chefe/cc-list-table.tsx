@@ -22,6 +22,7 @@ interface CcListTableProps {
 }
 
 export function CcListTable({ defs, onEdit }: CcListTableProps) {
+  const sorted = [...defs].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
   const [pendingDelete, setPendingDelete] = useState<CarroChefeDef | null>(null);
 
   const doDelete = async () => {
@@ -68,7 +69,7 @@ export function CcListTable({ defs, onEdit }: CcListTableProps) {
                   </td>
                 </tr>
               ) : (
-                defs.map(def => (
+                sorted.map(def => (
                   <tr key={def.id} className="border-b border-zinc-100 dark:border-white/[0.04] hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
                     <td className="px-4 py-3 text-xs font-mono text-zinc-400">{def.order}</td>
                     <td className="px-4 py-3">
