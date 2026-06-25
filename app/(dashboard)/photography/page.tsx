@@ -161,9 +161,9 @@ export default function PhotographyPage() {
           <KPICard compact icon={ImageIcon} label="Peças Recebidas" value={stats.recSemana}  subtext={`${stats.recMes} no mês`}             variant="blue"
             active={filterStatus === 'todos'}      onClick={() => setFilter('todos')} />
           <KPICard compact icon={Camera}    label="Fotografadas"    value={stats.fotoSemana} subtext={`${stats.fotoMes} no mês`}              variant="blue"
-            active={filterStatus === 'andamento'}  onClick={() => setFilter('andamento')} />
+            active={filterStatus === 'tem-foto'}   onClick={() => setFilter('tem-foto')} />
           <KPICard compact icon={Pencil}    label="Editadas"        value={stats.editSemana} subtext={`${stats.editMes} no mês`}              variant="blue"
-            active={filterStatus === 'andamento'}  onClick={() => setFilter('andamento')} />
+            active={filterStatus === 'tem-edit'}   onClick={() => setFilter('tem-edit')} />
           <KPICard compact icon={Package}   label="Finalizados"     value={stats.finSemana}  subtext={`${stats.finMes} saquinhos no mês`}     variant="green"
             active={filterStatus === 'finalizado'} onClick={() => setFilter('finalizado')} />
         </div>

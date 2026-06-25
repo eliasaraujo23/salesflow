@@ -188,6 +188,12 @@ export function PhotoBagTable({ data, onEdit, filterStatus: filterStatusProp, on
         const qtd  = r.qtd_fabricado  + r.qtd_second  + r.qtd_scrap;
         const edit = r.edit_fabricado + r.edit_second + r.edit_scrap;
         if (qtd <= edit) return false;
+      } else if (filterStatus === 'tem-foto') {
+        const foto = r.foto_fabricado + r.foto_second + r.foto_scrap;
+        if (foto === 0) return false;
+      } else if (filterStatus === 'tem-edit') {
+        const edit = r.edit_fabricado + r.edit_second + r.edit_scrap;
+        if (edit === 0) return false;
       } else {
         if (!filterStatus && st === 'finalizado') return false;
         if (filterStatus === 'finalizado' && st !== 'finalizado') return false;
