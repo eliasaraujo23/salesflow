@@ -144,6 +144,10 @@ const FILTER_OPTIONS = [
   { value: '',           label: 'Em aberto' },
   { value: 'aguardando', label: 'Aguardando' },
   { value: 'andamento',  label: 'Em andamento' },
+  { value: 'tem-foto',   label: 'Com fotos (abertos)' },
+  { value: 'tem-edit',   label: 'Com edição (abertos)' },
+  { value: 'faltam-foto', label: 'Faltam fotografar' },
+  { value: 'faltam-edit', label: 'Faltam editar' },
   { value: 'finalizado', label: 'Arquivados (Finalizado)' },
   { value: 'todos',      label: 'Todos (incl. finalizados)' },
 ];
@@ -189,9 +193,11 @@ export function PhotoBagTable({ data, onEdit, filterStatus: filterStatusProp, on
         const edit = r.edit_fabricado + r.edit_second + r.edit_scrap;
         if (qtd <= edit) return false;
       } else if (filterStatus === 'tem-foto') {
+        if (st === 'finalizado') return false;
         const foto = r.foto_fabricado + r.foto_second + r.foto_scrap;
         if (foto === 0) return false;
       } else if (filterStatus === 'tem-edit') {
+        if (st === 'finalizado') return false;
         const edit = r.edit_fabricado + r.edit_second + r.edit_scrap;
         if (edit === 0) return false;
       } else {
