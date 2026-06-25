@@ -22,10 +22,7 @@ interface ResaleUltimasVendasProps {
 export function ResaleUltimasVendas({ vendas, totalQtd, newReferencias }: ResaleUltimasVendasProps) {
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-2 flex-shrink-0">
-        <span className="text-[11px] font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-          Últimas Vendas
-        </span>
+      <div className="flex items-center justify-end mb-2 flex-shrink-0">
         <span className="text-[11px] bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-semibold">
           {totalQtd} vendas
         </span>
