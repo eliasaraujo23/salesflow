@@ -61,7 +61,7 @@ export function TaskFormModal({
     resolver: zodResolver(taskFormSchema),
     defaultValues: {
       title:       task?.title ?? '',
-      person:      task?.person ?? currentUser?.personKey ?? '',
+      person:      task?.person ?? currentUser?.name ?? '',
       priority:    (task?.priority as TaskFormValues['priority']) ?? 'media',
       status:      (task?.status as TaskFormValues['status']) ?? 'pendente',
       noPrazo:     !task?.due || task.due === 'Sem prazo',
@@ -84,7 +84,7 @@ export function TaskFormModal({
       : values.dueDate
       ? dateInputToBR(values.dueDate)
       : 'Sem prazo';
-    const person = isAdmin ? values.person : (currentUser?.personKey ?? '');
+    const person = isAdmin ? values.person : (currentUser?.name ?? '');
 
     if (isNew) {
       onSaveNew({ title: values.title, person, priority: values.priority, status: values.status, due, description: values.description });
@@ -129,7 +129,7 @@ export function TaskFormModal({
               <select {...register('person')} className={inputCls}>
                 <option value="">Selecionar...</option>
                 {peopleOptions.map((p) => (
-                  <option key={p.key} value={p.key}>{p.name}</option>
+                  <option key={p.key} value={p.name}>{p.name}</option>
                 ))}
               </select>
               {errors.person && <p className="text-[11px] text-red-500 mt-1">{errors.person.message}</p>}
