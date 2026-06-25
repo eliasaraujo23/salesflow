@@ -56,9 +56,11 @@ export interface MatrixVariant {
 export interface MatrixRow {
   catIdx: number;
   label: string;
+  grupo: string;
   counts: number[];
   total: number;
   variants: MatrixVariant[];
+  children?: MatrixRow[];
 }
 
 export interface GapStockItem {
@@ -158,7 +160,8 @@ export function usePartnersPage() {
   }, [data]);
 
   const matrix = useMemo((): MatrixRow[] => {
-    return cats.map((cat, catIdx) => {
+    // Build flat rows
+    const flat: MatrixRow[] = cats.map((cat, catIdx) => {
       const pieces = data.filter(cat.check);
       const counts = partnerList.map(p => pieces.filter(r => r.destino === p).length);
 
@@ -183,8 +186,44 @@ export function usePartnersPage() {
         });
 
       const variants = [...varMap.values()].sort((a, b) => b.total - a.total);
-      return { catIdx, label: cat.label, counts, total: pieces.length, variants };
+      return { catIdx, label: cat.label, grupo: cat.grupo, counts, total: pieces.length, variants };
     });
+
+    // Group rows that share the same `grupo` (produto) — preserve first-occurrence order
+    const orderMap = new Map<string, number>();
+    const buckets = new Map<string, MatrixRow[]>();
+    flat.forEach(row => {
+      if (!buckets.has(row.grupo)) {
+        orderMap.set(row.grupo, orderMap.size);
+        buckets.set(row.grupo, []);
+      }
+      buckets.get(row.grupo)!.push(row);
+    });
+
+    const grouped: MatrixRow[] = [];
+    [...buckets.entries()]
+      .sort((a, b) => (orderMap.get(a[0]) ?? 0) - (orderMap.get(b[0]) ?? 0))
+      .forEach(([grupo, rows]) => {
+        if (rows.length === 1) {
+          grouped.push(rows[0]);
+        } else {
+          const parentCounts = rows[0].counts.map((_, pi) =>
+            rows.reduce((s, r) => s + r.counts[pi], 0),
+          );
+          const parentTotal = rows.reduce((s, r) => s + r.total, 0);
+          grouped.push({
+            catIdx: rows[0].catIdx,
+            label: grupo.charAt(0).toUpperCase() + grupo.slice(1).toLowerCase(),
+            grupo,
+            counts: parentCounts,
+            total: parentTotal,
+            variants: [],
+            children: rows,
+          });
+        }
+      });
+
+    return grouped;
   }, [data, partnerList, cats]);
 
   const gaps = useMemo((): GapInfo[] => {

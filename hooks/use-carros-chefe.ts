@@ -23,6 +23,7 @@ export function buildCheckFn(def: Omit<CarroChefeDef, 'id'>) {
 
 export interface CatDefDynamic {
   label: string;
+  grupo: string;
   check: (r: { produto?: string | null; subtipo?: string | null; tipo_pedra?: string | null; lapidacao?: string | null }) => boolean;
 }
 
@@ -43,7 +44,7 @@ export function useCarrosChefe() {
   const cats: CatDefDynamic[] = useMemo(() => {
     // Fall back to hardcoded defaults while Firestore loads or if collection is empty
     const source = !loading && defs.length > 0 ? defs : (loading ? [] : CC_DEFAULTS.map((d, i) => ({ ...d, id: String(i) })));
-    return source.map(def => ({ label: def.label, check: buildCheckFn(def) }));
+    return source.map(def => ({ label: def.label, grupo: def.produto || def.label, check: buildCheckFn(def) }));
   }, [defs, loading]);
 
   const isCarroChefe = useMemo(() => {
