@@ -66,9 +66,9 @@ export default function PhotographyPage() {
     return {
       sacAbertos, pecasAberto, faltamFoto, faltamEdit,
       recSemana, recMes, finSemana, finMes,
-      bdPecas:     [{ label: 'Fab', value: pecasFab,     color: '#3b82f6' }, { label: '2nd', value: pecasSec, color: '#f97316' }, { label: 'Scrap', value: pecasScr, color: '#94a3b8' }],
-      bdFaltamFoto:[{ label: 'Fab', value: faltamFotoFab, color: '#3b82f6' }, { label: '2nd', value: faltamFotoSec, color: '#f97316' }, { label: 'Scrap', value: faltamFotoScr, color: '#94a3b8' }],
-      bdFaltamEdit:[{ label: 'Fab', value: faltamEditFab, color: '#3b82f6' }, { label: '2nd', value: faltamEditSec, color: '#f97316' }, { label: 'Scrap', value: faltamEditScr, color: '#94a3b8' }],
+      bdPecas:     [{ label: 'Fab', value: pecasFab,     color: '#3b82f6' }, { label: 'Second', value: pecasSec, color: '#f97316' }, { label: 'Scrap', value: pecasScr, color: '#94a3b8' }],
+      bdFaltamFoto:[{ label: 'Fab', value: faltamFotoFab, color: '#3b82f6' }, { label: 'Second', value: faltamFotoSec, color: '#f97316' }, { label: 'Scrap', value: faltamFotoScr, color: '#94a3b8' }],
+      bdFaltamEdit:[{ label: 'Fab', value: faltamEditFab, color: '#3b82f6' }, { label: 'Second', value: faltamEditSec, color: '#f97316' }, { label: 'Scrap', value: faltamEditScr, color: '#94a3b8' }],
     };
   }, [bags]);
 
