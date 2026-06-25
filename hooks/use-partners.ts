@@ -213,7 +213,7 @@ export function usePartnersPage() {
           const parentTotal = rows.reduce((s, r) => s + r.total, 0);
           grouped.push({
             catIdx: rows[0].catIdx,
-            label: grupo.charAt(0).toUpperCase() + grupo.slice(1).toLowerCase(),
+            label: rows[0].label,
             grupo,
             counts: parentCounts,
             total: parentTotal,

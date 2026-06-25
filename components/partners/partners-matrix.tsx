@@ -100,7 +100,7 @@ export function PartnersMatrix({ rows, partners }: PartnersMatrixProps) {
                 <span className="w-[11px] shrink-0" />
               )}
               {depth === 1 ? (
-                <><span className="opacity-30 mr-0.5">└</span> {toTitleCase(row.label)}</>
+                <><span className="opacity-30 mr-0.5">└</span> {row.label}</>
               ) : row.label}
             </span>
           </td>
