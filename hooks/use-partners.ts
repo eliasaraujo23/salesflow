@@ -223,7 +223,7 @@ export function usePartnersPage() {
         }
       });
 
-    return grouped;
+    return grouped.sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
   }, [data, partnerList, cats]);
 
   const gaps = useMemo((): GapInfo[] => {
