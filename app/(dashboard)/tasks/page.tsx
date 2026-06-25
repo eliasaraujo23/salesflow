@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { KPICard } from '@/components/kpi-card';
+import { FilterCard } from '@/components/tasks/filter-card';
 import { TaskItem } from '@/components/tasks/task-item';
 import { TaskFormModal } from '@/components/tasks/task-form-modal';
 import { TaskBulkBar } from '@/components/tasks/task-bulk-bar';
@@ -10,19 +10,7 @@ import { DeleteRequestBanner } from '@/components/tasks/delete-request-banner';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { OverdueModal } from '@/components/tasks/overdue-modal';
 import { useTasksPage } from '@/hooks/use-tasks-page';
-import {
-  ClipboardList, CheckCircle, Loader2, AlertTriangle,
-  Plus, Filter, ArrowDownUp,
-} from 'lucide-react';
-
-const FILTER_OPTIONS = [
-  { id: 'todas',      label: 'Todas' },
-  { id: 'hoje',       label: 'Hoje' },
-  { id: 'amanha',     label: 'Amanhã' },
-  { id: 'semana',     label: 'Esta semana' },
-  { id: 'atrasadas',  label: 'Atrasadas' },
-  { id: 'concluidas', label: 'Concluídas' },
-] as const;
+import { ClipboardList, Plus, Filter, ArrowDownUp } from 'lucide-react';
 
 const SORT_OPTIONS: { id: 'data' | 'prioridade' | 'responsavel'; label: string }[] = [
   { id: 'data',        label: 'Data' },
@@ -112,34 +100,14 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KPICard icon={ClipboardList} label="Total hoje"   value={stats.total}      subtext="tarefas para hoje"        variant="blue"  />
-        <KPICard icon={CheckCircle}   label="Concluídas"   value={stats.completed}  subtext={`${stats.pct}% do total`} variant="green" />
-        <KPICard icon={Loader2}       label="Em andamento" value={stats.inProgress} subtext="em progresso"             variant="amber" />
-        <KPICard icon={AlertTriangle} label="Atrasadas"    value={stats.late}       subtext="precisam de atenção"      variant="red"   />
-      </div>
-
-      {/* Filter chips */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {FILTER_OPTIONS.map((opt) => (
-          <button
-            key={opt.id}
-            onClick={() => { setActiveFilter(opt.id); clearSelection(); }}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap transition-all ${
-              activeFilter === opt.id
-                ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-sm'
-                : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:border-zinc-300 dark:hover:border-white/[0.12]'
-            }`}
-          >
-            {opt.label}
-            {filterCounts[opt.id] > 0 && (
-              <span className={`text-[10px] font-bold ${activeFilter === opt.id ? 'opacity-75' : 'opacity-50'}`}>
-                {filterCounts[opt.id]}
-              </span>
-            )}
-          </button>
-        ))}
+      {/* Filter cards (substituem KPIs + chips) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <FilterCard label="Todas"       count={filterCounts.todas}      subtext="tarefas em aberto"   variant="blue"   active={activeFilter === 'todas'}      onClick={() => { setActiveFilter('todas');      clearSelection(); }} />
+        <FilterCard label="Hoje"        count={filterCounts.hoje}       subtext="vencem hoje"         variant="indigo" active={activeFilter === 'hoje'}       onClick={() => { setActiveFilter('hoje');       clearSelection(); }} />
+        <FilterCard label="Amanhã"      count={filterCounts.amanha}     subtext="vencem amanhã"       variant="purple" active={activeFilter === 'amanha'}     onClick={() => { setActiveFilter('amanha');     clearSelection(); }} />
+        <FilterCard label="Esta semana" count={filterCounts.semana}     subtext="nos próximos 7 dias" variant="amber"  active={activeFilter === 'semana'}     onClick={() => { setActiveFilter('semana');     clearSelection(); }} />
+        <FilterCard label="Atrasadas"   count={filterCounts.atrasadas}  subtext="precisam de atenção" variant="red"    active={activeFilter === 'atrasadas'}  onClick={() => { setActiveFilter('atrasadas');  clearSelection(); }} />
+        <FilterCard label="Concluídas"  count={filterCounts.concluidas} subtext="finalizadas"         variant="green"  active={activeFilter === 'concluidas'} onClick={() => { setActiveFilter('concluidas'); clearSelection(); }} />
       </div>
 
       {/* Filter panel */}
