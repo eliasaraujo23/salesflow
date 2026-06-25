@@ -178,12 +178,22 @@ export function PhotoBagTable({ data, onEdit, filterStatus: filterStatusProp, on
     const buscaLc = busca.toLowerCase();
     return rows.filter((r) => {
       const st = r._status;
-      if (!filterStatus && st === 'finalizado') return false;
-      if (filterStatus === 'finalizado' && st !== 'finalizado') return false;
-      if (filterStatus && filterStatus !== 'todos' && filterStatus !== 'finalizado' && st !== filterStatus) return false;
-      if (buscaLc) {
-        if (!r._code.includes(buscaLc)) return false;
+      if (filterStatus === 'faltam-foto') {
+        if (st === 'finalizado') return false;
+        const qtd  = r.qtd_fabricado  + r.qtd_second  + r.qtd_scrap;
+        const foto = r.foto_fabricado + r.foto_second + r.foto_scrap;
+        if (qtd <= foto) return false;
+      } else if (filterStatus === 'faltam-edit') {
+        if (st === 'finalizado') return false;
+        const qtd  = r.qtd_fabricado  + r.qtd_second  + r.qtd_scrap;
+        const edit = r.edit_fabricado + r.edit_second + r.edit_scrap;
+        if (qtd <= edit) return false;
+      } else {
+        if (!filterStatus && st === 'finalizado') return false;
+        if (filterStatus === 'finalizado' && st !== 'finalizado') return false;
+        if (filterStatus && filterStatus !== 'todos' && filterStatus !== 'finalizado' && st !== filterStatus) return false;
       }
+      if (buscaLc && !r._code.includes(buscaLc)) return false;
       return true;
     });
   }, [rows, filterStatus, busca]);

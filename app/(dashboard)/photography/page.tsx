@@ -144,9 +144,9 @@ export default function PhotographyPage() {
           <KPICard compact icon={ImageIcon} label="Peças em Aberto"   value={stats.pecasAberto} subtext="total"           variant="amber"
             active={filterStatus === ''}      onClick={() => setFilter('')} />
           <KPICard compact icon={Camera}    label="Faltam Fotografar" value={stats.faltamFoto}  subtext="peças"           variant={stats.faltamFoto > 0 ? 'red' : 'green'}
-            active={filterStatus === 'aguardando'} onClick={() => setFilter('aguardando')} />
+            active={filterStatus === 'faltam-foto'} onClick={() => setFilter('faltam-foto')} />
           <KPICard compact icon={Pencil}    label="Faltam Editar"     value={stats.faltamEdit}  subtext="peças"           variant={stats.faltamEdit > 0 ? 'red' : 'green'}
-            active={filterStatus === 'andamento'}  onClick={() => setFilter('andamento')} />
+            active={filterStatus === 'faltam-edit'} onClick={() => setFilter('faltam-edit')} />
         </div>
       </div>
 
