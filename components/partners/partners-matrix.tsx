@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { type MatrixRow } from '@/hooks/use-partners';
 
@@ -18,8 +18,19 @@ interface PartnersMatrixProps {
 }
 
 export function PartnersMatrix({ rows, partners }: PartnersMatrixProps) {
-  const [openGroups, setOpenGroups]     = useState<Set<string>>(new Set());
+  const [openGroups, setOpenGroups]     = useState<Set<string>>(
+    () => new Set(rows.filter(r => (r.children?.length ?? 0) > 1).map(r => r.grupo))
+  );
   const [openVariants, setOpenVariants] = useState<Set<number>>(new Set());
+
+  // Abre automaticamente grupos novos quando rows mudar (ex: carros-chefe carregando do Firestore)
+  useEffect(() => {
+    setOpenGroups(prev => {
+      const next = new Set(prev);
+      rows.filter(r => (r.children?.length ?? 0) > 1).forEach(r => next.add(r.grupo));
+      return next;
+    });
+  }, [rows]);
 
   function toggleGroup(grupo: string) {
     setOpenGroups(prev => {
