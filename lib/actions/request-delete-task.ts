@@ -1,5 +1,5 @@
-import { doc, setDoc, deleteDoc, getDocs, query, collection, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { doc, setDoc, deleteDoc, getDocs, getDoc, query, collection, where } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase';
 
 export async function requestDeleteTaskAction(
   taskId: string | number,
@@ -26,7 +26,15 @@ export async function approveDeleteRequestAction(
   docId: string,
   taskId: string | number,
 ): Promise<{ success: boolean; error?: string }> {
+  const firebaseUser = auth.currentUser;
+  if (!firebaseUser) return { success: false, error: 'Não autenticado.' };
+
   try {
+    const profileSnap = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
+    if (!profileSnap.exists() || profileSnap.data().role !== 'admin') {
+      return { success: false, error: 'Permissão negada: apenas administradores podem aprovar exclusões.' };
+    }
+
     if (typeof taskId === 'string') {
       await deleteDoc(doc(db, 'tasks', taskId));
     } else {

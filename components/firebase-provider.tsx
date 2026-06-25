@@ -87,11 +87,16 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [deleteRequests, setDeleteRequests] = useState<DeleteRequest[]>([]);
   const sessionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const clearSessionCookie = () => {
+    document.cookie = 'sf_session=; path=/; max-age=0; SameSite=Strict';
+  };
+
   const forceExpire = () => {
     signOut(auth).catch(() => {});
     setCurrentUser(null);
     sessionStorage.removeItem('sf_user');
     localStorage.removeItem('sf_login_time');
+    clearSessionCookie();
     toast.info('Sessão expirada. Faça login novamente.');
   };
 
@@ -110,6 +115,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (Date.now() - loginTime >= SESSION_MAX_MS) {
         sessionStorage.removeItem('sf_user');
         localStorage.removeItem('sf_login_time');
+        document.cookie = 'sf_session=; path=/; max-age=0; SameSite=Strict';
       } else {
         setCurrentUser(JSON.parse(savedUser));
         scheduleExpiry(loginTime);
@@ -237,6 +243,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     sessionStorage.setItem('sf_user', JSON.stringify(user));
     const now = Date.now();
     localStorage.setItem('sf_login_time', now.toString());
+    document.cookie = `sf_session=1; path=/; max-age=${SESSION_MAX_MS / 1000}; SameSite=Strict`;
     scheduleExpiry(now);
   };
 
@@ -246,6 +253,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setCurrentUser(null);
     sessionStorage.removeItem('sf_user');
     localStorage.removeItem('sf_login_time');
+    clearSessionCookie();
     toast.success('Sessão encerrada com sucesso!');
   };
 
