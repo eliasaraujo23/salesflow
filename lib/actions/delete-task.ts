@@ -1,5 +1,5 @@
-import { authFetch, API_BASE } from '@/lib/auth-fetch';
-
+import { doc, deleteDoc, query, collection, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export interface ResponseApi<T> {
   httpStatus?: number;
@@ -10,17 +10,18 @@ export interface ResponseApi<T> {
 
 export async function deleteTaskAction(id: string | number): Promise<ResponseApi<null>> {
   try {
-    const res = await authFetch(`${API_BASE}/api/tasks/${id}`, {
-      method: 'DELETE',
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return { httpStatus: res.status, message: err.error || 'Erro ao deletar tarefa' };
+    if (typeof id === 'string') {
+      await deleteDoc(doc(db, 'tasks', id));
+    } else {
+      const q = query(collection(db, 'tasks'), where('id', '==', id));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        await deleteDoc(snap.docs[0].ref);
+      }
     }
-
     return { httpStatus: 200, data: null };
-  } catch (error: any) {
-    return { httpStatus: 500, message: error.message || 'Erro ao deletar tarefa' };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Erro ao deletar tarefa';
+    return { httpStatus: 500, message: msg };
   }
 }
