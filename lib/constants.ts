@@ -11,7 +11,6 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { label: 'Minhas Tarefas',    href: '/tasks',         icon: 'ti-home-2',          section: 'Tarefas',     permission: 'minhas' },
   { label: 'Kanban',            href: '/kanban',         icon: 'ti-layout-kanban',   section: 'Tarefas',     permission: 'kanban' },
   { label: 'Calendário',        href: '/calendar',       icon: 'ti-calendar',        section: 'Tarefas',     permission: 'calendario' },
-  { label: 'Equipe',            href: '/team',           icon: 'ti-users',           section: 'Tarefas',     permission: 'equipe' },
   { label: 'Relatórios',        href: '/reports',        icon: 'ti-file-analytics',  section: 'Análise',     permission: 'relatorios' },
   { label: 'Controle de Metais',href: '/metals',         icon: 'ti-weight',          section: 'Estoque',     permission: 'metais' },
   { label: 'Fabricações JF',    href: '/fabricacoes-jf', icon: 'ti-hammer',          section: 'Estoque',     permission: 'fabricacoes' },
