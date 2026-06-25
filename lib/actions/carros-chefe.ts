@@ -19,17 +19,28 @@ export type CarroChefeInput = Omit<CarroChefeDef, 'id'>;
 const COL = 'carros_chefe';
 
 export const CC_DEFAULTS: CarroChefeInput[] = [
-  { label: 'Anel Solitário',      produto: 'ANEL',            subtipo: 'SOLITÁRIO',    tipo_pedra: '', lapidacao: '', order: 1 },
-  { label: 'Brinco Solitário',    produto: 'BRINCO',          subtipo: 'SOLITÁRIO',    tipo_pedra: '', lapidacao: '', order: 2 },
-  { label: 'Ponto de Luz',        produto: '',                subtipo: 'PONTO DE LUZ', tipo_pedra: '', lapidacao: '', order: 3 },
-  { label: 'Meia Aliança',        produto: '',                subtipo: 'MEIA ALIANÇA', tipo_pedra: '', lapidacao: '', order: 4 },
-  { label: 'Colar Riviera',       produto: 'COLAR',           subtipo: 'RIVIERA',      tipo_pedra: '', lapidacao: '', order: 5 },
-  { label: 'Pulseira Riviera',    produto: 'PULSEIRA',        subtipo: 'RIVIERA',      tipo_pedra: '', lapidacao: '', order: 6 },
-  { label: 'Aliança Riviera',     produto: 'ALIANÇA RIVIERA', subtipo: '',             tipo_pedra: '', lapidacao: '', order: 7 },
-  { label: 'Anel Maracanã',       produto: 'ANEL',            subtipo: 'MARACANÃ',     tipo_pedra: '', lapidacao: '', order: 8 },
-  { label: 'Colar Maracanã',      produto: 'COLAR',           subtipo: 'MARACANÃ',     tipo_pedra: '', lapidacao: '', order: 9 },
-  { label: 'Brinco Maracanã',     produto: 'BRINCO',          subtipo: 'MARACANÃ',     tipo_pedra: '', lapidacao: '', order: 10 },
-  { label: 'Pingente P/ Riviera', produto: 'PINGENTE',        subtipo: 'PARA RIVIERA', tipo_pedra: '', lapidacao: '', order: 11 },
+  // Anéis
+  { label: 'Anel Solitário',              produto: 'ANEL',            subtipo: 'SOLITÁRIO',    tipo_pedra: '', lapidacao: '', order: 1  },
+  { label: 'Anel Maracanã',               produto: 'ANEL',            subtipo: 'MARACANÃ',     tipo_pedra: '', lapidacao: '', order: 2  },
+  // Brincos
+  { label: 'Brinco Solitário',            produto: 'BRINCO',          subtipo: 'SOLITÁRIO',    tipo_pedra: '', lapidacao: '', order: 3  },
+  { label: 'Brinco Maracanã',             produto: 'BRINCO',          subtipo: 'MARACANÃ',     tipo_pedra: '', lapidacao: '', order: 4  },
+  // Categorias transversais
+  { label: 'Ponto de Luz',                produto: '',                subtipo: 'PONTO DE LUZ', tipo_pedra: '', lapidacao: '', order: 5  },
+  { label: 'Meia Aliança',                produto: '',                subtipo: 'MEIA ALIANÇA', tipo_pedra: '', lapidacao: '', order: 6  },
+  // Colares
+  { label: 'Colar Riviera',               produto: 'COLAR',           subtipo: 'RIVIERA',      tipo_pedra: '', lapidacao: '', order: 7  },
+  { label: 'Colar Maracanã',              produto: 'COLAR',           subtipo: 'MARACANÃ',     tipo_pedra: '', lapidacao: '', order: 8  },
+  // Pulseiras
+  { label: 'Pulseira Riviera',            produto: 'PULSEIRA',        subtipo: 'RIVIERA',      tipo_pedra: '', lapidacao: '', order: 9  },
+  // Aliança Riviera — cada subtipo é um carro-chefe
+  { label: 'Aliança Riviera',             produto: 'ALIANÇA RIVIERA', subtipo: 'RIVIERA',      tipo_pedra: '', lapidacao: '', order: 10 },
+  { label: 'Aliança Riviera Ilusion',     produto: 'ALIANÇA RIVIERA', subtipo: 'ILUSION',      tipo_pedra: '', lapidacao: '', order: 11 },
+  { label: 'Aliança Riviera Voltinha',    produto: 'ALIANÇA RIVIERA', subtipo: 'VOLTINHA',     tipo_pedra: '', lapidacao: '', order: 12 },
+  { label: 'Aliança Riviera Gota',        produto: 'ALIANÇA RIVIERA', subtipo: 'GOTA',         tipo_pedra: '', lapidacao: '', order: 13 },
+  { label: 'Aliança Riviera Cravejado',   produto: 'ALIANÇA RIVIERA', subtipo: 'CRAVEJADO',    tipo_pedra: '', lapidacao: '', order: 14 },
+  // Pingente
+  { label: 'Pingente P/ Riviera',         produto: 'PINGENTE',        subtipo: 'PARA RIVIERA', tipo_pedra: '', lapidacao: '', order: 15 },
 ];
 
 export async function addCarroChefeAction(data: CarroChefeInput): Promise<void> {
