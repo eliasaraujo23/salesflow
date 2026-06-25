@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { ImageIcon, Package, RefreshCw, Plus } from 'lucide-react';
+import { Camera, ImageIcon, Pencil, Package, RefreshCw, Plus } from 'lucide-react';
 import { usePhotoBags } from '@/hooks/use-photo-bags';
 import { KPICard } from '@/components/kpi-card';
 import { PhotoBagTable } from '@/components/photography/photo-bag-table';
