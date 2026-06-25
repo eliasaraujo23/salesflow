@@ -136,6 +136,8 @@ interface Row extends PhotoBag {
 interface PhotoBagTableProps {
   data: PhotoBag[];
   onEdit: (bag: PhotoBag, code: string) => void;
+  filterStatus?: string;
+  onFilterStatusChange?: (value: string) => void;
 }
 
 const FILTER_OPTIONS = [
@@ -146,8 +148,10 @@ const FILTER_OPTIONS = [
   { value: 'todos',      label: 'Todos (incl. finalizados)' },
 ];
 
-export function PhotoBagTable({ data, onEdit }: PhotoBagTableProps) {
-  const [filterStatus, setFilterStatus] = useState('');
+export function PhotoBagTable({ data, onEdit, filterStatus: filterStatusProp, onFilterStatusChange }: PhotoBagTableProps) {
+  const [filterStatusLocal, setFilterStatusLocal] = useState('');
+  const filterStatus    = filterStatusProp    !== undefined ? filterStatusProp    : filterStatusLocal;
+  const setFilterStatus = onFilterStatusChange !== undefined ? onFilterStatusChange : setFilterStatusLocal;
   const [busca, setBusca] = useState('');
   const [sorting, setSorting] = useState<SortingState>([{ id: 'codigo', desc: true }]);
   const deleteMutation = useDeletePhotoBag();

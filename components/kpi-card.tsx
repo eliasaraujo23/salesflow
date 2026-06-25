@@ -11,6 +11,8 @@ interface KPICardProps {
   variant?: 'blue' | 'green' | 'amber' | 'red' | 'purple';
   compact?: boolean;
   className?: string;
+  onClick?: () => void;
+  active?: boolean;
 }
 
 const VARIANTS = {
@@ -19,38 +21,58 @@ const VARIANTS = {
     value:   'text-indigo-600 dark:text-indigo-400',
     iconBg:  'bg-indigo-50 dark:bg-indigo-500/10',
     icon:    'text-indigo-600 dark:text-indigo-400',
+    ring:    'ring-indigo-400 dark:ring-indigo-500',
+    activeBg: 'bg-indigo-50/60 dark:bg-indigo-500/[0.07]',
   },
   green: {
     strip:   'bg-emerald-500',
     value:   'text-emerald-600 dark:text-emerald-400',
     iconBg:  'bg-emerald-50 dark:bg-emerald-500/10',
     icon:    'text-emerald-600 dark:text-emerald-400',
+    ring:    'ring-emerald-400 dark:ring-emerald-500',
+    activeBg: 'bg-emerald-50/60 dark:bg-emerald-500/[0.07]',
   },
   amber: {
     strip:   'bg-amber-500',
     value:   'text-amber-600 dark:text-amber-400',
     iconBg:  'bg-amber-50 dark:bg-amber-500/10',
     icon:    'text-amber-600 dark:text-amber-400',
+    ring:    'ring-amber-400 dark:ring-amber-500',
+    activeBg: 'bg-amber-50/60 dark:bg-amber-500/[0.07]',
   },
   red: {
     strip:   'bg-red-500',
     value:   'text-red-600 dark:text-red-400',
     iconBg:  'bg-red-50 dark:bg-red-500/10',
     icon:    'text-red-600 dark:text-red-400',
+    ring:    'ring-red-400 dark:ring-red-500',
+    activeBg: 'bg-red-50/60 dark:bg-red-500/[0.07]',
   },
   purple: {
     strip:   'bg-violet-500',
     value:   'text-violet-600 dark:text-violet-400',
     iconBg:  'bg-violet-50 dark:bg-violet-500/10',
     icon:    'text-violet-600 dark:text-violet-400',
+    ring:    'ring-violet-400 dark:ring-violet-500',
+    activeBg: 'bg-violet-50/60 dark:bg-violet-500/[0.07]',
   },
 } as const;
 
-export function KPICard({ icon: Icon, label, value, subtext, variant = 'blue', compact = false, className = '' }: KPICardProps) {
+export function KPICard({ icon: Icon, label, value, subtext, variant = 'blue', compact = false, className = '', onClick, active }: KPICardProps) {
   const v = VARIANTS[variant];
+  const Tag = onClick ? 'button' : 'div';
 
   return (
-    <div className={`relative overflow-hidden rounded-xl border border-zinc-200 dark:border-white/[0.13] bg-white dark:bg-zinc-900/60 hover:shadow-lg dark:hover:shadow-black/20 hover:border-zinc-300 dark:hover:border-white/[0.10] transition-all duration-200 ${className}`}>
+    <Tag
+      onClick={onClick}
+      className={`relative overflow-hidden rounded-xl border text-left w-full transition-all duration-200
+        ${active
+          ? `${v.activeBg} border-transparent ring-2 ${v.ring} shadow-md`
+          : 'bg-white dark:bg-zinc-900/60 border-zinc-200 dark:border-white/[0.13] hover:shadow-lg dark:hover:shadow-black/20 hover:border-zinc-300 dark:hover:border-white/[0.10]'
+        }
+        ${onClick ? 'cursor-pointer' : ''}
+        ${className}`}
+    >
       <div className={`absolute top-0 inset-x-0 h-[3px] ${v.strip}`} />
 
       <div className={compact ? 'px-3 pt-4 pb-3' : 'px-5 pt-6 pb-5'}>
@@ -75,6 +97,6 @@ export function KPICard({ icon: Icon, label, value, subtext, variant = 'blue', c
           </div>
         )}
       </div>
-    </div>
+    </Tag>
   );
 }
