@@ -3,7 +3,6 @@
 import React from 'react';
 import { RefreshCw } from 'lucide-react';
 import { usePartnersPage } from '@/hooks/use-partners';
-import { PartnersKpis } from '@/components/partners/partners-kpis';
 import { PartnersChips } from '@/components/partners/partners-chips';
 import { PartnersMatrix } from '@/components/partners/partners-matrix';
 import { PartnersProfile } from '@/components/partners/partners-profile';
@@ -67,14 +66,6 @@ export default function PartnersPage() {
           Atualizar
         </button>
       </div>
-
-      {/* KPIs */}
-      <PartnersKpis
-        partners={kpis.partners}
-        pecasEmCampo={kpis.pecasEmCampo}
-        vencidas={kpis.vencidas}
-        valorEmCampo={kpis.valorEmCampo}
-      />
 
       {/* Partner filter chips */}
       <PartnersChips
