@@ -66,7 +66,12 @@ function ReportCard({ icon: Icon, title, description, color, reports }: ReportCa
 
 /* ─── Page ─── */
 export default function ReportsPage() {
-  const { tasks, metals } = useFirebase();
+  const { tasks, metals, users } = useFirebase();
+
+  const personMap = Object.fromEntries(
+    users.filter(u => u.personKey).map(u => [u.personKey, u.name])
+  );
+  function resolvePerson(p: string) { return personMap[p] ?? p; }
 
   /* Tarefas */
   async function exportTarefas() {
@@ -74,7 +79,7 @@ export default function ReportsPage() {
       id:          String(t.id),
       titulo:      t.title,
       descricao:   t.description ?? '',
-      responsavel: t.person,
+      responsavel: resolvePerson(t.person),
       prioridade:  t.priority,
       status:      t.status,
       prazo:       t.due,
