@@ -22,34 +22,56 @@ export default function PhotographyPage() {
   const bags = data ?? [];
 
   const stats = useMemo(() => {
-    // Em Aberto — bags not yet finalized
-    const openBags    = bags.filter(b => !b.data_finalizacao);
-    const sacAbertos  = openBags.length;
-    const pecasAberto = openBags.reduce((a, b) => a + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
-    const fotoAberto  = openBags.reduce((a, b) => a + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
-    const editAberto  = openBags.reduce((a, b) => a + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
-    const faltamFoto  = Math.max(0, pecasAberto - fotoAberto);
-    const faltamEdit  = Math.max(0, pecasAberto - editAberto);
-
     // Date boundaries
     const now = new Date();
     const dow = now.getDay();
     const monday = new Date(now);
     monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
     monday.setHours(0, 0, 0, 0);
-    const mondayStr     = monday.toISOString().slice(0, 10);
-    const firstOfMonth  = `${now.toISOString().slice(0, 7)}-01`;
+    const mondayStr    = monday.toISOString().slice(0, 10);
+    const firstOfMonth = `${now.toISOString().slice(0, 4)}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 
-    // Produção — by data_recebimento (what was worked on)
-    const weekBags  = bags.filter(b => (b.data_recebimento ?? '') >= mondayStr);
-    const monthBags = bags.filter(b => (b.data_recebimento ?? '') >= firstOfMonth);
+    // Em Aberto — bags not yet finalized
+    const openBags    = bags.filter(b => !b.data_finalizacao);
+    const sacAbertos  = openBags.length;
+    const pecasAberto = openBags.reduce((s, b) => s + b.qtd_fabricado  + b.qtd_second  + b.qtd_scrap,  0);
+    const fotoAberto  = openBags.reduce((s, b) => s + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
+    const editAberto  = openBags.reduce((s, b) => s + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
+    // Faltam: soma de (qtd - foto/edit) por saquinho aberto, garantindo mínimo 0 por saquinho
+    const faltamFoto = openBags.reduce((s, b) => {
+      const qtd  = b.qtd_fabricado  + b.qtd_second  + b.qtd_scrap;
+      const foto = b.foto_fabricado + b.foto_second + b.foto_scrap;
+      return s + Math.max(0, qtd - foto);
+    }, 0);
+    const faltamEdit = openBags.reduce((s, b) => {
+      const qtd  = b.qtd_fabricado  + b.qtd_second  + b.qtd_scrap;
+      const edit = b.edit_fabricado + b.edit_second + b.edit_scrap;
+      return s + Math.max(0, qtd - edit);
+    }, 0);
 
-    const pecasSemana = weekBags.reduce((a, b) => a + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
-    const pecasMes    = monthBags.reduce((a, b) => a + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
-    const fotoSemana  = weekBags.reduce((a, b) => a + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
-    const fotoMes     = monthBags.reduce((a, b) => a + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
-    const editSemana  = weekBags.reduce((a, b) => a + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
-    const editMes     = monthBags.reduce((a, b) => a + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
+    // Peças Recebidas — by data_recebimento
+    const recSemana = bags
+      .filter(b => (b.data_recebimento ?? '').slice(0, 10) >= mondayStr)
+      .reduce((s, b) => s + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
+    const recMes = bags
+      .filter(b => (b.data_recebimento ?? '').slice(0, 10) >= firstOfMonth)
+      .reduce((s, b) => s + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
+
+    // Fotografadas — by data_foto (when she recorded the photos were done)
+    const fotoSemana = bags
+      .filter(b => b.data_foto && b.data_foto.slice(0, 10) >= mondayStr)
+      .reduce((s, b) => s + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
+    const fotoMes = bags
+      .filter(b => b.data_foto && b.data_foto.slice(0, 10) >= firstOfMonth)
+      .reduce((s, b) => s + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
+
+    // Editadas — by data_edicao (when she recorded the edits were done)
+    const editSemana = bags
+      .filter(b => b.data_edicao && b.data_edicao.slice(0, 10) >= mondayStr)
+      .reduce((s, b) => s + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
+    const editMes = bags
+      .filter(b => b.data_edicao && b.data_edicao.slice(0, 10) >= firstOfMonth)
+      .reduce((s, b) => s + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
 
     // Finalizados — by data_finalizacao
     const finSemana = bags.filter(b => b.data_finalizacao && b.data_finalizacao.slice(0, 10) >= mondayStr).length;
@@ -57,7 +79,7 @@ export default function PhotographyPage() {
 
     return {
       sacAbertos, pecasAberto, faltamFoto, faltamEdit,
-      pecasSemana, pecasMes, fotoSemana, fotoMes, editSemana, editMes, finSemana, finMes,
+      recSemana, recMes, fotoSemana, fotoMes, editSemana, editMes, finSemana, finMes,
     };
   }, [bags]);
 
@@ -136,13 +158,13 @@ export default function PhotographyPage() {
           <div className="flex-1 h-px bg-zinc-100 dark:bg-white/[0.06]" />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KPICard compact icon={ImageIcon} label="Peças Recebidas" value={stats.pecasSemana} subtext={`${stats.pecasMes} no mês`}           variant="blue"
+          <KPICard compact icon={ImageIcon} label="Peças Recebidas" value={stats.recSemana}  subtext={`${stats.recMes} no mês`}             variant="blue"
             active={filterStatus === 'todos'}      onClick={() => setFilter('todos')} />
-          <KPICard compact icon={Camera}    label="Fotografadas"    value={stats.fotoSemana}  subtext={`${stats.fotoMes} no mês`}             variant="blue"
+          <KPICard compact icon={Camera}    label="Fotografadas"    value={stats.fotoSemana} subtext={`${stats.fotoMes} no mês`}              variant="blue"
             active={filterStatus === 'andamento'}  onClick={() => setFilter('andamento')} />
-          <KPICard compact icon={Pencil}    label="Editadas"        value={stats.editSemana}  subtext={`${stats.editMes} no mês`}             variant="blue"
+          <KPICard compact icon={Pencil}    label="Editadas"        value={stats.editSemana} subtext={`${stats.editMes} no mês`}              variant="blue"
             active={filterStatus === 'andamento'}  onClick={() => setFilter('andamento')} />
-          <KPICard compact icon={Package}   label="Finalizados"     value={stats.finSemana}   subtext={`${stats.finMes} saquinhos no mês`}    variant="green"
+          <KPICard compact icon={Package}   label="Finalizados"     value={stats.finSemana}  subtext={`${stats.finMes} saquinhos no mês`}     variant="green"
             active={filterStatus === 'finalizado'} onClick={() => setFilter('finalizado')} />
         </div>
       </div>

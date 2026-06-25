@@ -20,6 +20,8 @@ const schema = z.object({
   qtd_scrap:      z.number().min(0),
   foto_scrap:     z.number().min(0),
   edit_scrap:     z.number().min(0),
+  data_foto:        z.string().optional(),
+  data_edicao:      z.string().optional(),
   data_finalizacao: z.string().optional(),
   observacao:       z.string().optional(),
 });
@@ -77,6 +79,8 @@ export function PhotoBagDialog({ bag, code, onClose }: PhotoBagDialogProps) {
       qtd_scrap:      bag?.qtd_scrap      ?? 0,
       foto_scrap:     bag?.foto_scrap     ?? 0,
       edit_scrap:     bag?.edit_scrap     ?? 0,
+      data_foto:        bag?.data_foto?.slice(0, 10)        ?? '',
+      data_edicao:      bag?.data_edicao?.slice(0, 10)      ?? '',
       data_finalizacao: bag?.data_finalizacao?.slice(0, 10) ?? '',
       observacao:       bag?.observacao ?? '',
     },
@@ -85,8 +89,10 @@ export function PhotoBagDialog({ bag, code, onClose }: PhotoBagDialogProps) {
   const onSubmit = async (values: FormValues) => {
     const payload = {
       ...values,
+      data_foto:        values.data_foto        || null,
+      data_edicao:      values.data_edicao      || null,
       data_finalizacao: values.data_finalizacao || null,
-      observacao: values.observacao || null,
+      observacao:       values.observacao       || null,
     };
 
     if (isEdit && bag) {
@@ -128,6 +134,14 @@ export function PhotoBagDialog({ bag, code, onClose }: PhotoBagDialogProps) {
               <label className={labelCls}>Data Recebimento</label>
               <input type="date" {...register('data_recebimento')} className={`${inputCls} text-left`} />
               {errors.data_recebimento && <p className="text-xs text-red-500 mt-1">{errors.data_recebimento.message}</p>}
+            </div>
+            <div>
+              <label className={labelCls}>Data Fotografada <span className="font-normal opacity-50">(opcional)</span></label>
+              <input type="date" {...register('data_foto')} className={`${inputCls} text-left`} />
+            </div>
+            <div>
+              <label className={labelCls}>Data Editada <span className="font-normal opacity-50">(opcional)</span></label>
+              <input type="date" {...register('data_edicao')} className={`${inputCls} text-left`} />
             </div>
             <div>
               <label className={labelCls}>Data Finalização <span className="font-normal opacity-50">(opcional)</span></label>

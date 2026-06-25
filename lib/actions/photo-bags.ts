@@ -13,9 +13,11 @@ const photoBagSchema = z.object({
   qtd_scrap: z.coerce.number().default(0),
   foto_scrap: z.coerce.number().default(0),
   edit_scrap: z.coerce.number().default(0),
+  data_foto:        z.string().nullable().optional(),
+  data_edicao:      z.string().nullable().optional(),
   data_finalizacao: z.string().nullable().optional(),
-  observacao: z.string().nullable().optional(),
-  created_at: z.string().nullable().optional(),
+  observacao:       z.string().nullable().optional(),
+  created_at:       z.string().nullable().optional(),
 });
 
 export type PhotoBag = z.infer<typeof photoBagSchema>;
