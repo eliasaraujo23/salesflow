@@ -136,14 +136,6 @@ export function PhotoBagDialog({ bag, code, onClose }: PhotoBagDialogProps) {
               {errors.data_recebimento && <p className="text-xs text-red-500 mt-1">{errors.data_recebimento.message}</p>}
             </div>
             <div>
-              <label className={labelCls}>Data Fotografada <span className="font-normal opacity-50">(opcional)</span></label>
-              <input type="date" {...register('data_foto')} className={`${inputCls} text-left`} />
-            </div>
-            <div>
-              <label className={labelCls}>Data Editada <span className="font-normal opacity-50">(opcional)</span></label>
-              <input type="date" {...register('data_edicao')} className={`${inputCls} text-left`} />
-            </div>
-            <div>
               <label className={labelCls}>Data Finalização <span className="font-normal opacity-50">(opcional)</span></label>
               <input type="date" {...register('data_finalizacao')} className={`${inputCls} text-left`} />
             </div>

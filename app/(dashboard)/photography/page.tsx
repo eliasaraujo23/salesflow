@@ -57,21 +57,11 @@ export default function PhotographyPage() {
       .filter(b => (b.data_recebimento ?? '').slice(0, 10) >= firstOfMonth)
       .reduce((s, b) => s + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
 
-    // Fotografadas — by data_foto (when she recorded the photos were done)
-    const fotoSemana = bags
-      .filter(b => b.data_foto && b.data_foto.slice(0, 10) >= mondayStr)
-      .reduce((s, b) => s + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
-    const fotoMes = bags
-      .filter(b => b.data_foto && b.data_foto.slice(0, 10) >= firstOfMonth)
-      .reduce((s, b) => s + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
-
-    // Editadas — by data_edicao (when she recorded the edits were done)
-    const editSemana = bags
-      .filter(b => b.data_edicao && b.data_edicao.slice(0, 10) >= mondayStr)
-      .reduce((s, b) => s + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
-    const editMes = bags
-      .filter(b => b.data_edicao && b.data_edicao.slice(0, 10) >= firstOfMonth)
-      .reduce((s, b) => s + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
+    // Fotografadas / Editadas — total acumulado nos saquinhos abertos
+    const fotoSemana = openBags.reduce((s, b) => s + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
+    const fotoMes    = fotoAberto; // mesmo valor — total aberto
+    const editSemana = openBags.reduce((s, b) => s + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
+    const editMes    = editAberto;
 
     // Finalizados — by data_finalizacao
     const finSemana = bags.filter(b => b.data_finalizacao && b.data_finalizacao.slice(0, 10) >= mondayStr).length;
@@ -160,9 +150,9 @@ export default function PhotographyPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard compact icon={ImageIcon} label="Peças Recebidas" value={stats.recSemana}  subtext={`${stats.recMes} no mês`}             variant="blue"
             active={filterStatus === 'todos'}      onClick={() => setFilter('todos')} />
-          <KPICard compact icon={Camera}    label="Fotografadas"    value={stats.fotoSemana} subtext={`${stats.fotoMes} no mês`}              variant="blue"
+          <KPICard compact icon={Camera}    label="Fotografadas"    value={stats.fotoSemana} subtext="peças em aberto"  variant="blue"
             active={filterStatus === 'tem-foto'}   onClick={() => setFilter('tem-foto')} />
-          <KPICard compact icon={Pencil}    label="Editadas"        value={stats.editSemana} subtext={`${stats.editMes} no mês`}              variant="blue"
+          <KPICard compact icon={Pencil}    label="Editadas"        value={stats.editSemana} subtext="peças em aberto"  variant="blue"
             active={filterStatus === 'tem-edit'}   onClick={() => setFilter('tem-edit')} />
           <KPICard compact icon={Package}   label="Finalizados"     value={stats.finSemana}  subtext={`${stats.finMes} saquinhos no mês`}     variant="green"
             active={filterStatus === 'finalizado'} onClick={() => setFilter('finalizado')} />
