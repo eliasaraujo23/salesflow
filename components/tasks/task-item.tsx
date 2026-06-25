@@ -20,9 +20,10 @@ interface TaskItemProps {
   onComplete: (task: Task) => void;
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
+  resolvePerson?: (person: string) => string;
 }
 
-export function TaskItem({ task, pendingDelete, selected, onSelect, onComplete, onEdit, onDelete }: TaskItemProps) {
+export function TaskItem({ task, pendingDelete, selected, onSelect, onComplete, onEdit, onDelete, resolvePerson }: TaskItemProps) {
   const cfg    = PRIORITY[task.priority] ?? PRIORITY._none;
   const isDone = task.status === 'done';
   const isLate = task.late > 0 && !isDone;
@@ -87,7 +88,9 @@ export function TaskItem({ task, pendingDelete, selected, onSelect, onComplete, 
               </span>
             )}
             {task.person && (
-              <span className="text-[11px] text-zinc-400 dark:text-zinc-500">· {task.person}</span>
+              <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                · {resolvePerson ? resolvePerson(task.person) : task.person}
+              </span>
             )}
           </div>
           {task.description && !isDone && (

@@ -38,7 +38,7 @@ export default function TasksPage() {
     toggleTaskDone, saveNewTask, saveEditTask,
     adminDeleteTask, deleteTaskDirect, requestDelete,
     approveDelete, rejectDelete,
-    scopedTasks,
+    scopedTasks, resolvePerson,
   } = useTasksPage();
 
   const pendingDeleteIds = new Set(deleteRequests.map((r) => String(r.taskId)));
@@ -194,6 +194,7 @@ export default function TasksPage() {
                 onComplete={toggleTaskDone}
                 onEdit={setEditingTask}
                 onDelete={deleteTaskDirect}
+                resolvePerson={resolvePerson}
               />
             ))}
           </div>

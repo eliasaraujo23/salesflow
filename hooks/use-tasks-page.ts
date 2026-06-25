@@ -50,6 +50,16 @@ export function useTasksPage() {
   const [pendingConfirm, setPendingConfirm]   = useState<PendingConfirm>(null);
   const [selectedIds, setSelectedIds]         = useState<Set<string>>(new Set());
 
+  const personMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    users.forEach(u => { if (u.personKey) map[u.personKey] = u.name; });
+    return map;
+  }, [users]);
+
+  function resolvePerson(person: string): string {
+    return personMap[person] ?? person;
+  }
+
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -315,5 +325,6 @@ export function useTasksPage() {
     requestDelete,
     approveDelete,
     rejectDelete,
+    resolvePerson,
   };
 }
