@@ -60,12 +60,19 @@ export default function PhotographyPage() {
     // Peças Finalizadas — by data_finalizacao
     const finBagsSemana = bags.filter(b => b.data_finalizacao && b.data_finalizacao.slice(0, 10) >= mondayStr);
     const finBagsMes    = bags.filter(b => b.data_finalizacao && b.data_finalizacao.slice(0, 10) >= firstOfMonth);
-    const finSemana = finBagsSemana.reduce((s, b) => s + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
-    const finMes    = finBagsMes.reduce((s, b) => s + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
+    const finSemana    = finBagsSemana.reduce((s, b) => s + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
+    const finMes       = finBagsMes.reduce((s, b) => s + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
+    const sacFinSemana = finBagsSemana.length;
+    const sacFinMes    = finBagsMes.length;
+
+    // Em Andamento
+    const andamentoBags  = openBags.filter(b => (b.foto_fabricado + b.foto_second + b.foto_scrap) > 0 || (b.edit_fabricado + b.edit_second + b.edit_scrap) > 0);
+    const sacAndamento   = andamentoBags.length;
+    const pecasAndamento = andamentoBags.reduce((s, b) => s + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
 
     return {
       sacAbertos, pecasAberto, faltamFoto, faltamEdit,
-      recSemana, recMes, finSemana, finMes,
+      recSemana, recMes, finSemana, finMes, sacFinSemana, sacFinMes, sacAndamento, pecasAndamento,
       bdPecas:     [{ label: 'Fab', value: pecasFab,     color: '#3b82f6' }, { label: 'Second', value: pecasSec, color: '#f97316' }, { label: 'Scrap', value: pecasScr, color: '#94a3b8' }],
       bdFaltamFoto:[{ label: 'Fab', value: faltamFotoFab, color: '#3b82f6' }, { label: 'Second', value: faltamFotoSec, color: '#f97316' }, { label: 'Scrap', value: faltamFotoScr, color: '#94a3b8' }],
       bdFaltamEdit:[{ label: 'Fab', value: faltamEditFab, color: '#3b82f6' }, { label: 'Second', value: faltamEditSec, color: '#f97316' }, { label: 'Scrap', value: faltamEditScr, color: '#94a3b8' }],
@@ -146,10 +153,14 @@ export default function PhotographyPage() {
           <span className="text-[10px] text-zinc-400 dark:text-zinc-600">(valor = semana · subtext = mês)</span>
           <div className="flex-1 h-px bg-zinc-100 dark:bg-white/[0.06]" />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <KPICard compact icon={ImageIcon} label="Peças Recebidas"  value={stats.recSemana} subtext={`${stats.recMes} no mês`}   variant="blue"
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <KPICard compact icon={ImageIcon} label="Peças Recebidas"    value={stats.recSemana}    subtext={`${stats.recMes} no mês`}            variant="blue"
             active={filterStatus === 'todos'}      onClick={() => setFilter('todos')} />
-          <KPICard compact icon={Package}   label="Peças Finalizadas" value={stats.finSemana} subtext={`${stats.finMes} no mês`}  variant="green"
+          <KPICard compact icon={Camera}    label="Em Andamento"       value={stats.sacAndamento} subtext={`${stats.pecasAndamento} peças`}      variant="purple"
+            active={filterStatus === 'andamento'}  onClick={() => setFilter('andamento')} />
+          <KPICard compact icon={Package}   label="Peças Finalizadas"  value={stats.finSemana}    subtext={`${stats.finMes} no mês`}             variant="green"
+            active={filterStatus === 'finalizado'} onClick={() => setFilter('finalizado')} />
+          <KPICard compact icon={Package}   label="Saquinhos Finalizados" value={stats.sacFinSemana} subtext={`${stats.sacFinMes} no mês`}       variant="green"
             active={filterStatus === 'finalizado'} onClick={() => setFilter('finalizado')} />
         </div>
       </div>
