@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Calendar, Check, Pencil } from 'lucide-react';
+import { Calendar, Check, Pencil, Trash2, CheckCircle2 } from 'lucide-react';
 import { type Task } from '@/components/firebase-provider';
 
 const PRIORITY: Record<string, { label: string; strip: string; pill: string }> = {
@@ -15,31 +15,46 @@ const PRIORITY: Record<string, { label: string; strip: string; pill: string }> =
 interface TaskItemProps {
   task: Task;
   pendingDelete: boolean;
-  onToggleDone: (task: Task) => void;
+  selected: boolean;
+  onSelect: (task: Task) => void;
+  onComplete: (task: Task) => void;
   onEdit: (task: Task) => void;
+  onDelete: (task: Task) => void;
 }
 
-export function TaskItem({ task, pendingDelete, onToggleDone, onEdit }: TaskItemProps) {
+export function TaskItem({ task, pendingDelete, selected, onSelect, onComplete, onEdit, onDelete }: TaskItemProps) {
   const cfg    = PRIORITY[task.priority] ?? PRIORITY._none;
   const isDone = task.status === 'done';
   const isLate = task.late > 0 && !isDone;
 
   return (
-    <div className="flex items-stretch hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors group">
+    <div className={`flex items-stretch transition-colors group ${
+      selected
+        ? 'bg-indigo-50/60 dark:bg-indigo-500/[0.07]'
+        : 'hover:bg-zinc-50 dark:hover:bg-white/[0.02]'
+    }`}>
       <div className={`w-[3px] shrink-0 ${cfg.strip} opacity-80`} />
 
       <div className="flex items-center gap-3 flex-1 min-w-0 px-4 py-3.5">
-        <button
-          onClick={() => onToggleDone(task)}
-          className={`w-[17px] h-[17px] rounded-[5px] border shrink-0 flex items-center justify-center transition-colors ${
-            isDone
-              ? 'bg-emerald-500 border-emerald-500'
-              : 'border-zinc-300 dark:border-zinc-700 hover:border-indigo-400 dark:hover:border-indigo-500'
-          }`}
-          title={isDone ? 'Concluída' : 'Marcar como concluída'}
-        >
-          {isDone && <Check size={10} className="text-white" strokeWidth={3.5} />}
-        </button>
+
+        {/* Checkbox: done indicator (read-only) ou seleção */}
+        {isDone ? (
+          <div className="w-[17px] h-[17px] rounded-[5px] bg-emerald-500 border border-emerald-500 shrink-0 flex items-center justify-center">
+            <Check size={10} className="text-white" strokeWidth={3.5} />
+          </div>
+        ) : (
+          <button
+            onClick={() => onSelect(task)}
+            className={`w-[17px] h-[17px] rounded-[5px] border shrink-0 flex items-center justify-center transition-colors ${
+              selected
+                ? 'bg-indigo-500 border-indigo-500'
+                : 'border-zinc-300 dark:border-zinc-700 hover:border-indigo-400 dark:hover:border-indigo-500'
+            }`}
+            title="Selecionar"
+          >
+            {selected && <Check size={10} className="text-white" strokeWidth={3.5} />}
+          </button>
+        )}
 
         <span className={`px-2 py-[3px] rounded-md text-[10px] font-semibold border shrink-0 ${cfg.pill}`}>
           {cfg.label}
@@ -82,13 +97,32 @@ export function TaskItem({ task, pendingDelete, onToggleDone, onEdit }: TaskItem
           )}
         </div>
 
-        <button
-          onClick={() => onEdit(task)}
-          className="shrink-0 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-all text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-          title="Editar tarefa"
-        >
-          <Pencil size={13} />
-        </button>
+        {/* Botões de ação inline (visíveis no hover para tarefas abertas) */}
+        {!isDone && (
+          <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={() => onComplete(task)}
+              className="p-1.5 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+              title="Concluir tarefa"
+            >
+              <CheckCircle2 size={14} />
+            </button>
+            <button
+              onClick={() => onEdit(task)}
+              className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/[0.06] text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+              title="Editar tarefa"
+            >
+              <Pencil size={13} />
+            </button>
+            <button
+              onClick={() => onDelete(task)}
+              className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+              title="Excluir tarefa"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

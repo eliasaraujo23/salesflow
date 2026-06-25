@@ -1,9 +1,11 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import { KPICard } from '@/components/kpi-card';
 import { TaskItem } from '@/components/tasks/task-item';
 import { TaskFormModal } from '@/components/tasks/task-form-modal';
+import { TaskBulkBar } from '@/components/tasks/task-bulk-bar';
+import { BatchCompleteModal } from '@/components/tasks/batch-complete-modal';
 import { DeleteRequestBanner } from '@/components/tasks/delete-request-banner';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { OverdueModal } from '@/components/tasks/overdue-modal';
@@ -42,8 +44,11 @@ export default function TasksPage() {
     showNewModal, setShowNewModal,
     submitting,
     pendingConfirm, resolvePendingConfirm,
+    selectedIds, selectedTasks,
+    toggleSelect, clearSelection,
+    batchComplete, batchDelete,
     toggleTaskDone, saveNewTask, saveEditTask,
-    adminDeleteTask, requestDelete,
+    adminDeleteTask, deleteTaskDirect, requestDelete,
     approveDelete, rejectDelete,
     scopedTasks,
   } = useTasksPage();
@@ -53,6 +58,20 @@ export default function TasksPage() {
   const panelCls = 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-4 shadow-sm';
   const selectCls = 'w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-700 dark:text-zinc-300 text-[13px] focus:border-indigo-400 dark:focus:border-indigo-500 outline-none transition-colors';
   const filterLabelCls = 'block text-[10px] font-bold text-zinc-400 dark:text-zinc-500 mb-2 uppercase tracking-[0.6px]';
+
+  const isConfirmDialog = !!pendingConfirm && pendingConfirm.type !== 'batch-complete';
+  const confirmTitle =
+    pendingConfirm?.type === 'batch-delete'
+      ? `Excluir ${(pendingConfirm as { type: 'batch-delete'; taskIds: (string | number)[] }).taskIds.length} tarefas`
+      : pendingConfirm?.type === 'delete'
+      ? 'Excluir tarefa'
+      : 'Concluir tarefa';
+  const confirmDesc =
+    pendingConfirm?.type === 'delete' || pendingConfirm?.type === 'batch-delete'
+      ? 'Excluir definitivamente? Essa ação não pode ser desfeita.'
+      : 'Ao confirmar, esta tarefa será arquivada. Tarefas concluídas não podem ser reabertas.';
+  const confirmLabel =
+    pendingConfirm?.type === 'delete' || pendingConfirm?.type === 'batch-delete' ? 'Excluir' : 'Concluir';
 
   return (
     <div className="p-3 sm:p-6 space-y-5 w-full">
@@ -106,7 +125,7 @@ export default function TasksPage() {
         {FILTER_OPTIONS.map((opt) => (
           <button
             key={opt.id}
-            onClick={() => setActiveFilter(opt.id)}
+            onClick={() => { setActiveFilter(opt.id); clearSelection(); }}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap transition-all ${
               activeFilter === opt.id
                 ? 'bg-indigo-600 dark:bg-indigo-500 text-white shadow-sm'
@@ -202,8 +221,11 @@ export default function TasksPage() {
                 key={task.id}
                 task={task}
                 pendingDelete={pendingDeleteIds.has(String(task.id))}
-                onToggleDone={toggleTaskDone}
+                selected={selectedIds.has(String(task.id))}
+                onSelect={toggleSelect}
+                onComplete={toggleTaskDone}
                 onEdit={setEditingTask}
+                onDelete={deleteTaskDirect}
               />
             ))}
           </div>
@@ -252,22 +274,35 @@ export default function TasksPage() {
       )}
 
       <ConfirmDialog
-        open={!!pendingConfirm}
+        open={isConfirmDialog}
         onOpenChange={open => { if (!open) void resolvePendingConfirm(false); }}
-        title={pendingConfirm?.type === 'delete' ? 'Excluir tarefa' : 'Concluir tarefa'}
-        description={
-          pendingConfirm?.type === 'delete'
-            ? 'Excluir esta tarefa definitivamente? Essa ação não pode ser desfeita.'
-            : 'Ao confirmar, esta tarefa será arquivada. Tarefas concluídas não podem ser reabertas.'
-        }
-        confirmLabel={pendingConfirm?.type === 'delete' ? 'Excluir' : 'Concluir'}
+        title={confirmTitle}
+        description={confirmDesc}
+        confirmLabel={confirmLabel}
         onConfirm={() => void resolvePendingConfirm(true)}
+      />
+
+      <BatchCompleteModal
+        open={pendingConfirm?.type === 'batch-complete'}
+        tasks={pendingConfirm?.type === 'batch-complete' ? pendingConfirm.tasks : []}
+        onConfirm={() => void resolvePendingConfirm(true)}
+        onCancel={() => void resolvePendingConfirm(false)}
       />
 
       <OverdueModal
         tasks={scopedTasks}
         onGoToAtrasadas={() => setActiveFilter('atrasadas')}
       />
+
+      {/* Barra de ações em lote */}
+      {selectedIds.size > 0 && (
+        <TaskBulkBar
+          count={selectedIds.size}
+          onComplete={batchComplete}
+          onDelete={batchDelete}
+          onClear={clearSelection}
+        />
+      )}
     </div>
   );
 }
