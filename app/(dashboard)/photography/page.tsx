@@ -37,17 +37,21 @@ export default function PhotographyPage() {
     const pecasAberto = openBags.reduce((s, b) => s + b.qtd_fabricado  + b.qtd_second  + b.qtd_scrap,  0);
     const fotoAberto  = openBags.reduce((s, b) => s + b.foto_fabricado + b.foto_second + b.foto_scrap, 0);
     const editAberto  = openBags.reduce((s, b) => s + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
-    // Faltam: soma de (qtd - foto/edit) por saquinho aberto, garantindo mínimo 0 por saquinho
-    const faltamFoto = openBags.reduce((s, b) => {
-      const qtd  = b.qtd_fabricado  + b.qtd_second  + b.qtd_scrap;
-      const foto = b.foto_fabricado + b.foto_second + b.foto_scrap;
-      return s + Math.max(0, qtd - foto);
-    }, 0);
-    const faltamEdit = openBags.reduce((s, b) => {
-      const qtd  = b.qtd_fabricado  + b.qtd_second  + b.qtd_scrap;
-      const edit = b.edit_fabricado + b.edit_second + b.edit_scrap;
-      return s + Math.max(0, qtd - edit);
-    }, 0);
+
+    // Faltam por tipo
+    const faltamFotoFab = openBags.reduce((s, b) => s + Math.max(0, b.qtd_fabricado - b.foto_fabricado), 0);
+    const faltamFotoSec = openBags.reduce((s, b) => s + Math.max(0, b.qtd_second    - b.foto_second),    0);
+    const faltamFotoScr = openBags.reduce((s, b) => s + Math.max(0, b.qtd_scrap     - b.foto_scrap),     0);
+    const faltamEditFab = openBags.reduce((s, b) => s + Math.max(0, b.qtd_fabricado - b.edit_fabricado), 0);
+    const faltamEditSec = openBags.reduce((s, b) => s + Math.max(0, b.qtd_second    - b.edit_second),    0);
+    const faltamEditScr = openBags.reduce((s, b) => s + Math.max(0, b.qtd_scrap     - b.edit_scrap),     0);
+    const pecasFab = openBags.reduce((s, b) => s + b.qtd_fabricado, 0);
+    const pecasSec = openBags.reduce((s, b) => s + b.qtd_second,    0);
+    const pecasScr = openBags.reduce((s, b) => s + b.qtd_scrap,     0);
+
+    // Totais para Faltam
+    const faltamFoto = faltamFotoFab + faltamFotoSec + faltamFotoScr;
+    const faltamEdit = faltamEditFab + faltamEditSec + faltamEditScr;
 
     // Peças Recebidas — by data_recebimento
     const recSemana = bags
@@ -70,6 +74,9 @@ export default function PhotographyPage() {
     return {
       sacAbertos, pecasAberto, faltamFoto, faltamEdit,
       recSemana, recMes, fotoSemana, fotoMes, editSemana, editMes, finSemana, finMes,
+      bdPecas:     [{ label: 'Fab',   value: pecasFab,     color: '#3b82f6' }, { label: '2nd', value: pecasSec, color: '#f97316' }, { label: 'Scrap', value: pecasScr, color: '#94a3b8' }],
+      bdFaltamFoto:[{ label: 'Fab',   value: faltamFotoFab, color: '#3b82f6' }, { label: '2nd', value: faltamFotoSec, color: '#f97316' }, { label: 'Scrap', value: faltamFotoScr, color: '#94a3b8' }],
+      bdFaltamEdit:[{ label: 'Fab',   value: faltamEditFab, color: '#3b82f6' }, { label: '2nd', value: faltamEditSec, color: '#f97316' }, { label: 'Scrap', value: faltamEditScr, color: '#94a3b8' }],
     };
   }, [bags]);
 
@@ -131,11 +138,11 @@ export default function PhotographyPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard compact icon={Package}   label="Saquinhos Abertos" value={stats.sacAbertos}  subtext="sem finalização" variant="amber"
             active={filterStatus === ''}      onClick={() => setFilter('')} />
-          <KPICard compact icon={ImageIcon} label="Peças em Aberto"   value={stats.pecasAberto} subtext="total"           variant="amber"
+          <KPICard compact icon={ImageIcon} label="Peças em Aberto"   value={stats.pecasAberto} subtext="total" breakdown={stats.bdPecas} variant="amber"
             active={filterStatus === ''}      onClick={() => setFilter('')} />
-          <KPICard compact icon={Camera}    label="Faltam Fotografar" value={stats.faltamFoto}  subtext="peças"           variant={stats.faltamFoto > 0 ? 'red' : 'green'}
+          <KPICard compact icon={Camera}    label="Faltam Fotografar" value={stats.faltamFoto}  subtext="peças" breakdown={stats.bdFaltamFoto} variant={stats.faltamFoto > 0 ? 'red' : 'green'}
             active={filterStatus === 'faltam-foto'} onClick={() => setFilter('faltam-foto')} />
-          <KPICard compact icon={Pencil}    label="Faltam Editar"     value={stats.faltamEdit}  subtext="peças"           variant={stats.faltamEdit > 0 ? 'red' : 'green'}
+          <KPICard compact icon={Pencil}    label="Faltam Editar"     value={stats.faltamEdit}  subtext="peças" breakdown={stats.bdFaltamEdit} variant={stats.faltamEdit > 0 ? 'red' : 'green'}
             active={filterStatus === 'faltam-edit'} onClick={() => setFilter('faltam-edit')} />
         </div>
       </div>

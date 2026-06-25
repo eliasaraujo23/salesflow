@@ -3,11 +3,18 @@
 import React from 'react';
 import { type LucideIcon } from 'lucide-react';
 
+interface BreakdownItem {
+  label: string;
+  value: number;
+  color: string;
+}
+
 interface KPICardProps {
   icon?: LucideIcon;
   label: string;
   value: number | string;
   subtext?: string;
+  breakdown?: BreakdownItem[];
   variant?: 'blue' | 'green' | 'amber' | 'red' | 'purple';
   compact?: boolean;
   className?: string;
@@ -58,7 +65,7 @@ const VARIANTS = {
   },
 } as const;
 
-export function KPICard({ icon: Icon, label, value, subtext, variant = 'blue', compact = false, className = '', onClick, active }: KPICardProps) {
+export function KPICard({ icon: Icon, label, value, subtext, breakdown, variant = 'blue', compact = false, className = '', onClick, active }: KPICardProps) {
   const v = VARIANTS[variant];
   const Tag = onClick ? 'button' : 'div';
 
@@ -94,6 +101,16 @@ export function KPICard({ icon: Icon, label, value, subtext, variant = 'blue', c
         {subtext && (
           <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1.5 font-medium">
             {subtext}
+          </div>
+        )}
+        {breakdown && breakdown.length > 0 && (
+          <div className="flex flex-wrap gap-x-2 gap-y-1 mt-2">
+            {breakdown.map((item) => (
+              <span key={item.label} className="flex items-center gap-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: item.color }} />
+                {item.label} {item.value}
+              </span>
+            ))}
           </div>
         )}
       </div>
