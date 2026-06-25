@@ -5,6 +5,8 @@ import { KPICard } from '@/components/kpi-card';
 import { TaskItem } from '@/components/tasks/task-item';
 import { TaskFormModal } from '@/components/tasks/task-form-modal';
 import { DeleteRequestBanner } from '@/components/tasks/delete-request-banner';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { OverdueModal } from '@/components/tasks/overdue-modal';
 import { useTasksPage } from '@/hooks/use-tasks-page';
 import {
   ClipboardList, CheckCircle, Loader2, AlertTriangle,
@@ -39,9 +41,11 @@ export default function TasksPage() {
     editingTask, setEditingTask,
     showNewModal, setShowNewModal,
     submitting,
+    pendingConfirm, resolvePendingConfirm,
     toggleTaskDone, saveNewTask, saveEditTask,
     adminDeleteTask, requestDelete,
     approveDelete, rejectDelete,
+    scopedTasks,
   } = useTasksPage();
 
   const pendingDeleteIds = new Set(deleteRequests.map((r) => String(r.taskId)));
@@ -246,6 +250,24 @@ export default function TasksPage() {
           onRequestDelete={requestDelete}
         />
       )}
+
+      <ConfirmDialog
+        open={!!pendingConfirm}
+        onOpenChange={open => { if (!open) void resolvePendingConfirm(false); }}
+        title={pendingConfirm?.type === 'delete' ? 'Excluir tarefa' : 'Concluir tarefa'}
+        description={
+          pendingConfirm?.type === 'delete'
+            ? 'Excluir esta tarefa definitivamente? Essa ação não pode ser desfeita.'
+            : 'Ao confirmar, esta tarefa será arquivada. Tarefas concluídas não podem ser reabertas.'
+        }
+        confirmLabel={pendingConfirm?.type === 'delete' ? 'Excluir' : 'Concluir'}
+        onConfirm={() => void resolvePendingConfirm(true)}
+      />
+
+      <OverdueModal
+        tasks={scopedTasks}
+        onGoToAtrasadas={() => setActiveFilter('atrasadas')}
+      />
     </div>
   );
 }

@@ -41,6 +41,12 @@ export function useTasksPage() {
   const [showNewModal, setShowNewModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  type PendingConfirm =
+    | { type: 'complete'; task: Task }
+    | { type: 'delete'; taskId: string | number }
+    | null;
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm>(null);
+
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -146,18 +152,12 @@ export function useTasksPage() {
     } as Record<string, number>;
   }, [scopedTasks, today]);
 
-  async function toggleTaskDone(task: Task) {
+  function toggleTaskDone(task: Task) {
     if (task.status === 'done') {
       toast.info('Tarefas concluídas não podem ser reabertas.');
       return;
     }
-    if (!confirm('Ao confirmar, esta tarefa será arquivada. Tarefas concluídas não podem ser reabertas.')) return;
-    const res = await updateTaskStatusAction(task.id, 'done');
-    if (res.success) {
-      toast.success('Tarefa concluída!');
-    } else {
-      toast.error(res.error ?? 'Erro ao atualizar tarefa');
-    }
+    setPendingConfirm({ type: 'complete', task });
   }
 
   async function saveNewTask(data: CreateTaskInput) {
@@ -184,14 +184,22 @@ export function useTasksPage() {
     }
   }
 
-  async function adminDeleteTask(taskId: string | number) {
-    if (!confirm('Excluir esta tarefa definitivamente? Essa ação não pode ser desfeita.')) return;
-    const res = await deleteTaskAction(taskId);
-    if (res.httpStatus === 200) {
-      toast.success('Tarefa excluída');
-      setEditingTask(null);
-    } else {
-      toast.error(res.message ?? 'Erro ao excluir tarefa');
+  function adminDeleteTask(taskId: string | number) {
+    setPendingConfirm({ type: 'delete', taskId });
+  }
+
+  async function resolvePendingConfirm(confirmed: boolean) {
+    if (!confirmed || !pendingConfirm) { setPendingConfirm(null); return; }
+    const p = pendingConfirm;
+    setPendingConfirm(null);
+    if (p.type === 'complete') {
+      const res = await updateTaskStatusAction(p.task.id, 'done');
+      if (res.success) toast.success('Tarefa concluída!');
+      else toast.error(res.error ?? 'Erro ao atualizar tarefa');
+    } else if (p.type === 'delete') {
+      const res = await deleteTaskAction(p.taskId);
+      if (res.httpStatus === 200) { toast.success('Tarefa excluída'); setEditingTask(null); }
+      else toast.error(res.message ?? 'Erro ao excluir tarefa');
     }
   }
 
@@ -234,6 +242,7 @@ export function useTasksPage() {
     currentUser,
     users,
     deleteRequests,
+    scopedTasks,
     filteredTasks,
     stats,
     filterCounts,
@@ -254,6 +263,8 @@ export function useTasksPage() {
     showNewModal,
     setShowNewModal,
     submitting,
+    pendingConfirm,
+    resolvePendingConfirm,
     toggleTaskDone,
     saveNewTask,
     saveEditTask,

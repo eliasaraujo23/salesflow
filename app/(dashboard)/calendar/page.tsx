@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Plus, CalendarDays } from 'lucide-react';
 import { CalendarGrid } from '@/components/calendar/calendar-grid';
 import { CalendarDayPanel } from '@/components/calendar/calendar-day-panel';
 import { TaskFormModal } from '@/components/tasks/task-form-modal';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useCalendar } from '@/hooks/use-calendar';
 
 const MONTHS = [
@@ -19,6 +20,7 @@ export default function CalendarPage() {
     viewYear, viewMonth, selectedDay, setSelectedDay,
     prevMonth, nextMonth, goToToday,
     showNewModal, setShowNewModal, editingTask, setEditingTask, submitting,
+    pendingConfirm, resolvePendingConfirm,
     toggleTaskDone, saveNewTask, saveEditTask, adminDeleteTask, requestDelete,
   } = useCalendar();
 
@@ -127,6 +129,19 @@ export default function CalendarPage() {
           onRequestDelete={requestDelete}
         />
       )}
+
+      <ConfirmDialog
+        open={!!pendingConfirm}
+        onOpenChange={open => { if (!open) void resolvePendingConfirm(false); }}
+        title={pendingConfirm?.type === 'delete' ? 'Excluir tarefa' : 'Concluir tarefa'}
+        description={
+          pendingConfirm?.type === 'delete'
+            ? 'Excluir esta tarefa definitivamente? Essa ação não pode ser desfeita.'
+            : 'Ao confirmar, esta tarefa será arquivada. Tarefas concluídas não podem ser reabertas.'
+        }
+        confirmLabel={pendingConfirm?.type === 'delete' ? 'Excluir' : 'Concluir'}
+        onConfirm={() => void resolvePendingConfirm(true)}
+      />
     </div>
   );
 }
