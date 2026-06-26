@@ -30,7 +30,7 @@ export async function approveDeleteRequestAction(
   if (!firebaseUser) return { success: false, error: 'Não autenticado.' };
 
   try {
-    const profileSnap = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
+    const profileSnap = await getDoc(doc(db, 'usuarios', firebaseUser.email!));
     if (!profileSnap.exists() || profileSnap.data().role !== 'admin') {
       return { success: false, error: 'Permissão negada: apenas administradores podem aprovar exclusões.' };
     }
