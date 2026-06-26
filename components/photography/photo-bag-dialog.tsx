@@ -1,13 +1,14 @@
 'use client';
 
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Camera, X } from 'lucide-react';
 import { type PhotoBag } from '@/lib/actions/photo-bags';
 import { useCreatePhotoBag, useUpdatePhotoBag } from '@/hooks/use-photo-bags';
 import { toast } from 'sonner';
+import { SingleDatePicker } from '@/components/ui/single-date-picker';
 
 const schema = z.object({
   data_recebimento: z.string().min(1, 'Data obrigatória'),
@@ -66,7 +67,7 @@ export function PhotoBagDialog({ bag, code, onClose }: PhotoBagDialogProps) {
   const createMutation = useCreatePhotoBag();
   const updateMutation = useUpdatePhotoBag();
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       data_recebimento: bag?.data_recebimento?.slice(0, 10) ?? '',
@@ -132,12 +133,33 @@ export function PhotoBagDialog({ bag, code, onClose }: PhotoBagDialogProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Data Recebimento</label>
-              <input type="date" {...register('data_recebimento')} className={`${inputCls} text-left`} />
+              <Controller
+                name="data_recebimento"
+                control={control}
+                render={({ field }) => (
+                  <SingleDatePicker
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    clearable={false}
+                    placeholder="dd/mm/aaaa"
+                  />
+                )}
+              />
               {errors.data_recebimento && <p className="text-xs text-red-500 mt-1">{errors.data_recebimento.message}</p>}
             </div>
             <div>
               <label className={labelCls}>Data Finalização <span className="font-normal opacity-50">(opcional)</span></label>
-              <input type="date" {...register('data_finalizacao')} className={`${inputCls} text-left`} />
+              <Controller
+                name="data_finalizacao"
+                control={control}
+                render={({ field }) => (
+                  <SingleDatePicker
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    placeholder="dd/mm/aaaa"
+                  />
+                )}
+              />
             </div>
           </div>
 

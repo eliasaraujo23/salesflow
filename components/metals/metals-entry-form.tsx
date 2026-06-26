@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowUp, List, Clock } from 'lucide-react';
 import { addMetalAction } from '@/lib/actions/metals';
 import { toast } from 'sonner';
+import { SingleDatePicker } from '@/components/ui/single-date-picker';
 
 const ORIGENS = [
   { value: 'second', label: 'Second Hand' },
@@ -45,6 +46,7 @@ export function MetalsEntryForm() {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { isSubmitting, errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -125,7 +127,18 @@ export function MetalsEntryForm() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5">Data</label>
-            <input type="date" {...register('data')} className={inputCls} />
+            <Controller
+              name="data"
+              control={control}
+              render={({ field }) => (
+                <SingleDatePicker
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  clearable={false}
+                  placeholder="dd/mm/aaaa"
+                />
+              )}
+            />
             {errors.data && <p className={errCls}>{errors.data.message}</p>}
           </div>
           <div>

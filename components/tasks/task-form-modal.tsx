@@ -2,12 +2,13 @@
 
 import React from 'react';
 import { X, Trash2, Send } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { type Task, type AppUser } from '@/components/firebase-provider';
 import { type CreateTaskInput } from '@/lib/actions/create-task';
 import { type UpdateTaskInput } from '@/lib/actions/update-task';
+import { SingleDatePicker } from '@/components/ui/single-date-picker';
 
 const taskFormSchema = z.object({
   title:       z.string().min(1, 'Título é obrigatório'),
@@ -57,7 +58,7 @@ export function TaskFormModal({
 }: TaskFormModalProps) {
   const isNew = mode === 'new';
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<TaskFormValues>({
+  const { register, handleSubmit, watch, control, formState: { errors } } = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
     defaultValues: {
       title:       task?.title ?? '',
@@ -160,12 +161,21 @@ export function TaskFormModal({
           <div>
             <label className={labelCls}>Prazo</label>
             <div className="flex items-center gap-3">
-              <input
-                type="date"
-                {...register('dueDate')}
-                disabled={noPrazo}
-                className={`flex-1 ${inputCls} disabled:opacity-40 disabled:cursor-not-allowed`}
-              />
+              <div className="flex-1">
+                <Controller
+                  name="dueDate"
+                  control={control}
+                  render={({ field }) => (
+                    <SingleDatePicker
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      disabled={noPrazo}
+                      clearable={!noPrazo}
+                      placeholder="dd/mm/aaaa"
+                    />
+                  )}
+                />
+              </div>
               <label className="flex items-center gap-1.5 text-[12px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap cursor-pointer select-none">
                 <input
                   type="checkbox"
