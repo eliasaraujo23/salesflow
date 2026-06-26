@@ -87,6 +87,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [users, setUsers] = useState<AppUser[]>([]);
   const [deleteRequests, setDeleteRequests] = useState<DeleteRequest[]>([]);
   const sessionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentUserRef = useRef<AppUser | null>(null);
 
   const clearSessionCookie = () => {
     document.cookie = 'sf_session=; path=/; max-age=0; SameSite=Strict';
@@ -107,6 +108,9 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (remaining <= 0) { forceExpire(); return; }
     sessionTimerRef.current = setTimeout(forceExpire, remaining);
   };
+
+  // Keep ref in sync so onAuthStateChanged callback can read latest value without stale closure
+  useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
 
   // Restore user session from sessionStorage on load
   useEffect(() => {
@@ -129,10 +133,20 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Mark Firebase Auth as ready after its own async initialization completes
+  // Mark Firebase Auth as ready. If Firebase Auth session is missing but app session exists → force re-login.
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, () => setFirebaseAuthReady(true));
+    const unsub = onAuthStateChanged(auth, (fbUser) => {
+      if (fbUser) {
+        setFirebaseAuthReady(true);
+      } else if (currentUserRef.current) {
+        // App session active but Firebase Auth expired → Firestore reads would silently fail
+        forceExpire();
+      } else {
+        setFirebaseAuthReady(true);
+      }
+    });
     return unsub;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Listen for database collections when user is logged in AND Firebase Auth is ready
@@ -147,6 +161,10 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    const onAuthError = (error: Error) => {
+      if ((error as any).code === 'permission-denied') forceExpire();
+    };
 
     // Subscribe to Tasks (real-time stream)
     const tasksQuery = query(collection(db, 'tasks'), orderBy('createdAt', 'desc'));
@@ -171,7 +189,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return task;
       });
       setTasks(parsedTasks);
-    });
+    }, onAuthError);
 
     // Subscribe to Metals
     const metalsQuery = query(collection(db, 'metais'), orderBy('createdAt', 'desc'));
@@ -185,7 +203,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         } as Metal;
       });
       setMetals(parsedMetals);
-    });
+    }, onAuthError);
 
     // Subscribe to Users
     const unsubscribeUsers = onSnapshot(collection(db, 'usuarios'), (snap) => {
@@ -203,6 +221,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setUsers(parsedUsers);
 
       // Auto-sync currentUser when admin changes this user's permissions/role
+
       setCurrentUser(prev => {
         if (!prev) return prev;
         const updated = parsedUsers.find(u => u.email === prev.email);
@@ -217,7 +236,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         sessionStorage.setItem('sf_user', JSON.stringify(updated));
         return updated;
       });
-    });
+    }, onAuthError);
 
     // Subscribe to Delete Requests
     const unsubscribeDeleteRequests = onSnapshot(collection(db, 'task_delete_requests'), (snap) => {
@@ -229,7 +248,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         } as DeleteRequest;
       });
       setDeleteRequests(parsedRequests);
-    });
+    }, onAuthError);
 
     return () => {
       unsubscribeTasks();
