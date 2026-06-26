@@ -126,7 +126,7 @@ export function ResaleDatePicker({ from, to, onApply }: Props) {
             </div>
           </div>
 
-          {/* Calendar */}
+          {/* Calendar — usa .drp-calendar de globals.css para estilização de range */}
           <DayPicker
             mode="range"
             selected={range}
@@ -134,6 +134,7 @@ export function ResaleDatePicker({ from, to, onApply }: Props) {
             numberOfMonths={2}
             locale={pt}
             defaultMonth={defaultMonth}
+            className="drp-calendar"
             classNames={{
               months:          'flex gap-6 p-4',
               month:           'space-y-2',
@@ -147,13 +148,13 @@ export function ResaleDatePicker({ from, to, onApply }: Props) {
               weekday:         'w-9 text-[11px] font-medium text-zinc-400 dark:text-zinc-500 text-center pb-1',
               weeks:           '',
               week:            'flex mt-1',
-              day:             'relative w-9 h-9 p-0 text-center',
-              day_button:      'w-full h-full flex items-center justify-center text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer',
-              selected:        'bg-indigo-600 text-white rounded-lg hover:bg-indigo-500',
+              day:             'rdp-day relative w-9 h-9 p-0 text-center',
+              day_button:      'rdp-day_button w-full h-full flex items-center justify-center text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer',
+              selected:        'rdp-selected',
+              range_start:     'rdp-range_start',
+              range_end:       'rdp-range_end',
+              range_middle:    'rdp-range_middle',
               today:           'text-indigo-600 dark:text-indigo-400 font-bold',
-              range_start:     'bg-indigo-600 text-white rounded-l-lg',
-              range_end:       'bg-indigo-600 text-white rounded-r-lg',
-              range_middle:    'bg-indigo-100 dark:bg-indigo-500/20 rounded-none text-zinc-900 dark:text-zinc-100',
               outside:         'opacity-30',
               disabled:        'opacity-30 cursor-not-allowed',
               hidden:          'invisible',

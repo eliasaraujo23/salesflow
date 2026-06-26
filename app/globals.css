@@ -141,16 +141,29 @@ table.data-table td {
   text-align: center;
 }
 
-/* ── DateRangePicker calendar range styles ── */
+/* ── DateRangePicker calendar range styles ──
+   Qualquer DayPicker com className="drp-calendar" herda estas regras.
+   Os pickers NÃO devem sobrescrever bg/border-radius para células range
+   via Tailwind — estes estilos são a fonte única de verdade para temas.
+   ────────────────────────────────────────────────────────────────────── */
+
+/* Seleção de único dia (apenas from, sem to) */
+.drp-calendar .rdp-day.rdp-selected:not(.rdp-range_start):not(.rdp-range_end):not(.rdp-range_middle) .rdp-day_button {
+  background-color: #4f46e5;
+  color: white;
+  border-radius: 9999px;
+}
+
+/* range_start e range_end: metade do td colorida p/ conectar ao range_middle */
 .drp-calendar .rdp-day.rdp-range_start,
 .drp-calendar .rdp-day.rdp-range_end {
   position: relative;
 }
 .drp-calendar .rdp-day.rdp-range_start {
-  background: linear-gradient(to right, transparent 50%, #e0e7ff 50%);
+  background: linear-gradient(to right, transparent 50%, #eef2ff 50%);
 }
 .drp-calendar .rdp-day.rdp-range_end {
-  background: linear-gradient(to left, transparent 50%, #e0e7ff 50%);
+  background: linear-gradient(to left, transparent 50%, #eef2ff 50%);
 }
 .dark .drp-calendar .rdp-day.rdp-range_start {
   background: linear-gradient(to right, transparent 50%, rgba(99,102,241,0.2) 50%);
@@ -158,6 +171,13 @@ table.data-table td {
 .dark .drp-calendar .rdp-day.rdp-range_end {
   background: linear-gradient(to left, transparent 50%, rgba(99,102,241,0.2) 50%);
 }
+
+/* Quando start == end (range de um único dia): sem meia-faixa */
+.drp-calendar .rdp-day.rdp-range_start.rdp-range_end {
+  background: transparent;
+}
+
+/* Círculo sólido nos dias de ponta */
 .drp-calendar .rdp-day.rdp-range_start .rdp-day_button,
 .drp-calendar .rdp-day.rdp-range_end .rdp-day_button {
   background-color: #4f46e5;
@@ -168,8 +188,10 @@ table.data-table td {
 .drp-calendar .rdp-day.rdp-range_end .rdp-day_button:hover {
   background-color: #4338ca;
 }
+
+/* Faixa do meio: fundo leve, sem border-radius */
 .drp-calendar .rdp-day.rdp-range_middle {
-  background-color: #e0e7ff;
+  background-color: #eef2ff;
 }
 .dark .drp-calendar .rdp-day.rdp-range_middle {
   background-color: rgba(99,102,241,0.18);
@@ -177,9 +199,13 @@ table.data-table td {
 .drp-calendar .rdp-day.rdp-range_middle .rdp-day_button {
   border-radius: 0;
   width: 100%;
+  color: #3730a3;
+}
+.dark .drp-calendar .rdp-day.rdp-range_middle .rdp-day_button {
+  color: #c7d2fe;
 }
 .drp-calendar .rdp-day.rdp-range_middle .rdp-day_button:hover {
-  background-color: #c7d2fe;
+  background-color: #e0e7ff;
 }
 .dark .drp-calendar .rdp-day.rdp-range_middle .rdp-day_button:hover {
   background-color: rgba(99,102,241,0.32);
