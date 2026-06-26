@@ -59,18 +59,13 @@ export default function PhotographyPage() {
     const sacFinSemana  = finBagsSemana.length;
     const sacFinMes     = finBagsMes.length;
 
-    // Peças Editadas — usa data_edicao quando preenchida, fallback para data_finalizacao
-    // Conta edit_x (peças de fato editadas), não qtd_x recebidas
-    const editSemana = bags
-      .filter(b => ((b.data_edicao ?? b.data_finalizacao) ?? '').slice(0, 10) >= mondayStr)
-      .reduce((s, b) => s + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
-    const editMes = bags
-      .filter(b => ((b.data_edicao ?? b.data_finalizacao) ?? '').slice(0, 10) >= firstOfMonth)
-      .reduce((s, b) => s + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
+    // Peças Finalizadas — saquinhos com data_finalizacao, conta edit_x (o que foi editado de fato)
+    const finSemana = finBagsSemana.reduce((s, b) => s + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
+    const finMes    = finBagsMes.reduce((s, b) => s + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
 
     return {
       sacAbertos, faltamFoto, faltamEdit,
-      recSemana, recMes, editSemana, editMes, sacFinSemana, sacFinMes,
+      recSemana, recMes, finSemana, finMes, sacFinSemana, sacFinMes,
       bdFaltamFoto:[{ label: 'Fab', value: faltamFotoFab, color: '#3b82f6' }, { label: 'Second', value: faltamFotoSec, color: '#f97316' }, { label: 'Scrap', value: faltamFotoScr, color: '#94a3b8' }],
       bdFaltamEdit:[{ label: 'Fab', value: faltamEditFab, color: '#3b82f6' }, { label: 'Second', value: faltamEditSec, color: '#f97316' }, { label: 'Scrap', value: faltamEditScr, color: '#94a3b8' }],
     };
@@ -135,7 +130,7 @@ export default function PhotographyPage() {
           active={filterStatus === 'faltam-foto'} onClick={() => setFilter('faltam-foto')} />
         <KPICard compact icon={ImageIcon} label="Peças Recebidas"      value={stats.recSemana}    subtext={`${stats.recMes} no mês`}  variant="blue"
           active={filterStatus === 'todos'}      onClick={() => setFilter('todos')} />
-        <KPICard compact icon={Pencil}    label="Peças Editadas"       value={stats.editSemana}   subtext={`${stats.editMes} no mês`} variant="green"
+        <KPICard compact icon={Pencil}    label="Peças Finalizadas"    value={stats.finSemana}    subtext={`${stats.finMes} no mês`}  variant="green"
           active={filterStatus === 'finalizado'} onClick={() => setFilter('finalizado')} />
         <KPICard compact icon={Package}   label="Saquinhos Finalizados" value={stats.sacFinSemana} subtext={`${stats.sacFinMes} no mês`} variant="green"
           active={filterStatus === 'finalizado'} onClick={() => setFilter('finalizado')} />
