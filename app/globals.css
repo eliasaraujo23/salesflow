@@ -5,6 +5,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Custom spacing tokens — h-topbar, w-sidebar etc. */
+@theme {
+  --spacing-topbar:  5rem;   /* 80px */
+  --spacing-sidebar: 15.5rem; /* 248px */
+}
+
 /* shadcn/ui tokens — required for shadcn components */
 @theme inline {
   --color-background: var(--background);
