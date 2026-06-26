@@ -16,6 +16,15 @@ function SortIcon({ col, active, dir }: { col: SortCol; active: SortCol; dir: So
     : <ChevronDown size={12} className="text-indigo-500" />;
 }
 
+function Tag({ value }: { value: string }) {
+  if (!value) return <span className="text-zinc-300 dark:text-zinc-600">—</span>;
+  return (
+    <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
+      {value}
+    </span>
+  );
+}
+
 interface CcListTableProps {
   defs: CarroChefeDef[];
   onEdit: (def: CarroChefeDef) => void;
@@ -52,8 +61,8 @@ export function CcListTable({ defs, onEdit }: CcListTableProps) {
     setPendingDelete(null);
   };
 
-  const thCls = 'px-4 py-2.5 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400';
-  const thBtn = 'flex items-center gap-1.5 cursor-pointer select-none hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors';
+  const thCls = 'px-4 py-2.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400';
+  const thBtn = 'inline-flex items-center gap-1.5 cursor-pointer select-none hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors';
 
   return (
     <>
@@ -72,24 +81,28 @@ export function CcListTable({ defs, onEdit }: CcListTableProps) {
             <thead>
               <tr className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-100 dark:border-white/[0.04]">
                 <th className={`${thCls} w-12`}>
-                  <div className={thBtn} onClick={() => toggleSort('order')}>
+                  <span className={thBtn} onClick={() => toggleSort('order')}>
                     #
                     <SortIcon col="order" active={sortCol} dir={sortDir} />
-                  </div>
+                  </span>
                 </th>
                 <th className={thCls}>
-                  <div className={thBtn} onClick={() => toggleSort('label')}>
+                  <span className={thBtn} onClick={() => toggleSort('label')}>
                     Nome
                     <SortIcon col="label" active={sortCol} dir={sortDir} />
-                  </div>
+                  </span>
                 </th>
+                <th className={thCls}>Tipo de Joia</th>
+                <th className={thCls}>Subtipo</th>
+                <th className={thCls}>Pedra</th>
+                <th className={thCls}>Lapidação</th>
                 <th className="px-4 py-2.5 w-20" />
               </tr>
             </thead>
             <tbody>
               {defs.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-12 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-zinc-400 dark:text-zinc-500">
                     Nenhum carro-chefe cadastrado
                   </td>
                 </tr>
@@ -103,6 +116,10 @@ export function CcListTable({ defs, onEdit }: CcListTableProps) {
                         <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{def.label}</span>
                       </div>
                     </td>
+                    <td className="px-4 py-3"><Tag value={def.produto} /></td>
+                    <td className="px-4 py-3"><Tag value={def.subtipo} /></td>
+                    <td className="px-4 py-3"><Tag value={def.tipo_pedra} /></td>
+                    <td className="px-4 py-3"><Tag value={def.lapidacao} /></td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
                         <button onClick={() => onEdit(def)}
