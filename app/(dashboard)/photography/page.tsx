@@ -125,37 +125,20 @@ export default function PhotographyPage() {
         </div>
       </div>
 
-      {/* Em Aberto */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Em Aberto</span>
-          <div className="flex-1 h-px bg-zinc-100 dark:bg-white/[0.06]" />
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <KPICard compact icon={Package}   label="Saquinhos Abertos" value={stats.sacAbertos} subtext="sem finalização" variant="amber"
-            active={filterStatus === ''}          onClick={() => setFilter('')} />
-          <KPICard compact icon={ImageIcon} label="Peças em Aberto"   value={stats.faltamEdit} subtext="pendentes" breakdown={stats.bdFaltamEdit} variant="amber"
-            active={filterStatus === ''}          onClick={() => setFilter('')} />
-          <KPICard compact icon={Camera}    label="Faltam Fotografar" value={stats.faltamFoto} subtext="peças" breakdown={stats.bdFaltamFoto} variant={stats.faltamFoto > 0 ? 'red' : 'green'}
-            active={filterStatus === 'faltam-foto'} onClick={() => setFilter('faltam-foto')} />
-        </div>
-      </div>
-
-      {/* Produção */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Produção</span>
-          <span className="text-[10px] text-zinc-400 dark:text-zinc-600">(valor = semana · subtext = mês)</span>
-          <div className="flex-1 h-px bg-zinc-100 dark:bg-white/[0.06]" />
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KPICard compact icon={ImageIcon} label="Peças Recebidas"    value={stats.recSemana}    subtext={`${stats.recMes} no mês`}            variant="blue"
-            active={filterStatus === 'todos'}      onClick={() => setFilter('todos')} />
-          <KPICard compact icon={Pencil}    label="Peças Editadas"     value={stats.editSemana}   subtext={`${stats.editMes} no mês`}           variant="green"
-            active={filterStatus === 'finalizado'} onClick={() => setFilter('finalizado')} />
-          <KPICard compact icon={Package}   label="Saquinhos Finalizados" value={stats.sacFinSemana} subtext={`${stats.sacFinMes} no mês`}       variant="green"
-            active={filterStatus === 'finalizado'} onClick={() => setFilter('finalizado')} />
-        </div>
+      {/* KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <KPICard compact icon={Package}   label="Saquinhos Abertos"    value={stats.sacAbertos}   subtext="sem finalização"           variant="amber"
+          active={filterStatus === ''}          onClick={() => setFilter('')} />
+        <KPICard compact icon={ImageIcon} label="Peças em Aberto"      value={stats.faltamEdit}   subtext="pendentes" breakdown={stats.bdFaltamEdit} variant="amber"
+          active={filterStatus === ''}          onClick={() => setFilter('')} />
+        <KPICard compact icon={Camera}    label="Faltam Fotografar"    value={stats.faltamFoto}   subtext="peças" breakdown={stats.bdFaltamFoto} variant={stats.faltamFoto > 0 ? 'red' : 'green'}
+          active={filterStatus === 'faltam-foto'} onClick={() => setFilter('faltam-foto')} />
+        <KPICard compact icon={ImageIcon} label="Peças Recebidas"      value={stats.recSemana}    subtext={`${stats.recMes} no mês`}  variant="blue"
+          active={filterStatus === 'todos'}      onClick={() => setFilter('todos')} />
+        <KPICard compact icon={Pencil}    label="Peças Editadas"       value={stats.editSemana}   subtext={`${stats.editMes} no mês`} variant="green"
+          active={filterStatus === 'finalizado'} onClick={() => setFilter('finalizado')} />
+        <KPICard compact icon={Package}   label="Saquinhos Finalizados" value={stats.sacFinSemana} subtext={`${stats.sacFinMes} no mês`} variant="green"
+          active={filterStatus === 'finalizado'} onClick={() => setFilter('finalizado')} />
       </div>
 
       <PhotoBagTable
