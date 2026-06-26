@@ -81,6 +81,7 @@ const SESSION_MAX_MS = 12 * 60 * 60 * 1000;
 export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [firebaseAuthReady, setFirebaseAuthReady] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [metals, setMetals] = useState<Metal[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
@@ -119,15 +120,24 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       } else {
         setCurrentUser(JSON.parse(savedUser));
         scheduleExpiry(loginTime);
+        // Re-set cookie in case it was lost (e.g. new deployment, browser cleared cookies)
+        const remainingSeconds = Math.floor((SESSION_MAX_MS - (Date.now() - loginTime)) / 1000);
+        document.cookie = `sf_session=1; path=/; max-age=${remainingSeconds}; SameSite=Strict`;
       }
     }
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Listen for database collections when user is logged in
+  // Mark Firebase Auth as ready after its own async initialization completes
   useEffect(() => {
-    if (!currentUser) {
+    const unsub = onAuthStateChanged(auth, () => setFirebaseAuthReady(true));
+    return unsub;
+  }, []);
+
+  // Listen for database collections when user is logged in AND Firebase Auth is ready
+  useEffect(() => {
+    if (!currentUser || !firebaseAuthReady) {
       setTasks([]);
       setMetals([]);
       setUsers([]);
@@ -227,7 +237,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       unsubscribeUsers();
       unsubscribeDeleteRequests();
     };
-  }, [currentUser]);
+  }, [currentUser, firebaseAuthReady]);
 
   const logIn = async (email: string, token: string, profile: any) => {
     await signInWithCustomToken(auth, token);
