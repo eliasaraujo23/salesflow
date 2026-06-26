@@ -19,23 +19,39 @@ export type CarroChefeInput = Omit<CarroChefeDef, 'id'>;
 const COL = 'carros_chefe';
 
 // Derived from full sales history (JF vendidos mar/2022–jun/2026)
-// Format: tipo de joia × subtipo × pedra × lapidação
+// Grouping: tipo de joia × subtipo × pedra (lapidação not used — any lapidação qualifies)
+// Status: VENDIDO E PAGO (2) + AGUARDANDO PAGAMENTO (4) + VENDIDO PARCELADO (13)
 export const CC_DEFAULTS: CarroChefeInput[] = [
-  { label: 'Anel Solitário · Diamante Brilhante',       produto: 'ANEL SOLITÁRIO',   subtipo: 'SOLITÁRIO',    tipo_pedra: 'DIAMANTE',          lapidacao: 'BRILHANTE',    order: 1  },
-  { label: 'Brinco Solitário · Diamante Brilhante',     produto: 'BRINCO SOLITÁRIO', subtipo: 'SOLITÁRIO',    tipo_pedra: 'DIAMANTE',          lapidacao: 'BRILHANTE',    order: 2  },
-  { label: 'Ponto de Luz · Sol. Diamante Brilhante',    produto: 'PONTO DE LUZ',     subtipo: 'SOLITÁRIO',    tipo_pedra: 'DIAMANTE',          lapidacao: 'BRILHANTE',    order: 3  },
-  { label: 'Aliança Riviera · Diamante Brilhante',      produto: 'ALIANÇA RIVIERA',  subtipo: 'RIVIERA',      tipo_pedra: 'DIAMANTE',          lapidacao: 'BRILHANTE',    order: 4  },
-  { label: 'Meia Aliança · Diamante Brilhante',         produto: 'MEIA ALIANÇA',     subtipo: 'MEIA ALIANÇA', tipo_pedra: 'DIAMANTE',          lapidacao: 'BRILHANTE',    order: 5  },
-  { label: 'Anel Maracanã · Esmeralda Retangular',      produto: 'ANEL',             subtipo: 'MARACANÃ',     tipo_pedra: 'ESMERALDA',         lapidacao: 'RETANGULAR',   order: 6  },
-  { label: 'Ponto de Luz · Diamante Brilhante',         produto: 'PONTO DE LUZ',     subtipo: 'PONTO DE LUZ', tipo_pedra: 'DIAMANTE',          lapidacao: 'BRILHANTE',    order: 7  },
-  { label: 'Pulseira Riviera · Diamante Brilhante',     produto: 'PULSEIRA RIVIERA', subtipo: 'RIVIERA',      tipo_pedra: 'DIAMANTE',          lapidacao: 'BRILHANTE',    order: 8  },
-  { label: 'Colar Riviera Ilusion · Diamante',          produto: 'COLAR RIVIERA',    subtipo: 'ILUSION',      tipo_pedra: 'DIAMANTE',          lapidacao: 'DIVERSAS',     order: 9  },
-  { label: 'Pingente P/Riviera · Esmeralda Gota',       produto: 'PINGENTE',         subtipo: 'PARA RIVIERA', tipo_pedra: 'ESMERALDA',         lapidacao: 'GOTA',         order: 10 },
-  { label: 'Ponto de Luz · Sol. Old Mine',              produto: 'PONTO DE LUZ',     subtipo: 'SOLITÁRIO',    tipo_pedra: 'DIAMANTE',          lapidacao: 'OLD MINE',     order: 11 },
-  { label: 'Brinco Cravejado · Diamante Brilhante',     produto: 'BRINCO',           subtipo: 'CRAVEJADO',    tipo_pedra: 'DIAMANTE',          lapidacao: 'BRILHANTE',    order: 12 },
-  { label: 'Anel Solitário · Diamante Old European',    produto: 'ANEL SOLITÁRIO',   subtipo: 'SOLITÁRIO',    tipo_pedra: 'DIAMANTE',          lapidacao: 'OLD EUROPEAN', order: 13 },
-  { label: 'Brinco Maracanã · Turmalina Paraíba Gota',  produto: 'BRINCO',           subtipo: 'MARACANÃ',     tipo_pedra: 'TURMALINA PARAÍBA', lapidacao: 'GOTA',         order: 14 },
-  { label: 'Anel Maracanã · Esmeralda Quadrado',        produto: 'ANEL',             subtipo: 'MARACANÃ',     tipo_pedra: 'ESMERALDA',         lapidacao: 'QUADRADO',     order: 15 },
+  { label: 'Anel Solitário · Diamante',                produto: 'ANEL SOLITÁRIO',   subtipo: 'SOLITÁRIO',    tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 1  },
+  { label: 'Brinco Solitário · Diamante',              produto: 'BRINCO SOLITÁRIO', subtipo: 'SOLITÁRIO',    tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 2  },
+  { label: 'Ponto de Luz Solitário · Diamante',        produto: 'PONTO DE LUZ',     subtipo: 'SOLITÁRIO',    tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 3  },
+  { label: 'Anel Maracanã · Esmeralda',                produto: 'ANEL',             subtipo: 'MARACANÃ',     tipo_pedra: 'ESMERALDA',           lapidacao: '', order: 4  },
+  { label: 'Meia Aliança · Diamante',                  produto: 'MEIA ALIANÇA',     subtipo: 'MEIA ALIANÇA', tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 5  },
+  { label: 'Aliança Riviera · Diamante',               produto: 'ALIANÇA RIVIERA',  subtipo: 'RIVIERA',      tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 6  },
+  { label: 'Ponto de Luz · Diamante',                  produto: 'PONTO DE LUZ',     subtipo: 'PONTO DE LUZ', tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 7  },
+  { label: 'Brinco Maracanã · Esmeralda',              produto: 'BRINCO',           subtipo: 'MARACANÃ',     tipo_pedra: 'ESMERALDA',           lapidacao: '', order: 8  },
+  { label: 'Colar Riviera Ilusion · Diamante',         produto: 'COLAR RIVIERA',    subtipo: 'ILUSION',      tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 9  },
+  { label: 'Pulseira Riviera · Diamante',              produto: 'PULSEIRA RIVIERA', subtipo: 'RIVIERA',      tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 10 },
+  { label: 'Pingente P/Riviera · Esmeralda',           produto: 'PINGENTE',         subtipo: 'PARA RIVIERA', tipo_pedra: 'ESMERALDA',           lapidacao: '', order: 11 },
+  { label: 'Anel Maracanã · Turmalina Paraíba',        produto: 'ANEL',             subtipo: 'MARACANÃ',     tipo_pedra: 'TURMALINA PARAÍBA',   lapidacao: '', order: 12 },
+  { label: 'Brinco Maracanã · Turmalina Paraíba',      produto: 'BRINCO',           subtipo: 'MARACANÃ',     tipo_pedra: 'TURMALINA PARAÍBA',   lapidacao: '', order: 13 },
+  { label: 'Anel Cravejado · Diamante',                produto: 'ANEL',             subtipo: 'CRAVEJADO',    tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 14 },
+  { label: 'Colar Maracanã · Esmeralda',               produto: 'COLAR',            subtipo: 'MARACANÃ',     tipo_pedra: 'ESMERALDA',           lapidacao: '', order: 15 },
+  { label: 'Anel Maracanã · Esmeralda Colombiana',     produto: 'ANEL',             subtipo: 'MARACANÃ',     tipo_pedra: 'ESMERALDA COLOMBIANA', lapidacao: '', order: 16 },
+  { label: 'Pulseira Riviera Ilusion · Diamante',      produto: 'PULSEIRA RIVIERA', subtipo: 'ILUSION',      tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 17 },
+  { label: 'Brinco Cravejado · Diamante',              produto: 'BRINCO',           subtipo: 'CRAVEJADO',    tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 18 },
+  { label: 'Brinco Ear Cuff · Diamante',               produto: 'BRINCO EAR CUFF',  subtipo: 'EAR CUFF',     tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 19 },
+  { label: 'Pingente Solitário · Esmeralda',           produto: 'PINGENTE',         subtipo: 'SOLITÁRIO',    tipo_pedra: 'ESMERALDA',           lapidacao: '', order: 20 },
+  { label: 'Pingente Solitário · Diamante',            produto: 'PINGENTE',         subtipo: 'SOLITÁRIO',    tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 21 },
+  { label: 'Brinco Maracanã · Esmeralda Colombiana',  produto: 'BRINCO',           subtipo: 'MARACANÃ',     tipo_pedra: 'ESMERALDA COLOMBIANA', lapidacao: '', order: 22 },
+  { label: 'Colar Riviera Faca · Diamante',            produto: 'COLAR RIVIERA',    subtipo: 'FACA',         tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 23 },
+  { label: 'Colar Maracanã · Turmalina Paraíba',       produto: 'COLAR',            subtipo: 'MARACANÃ',     tipo_pedra: 'TURMALINA PARAÍBA',   lapidacao: '', order: 24 },
+  { label: 'Pingente P/Luz · Diamante',                produto: 'PINGENTE',         subtipo: 'PONTO DE LUZ', tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 25 },
+  { label: 'Colar Cravejado · Diamante',               produto: 'COLAR',            subtipo: 'CRAVEJADO',    tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 26 },
+  { label: 'Aliança Riviera Voltinha · Diamante',      produto: 'ALIANÇA RIVIERA',  subtipo: 'VOLTINHA',     tipo_pedra: 'DIAMANTE',            lapidacao: '', order: 27 },
+  { label: 'Anel Cravejado · Esmeralda',               produto: 'ANEL',             subtipo: 'CRAVEJADO',    tipo_pedra: 'ESMERALDA',           lapidacao: '', order: 28 },
+  { label: 'Pingente P/Riviera · Esm. Colombiana',     produto: 'PINGENTE',         subtipo: 'PARA RIVIERA', tipo_pedra: 'ESMERALDA COLOMBIANA', lapidacao: '', order: 29 },
+  { label: 'Anel Maracanã Duplo · Esmeralda',          produto: 'ANEL',             subtipo: 'MARACANÃ DUPLO', tipo_pedra: 'ESMERALDA',         lapidacao: '', order: 30 },
 ];
 
 export async function addCarroChefeAction(data: CarroChefeInput): Promise<void> {
