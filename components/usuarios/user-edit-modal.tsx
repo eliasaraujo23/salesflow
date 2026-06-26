@@ -61,7 +61,8 @@ export function UserEditModal({ open, onClose, user }: UserEditModalProps) {
           cargo:       user.cargo ?? '',
           email:       user.email,
           personKey:   user.personKey ?? '',
-          permissions: user.permissions ?? [],
+          // Admins always get all permissions (including newly added ones)
+          permissions: user.role === 'admin' ? ALL_PAGES.map(p => p.key) : (user.permissions ?? []),
         });
       } else {
         reset({ name: '', cargo: '', email: '', personKey: '', permissions: [] });
