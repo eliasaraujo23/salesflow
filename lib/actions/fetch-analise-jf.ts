@@ -48,7 +48,10 @@ export interface ResponseApi<T> {
 export async function fetchAnaliseJfAction(): Promise<ResponseApi<AnaliseJfData>> {
   try {
     const res = await fetch('/api/analise-jf');
-    if (!res.ok) return { httpStatus: res.status, message: 'Erro ao carregar análise JF' };
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { httpStatus: res.status, message: body?.error ?? `Erro ${res.status} ao carregar análise JF` };
+    }
 
     const json = await res.json();
     const parsed = analiseJfSchema.safeParse(json);

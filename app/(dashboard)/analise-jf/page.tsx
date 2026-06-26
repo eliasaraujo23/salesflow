@@ -51,7 +51,7 @@ function buildPedraData(rows: PedraItem[]) {
 }
 
 export default function AnaliseJfPage() {
-  const { data, isLoading, isError, refetch, isFetching, dataUpdatedAt } = useAnaliseJf();
+  const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useAnaliseJf();
 
   const lastUpdate = dataUpdatedAt
     ? new Date(dataUpdatedAt).toLocaleTimeString('pt-BR')
@@ -93,7 +93,9 @@ export default function AnaliseJfPage() {
       {/* Error */}
       {isError && !isLoading && (
         <div className="flex flex-col items-center justify-center py-24 gap-3">
-          <p className="text-sm text-red-500 dark:text-red-400">Erro ao carregar dados.</p>
+          <p className="text-sm text-red-500 dark:text-red-400">
+            {(error as Error)?.message || 'Erro ao carregar dados.'}
+          </p>
           <button onClick={() => refetch()} className="text-sm text-indigo-500 hover:underline">
             Tentar novamente
           </button>
