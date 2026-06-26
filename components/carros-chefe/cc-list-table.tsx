@@ -1,19 +1,19 @@
 'use client';
 
-import React from 'react';
-import { Pencil, Trash2, Star } from 'lucide-react';
+import React, { useState } from 'react';
+import { Pencil, Trash2, Star, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { type CarroChefeDef, deleteCarroChefeAction } from '@/lib/actions/carros-chefe';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
-import { useState } from 'react';
 
-function Tag({ text }: { text: string }) {
-  if (!text) return <span className="text-zinc-300 dark:text-zinc-600 text-xs">—</span>;
-  return (
-    <span className="text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.5 rounded">
-      {text}
-    </span>
-  );
+type SortCol = 'order' | 'label';
+type SortDir = 'asc' | 'desc';
+
+function SortIcon({ col, active, dir }: { col: SortCol; active: SortCol; dir: SortDir }) {
+  if (col !== active) return <ChevronsUpDown size={12} className="text-zinc-300 dark:text-zinc-600" />;
+  return dir === 'asc'
+    ? <ChevronUp size={12} className="text-indigo-500" />
+    : <ChevronDown size={12} className="text-indigo-500" />;
 }
 
 interface CcListTableProps {
@@ -22,8 +22,24 @@ interface CcListTableProps {
 }
 
 export function CcListTable({ defs, onEdit }: CcListTableProps) {
-  const sorted = [...defs].sort((a, b) => a.order - b.order);
+  const [sortCol, setSortCol] = useState<SortCol>('order');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [pendingDelete, setPendingDelete] = useState<CarroChefeDef | null>(null);
+
+  function toggleSort(col: SortCol) {
+    if (sortCol === col) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortCol(col);
+      setSortDir('asc');
+    }
+  }
+
+  const sorted = [...defs].sort((a, b) => {
+    const mul = sortDir === 'asc' ? 1 : -1;
+    if (sortCol === 'order') return (a.order - b.order) * mul;
+    return a.label.localeCompare(b.label, 'pt-BR') * mul;
+  });
 
   const doDelete = async () => {
     if (!pendingDelete) return;
@@ -35,6 +51,9 @@ export function CcListTable({ defs, onEdit }: CcListTableProps) {
     }
     setPendingDelete(null);
   };
+
+  const thCls = 'px-4 py-2.5 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400';
+  const thBtn = 'flex items-center gap-1.5 cursor-pointer select-none hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors';
 
   return (
     <>
@@ -52,19 +71,25 @@ export function CcListTable({ defs, onEdit }: CcListTableProps) {
           <table className="w-full text-sm data-table">
             <thead>
               <tr className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-100 dark:border-white/[0.04]">
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 w-8">#</th>
-                <th className="px-4 py-2.5 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400">Nome</th>
-                <th className="px-4 py-2.5 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">Tipo de Joia</th>
-                <th className="px-4 py-2.5 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">Subtipo</th>
-                <th className="px-4 py-2.5 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">Pedra</th>
-                <th className="px-4 py-2.5 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400">Lapidação</th>
+                <th className={`${thCls} w-12`}>
+                  <div className={thBtn} onClick={() => toggleSort('order')}>
+                    #
+                    <SortIcon col="order" active={sortCol} dir={sortDir} />
+                  </div>
+                </th>
+                <th className={thCls}>
+                  <div className={thBtn} onClick={() => toggleSort('label')}>
+                    Nome
+                    <SortIcon col="label" active={sortCol} dir={sortDir} />
+                  </div>
+                </th>
                 <th className="px-4 py-2.5 w-20" />
               </tr>
             </thead>
             <tbody>
               {defs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-zinc-400 dark:text-zinc-500">
+                  <td colSpan={3} className="px-4 py-12 text-center text-sm text-zinc-400 dark:text-zinc-500">
                     Nenhum carro-chefe cadastrado
                   </td>
                 </tr>
@@ -78,10 +103,6 @@ export function CcListTable({ defs, onEdit }: CcListTableProps) {
                         <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{def.label}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-center"><Tag text={def.produto} /></td>
-                    <td className="px-4 py-3 text-center"><Tag text={def.subtipo} /></td>
-                    <td className="px-4 py-3 text-center"><Tag text={def.tipo_pedra} /></td>
-                    <td className="px-4 py-3 text-center"><Tag text={def.lapidacao} /></td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
                         <button onClick={() => onEdit(def)}
