@@ -6,48 +6,7 @@ import { DayPicker } from 'react-day-picker';
 import { pt } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-
-function toISO(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-function fromISO(iso: string): Date | undefined {
-  if (!iso) return undefined;
-  const parts = iso.split('-').map(Number);
-  if (parts.length !== 3 || parts.some(isNaN)) return undefined;
-  return new Date(parts[0], parts[1] - 1, parts[2]);
-}
-
-function fmtDisplay(iso: string): string {
-  const d = fromISO(iso);
-  if (!d) return '';
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-}
-
-const DPY_CLASSES = {
-  months:          'p-3',
-  month:           'space-y-2',
-  month_caption:   'flex justify-center relative items-center h-8',
-  caption_label:   'text-sm font-semibold text-zinc-900 dark:text-zinc-100 capitalize',
-  nav:             'absolute inset-x-0 top-0 flex justify-between pointer-events-none',
-  button_previous: 'pointer-events-auto h-8 w-8 flex items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors',
-  button_next:     'pointer-events-auto h-8 w-8 flex items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors',
-  month_grid:      'w-full border-collapse',
-  weekdays:        'flex',
-  weekday:         'w-9 text-[11px] font-medium text-zinc-400 dark:text-zinc-500 text-center pb-1',
-  weeks:           '',
-  week:            'flex mt-1',
-  day:             'rdp-day relative w-9 h-9 p-0 text-center',
-  day_button:      'rdp-day_button w-full h-full flex items-center justify-center text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer',
-  selected:        'rdp-selected',
-  today:           'rdp-today',
-  outside:         'opacity-30',
-  disabled:        'opacity-30 cursor-not-allowed',
-  hidden:          'invisible',
-} as const;
+import { DPY_SINGLE, toISO, fromISO, fmtDisplay } from '@/lib/day-picker-config';
 
 interface SingleDatePickerProps {
   value: string;
@@ -125,7 +84,7 @@ export function SingleDatePicker({
           locale={pt}
           defaultMonth={selected ?? new Date()}
           className="drp-calendar"
-          classNames={DPY_CLASSES}
+          classNames={DPY_SINGLE}
           components={{
             Chevron: ({ orientation }) =>
               orientation === 'left' ? <ChevronLeft size={16} /> : <ChevronRight size={16} />,
