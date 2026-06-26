@@ -32,12 +32,8 @@ export default function PhotographyPage() {
     const firstOfMonth = `${now.toISOString().slice(0, 4)}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 
     // Em Aberto — bags not yet finalized
-    const openBags    = bags.filter(b => !b.data_finalizacao);
-    const sacAbertos  = openBags.length;
-    const pecasAberto = openBags.reduce((s, b) => s + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
-    const pecasFab    = openBags.reduce((s, b) => s + b.qtd_fabricado, 0);
-    const pecasSec    = openBags.reduce((s, b) => s + b.qtd_second,    0);
-    const pecasScr    = openBags.reduce((s, b) => s + b.qtd_scrap,     0);
+    const openBags   = bags.filter(b => !b.data_finalizacao);
+    const sacAbertos = openBags.length;
 
     // Faltam por tipo
     const faltamFotoFab = openBags.reduce((s, b) => s + Math.max(0, b.qtd_fabricado - b.foto_fabricado), 0);
@@ -71,9 +67,8 @@ export default function PhotographyPage() {
     const pecasAndamento = andamentoBags.reduce((s, b) => s + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
 
     return {
-      sacAbertos, pecasAberto, faltamFoto, faltamEdit,
+      sacAbertos, faltamFoto, faltamEdit,
       recSemana, recMes, finSemana, finMes, sacFinSemana, sacFinMes, sacAndamento, pecasAndamento,
-      bdPecas:     [{ label: 'Fab', value: pecasFab,     color: '#3b82f6' }, { label: 'Second', value: pecasSec, color: '#f97316' }, { label: 'Scrap', value: pecasScr, color: '#94a3b8' }],
       bdFaltamFoto:[{ label: 'Fab', value: faltamFotoFab, color: '#3b82f6' }, { label: 'Second', value: faltamFotoSec, color: '#f97316' }, { label: 'Scrap', value: faltamFotoScr, color: '#94a3b8' }],
       bdFaltamEdit:[{ label: 'Fab', value: faltamEditFab, color: '#3b82f6' }, { label: 'Second', value: faltamEditSec, color: '#f97316' }, { label: 'Scrap', value: faltamEditScr, color: '#94a3b8' }],
     };
@@ -137,7 +132,7 @@ export default function PhotographyPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard compact icon={Package}   label="Saquinhos Abertos" value={stats.sacAbertos}  subtext="sem finalização" variant="amber"
             active={filterStatus === ''}      onClick={() => setFilter('')} />
-          <KPICard compact icon={ImageIcon} label="Peças em Aberto"   value={stats.pecasAberto} subtext="total" breakdown={stats.bdPecas} variant="amber"
+          <KPICard compact icon={ImageIcon} label="Peças em Aberto"   value={stats.faltamEdit}  subtext="pendentes" breakdown={stats.bdFaltamEdit} variant="amber"
             active={filterStatus === ''}      onClick={() => setFilter('')} />
           <KPICard compact icon={Camera}    label="Faltam Fotografar" value={stats.faltamFoto}  subtext="peças" breakdown={stats.bdFaltamFoto} variant={stats.faltamFoto > 0 ? 'red' : 'green'}
             active={filterStatus === 'faltam-foto'} onClick={() => setFilter('faltam-foto')} />
