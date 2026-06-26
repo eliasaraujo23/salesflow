@@ -9,24 +9,18 @@ import { db } from '@/lib/firebase';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { type AppUser } from '@/components/firebase-provider';
+import { NAVIGATION_ITEMS } from '@/lib/constants';
 import { ShieldCheck, User as UserIcon, Trash2 } from 'lucide-react';
 
-const ALL_PAGES = [
-  { key: 'minhas',         label: 'Minhas Tarefas'    },
-  { key: 'kanban',         label: 'Kanban'             },
-  { key: 'calendario',     label: 'Calendário'         },
-  { key: 'equipe',         label: 'Painel da Equipe'   },
-  { key: 'dashboard',      label: 'Dashboard'          },
-  { key: 'relatorios',     label: 'Relatórios'         },
-  { key: 'ia',             label: 'IA de Reuniões'     },
-  { key: 'metais',         label: 'Controle de Metais' },
-  { key: 'fabricacoes',    label: 'Fabricações JF'     },
-  { key: 'fabricacoes-jm', label: 'Fabricações JM'     },
-  { key: 'manutencao',     label: 'Manutenções'        },
-  { key: 'revenda',        label: 'Revenda'            },
-  { key: 'fotografia',     label: 'Fotografia'         },
-  { key: 'parceiros',      label: 'Parceiros'          },
-];
+// Derived from NAVIGATION_ITEMS — adding a new menu item automatically adds it here.
+// Deduped by permission key; adminOnly items (no permission) are excluded.
+const ALL_PAGES = Array.from(
+  new Map(
+    NAVIGATION_ITEMS
+      .filter(item => !item.adminOnly && item.permission)
+      .map(item => [item.permission!, { key: item.permission!, label: item.label }])
+  ).values()
+);
 
 const schema = z.object({
   name:        z.string().min(1, 'Nome obrigatório'),

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { useAppContext } from '@/components/firebase-provider';
+import { useFirebase } from '@/components/firebase-provider';
 
 interface MigrationResult {
   total: number;
@@ -14,7 +14,7 @@ interface MigrationResult {
 }
 
 export default function MigrateTasksPage() {
-  const { currentUser } = useAppContext();
+  const { currentUser } = useFirebase();
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<MigrationResult | null>(null);
 
