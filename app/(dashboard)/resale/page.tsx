@@ -94,7 +94,7 @@ export default function ResalePage() {
     <div className="p-3 sm:p-4 flex flex-col gap-3 md:overflow-hidden md:h-full">
 
       {/* Header sticky — gruda no topo ao rolar no mobile */}
-      <div className="sticky top-0 z-10 -mx-3 sm:-mx-4 px-3 sm:px-4 pt-3 sm:pt-4 pb-3 -mt-3 sm:-mt-4 bg-zinc-50 dark:bg-zinc-950 shrink-0">
+      <div className="sticky top-0 z-10 -mx-3 sm:-mx-4 px-3 sm:px-4 pt-3 sm:pt-4 pb-3 -mt-3 sm:-mt-4 bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-white/[0.08] shadow-sm shrink-0">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
             <ResaleDatePicker from={from} to={to} onApply={(f, t) => { setFrom(f); setTo(t); }} />
