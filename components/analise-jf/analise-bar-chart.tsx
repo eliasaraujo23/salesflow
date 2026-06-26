@@ -40,7 +40,7 @@ export function AnaliseBarChart({ title, data }: Props) {
             axisLine={false}
           />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-          <Bar dataKey="q" radius={[0, 4, 4, 0]} label={{ position: 'right', fontSize: 11, fill: '#71717a', formatter: (v: number) => v }}>
+          <Bar dataKey="q" radius={[0, 4, 4, 0]} label={{ position: 'right', fontSize: 11, fill: '#71717a', formatter: (v: unknown) => String(v) }}>
             {data.map((entry, i) => (
               <Cell key={i} fill={entry.color} opacity={0.85} />
             ))}
