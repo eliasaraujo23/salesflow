@@ -53,13 +53,20 @@ export default function PhotographyPage() {
       .filter(b => (b.data_recebimento ?? '').slice(0, 10) >= firstOfMonth)
       .reduce((s, b) => s + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
 
-    // Peças Finalizadas — by data_finalizacao
+    // Saquinhos finalizados — by data_finalizacao
     const finBagsSemana = bags.filter(b => b.data_finalizacao && b.data_finalizacao.slice(0, 10) >= mondayStr);
     const finBagsMes    = bags.filter(b => b.data_finalizacao && b.data_finalizacao.slice(0, 10) >= firstOfMonth);
-    const finSemana    = finBagsSemana.reduce((s, b) => s + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
-    const finMes       = finBagsMes.reduce((s, b) => s + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
-    const sacFinSemana = finBagsSemana.length;
-    const sacFinMes    = finBagsMes.length;
+    const sacFinSemana  = finBagsSemana.length;
+    const sacFinMes     = finBagsMes.length;
+
+    // Peças Editadas — usa data_edicao quando preenchida, fallback para data_finalizacao
+    // Conta edit_x (peças de fato editadas), não qtd_x recebidas
+    const editSemana = bags
+      .filter(b => ((b.data_edicao ?? b.data_finalizacao) ?? '').slice(0, 10) >= mondayStr)
+      .reduce((s, b) => s + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
+    const editMes = bags
+      .filter(b => ((b.data_edicao ?? b.data_finalizacao) ?? '').slice(0, 10) >= firstOfMonth)
+      .reduce((s, b) => s + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
 
     // Em Andamento
     const andamentoBags  = openBags.filter(b => (b.foto_fabricado + b.foto_second + b.foto_scrap) > 0 || (b.edit_fabricado + b.edit_second + b.edit_scrap) > 0);
@@ -68,7 +75,7 @@ export default function PhotographyPage() {
 
     return {
       sacAbertos, faltamFoto, faltamEdit,
-      recSemana, recMes, finSemana, finMes, sacFinSemana, sacFinMes, sacAndamento, pecasAndamento,
+      recSemana, recMes, editSemana, editMes, sacFinSemana, sacFinMes, sacAndamento, pecasAndamento,
       bdFaltamFoto:[{ label: 'Fab', value: faltamFotoFab, color: '#3b82f6' }, { label: 'Second', value: faltamFotoSec, color: '#f97316' }, { label: 'Scrap', value: faltamFotoScr, color: '#94a3b8' }],
       bdFaltamEdit:[{ label: 'Fab', value: faltamEditFab, color: '#3b82f6' }, { label: 'Second', value: faltamEditSec, color: '#f97316' }, { label: 'Scrap', value: faltamEditScr, color: '#94a3b8' }],
     };
@@ -129,15 +136,13 @@ export default function PhotographyPage() {
           <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Em Aberto</span>
           <div className="flex-1 h-px bg-zinc-100 dark:bg-white/[0.06]" />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KPICard compact icon={Package}   label="Saquinhos Abertos" value={stats.sacAbertos}  subtext="sem finalização" variant="amber"
-            active={filterStatus === ''}      onClick={() => setFilter('')} />
-          <KPICard compact icon={ImageIcon} label="Peças em Aberto"   value={stats.faltamEdit}  subtext="pendentes" breakdown={stats.bdFaltamEdit} variant="amber"
-            active={filterStatus === ''}      onClick={() => setFilter('')} />
-          <KPICard compact icon={Camera}    label="Faltam Fotografar" value={stats.faltamFoto}  subtext="peças" breakdown={stats.bdFaltamFoto} variant={stats.faltamFoto > 0 ? 'red' : 'green'}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <KPICard compact icon={Package}   label="Saquinhos Abertos" value={stats.sacAbertos} subtext="sem finalização" variant="amber"
+            active={filterStatus === ''}          onClick={() => setFilter('')} />
+          <KPICard compact icon={ImageIcon} label="Peças em Aberto"   value={stats.faltamEdit} subtext="pendentes" breakdown={stats.bdFaltamEdit} variant="amber"
+            active={filterStatus === ''}          onClick={() => setFilter('')} />
+          <KPICard compact icon={Camera}    label="Faltam Fotografar" value={stats.faltamFoto} subtext="peças" breakdown={stats.bdFaltamFoto} variant={stats.faltamFoto > 0 ? 'red' : 'green'}
             active={filterStatus === 'faltam-foto'} onClick={() => setFilter('faltam-foto')} />
-          <KPICard compact icon={Pencil}    label="Faltam Editar"     value={stats.faltamEdit}  subtext="peças" breakdown={stats.bdFaltamEdit} variant={stats.faltamEdit > 0 ? 'red' : 'green'}
-            active={filterStatus === 'faltam-edit'} onClick={() => setFilter('faltam-edit')} />
         </div>
       </div>
 
@@ -153,7 +158,7 @@ export default function PhotographyPage() {
             active={filterStatus === 'todos'}      onClick={() => setFilter('todos')} />
           <KPICard compact icon={Camera}    label="Em Andamento"       value={stats.sacAndamento} subtext={`${stats.pecasAndamento} peças`}      variant="purple"
             active={filterStatus === 'andamento'}  onClick={() => setFilter('andamento')} />
-          <KPICard compact icon={Package}   label="Peças Finalizadas"  value={stats.finSemana}    subtext={`${stats.finMes} no mês`}             variant="green"
+          <KPICard compact icon={Pencil}    label="Peças Editadas"     value={stats.editSemana}   subtext={`${stats.editMes} no mês`}           variant="green"
             active={filterStatus === 'finalizado'} onClick={() => setFilter('finalizado')} />
           <KPICard compact icon={Package}   label="Saquinhos Finalizados" value={stats.sacFinSemana} subtext={`${stats.sacFinMes} no mês`}       variant="green"
             active={filterStatus === 'finalizado'} onClick={() => setFilter('finalizado')} />
