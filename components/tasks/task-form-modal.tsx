@@ -85,7 +85,7 @@ export function TaskFormModal({
       : values.dueDate
       ? dateInputToBR(values.dueDate)
       : 'Sem prazo';
-    const person = isAdmin ? values.person : (currentUser?.name ?? '');
+    const person = isAdmin ? values.person : (currentUser?.personKey ?? '');
 
     if (isNew) {
       onSaveNew({ title: values.title, person, priority: values.priority, status: values.status, due, description: values.description });
