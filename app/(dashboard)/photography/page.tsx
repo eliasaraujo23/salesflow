@@ -68,14 +68,9 @@ export default function PhotographyPage() {
       .filter(b => ((b.data_edicao ?? b.data_finalizacao) ?? '').slice(0, 10) >= firstOfMonth)
       .reduce((s, b) => s + b.edit_fabricado + b.edit_second + b.edit_scrap, 0);
 
-    // Em Andamento
-    const andamentoBags  = openBags.filter(b => (b.foto_fabricado + b.foto_second + b.foto_scrap) > 0 || (b.edit_fabricado + b.edit_second + b.edit_scrap) > 0);
-    const sacAndamento   = andamentoBags.length;
-    const pecasAndamento = andamentoBags.reduce((s, b) => s + b.qtd_fabricado + b.qtd_second + b.qtd_scrap, 0);
-
     return {
       sacAbertos, faltamFoto, faltamEdit,
-      recSemana, recMes, editSemana, editMes, sacFinSemana, sacFinMes, sacAndamento, pecasAndamento,
+      recSemana, recMes, editSemana, editMes, sacFinSemana, sacFinMes,
       bdFaltamFoto:[{ label: 'Fab', value: faltamFotoFab, color: '#3b82f6' }, { label: 'Second', value: faltamFotoSec, color: '#f97316' }, { label: 'Scrap', value: faltamFotoScr, color: '#94a3b8' }],
       bdFaltamEdit:[{ label: 'Fab', value: faltamEditFab, color: '#3b82f6' }, { label: 'Second', value: faltamEditSec, color: '#f97316' }, { label: 'Scrap', value: faltamEditScr, color: '#94a3b8' }],
     };
@@ -156,8 +151,6 @@ export default function PhotographyPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KPICard compact icon={ImageIcon} label="Peças Recebidas"    value={stats.recSemana}    subtext={`${stats.recMes} no mês`}            variant="blue"
             active={filterStatus === 'todos'}      onClick={() => setFilter('todos')} />
-          <KPICard compact icon={Camera}    label="Em Andamento"       value={stats.sacAndamento} subtext={`${stats.pecasAndamento} peças`}      variant="purple"
-            active={filterStatus === 'andamento'}  onClick={() => setFilter('andamento')} />
           <KPICard compact icon={Pencil}    label="Peças Editadas"     value={stats.editSemana}   subtext={`${stats.editMes} no mês`}           variant="green"
             active={filterStatus === 'finalizado'} onClick={() => setFilter('finalizado')} />
           <KPICard compact icon={Package}   label="Saquinhos Finalizados" value={stats.sacFinSemana} subtext={`${stats.sacFinMes} no mês`}       variant="green"
