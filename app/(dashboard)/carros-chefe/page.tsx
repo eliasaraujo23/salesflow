@@ -5,7 +5,7 @@ import { Plus, RefreshCw, Star } from 'lucide-react';
 import { useCarrosChefe, type CarroChefeDef } from '@/hooks/use-carros-chefe';
 import { CcListTable } from '@/components/carros-chefe/cc-list-table';
 import { CcDialog } from '@/components/carros-chefe/cc-dialog';
-import { seedDefaultsAction } from '@/lib/actions/carros-chefe';
+import { seedDefaultsAction, resetDefaultsAction } from '@/lib/actions/carros-chefe';
 import { toast } from 'sonner';
 
 export default function CarrosChefePage() {
@@ -13,6 +13,8 @@ export default function CarrosChefePage() {
   const [editing, setEditing] = useState<CarroChefeDef | undefined>(undefined);
   const [showDialog, setShowDialog] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   const handleSeed = async () => {
     if (defs.length > 0) {
@@ -27,6 +29,20 @@ export default function CarrosChefePage() {
       toast.error('Erro ao carregar padrões');
     } finally {
       setSeeding(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!confirmReset) { setConfirmReset(true); return; }
+    setResetting(true);
+    setConfirmReset(false);
+    try {
+      await resetDefaultsAction();
+      toast.success('Carros-chefe redefinidos com os padrões do histórico!');
+    } catch {
+      toast.error('Erro ao redefinir');
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -53,6 +69,21 @@ export default function CarrosChefePage() {
             >
               <RefreshCw size={14} className={seeding ? 'animate-spin' : ''} />
               Carregar Padrões
+            </button>
+          )}
+          {!loading && (
+            <button
+              onClick={handleReset}
+              onBlur={() => setConfirmReset(false)}
+              disabled={resetting}
+              className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border rounded-lg transition-colors disabled:opacity-50 ${
+                confirmReset
+                  ? 'bg-red-500 text-white border-red-500 hover:bg-red-600'
+                  : 'text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-white/[0.08] hover:border-zinc-300 dark:hover:border-white/[0.15]'
+              }`}
+            >
+              <RefreshCw size={14} className={resetting ? 'animate-spin' : ''} />
+              {confirmReset ? 'Confirmar reset' : 'Redefinir padrões'}
             </button>
           )}
           <button
