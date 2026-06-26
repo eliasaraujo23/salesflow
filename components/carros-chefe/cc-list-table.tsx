@@ -22,7 +22,7 @@ interface CcListTableProps {
 }
 
 export function CcListTable({ defs, onEdit }: CcListTableProps) {
-  const sorted = [...defs].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+  const sorted = [...defs].sort((a, b) => a.order - b.order);
   const [pendingDelete, setPendingDelete] = useState<CarroChefeDef | null>(null);
 
   const doDelete = async () => {
