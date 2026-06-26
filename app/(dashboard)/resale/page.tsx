@@ -126,7 +126,7 @@ export default function ResalePage() {
         </div>
       ) : (
         <div
-          className="flex flex-col gap-3 md:flex-1 md:min-h-0 md:grid md:min-w-0"
+          className="flex flex-col gap-3 md:flex-1 md:min-h-0 md:grid md:min-w-0 md:pt-0.5"
           style={{ gridTemplateColumns: '2fr 3fr' }}
         >
 
