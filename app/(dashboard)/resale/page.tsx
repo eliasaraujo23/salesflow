@@ -33,7 +33,7 @@ const ticketMedio = (fat: number, qtd: number) =>
 
 function KPIBox({ label, value, valueClass = '', flash = false }: { label: string; value: string; valueClass?: string; flash?: boolean }) {
   return (
-    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-lg px-3 py-2 flex flex-col gap-0.5 ${flash ? 'animate-sale-kpi' : ''}`}>
+    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-lg px-3 py-2 flex flex-col gap-0.5 ${flash ? 'animate-sale-kpi relative z-20' : ''}`}>
       <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{label}</span>
       <span className={`text-base font-bold truncate ${valueClass || 'text-zinc-900 dark:text-zinc-100'}`}>{value}</span>
     </div>
