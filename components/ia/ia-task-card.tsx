@@ -78,7 +78,7 @@ export function IaTaskCard({ task, users, onChange, onRemove }: IaTaskCardProps)
           className={`${inputCls} w-40`}
         >
           {users.filter(u => u.personKey || u.name).map(u => (
-            <option key={u.email} value={u.name}>{u.name}</option>
+            <option key={u.email} value={u.personKey || u.name}>{u.name}</option>
           ))}
           {!task.userMatched && (
             <option value={task.person}>{task.person} (não encontrado)</option>
