@@ -112,10 +112,10 @@ export function PartnersMatrix({ rows, partners }: PartnersMatrixProps) {
 
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
         <table className="w-full text-sm data-table">
-          <thead>
-            <tr className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-100 dark:border-white/[0.04]">
+          <thead className="sticky top-0 z-10">
+            <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-100 dark:border-white/[0.04]">
               <th className="px-4 py-2.5 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 whitespace-nowrap min-w-[160px]">
                 ★ Categoria
               </th>
