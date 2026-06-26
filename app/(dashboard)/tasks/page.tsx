@@ -10,7 +10,8 @@ import { DeleteRequestBanner } from '@/components/tasks/delete-request-banner';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { OverdueModal } from '@/components/tasks/overdue-modal';
 import { useTasksPage } from '@/hooks/use-tasks-page';
-import { ClipboardList, Plus, Filter, ArrowDownUp } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ClipboardList, Plus, Filter, ArrowDownUp, Check } from 'lucide-react';
 
 const SORT_OPTIONS: { id: 'data' | 'prioridade' | 'responsavel'; label: string }[] = [
   { id: 'data',        label: 'Data' },
@@ -23,8 +24,6 @@ export default function TasksPage() {
     isAdmin, currentUser, users, deleteRequests,
     filteredTasks, stats, filterCounts,
     activeFilter, setActiveFilter,
-    showFilterPanel, setShowFilterPanel,
-    showSortPanel, setShowSortPanel,
     filterPerson, setFilterPerson,
     filterPriority, setFilterPriority,
     sortField, setSortField,
@@ -43,9 +42,17 @@ export default function TasksPage() {
 
   const pendingDeleteIds = new Set(deleteRequests.map((r) => String(r.taskId)));
 
-  const panelCls = 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-4 shadow-sm';
   const selectCls = 'w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-700 dark:text-zinc-300 text-[13px] focus:border-indigo-400 dark:focus:border-indigo-500 outline-none transition-colors';
-  const filterLabelCls = 'block text-[10px] font-bold text-zinc-400 dark:text-zinc-500 mb-2 uppercase tracking-[0.6px]';
+  const filterLabelCls = 'block text-[10px] font-bold text-zinc-400 dark:text-zinc-500 mb-2.5 uppercase tracking-[0.6px]';
+
+  const activeFilterCount = (filterPerson ? 1 : 0) + (filterPriority ? 1 : 0);
+
+  const PRIORITY_CHIPS = [
+    { value: 'urgente', label: 'Urgente', color: 'bg-red-100 dark:bg-red-500/15 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/30' },
+    { value: 'alta',    label: 'Alta',    color: 'bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/30' },
+    { value: 'media',   label: 'Média',   color: 'bg-indigo-100 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30' },
+    { value: 'baixa',   label: 'Baixa',   color: 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' },
+  ];
 
   const isConfirmDialog = !!pendingConfirm && pendingConfirm.type !== 'batch-complete';
   const confirmTitle =
@@ -72,31 +79,100 @@ export default function TasksPage() {
         >
           <Plus size={15} strokeWidth={2.5} /> Nova tarefa
         </button>
+
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => { setShowFilterPanel((v) => !v); setShowSortPanel(false); }}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-[13px] font-medium transition-all ${
-              showFilterPanel
-                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10'
-                : 'border-zinc-200 dark:border-white/[0.08] text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:border-zinc-300 dark:hover:border-white/[0.12]'
-            }`}
-          >
-            <Filter size={13} /> Filtrar
-          </button>
-          <button
-            onClick={() => { setShowSortPanel((v) => !v); setShowFilterPanel(false); }}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-[13px] font-medium transition-all ${
-              showSortPanel || sortField !== null
-                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10'
-                : 'border-zinc-200 dark:border-white/[0.08] text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:border-zinc-300 dark:hover:border-white/[0.12]'
-            }`}
-          >
-            <ArrowDownUp size={13} />
-            Ordenar
-            {sortField !== null && (
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
-            )}
-          </button>
+          {/* Filter popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-[13px] font-medium transition-all ${
+                activeFilterCount > 0
+                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10'
+                  : 'border-zinc-200 dark:border-white/[0.08] text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:border-zinc-300 dark:hover:border-white/[0.12]'
+              }`}>
+                <Filter size={13} />
+                Filtrar
+                {activeFilterCount > 0 && (
+                  <span className="flex items-center justify-center w-4 h-4 rounded-full bg-indigo-600 text-white text-[10px] font-bold leading-none">{activeFilterCount}</span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 p-4 space-y-4">
+              {/* Priority chips */}
+              <div>
+                <label className={filterLabelCls}>Prioridade</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {PRIORITY_CHIPS.map(chip => (
+                    <button
+                      key={chip.value}
+                      onClick={() => setFilterPriority(filterPriority === chip.value ? '' : chip.value)}
+                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-[12px] font-medium transition-all ${
+                        filterPriority === chip.value
+                          ? chip.color
+                          : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-white/[0.08] text-zinc-500 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-white/[0.12]'
+                      }`}
+                    >
+                      {chip.label}
+                      {filterPriority === chip.value && <Check size={11} strokeWidth={3} />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Person select — admin only */}
+              {isAdmin && (
+                <div>
+                  <label className={filterLabelCls}>Responsável</label>
+                  <select value={filterPerson} onChange={e => setFilterPerson(e.target.value)} className={selectCls}>
+                    <option value="">Todos</option>
+                    {users.filter(u => u.personKey).map(u => (
+                      <option key={u.personKey} value={u.personKey}>{u.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Clear */}
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={() => { setFilterPriority(''); setFilterPerson(''); }}
+                  className="w-full text-center text-[12px] text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                >
+                  Limpar filtros
+                </button>
+              )}
+            </PopoverContent>
+          </Popover>
+
+          {/* Sort popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-[13px] font-medium transition-all ${
+                sortField !== null
+                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10'
+                  : 'border-zinc-200 dark:border-white/[0.08] text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:border-zinc-300 dark:hover:border-white/[0.12]'
+              }`}>
+                <ArrowDownUp size={13} />
+                Ordenar
+                {sortField !== null && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-44 p-2">
+              {[{ id: null, label: 'Padrão' }, ...SORT_OPTIONS].map(opt => (
+                <button
+                  key={String(opt.id)}
+                  onClick={() => setSortField(opt.id as typeof sortField)}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
+                    sortField === opt.id
+                      ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                  }`}
+                >
+                  {opt.label}
+                  {sortField === opt.id && <Check size={13} strokeWidth={2.5} />}
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -109,67 +185,6 @@ export default function TasksPage() {
         <FilterCard label="Atrasadas"   count={filterCounts.atrasadas}  subtext="precisam de atenção" variant="red"    active={activeFilter === 'atrasadas'}  onClick={() => { setActiveFilter('atrasadas');  clearSelection(); }} />
         <FilterCard label="Concluídas"  count={filterCounts.concluidas} subtext="finalizadas"         variant="green"  active={activeFilter === 'concluidas'} onClick={() => { setActiveFilter('concluidas'); clearSelection(); }} />
       </div>
-
-      {/* Filter panel */}
-      {showFilterPanel && (
-        <div className={panelCls}>
-          <div className={`grid gap-4 ${isAdmin ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-            {isAdmin && (
-              <div>
-                <label className={filterLabelCls}>Responsável</label>
-                <select value={filterPerson} onChange={(e) => setFilterPerson(e.target.value)} className={selectCls}>
-                  <option value="">Todos</option>
-                  {users.filter((u) => u.personKey).map((u) => (
-                    <option key={u.personKey} value={u.personKey}>{u.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-            <div>
-              <label className={filterLabelCls}>Prioridade</label>
-              <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className={selectCls}>
-                <option value="">Todas</option>
-                <option value="urgente">Urgente</option>
-                <option value="alta">Alta</option>
-                <option value="media">Média</option>
-                <option value="baixa">Baixa</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Sort panel */}
-      {showSortPanel && (
-        <div className={panelCls}>
-          <p className={filterLabelCls}>Ordenar por:</p>
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={() => { setSortField(null); setShowSortPanel(false); }}
-              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
-                sortField === null
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-              }`}
-            >
-              Padrão
-            </button>
-            {SORT_OPTIONS.map((opt) => (
-              <button
-                key={opt.id}
-                onClick={() => { setSortField(opt.id); setShowSortPanel(false); }}
-                className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
-                  sortField === opt.id
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Delete requests banner — admin only */}
       {isAdmin && (
