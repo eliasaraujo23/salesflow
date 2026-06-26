@@ -121,7 +121,7 @@ export function UserEditModal({ open, onClose, user }: UserEditModalProps) {
     }
   }
 
-  const inputCls = 'w-full px-3 py-2 text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-400 disabled:opacity-50 disabled:cursor-not-allowed';
+  const inputCls = 'w-full px-3 py-2 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-400 disabled:opacity-50 disabled:cursor-not-allowed';
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
