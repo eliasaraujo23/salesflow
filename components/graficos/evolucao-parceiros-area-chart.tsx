@@ -68,7 +68,7 @@ export function EvolucaoParceiroAreaChart({ data }: Props) {
 
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <AreaChart data={chartData} margin={{ top: 40, right: 16, left: 8, bottom: 0 }}>
+      <AreaChart data={chartData} margin={{ top: 40, right: 70, left: 8, bottom: 0 }}>
         <defs>
           <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%"  stopColor="#10b981" stopOpacity={0.25} />
