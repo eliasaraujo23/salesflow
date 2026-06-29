@@ -88,7 +88,7 @@ export default function EvolucaoParceiroPage() {
   }
 
   return (
-    <div className="h-full overflow-hidden p-3 sm:p-6 flex flex-col gap-4">
+    <div className="p-3 sm:p-6 flex flex-col gap-4">
       {/* ── Filter / KPI bar ─────────────────────────────────────── */}
       <div className="flex flex-wrap items-stretch gap-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 text-sm">
         {/* Data Venda */}
@@ -169,7 +169,7 @@ export default function EvolucaoParceiroPage() {
 
       {/* ── Main content: sidebar + chart ────────────────────────── */}
       {data && !isLoading && (
-        <div className="flex gap-4 items-stretch flex-1 min-h-0 overflow-hidden">
+        <div className="flex gap-4 items-start">
           <ParceirosDestinoSidebar
             parceiros={allParceiros}
             selected={selectedPartners}
@@ -178,15 +178,13 @@ export default function EvolucaoParceiroPage() {
             onClearAll={handleClearAll}
           />
 
-          <div className="flex-1 min-w-0 min-h-0 overflow-hidden bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-5 flex flex-col">
+          <div className="flex-1 min-w-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-5">
             {monthlyData.length === 0 ? (
-              <div className="flex items-center justify-center flex-1 text-zinc-400 text-sm">
+              <div className="flex items-center justify-center h-[280px] text-zinc-400 text-sm">
                 Nenhum dado para o período selecionado.
               </div>
             ) : (
-              <div className="flex-1 min-h-0">
-                <EvolucaoParceiroAreaChart data={monthlyData} />
-              </div>
+              <EvolucaoParceiroAreaChart data={monthlyData} />
             )}
           </div>
         </div>
