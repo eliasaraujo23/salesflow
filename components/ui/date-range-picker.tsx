@@ -215,6 +215,7 @@ export function CalendarDateRangePicker({
                   onSelect={(range) => {
                     if (isRangeComplete) {
                       if (range?.from && range?.to) {
+                        // react-day-picker returned a full range — determine the clicked date
                         const newDate =
                           range.to > (dateRange?.to ?? range.to) ? range.to : range.from;
                         if (
@@ -225,6 +226,11 @@ export function CalendarDateRangePicker({
                           setIsRangeComplete(false);
                           return;
                         }
+                      } else if (range?.from) {
+                        // react-day-picker started a new selection (from only) — restart
+                        setPendingRange({ from: range.from, to: undefined });
+                        setIsRangeComplete(false);
+                        return;
                       }
                     }
                     setPendingRange(range);
