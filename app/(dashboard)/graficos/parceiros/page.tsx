@@ -33,7 +33,7 @@ function fmtMesLabel(mes: string) {
 
 export default function EvolucaoParceiroPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(defaultRange);
-  const [tipo, setTipo] = useState<'todos' | 'JF' | 'JMF' | 'JMCP' | 'JMSP' | 'JRCP' | 'JRSP' | 'JC'>('todos');
+  const [tipo, setTipo] = useState<'todos' | 'JF' | 'JMF' | 'JM' | 'JR' | 'JC' | 'JMCP' | 'JMSP' | 'JRCP' | 'JRSP'>('todos');
   const [selectedPartners, setSelectedPartners] = useState<Set<string>>(new Set());
 
   const dataInicio = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined;
@@ -114,11 +114,13 @@ export default function EvolucaoParceiroPage() {
               <SelectItem value="todos">Todos</SelectItem>
               <SelectItem value="JF">JF</SelectItem>
               <SelectItem value="JMF">JMF</SelectItem>
+              <SelectItem value="JM">JM</SelectItem>
+              <SelectItem value="JR">JR</SelectItem>
+              <SelectItem value="JC">JC</SelectItem>
               <SelectItem value="JMCP">JMCP</SelectItem>
               <SelectItem value="JMSP">JMSP</SelectItem>
               <SelectItem value="JRCP">JRCP</SelectItem>
               <SelectItem value="JRSP">JRSP</SelectItem>
-              <SelectItem value="JC">JC</SelectItem>
             </SelectContent>
           </Select>
         </div>
