@@ -1,102 +1,37 @@
 'use client';
 
 import { CalendarIcon } from '@radix-ui/react-icons';
-import { ChevronDown } from 'lucide-react';
-import { format, isValid, parse } from 'date-fns';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { pt } from 'date-fns/locale';
-import { type DateRange } from 'react-day-picker';
+import { type DateRange, DayPicker } from 'react-day-picker';
 
-import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import React, { type Dispatch, useEffect, useRef, useState } from 'react';
+import React, { type Dispatch, useEffect, useState } from 'react';
 
-// ── Masked date input ───────────────────────────────────────────────────────
+// ── helpers ─────────────────────────────────────────────────────────────────
 
-function buildDisplay(digits: string): string {
-  const d = (digits + '________').slice(0, 8).split('');
-  return `${d[0]}${d[1]}/${d[2]}${d[3]}/${d[4]}${d[5]}${d[6]}${d[7]}`;
+function parseInput(txt: string): Date | null {
+  const m = txt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  return isNaN(d.getTime()) ? null : d;
 }
 
-function toDateStr(digits: string): string {
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+function fmtInput(d: Date | undefined): string {
+  if (!d) return '';
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 }
 
-function digitsFromValue(value: string): string {
-  return value.replace(/\D/g, '').slice(0, 8);
-}
-
-interface MaskedDateInputProps {
-  value: string;
-  onChange: (v: string) => void;
-  className?: string;
-}
-
-function MaskedDateInput({ value, onChange, className }: MaskedDateInputProps) {
-  const [digits, setDigits] = useState(() => digitsFromValue(value));
-  const prevDisplayRef = useRef(buildDisplay(digitsFromValue(value)));
-  const skipChangeRef = useRef(false);
-
-  useEffect(() => {
-    if (value === '' || value.length === 10) {
-      const d = digitsFromValue(value);
-      setDigits(d);
-      prevDisplayRef.current = buildDisplay(d);
-    }
-  }, [value]);
-
-  const apply = (d: string) => {
-    prevDisplayRef.current = buildDisplay(d);
-    setDigits(d);
-    if (d.length === 0) onChange('');
-    else if (d.length === 8) onChange(toDateStr(d));
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace') {
-      e.preventDefault();
-      skipChangeRef.current = true;
-      apply(digits.slice(0, -1));
-    } else if (/^\d$/.test(e.key) && digits.length < 8) {
-      e.preventDefault();
-      skipChangeRef.current = true;
-      apply(digits + e.key);
-    } else if (e.key !== 'Tab' && e.key !== 'Enter' && !e.metaKey && !e.ctrlKey) {
-      e.preventDefault();
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (skipChangeRef.current) { skipChangeRef.current = false; return; }
-    const newRaw = e.target.value;
-    const prevRaw = prevDisplayRef.current;
-    if (newRaw.length > prevRaw.length) {
-      const added = newRaw.replace(/\D/g, '').slice(digits.length);
-      if (added && digits.length < 8) apply((digits + added).slice(0, 8));
-    } else if (newRaw.length < prevRaw.length && digits.length > 0) {
-      apply(digits.slice(0, -1));
-    }
-  };
-
-  return (
-    <input
-      type="text"
-      inputMode="numeric"
-      value={buildDisplay(digits)}
-      onKeyDown={handleKeyDown}
-      onChange={handleChange}
-      className={className}
-    />
-  );
-}
-
-// ── CalendarDateRangePicker ─────────────────────────────────────────────────
+// ── pill label ───────────────────────────────────────────────────────────────
 
 const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
 function pillDate(d: Date): string {
-  return `${String(d.getDate()).padStart(2, '0')}/${MONTHS_PT[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
+  return `${String(d.getDate()).padStart(2,'0')}/${MONTHS_PT[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
 }
+
+// ── component ────────────────────────────────────────────────────────────────
 
 interface CalendarDateRangePickerProps {
   className?: string;
@@ -113,58 +48,46 @@ export function CalendarDateRangePicker({
   setDateRange,
   onDateChange,
 }: CalendarDateRangePickerProps) {
-  const [fromVal, setFromVal] = useState(dateRange?.from ? format(dateRange.from, 'dd/MM/yyyy') : '');
-  const [toVal,   setToVal]   = useState(dateRange?.to   ? format(dateRange.to,   'dd/MM/yyyy') : '');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [pendingRange, setPendingRange] = useState<DateRange | undefined>(dateRange);
+  const [fromText, setFromText] = useState(fmtInput(dateRange?.from));
+  const [toText,   setToText]   = useState(fmtInput(dateRange?.to));
 
-  // Sincroniza ao abrir o popover ou quando o range aplicado muda
+  // Reseta ao abrir o popover ou quando o range aplicado muda externamente
   useEffect(() => {
     setPendingRange(dateRange);
-    setFromVal(dateRange?.from ? format(dateRange.from, 'dd/MM/yyyy') : '');
-    setToVal(  dateRange?.to   ? format(dateRange.to,   'dd/MM/yyyy') : '');
+    setFromText(fmtInput(dateRange?.from));
+    setToText(fmtInput(dateRange?.to));
   }, [dateRange, isPopoverOpen]);
 
-  // Clique num dia do calendário — lógica própria sem depender do onSelect do react-day-picker
+  // Clique direto num dia do calendário
   const handleDayClick = (day: Date) => {
     const hasComplete = !!(pendingRange?.from && pendingRange?.to);
     if (!pendingRange?.from || hasComplete) {
-      // Sem range ou range completo → começa do zero
       setPendingRange({ from: day, to: undefined });
-      setFromVal(format(day, 'dd/MM/yyyy'));
-      setToVal('');
+      setFromText(fmtInput(day));
+      setToText('');
     } else {
-      // Já tem 'from' → completa o range
       const [from, to] = day < pendingRange.from
         ? [day, pendingRange.from]
         : [pendingRange.from, day];
       setPendingRange({ from, to });
-      setFromVal(format(from, 'dd/MM/yyyy'));
-      setToVal(format(to, 'dd/MM/yyyy'));
+      setFromText(fmtInput(from));
+      setToText(fmtInput(to));
     }
   };
 
-  // Digitação manual nos campos de texto
-  const handleFieldChange = (val: string, field: 'from' | 'to') => {
-    if (field === 'from') setFromVal(val);
-    else setToVal(val);
+  // Validação no blur dos campos de texto
+  const handleFromBlur = () => {
+    const d = parseInput(fromText);
+    if (d) setPendingRange(prev => ({ from: d, to: prev?.to }));
+    else   setFromText(fmtInput(pendingRange?.from));
+  };
 
-    if (!val) {
-      setPendingRange(prev => ({
-        from: field === 'from' ? undefined : prev?.from,
-        to:   field === 'to'   ? undefined : prev?.to,
-      }));
-      return;
-    }
-    if (val.length === 10) {
-      const parsed = parse(val, 'dd/MM/yyyy', new Date());
-      if (isValid(parsed)) {
-        setPendingRange(prev => ({
-          from: field === 'from' ? parsed : prev?.from,
-          to:   field === 'to'   ? parsed : prev?.to,
-        }));
-      }
-    }
+  const handleToBlur = () => {
+    const d = parseInput(toText);
+    if (d) setPendingRange(prev => ({ from: prev?.from, to: d }));
+    else   setToText(fmtInput(pendingRange?.to));
   };
 
   const handleApply = () => {
@@ -180,7 +103,7 @@ export function CalendarDateRangePicker({
     : 'Selecionar período';
 
   const inputCls =
-    'px-2.5 py-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-xs text-zinc-800 dark:text-zinc-100 w-[110px] focus:outline-none focus:border-indigo-500 transition-colors';
+    'w-28 px-2.5 py-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-xs text-zinc-700 dark:text-zinc-300 placeholder-zinc-300 dark:placeholder-zinc-600 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors';
 
   return (
     <div className={cn('shrink-0', className)}>
@@ -208,18 +131,30 @@ export function CalendarDateRangePicker({
           sideOffset={8}
         >
           {/* INÍCIO / FIM */}
-          <div className="flex items-center gap-6 px-5 pt-4 pb-3 border-b border-zinc-100 dark:border-white/[0.05]">
+          <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-zinc-100 dark:border-white/[0.05]">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
                 Início:
               </span>
-              <MaskedDateInput value={fromVal} onChange={v => handleFieldChange(v, 'from')} className={inputCls} />
+              <input
+                value={fromText}
+                onChange={e => setFromText(e.target.value)}
+                onBlur={handleFromBlur}
+                placeholder="dd/mm/aaaa"
+                className={inputCls}
+              />
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
                 Fim:
               </span>
-              <MaskedDateInput value={toVal} onChange={v => handleFieldChange(v, 'to')} className={inputCls} />
+              <input
+                value={toText}
+                onChange={e => setToText(e.target.value)}
+                onBlur={handleToBlur}
+                placeholder="dd/mm/aaaa"
+                className={inputCls}
+              />
             </div>
           </div>
 
@@ -227,21 +162,49 @@ export function CalendarDateRangePicker({
           {(() => {
             const numMonths = typeof window !== 'undefined' && window.innerWidth < 640 ? 1 : 2;
             return (
-              <div className="px-4 py-3" style={{ minWidth: numMonths === 2 ? 540 : undefined }}>
-                <Calendar
-                  mode="range"
-                  defaultMonth={pendingRange?.from ?? new Date()}
-                  selected={pendingRange}
-                  onDayClick={handleDayClick}
-                  numberOfMonths={numMonths}
-                  locale={pt}
-                  className="drp-calendar"
-                />
-              </div>
+              <DayPicker
+                mode="range"
+                defaultMonth={pendingRange?.from ?? new Date()}
+                selected={pendingRange}
+                onDayClick={handleDayClick}
+                numberOfMonths={numMonths}
+                locale={pt}
+                className="drp-calendar"
+                classNames={{
+                  months:          'flex gap-6 p-4',
+                  month:           'space-y-2',
+                  month_caption:   'flex justify-center relative items-center h-8',
+                  caption_label:   'text-sm font-semibold text-zinc-900 dark:text-zinc-100 capitalize',
+                  nav:             'absolute inset-x-0 top-0 flex justify-between pointer-events-none',
+                  button_previous: 'pointer-events-auto h-8 w-8 flex items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors',
+                  button_next:     'pointer-events-auto h-8 w-8 flex items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors',
+                  month_grid:      'w-full border-collapse',
+                  weekdays:        'flex',
+                  weekday:         'w-9 text-[11px] font-medium text-zinc-400 dark:text-zinc-500 text-center pb-1',
+                  weeks:           '',
+                  week:            'flex mt-1',
+                  day:             'rdp-day relative w-9 h-9 p-0 text-center',
+                  day_button:      'rdp-day_button w-full h-full flex items-center justify-center text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer',
+                  selected:        'rdp-selected',
+                  range_start:     'rdp-range_start',
+                  range_end:       'rdp-range_end',
+                  range_middle:    'rdp-range_middle',
+                  today:           'text-indigo-600 dark:text-indigo-400 font-bold',
+                  outside:         'opacity-30',
+                  disabled:        'opacity-30 cursor-not-allowed',
+                  hidden:          'invisible',
+                }}
+                components={{
+                  Chevron: ({ orientation }: { orientation?: string }) =>
+                    orientation === 'left'
+                      ? <ChevronLeft size={16} />
+                      : <ChevronRight size={16} />,
+                }}
+              />
             );
           })()}
 
-          {/* Apply */}
+          {/* Aplicar */}
           <div className="flex justify-end px-5 pb-4 pt-2 border-t border-zinc-100 dark:border-white/[0.05]">
             <button
               type="button"
