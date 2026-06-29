@@ -104,7 +104,7 @@ export default function EvolucaoParceiroPage() {
   }
 
   return (
-    <div className="p-3 sm:p-6 flex flex-col gap-4">
+    <div className="h-full overflow-hidden p-3 sm:p-6 flex flex-col gap-3">
       {/* ── Filter / KPI bar ─────────────────────────────────────── */}
       <div className="flex flex-wrap items-stretch gap-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 text-sm">
         {/* Data Venda */}
@@ -193,7 +193,7 @@ export default function EvolucaoParceiroPage() {
 
       {/* ── Main content: sidebar + chart ────────────────────────── */}
       {data && !isLoading && (
-        <div className="flex gap-4 items-start">
+        <div className="flex gap-4 items-stretch flex-1 min-h-0 overflow-hidden">
           <ParceirosDestinoSidebar
             parceiros={allParceiros}
             selected={selectedPartners}
@@ -202,27 +202,23 @@ export default function EvolucaoParceiroPage() {
             onClearAll={handleClearAll}
           />
 
-          <div className="flex-1 min-w-0 flex flex-col gap-4">
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Faturamento</p>
-              {monthlyData.length === 0 ? (
-                <div className="flex items-center justify-center h-[280px] text-zinc-400 text-sm">
-                  Nenhum dado para o período selecionado.
-                </div>
-              ) : (
-                <EvolucaoParceiroAreaChart data={monthlyData} />
-              )}
+          <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-3">
+            <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 shrink-0">Faturamento</p>
+              <div className="flex-1 min-h-0">
+                {monthlyData.length === 0
+                  ? <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Nenhum dado para o período selecionado.</div>
+                  : <EvolucaoParceiroAreaChart data={monthlyData} />}
+              </div>
             </div>
 
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Ticket Médio</p>
-              {monthlyTicketData.length === 0 ? (
-                <div className="flex items-center justify-center h-[280px] text-zinc-400 text-sm">
-                  Nenhum dado para o período selecionado.
-                </div>
-              ) : (
-                <TicketMedioAreaChart data={monthlyTicketData} />
-              )}
+            <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 shrink-0">Ticket Médio</p>
+              <div className="flex-1 min-h-0">
+                {monthlyTicketData.length === 0
+                  ? <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Nenhum dado para o período selecionado.</div>
+                  : <TicketMedioAreaChart data={monthlyTicketData} />}
+              </div>
             </div>
           </div>
         </div>
