@@ -11,9 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import React, { type Dispatch, useEffect, useRef, useState } from 'react';
 
-// ── Masked date input (sem react-input-mask) ────────────────────────────────
-// Mostra __/__/____ e preenche da esquerda pra direita conforme o usuário digita.
-// Suporta backspace, desktop (onKeyDown) e mobile (onChange fallback).
+// ── Masked date input ───────────────────────────────────────────────────────
 
 function buildDisplay(digits: string): string {
   const d = (digits + '________').slice(0, 8).split('');
@@ -30,17 +28,15 @@ function digitsFromValue(value: string): string {
 
 interface MaskedDateInputProps {
   value: string;
-  onChange: (v: string) => void; // emite 'dd/mm/yyyy' quando completo, '' para limpar
+  onChange: (v: string) => void;
   className?: string;
 }
 
 function MaskedDateInput({ value, onChange, className }: MaskedDateInputProps) {
   const [digits, setDigits] = useState(() => digitsFromValue(value));
   const prevDisplayRef = useRef(buildDisplay(digitsFromValue(value)));
-  // Evita dupla atualização quando keyDown e onChange disparam juntos
   const skipChangeRef = useRef(false);
 
-  // Sincroniza apenas quando o pai envia valor completo ou vazio
   useEffect(() => {
     if (value === '' || value.length === 10) {
       const d = digitsFromValue(value);
@@ -54,7 +50,6 @@ function MaskedDateInput({ value, onChange, className }: MaskedDateInputProps) {
     setDigits(d);
     if (d.length === 0) onChange('');
     else if (d.length === 8) onChange(toDateStr(d));
-    // parcial: não emite, preserva o que o usuário digitou
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -71,7 +66,6 @@ function MaskedDateInput({ value, onChange, className }: MaskedDateInputProps) {
     }
   };
 
-  // Fallback para mobile (teclado virtual não dispara onKeyDown confiável)
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (skipChangeRef.current) { skipChangeRef.current = false; return; }
     const newRaw = e.target.value;
@@ -123,28 +117,52 @@ export function CalendarDateRangePicker({
   const [toVal,   setToVal]   = useState(dateRange?.to   ? format(dateRange.to,   'dd/MM/yyyy') : '');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [pendingRange, setPendingRange] = useState<DateRange | undefined>(dateRange);
-  const [isRangeComplete, setIsRangeComplete] = useState(false);
-  // Reseta pending state tanto quando dateRange muda quanto quando o popover abre
-  // (evita exibir seleção parcial antiga ao reabrir sem ter clicado Aplicar)
+
+  // Sincroniza ao abrir o popover ou quando o range aplicado muda
   useEffect(() => {
     setPendingRange(dateRange);
     setFromVal(dateRange?.from ? format(dateRange.from, 'dd/MM/yyyy') : '');
     setToVal(  dateRange?.to   ? format(dateRange.to,   'dd/MM/yyyy') : '');
-    setIsRangeComplete(!!(dateRange?.from && dateRange?.to));
   }, [dateRange, isPopoverOpen]);
 
+  // Clique num dia do calendário — lógica própria sem depender do onSelect do react-day-picker
+  const handleDayClick = (day: Date) => {
+    const hasComplete = !!(pendingRange?.from && pendingRange?.to);
+    if (!pendingRange?.from || hasComplete) {
+      // Sem range ou range completo → começa do zero
+      setPendingRange({ from: day, to: undefined });
+      setFromVal(format(day, 'dd/MM/yyyy'));
+      setToVal('');
+    } else {
+      // Já tem 'from' → completa o range
+      const [from, to] = day < pendingRange.from
+        ? [day, pendingRange.from]
+        : [pendingRange.from, day];
+      setPendingRange({ from, to });
+      setFromVal(format(from, 'dd/MM/yyyy'));
+      setToVal(format(to, 'dd/MM/yyyy'));
+    }
+  };
+
+  // Digitação manual nos campos de texto
   const handleFieldChange = (val: string, field: 'from' | 'to') => {
     if (field === 'from') setFromVal(val);
     else setToVal(val);
 
     if (!val) {
-      setPendingRange(prev => ({ from: field === 'from' ? undefined : prev?.from, to: field === 'to' ? undefined : prev?.to }));
+      setPendingRange(prev => ({
+        from: field === 'from' ? undefined : prev?.from,
+        to:   field === 'to'   ? undefined : prev?.to,
+      }));
       return;
     }
     if (val.length === 10) {
       const parsed = parse(val, 'dd/MM/yyyy', new Date());
       if (isValid(parsed)) {
-        setPendingRange(prev => ({ from: field === 'from' ? parsed : prev?.from, to: field === 'to' ? parsed : prev?.to }));
+        setPendingRange(prev => ({
+          from: field === 'from' ? parsed : prev?.from,
+          to:   field === 'to'   ? parsed : prev?.to,
+        }));
       }
     }
   };
@@ -214,30 +232,7 @@ export function CalendarDateRangePicker({
                   mode="range"
                   defaultMonth={pendingRange?.from ?? new Date()}
                   selected={pendingRange}
-                  onSelect={(range) => {
-                    if (isRangeComplete) {
-                      if (range?.from && range?.to) {
-                        // react-day-picker returned a full range — determine the clicked date
-                        const newDate =
-                          range.to > (dateRange?.to ?? range.to) ? range.to : range.from;
-                        if (
-                          newDate.getTime() !== dateRange?.from?.getTime() &&
-                          newDate.getTime() !== dateRange?.to?.getTime()
-                        ) {
-                          setPendingRange({ from: newDate, to: undefined });
-                          setIsRangeComplete(false);
-                          return;
-                        }
-                      } else if (range?.from) {
-                        // react-day-picker started a new selection (from only) — restart
-                        setPendingRange({ from: range.from, to: undefined });
-                        setIsRangeComplete(false);
-                        return;
-                      }
-                    }
-                    setPendingRange(range);
-                    if (range?.from && range?.to) setIsRangeComplete(true);
-                  }}
+                  onDayClick={handleDayClick}
                   numberOfMonths={numMonths}
                   locale={pt}
                   className="drp-calendar"
