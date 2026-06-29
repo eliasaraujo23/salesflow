@@ -7,9 +7,7 @@ import {
 } from 'recharts';
 
 function fmtBRL(v: number) {
-  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(2).replace('.', ',')}M`;
-  if (v >= 1_000) return `R$ ${(v / 1_000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} Mil`;
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 }
 
 function fmtYAxis(v: number) {

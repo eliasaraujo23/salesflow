@@ -21,9 +21,7 @@ function defaultRange(): DateRange {
 }
 
 function fmtBRL(n: number) {
-  if (n >= 1_000_000) return `R$ ${(n / 1_000_000).toFixed(2).replace('.', ',')}M`;
-  if (n >= 1_000) return `R$ ${(n / 1_000).toFixed(2).replace('.', ',')} Mil`;
-  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 }
 
 function fmtMesLabel(mes: string) {
