@@ -12,7 +12,7 @@ export type EvolucaoParceiroItem = z.infer<typeof itemSchema>;
 
 export interface EvolucaoParceiroParams {
   meses?: number;
-  tipo?: 'todos' | 'JF' | 'JMF' | 'JM' | 'JR' | 'JC';
+  tipo?: 'todos' | 'JF' | 'JM' | 'JR' | 'JC';
   dataInicio?: string; // YYYY-MM-DD
   dataFim?: string;    // YYYY-MM-DD
 }
