@@ -96,7 +96,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const forceExpire = () => {
     signOut(auth).catch(() => {});
     setCurrentUser(null);
-    sessionStorage.removeItem('sf_user');
+    localStorage.removeItem('sf_user');
     localStorage.removeItem('sf_login_time');
     clearSessionCookie();
     toast.info('Sessão expirada. Faça login novamente.');
@@ -112,13 +112,13 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Keep ref in sync so onAuthStateChanged callback can read latest value without stale closure
   useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
 
-  // Restore user session from sessionStorage on load
+  // Restore user session from localStorage on load (localStorage is shared across tabs)
   useEffect(() => {
-    const savedUser = sessionStorage.getItem('sf_user');
+    const savedUser = localStorage.getItem('sf_user');
     const loginTime = parseInt(localStorage.getItem('sf_login_time') || '0', 10);
     if (savedUser && loginTime) {
       if (Date.now() - loginTime >= SESSION_MAX_MS) {
-        sessionStorage.removeItem('sf_user');
+        localStorage.removeItem('sf_user');
         localStorage.removeItem('sf_login_time');
         document.cookie = 'sf_session=; path=/; max-age=0; SameSite=Strict';
       } else {
@@ -233,7 +233,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           updated.personKey !== prev.personKey ||
           JSON.stringify(updated.permissions) !== JSON.stringify(prev.permissions);
         if (!changed) return prev;
-        sessionStorage.setItem('sf_user', JSON.stringify(updated));
+        localStorage.setItem('sf_user', JSON.stringify(updated));
         return updated;
       });
     }, onAuthError);
@@ -269,7 +269,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       cargo: profile.cargo || '',
     };
     setCurrentUser(user);
-    sessionStorage.setItem('sf_user', JSON.stringify(user));
+    localStorage.setItem('sf_user', JSON.stringify(user));
     const now = Date.now();
     localStorage.setItem('sf_login_time', now.toString());
     document.cookie = `sf_session=1; path=/; max-age=${SESSION_MAX_MS / 1000}; SameSite=Strict`;
@@ -280,7 +280,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
     await signOut(auth);
     setCurrentUser(null);
-    sessionStorage.removeItem('sf_user');
+    localStorage.removeItem('sf_user');
     localStorage.removeItem('sf_login_time');
     clearSessionCookie();
     toast.success('Sessão encerrada com sucesso!');
