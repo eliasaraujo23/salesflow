@@ -9,6 +9,7 @@ import { CalendarDateRangePicker } from '@/components/ui/date-range-picker';
 import { useEvolucaoParceiros } from '@/hooks/use-evolucao-parceiros';
 import { ParceirosDestinoSidebar } from '@/components/graficos/parceiros-destino-sidebar';
 import { EvolucaoParceiroAreaChart } from '@/components/graficos/evolucao-parceiros-area-chart';
+import { TicketMedioAreaChart } from '@/components/graficos/ticket-medio-area-chart';
 
 const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -62,6 +63,21 @@ export default function EvolucaoParceiroPage() {
     return [...byMonth.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([mes, total]) => ({ mes, mesLabel: fmtMesLabel(mes), total }));
+  }, [filteredData]);
+
+  const monthlyTicketData = useMemo(() => {
+    const byMonth = new Map<string, { faturamento: number; quantidade: number }>();
+    filteredData.forEach(r => {
+      const cur = byMonth.get(r.mes) ?? { faturamento: 0, quantidade: 0 };
+      byMonth.set(r.mes, { faturamento: cur.faturamento + r.faturamento, quantidade: cur.quantidade + r.quantidade });
+    });
+    return [...byMonth.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([mes, { faturamento, quantidade }]) => ({
+        mes,
+        mesLabel: fmtMesLabel(mes),
+        ticketMedio: quantidade > 0 ? Math.round(faturamento / quantidade) : 0,
+      }));
   }, [filteredData]);
 
   const totalFaturamento = filteredData.reduce((s, r) => s + r.faturamento, 0);
@@ -186,15 +202,28 @@ export default function EvolucaoParceiroPage() {
             onClearAll={handleClearAll}
           />
 
-          <div className="flex-1 min-w-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Faturamento</p>
-            {monthlyData.length === 0 ? (
-              <div className="flex items-center justify-center h-[280px] text-zinc-400 text-sm">
-                Nenhum dado para o período selecionado.
-              </div>
-            ) : (
-              <EvolucaoParceiroAreaChart data={monthlyData} />
-            )}
+          <div className="flex-1 min-w-0 flex flex-col gap-4">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Faturamento</p>
+              {monthlyData.length === 0 ? (
+                <div className="flex items-center justify-center h-[280px] text-zinc-400 text-sm">
+                  Nenhum dado para o período selecionado.
+                </div>
+              ) : (
+                <EvolucaoParceiroAreaChart data={monthlyData} />
+              )}
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Ticket Médio</p>
+              {monthlyTicketData.length === 0 ? (
+                <div className="flex items-center justify-center h-[280px] text-zinc-400 text-sm">
+                  Nenhum dado para o período selecionado.
+                </div>
+              ) : (
+                <TicketMedioAreaChart data={monthlyTicketData} />
+              )}
+            </div>
           </div>
         </div>
       )}
