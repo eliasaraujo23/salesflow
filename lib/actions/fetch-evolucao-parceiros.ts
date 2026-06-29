@@ -10,6 +10,13 @@ const itemSchema = z.object({
 
 export type EvolucaoParceiroItem = z.infer<typeof itemSchema>;
 
+export interface EvolucaoParceiroParams {
+  meses?: number;
+  tipo?: 'JF' | 'JMF' | 'todos';
+  dataInicio?: string; // YYYY-MM-DD
+  dataFim?: string;    // YYYY-MM-DD
+}
+
 export interface ResponseApi<T> {
   httpStatus?: number;
   message?: string;
@@ -17,10 +24,21 @@ export interface ResponseApi<T> {
 }
 
 export async function fetchEvolucaoParceiroAction(
-  meses = 6,
+  params: EvolucaoParceiroParams = {},
 ): Promise<ResponseApi<EvolucaoParceiroItem[]>> {
   try {
-    const r = await authFetch(`${API_BASE}/evolucao-parceiros?meses=${meses}`);
+    const { meses = 6, tipo, dataInicio, dataFim } = params;
+    const qs = new URLSearchParams();
+
+    if (dataInicio && dataFim) {
+      qs.set('dataInicio', dataInicio);
+      qs.set('dataFim', dataFim);
+    } else {
+      qs.set('meses', String(meses));
+    }
+    if (tipo && tipo !== 'todos') qs.set('tipo', tipo);
+
+    const r = await authFetch(`${API_BASE}/evolucao-parceiros?${qs.toString()}`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const raw = await r.json();
     const parsed = z.array(itemSchema).safeParse(raw);
