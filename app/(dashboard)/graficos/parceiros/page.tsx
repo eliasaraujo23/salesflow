@@ -13,10 +13,10 @@ import { EvolucaoParceiroAreaChart } from '@/components/graficos/evolucao-parcei
 const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
 function defaultRange(): DateRange {
-  const to = new Date();
-  const from = new Date();
-  from.setMonth(from.getMonth() - 5);
-  from.setDate(1);
+  const now = new Date();
+  // Último dia do mês atual para não cortar mês em andamento
+  const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const from = new Date(now.getFullYear(), now.getMonth() - 5, 1);
   return { from, to };
 }
 
