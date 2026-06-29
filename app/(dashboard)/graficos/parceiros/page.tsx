@@ -189,6 +189,7 @@ export default function EvolucaoParceiroPage() {
           />
 
           <div className="flex-1 min-w-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Faturamento</p>
             {monthlyData.length === 0 ? (
               <div className="flex items-center justify-center h-[280px] text-zinc-400 text-sm">
                 Nenhum dado para o período selecionado.
