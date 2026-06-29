@@ -169,7 +169,7 @@ export default function EvolucaoParceiroPage() {
 
       {/* ── Main content: sidebar + chart ────────────────────────── */}
       {data && !isLoading && (
-        <div className="flex gap-4 items-start min-h-0">
+        <div className="flex gap-4 items-stretch min-h-0">
           <ParceirosDestinoSidebar
             parceiros={allParceiros}
             selected={selectedPartners}

@@ -47,7 +47,7 @@ export function ParceirosDestinoSidebar({ parceiros, selected, onToggle, onSelec
         </div>
       </div>
 
-      <div className="overflow-y-auto flex-1" style={{ maxHeight: 420 }}>
+      <div className="overflow-y-auto flex-1">
         {/* Select all row */}
         <label className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 border-b border-zinc-100 dark:border-white/[0.04]">
           <input
