@@ -124,12 +124,14 @@ export function CalendarDateRangePicker({
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [pendingRange, setPendingRange] = useState<DateRange | undefined>(dateRange);
   const [isRangeComplete, setIsRangeComplete] = useState(false);
+  // Reseta pending state tanto quando dateRange muda quanto quando o popover abre
+  // (evita exibir seleção parcial antiga ao reabrir sem ter clicado Aplicar)
   useEffect(() => {
     setPendingRange(dateRange);
     setFromVal(dateRange?.from ? format(dateRange.from, 'dd/MM/yyyy') : '');
     setToVal(  dateRange?.to   ? format(dateRange.to,   'dd/MM/yyyy') : '');
     setIsRangeComplete(!!(dateRange?.from && dateRange?.to));
-  }, [dateRange]);
+  }, [dateRange, isPopoverOpen]);
 
   const handleFieldChange = (val: string, field: 'from' | 'to') => {
     if (field === 'from') setFromVal(val);
