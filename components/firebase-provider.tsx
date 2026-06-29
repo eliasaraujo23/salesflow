@@ -114,6 +114,12 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Restore user session from localStorage on load (localStorage is shared across tabs)
   useEffect(() => {
+    // Migrate: if sf_user was stored in sessionStorage (old behavior), move it to localStorage
+    const legacyUser = sessionStorage.getItem('sf_user');
+    if (legacyUser) {
+      localStorage.setItem('sf_user', legacyUser);
+      sessionStorage.removeItem('sf_user');
+    }
     const savedUser = localStorage.getItem('sf_user');
     const loginTime = parseInt(localStorage.getItem('sf_login_time') || '0', 10);
     if (savedUser && loginTime) {
