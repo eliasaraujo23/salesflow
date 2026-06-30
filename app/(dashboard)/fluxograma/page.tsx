@@ -7,13 +7,11 @@ import {
   ReactFlow, Background, Controls, MiniMap,
   BackgroundVariant, ConnectionMode, type NodeTypes, type EdgeTypes, type Node,
 } from '@xyflow/react';
-import { Plus, Trash2, Save, Download } from 'lucide-react';
+import { Plus, Trash2, Save } from 'lucide-react';
 import { useFluxograma, type FlowNodeType } from '@/hooks/use-fluxograma';
 import { FlowNode } from '@/components/fluxograma/flow-node';
 import { FlowEdge } from '@/components/fluxograma/flow-edge';
 import { NodeDetailPanel, type NodeDetailValues } from '@/components/fluxograma/node-detail-panel';
-import { GOLDTECH_NODES, GOLDTECH_EDGES } from '@/lib/fluxograma-goldtech';
-
 const NODE_TYPES_CONFIG: { type: FlowNodeType; label: string; color: string; desc: string }[] = [
   { type: 'terminal', label: 'Início / Fim', color: 'bg-green-800 border-green-500 text-green-100',  desc: 'Ponto de partida ou chegada' },
   { type: 'process',  label: 'Etapa',        color: 'bg-blue-800  border-blue-500  text-blue-100',   desc: 'Passo ou ação do processo' },
@@ -24,7 +22,7 @@ export default function FluxogramaPage() {
   const {
     nodes, edges, saving, loaded,
     onNodesChange, onEdgesChange, onConnect,
-    addNode, updateNodeData, updateEdgeLabel, clearAll, loadFluxo,
+    addNode, updateNodeData, updateEdgeLabel, clearAll,
   } = useFluxograma();
 
   // ── Theme detection ──────────────────────────────────────────────
@@ -66,17 +64,7 @@ export default function FluxogramaPage() {
     }
   }, [nodes.length, clearAll]);
 
-  const handleImport = useCallback(() => {
-    const msg = nodes.length > 0
-      ? 'Isso vai substituir o fluxograma atual pelo mapeamento da operação Goldtech. Continuar?'
-      : 'Carregar o mapeamento completo da operação Goldtech?';
-    if (confirm(msg)) {
-      loadFluxo(GOLDTECH_NODES, GOLDTECH_EDGES);
-      setSelectedNode(null);
-    }
-  }, [nodes.length, loadFluxo]);
-
-  const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
   }, []);
 
@@ -116,15 +104,7 @@ export default function FluxogramaPage() {
 
         <div className="flex-1" />
 
-        <button
-          onClick={handleImport}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-300 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors"
-        >
-          <Download size={12} />
-          Carregar Mapeamento
-        </button>
-
-        <div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+<div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
           <Save size={12} className={saving ? 'animate-pulse text-indigo-400' : 'text-zinc-400 dark:text-zinc-600'} />
           {saving ? 'Salvando...' : 'Salvo'}
         </div>
