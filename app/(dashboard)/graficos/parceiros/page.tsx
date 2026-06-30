@@ -97,10 +97,12 @@ export default function EvolucaoParceiroPage() {
   }, [filteredData]);
 
   const totalFaturamento = filteredData.reduce((s, r) => s + r.faturamento, 0);
+  const totalCusto       = filteredData.reduce((s, r) => s + r.custo,       0);
   const totalQuantidade  = filteredData.reduce((s, r) => s + r.quantidade,  0);
   const totalMeses = monthlyData.length;
-  const mediaMensal  = totalMeses > 0    ? totalFaturamento / totalMeses    : 0;
-  const ticketMedio  = totalQuantidade > 0 ? totalFaturamento / totalQuantidade : 0;
+  const mediaMensal    = totalMeses > 0       ? totalFaturamento / totalMeses        : 0;
+  const ticketMedio    = totalQuantidade > 0  ? totalFaturamento / totalQuantidade   : 0;
+  const lucratividade  = totalFaturamento > 0 ? ((totalFaturamento - totalCusto) / totalFaturamento) * 100 : 0;
 
   function handleToggle(p: string) {
     setSelectedPartners(prev => {
@@ -171,10 +173,18 @@ export default function EvolucaoParceiroPage() {
         </div>
 
         {/* Ticket médio */}
-        <div className="flex flex-col justify-center gap-0.5 px-5 py-3 flex-1">
+        <div className="flex flex-col justify-center gap-0.5 px-5 py-3 border-r border-zinc-200 dark:border-white/[0.08] flex-1">
           <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Ticket Médio</span>
           <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
             {isLoading ? '—' : fmtBRL(ticketMedio)}
+          </span>
+        </div>
+
+        {/* Lucratividade */}
+        <div className="flex flex-col justify-center gap-0.5 px-5 py-3 flex-1">
+          <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Lucratividade</span>
+          <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
+            {isLoading ? '—' : `${lucratividade.toFixed(1).replace('.', ',')}%`}
           </span>
         </div>
 
