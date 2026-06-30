@@ -229,11 +229,11 @@ export function useTasksPage() {
 
     if (p.type === 'complete') {
       const res = await updateTaskStatusAction(p.task.id, 'done');
-      if (res.success) toast.success('Tarefa concluída!');
+      if (res.success) { toast.success('Tarefa concluída!'); clearSelection(); }
       else toast.error(res.error ?? 'Erro ao atualizar tarefa');
     } else if (p.type === 'delete') {
       const res = await deleteTaskAction(p.taskId);
-      if (res.httpStatus === 200) { toast.success('Tarefa excluída'); setEditingTask(null); }
+      if (res.httpStatus === 200) { toast.success('Tarefa excluída'); setEditingTask(null); clearSelection(); }
       else toast.error(res.message ?? 'Erro ao excluir tarefa');
     } else if (p.type === 'batch-complete') {
       await Promise.all(p.tasks.map((t) => updateTaskStatusAction(t.id, 'done')));
