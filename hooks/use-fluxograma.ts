@@ -16,6 +16,7 @@ export interface FlowNodeData {
   nodeType: FlowNodeType;
   description?: string;
   responsavel?: string;
+  color?: string;
 }
 
 const FLUXOGRAMA_DOC = doc(db, 'fluxogramas', 'empresa');

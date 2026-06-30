@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { type Node } from '@xyflow/react';
-import { X, User, AlignLeft } from 'lucide-react';
+import { X, User, AlignLeft, Palette } from 'lucide-react';
+import { ColorPicker } from './color-picker';
 
 const TYPE_META: Record<string, { label: string; color: string }> = {
   terminal: {
@@ -20,10 +21,17 @@ const TYPE_META: Record<string, { label: string; color: string }> = {
   },
 };
 
+const NODE_DEFAULT_COLORS: Record<string, string> = {
+  terminal: '#166534',
+  process:  '#1e40af',
+  decision: '#92400e',
+};
+
 export interface NodeDetailValues {
   label:       string;
   description: string;
   responsavel: string;
+  color:       string;
 }
 
 interface Props {
@@ -37,8 +45,11 @@ export function NodeDetailPanel({ node, onClose, onSave }: Props) {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isDirty },
-  } = useForm<NodeDetailValues>({ defaultValues: { label: '', description: '', responsavel: '' } });
+  } = useForm<NodeDetailValues>({
+    defaultValues: { label: '', description: '', responsavel: '', color: '' },
+  });
 
   useEffect(() => {
     if (!node) return;
@@ -46,8 +57,9 @@ export function NodeDetailPanel({ node, onClose, onSave }: Props) {
       label:       (node.data.label       as string) ?? '',
       description: (node.data.description as string) ?? '',
       responsavel: (node.data.responsavel as string) ?? '',
+      color:       (node.data.color       as string) ?? '',
     });
-  // Reset only when the selected node ID changes, not on every data update
+  // Reset only when selected node ID changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node?.id]);
 
@@ -57,7 +69,9 @@ export function NodeDetailPanel({ node, onClose, onSave }: Props) {
     onClose();
   }
 
-  const typeMeta = TYPE_META[(node?.data?.nodeType as string) ?? 'process'] ?? TYPE_META.process;
+  const nodeType   = (node?.data?.nodeType as string) ?? 'process';
+  const typeMeta   = TYPE_META[nodeType] ?? TYPE_META.process;
+  const defaultClr = NODE_DEFAULT_COLORS[nodeType] ?? '#1e40af';
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-zinc-900 overflow-y-auto">
@@ -117,6 +131,25 @@ export function NodeDetailPanel({ node, onClose, onSave }: Props) {
               autoComplete="off"
               placeholder="Nome ou setor..."
               className="w-full px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:border-indigo-500 dark:focus:border-indigo-400 transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+            />
+          </div>
+
+          {/* Cor */}
+          <div>
+            <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">
+              <Palette size={10} />
+              Cor do nó
+            </label>
+            <Controller
+              name="color"
+              control={control}
+              render={({ field }) => (
+                <ColorPicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  nodeDefaultColor={defaultClr}
+                />
+              )}
             />
           </div>
 

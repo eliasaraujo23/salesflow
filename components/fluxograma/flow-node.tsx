@@ -18,7 +18,11 @@ export function FlowNode({ data, selected }: NodeProps) {
     <span className="absolute top-1 right-1.5 w-1.5 h-1.5 rounded-full bg-indigo-400 opacity-70" />
   ) : null;
 
+  const ring = selected ? 'ring-2 ring-indigo-500 ring-offset-1 ring-offset-transparent' : '';
+
   if (d.nodeType === 'decision') {
+    const bg     = d.color ?? (selected ? '#854d0e' : '#92400e');
+    const border = d.color ? 'rgba(255,255,255,0.35)' : '#d97706';
     return (
       <div className="relative" style={{ width: 130, height: 130 }}>
         <Handle type="source" position={Position.Top}    id="t" className={handleStyle} style={{ top: 2 }} />
@@ -27,11 +31,11 @@ export function FlowNode({ data, selected }: NodeProps) {
         <Handle type="source" position={Position.Right}  id="r" className={handleStyle} style={{ right: 2 }} />
 
         <div
-          className={`absolute inset-0 transition-colors ${selected ? 'ring-2 ring-indigo-500 ring-offset-1 ring-offset-transparent' : ''}`}
+          className={`absolute inset-0 transition-colors ${ring}`}
           style={{
             transform: 'rotate(45deg)',
-            background: selected ? '#854d0e' : '#92400e',
-            border: '2px solid #d97706',
+            background: bg,
+            border: `2px solid ${border}`,
             borderRadius: 6,
           }}
         />
@@ -51,15 +55,12 @@ export function FlowNode({ data, selected }: NodeProps) {
   }
 
   if (d.nodeType === 'terminal') {
+    const bg     = d.color ?? (selected ? '#14532d' : '#166534');
+    const border = d.color ? 'rgba(255,255,255,0.35)' : '#22c55e';
     return (
       <div
-        className={`relative flex flex-col items-center justify-center px-5 py-2.5 min-w-[120px] cursor-pointer transition-all ${selected ? 'ring-2 ring-indigo-500 ring-offset-1 ring-offset-transparent' : ''}`}
-        style={{
-          borderRadius: 999,
-          background: selected ? '#14532d' : '#166534',
-          border: '2px solid #22c55e',
-          minHeight: 44,
-        }}
+        className={`relative flex flex-col items-center justify-center px-5 py-2.5 min-w-[120px] cursor-pointer transition-all ${ring}`}
+        style={{ borderRadius: 999, background: bg, border: `2px solid ${border}`, minHeight: 44 }}
       >
         {DescDot}
         <Handle type="source" position={Position.Top}    id="t" className={handleStyle} />
@@ -80,15 +81,12 @@ export function FlowNode({ data, selected }: NodeProps) {
   }
 
   // Default: process
+  const bg     = d.color ?? (selected ? '#1e3a5f' : '#1e40af');
+  const border = d.color ? 'rgba(255,255,255,0.35)' : '#3b82f6';
   return (
     <div
-      className={`relative flex flex-col items-center justify-center px-4 py-3 min-w-[140px] cursor-pointer transition-all ${selected ? 'ring-2 ring-indigo-500 ring-offset-1 ring-offset-transparent' : ''}`}
-      style={{
-        borderRadius: 8,
-        background: selected ? '#1e3a5f' : '#1e40af',
-        border: '2px solid #3b82f6',
-        minHeight: 48,
-      }}
+      className={`relative flex flex-col items-center justify-center px-4 py-3 min-w-[140px] cursor-pointer transition-all ${ring}`}
+      style={{ borderRadius: 8, background: bg, border: `2px solid ${border}`, minHeight: 48 }}
     >
       {DescDot}
       <Handle type="source" position={Position.Top}    id="t" className={handleStyle} />
