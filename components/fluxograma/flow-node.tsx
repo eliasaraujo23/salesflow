@@ -21,7 +21,7 @@ export function FlowNode({ data, selected }: NodeProps) {
   if (d.nodeType === 'decision') {
     return (
       <div className="relative" style={{ width: 130, height: 130 }}>
-        <Handle type="target" position={Position.Top}    id="t" className={handleStyle} style={{ top: 2 }} />
+        <Handle type="source" position={Position.Top}    id="t" className={handleStyle} style={{ top: 2 }} />
         <Handle type="source" position={Position.Bottom} id="b" className={handleStyle} style={{ bottom: 2 }} />
         <Handle type="source" position={Position.Left}   id="l" className={handleStyle} style={{ left: 2 }} />
         <Handle type="source" position={Position.Right}  id="r" className={handleStyle} style={{ right: 2 }} />
@@ -62,7 +62,7 @@ export function FlowNode({ data, selected }: NodeProps) {
         }}
       >
         {DescDot}
-        <Handle type="target" position={Position.Top}    id="t" className={handleStyle} />
+        <Handle type="source" position={Position.Top}    id="t" className={handleStyle} />
         <Handle type="source" position={Position.Bottom} id="b" className={handleStyle} />
         <Handle type="source" position={Position.Left}   id="l" className={handleStyle} />
         <Handle type="source" position={Position.Right}  id="r" className={handleStyle} />
@@ -91,7 +91,7 @@ export function FlowNode({ data, selected }: NodeProps) {
       }}
     >
       {DescDot}
-      <Handle type="target" position={Position.Top}    id="t" className={handleStyle} />
+      <Handle type="source" position={Position.Top}    id="t" className={handleStyle} />
       <Handle type="source" position={Position.Bottom} id="b" className={handleStyle} />
       <Handle type="source" position={Position.Left}   id="l" className={handleStyle} />
       <Handle type="source" position={Position.Right}  id="r" className={handleStyle} />

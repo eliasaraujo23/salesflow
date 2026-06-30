@@ -180,54 +180,56 @@ export const GOLDTECH_NODES: Node[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 export const GOLDTECH_EDGES: Edge[] = [
 
-  // Lojas → Compra (entram pela esquerda do nó Compra)
-  edge('e-gtt-compra', 'gtt', 'compra', { targetHandle: 'l' }),
-  edge('e-gti-compra', 'gti', 'compra', { targetHandle: 'l' }),
-  edge('e-24k-compra', 'k24', 'compra', { targetHandle: 'l' }),
-  edge('e-etn-compra', 'etn', 'compra', { targetHandle: 'l' }),
+  // Lojas → Compra (saem pela direita, entram pela esquerda)
+  edge('e-gtt-compra', 'gtt', 'compra', { sourceHandle: 'r', targetHandle: 'l' }),
+  edge('e-gti-compra', 'gti', 'compra', { sourceHandle: 'r', targetHandle: 'l' }),
+  edge('e-24k-compra', 'k24', 'compra', { sourceHandle: 'r', targetHandle: 'l' }),
+  edge('e-etn-compra', 'etn', 'compra', { sourceHandle: 'r', targetHandle: 'l' }),
 
-  // Fluxo principal até a triagem
-  edge('e-compra-downtown',  'compra',   'downtown'),
-  edge('e-downtown-triagem', 'downtown', 'triagem'),
+  // Fluxo principal até a triagem (direita → esquerda de cada nó)
+  edge('e-compra-downtown',  'compra',   'downtown', { sourceHandle: 'r', targetHandle: 'l' }),
+  edge('e-downtown-triagem', 'downtown', 'triagem',  { sourceHandle: 'r', targetHandle: 'l' }),
 
-  // Triagem → SCRAP (sai pela base, vai para baixo)
+  // Triagem → SCRAP (sai pela base, entra pelo topo — linha vertical)
   edge('e-triagem-scrap', 'triagem', 'scrap',
-    { label: 'SCRAP', sourceHandle: 'b' }),
+    { label: 'SCRAP', sourceHandle: 'b', targetHandle: 't' }),
 
-  // Triagem → Second Hand (sai pela direita, continua horizontal)
+  // Triagem → Second Hand (direita → esquerda)
   edge('e-triagem-vitor', 'triagem', 'vitor',
-    { label: 'SECOND HAND', sourceHandle: 'r' }),
+    { label: 'SECOND HAND', sourceHandle: 'r', targetHandle: 'l' }),
 
-  // SCRAP branch (segue para a direita)
-  edge('e-scrap-exportacao', 'scrap', 'exportacao'),
+  // SCRAP branch (direita → esquerda)
+  edge('e-scrap-exportacao', 'scrap', 'exportacao',
+    { sourceHandle: 'r', targetHandle: 'l' }),
 
-  // Second Hand: Vitor → Qualidade
-  edge('e-vitor-qualidade', 'vitor', 'qualidade'),
+  // Second Hand: Vitor → Qualidade (direita → esquerda)
+  edge('e-vitor-qualidade', 'vitor', 'qualidade',
+    { sourceHandle: 'r', targetHandle: 'l' }),
 
-  // Qualidade → Manutenção (sai pelo topo, vai para cima)
+  // Qualidade → Manutenção (sai pelo topo, entra pela base — linha vertical)
   edge('e-qualidade-manut', 'qualidade', 'manutencao',
-    { label: 'SIM', sourceHandle: 't' }),
+    { label: 'SIM', sourceHandle: 't', targetHandle: 'b' }),
 
-  // Manutenção → Vitor (sai pela esquerda, retorna para o Vitor)
+  // Manutenção → Vitor (sai pela esquerda, entra pelo topo)
   edge('e-manut-vitor', 'manutencao', 'vitor',
     { label: 'Após conserto', sourceHandle: 'l', targetHandle: 't' }),
 
-  // Qualidade → Limpeza (sai pela direita, continua horizontal)
+  // Qualidade → Limpeza (direita → esquerda)
   edge('e-qualidade-limpeza', 'qualidade', 'limpeza',
-    { label: 'NÃO', sourceHandle: 'r' }),
+    { label: 'NÃO', sourceHandle: 'r', targetHandle: 'l' }),
 
-  // Fluxo Second Hand até distribuição
-  edge('e-limpeza-cadastro',   'limpeza',    'cadastro'),
-  edge('e-cadastro-fotoenvio', 'cadastro',   'foto-envio'),
-  edge('e-fotoenvio-exec',     'foto-envio', 'foto-exec'),
-  edge('e-exec-revenda',       'foto-exec',  'revenda'),
-  edge('e-revenda-destino',    'revenda',    'destino'),
+  // Fluxo principal até distribuição (direita → esquerda de cada nó)
+  edge('e-limpeza-cadastro',   'limpeza',    'cadastro',    { sourceHandle: 'r', targetHandle: 'l' }),
+  edge('e-cadastro-fotoenvio', 'cadastro',   'foto-envio',  { sourceHandle: 'r', targetHandle: 'l' }),
+  edge('e-fotoenvio-exec',     'foto-envio', 'foto-exec',   { sourceHandle: 'r', targetHandle: 'l' }),
+  edge('e-exec-revenda',       'foto-exec',  'revenda',     { sourceHandle: 'r', targetHandle: 'l' }),
+  edge('e-revenda-destino',    'revenda',    'destino',     { sourceHandle: 'r', targetHandle: 'l' }),
 
-  // Destino → Parceiros (sai pelo topo, Rota A)
+  // Destino → Parceiros (sai pelo topo, entra pela esquerda — Rota A)
   edge('e-destino-parceiros', 'destino', 'parceiros',
-    { label: 'Rota A', sourceHandle: 't' }),
+    { label: 'Rota A', sourceHandle: 't', targetHandle: 'l' }),
 
-  // Destino → Eternno (sai pela base, Rota B)
+  // Destino → Eternno (sai pela base, entra pela esquerda — Rota B)
   edge('e-destino-eternno', 'destino', 'eternno',
-    { label: 'Rota B', sourceHandle: 'b' }),
+    { label: 'Rota B', sourceHandle: 'b', targetHandle: 'l' }),
 ];
