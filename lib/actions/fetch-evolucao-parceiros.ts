@@ -5,6 +5,7 @@ const itemSchema = z.object({
   mes:         z.string(),
   destino:     z.string(),
   faturamento: z.coerce.number().default(0),
+  custo:       z.coerce.number().default(0),
   quantidade:  z.coerce.number().default(0),
 });
 

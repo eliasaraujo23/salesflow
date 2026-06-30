@@ -10,6 +10,7 @@ import { useEvolucaoParceiros } from '@/hooks/use-evolucao-parceiros';
 import { ParceirosDestinoSidebar } from '@/components/graficos/parceiros-destino-sidebar';
 import { EvolucaoParceiroAreaChart } from '@/components/graficos/evolucao-parceiros-area-chart';
 import { TicketMedioAreaChart } from '@/components/graficos/ticket-medio-area-chart';
+import { LucratividadeAreaChart } from '@/components/graficos/lucratividade-area-chart';
 
 const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -63,6 +64,21 @@ export default function EvolucaoParceiroPage() {
     return [...byMonth.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([mes, total]) => ({ mes, mesLabel: fmtMesLabel(mes), total }));
+  }, [filteredData]);
+
+  const monthlyLucroData = useMemo(() => {
+    const byMonth = new Map<string, { faturamento: number; custo: number }>();
+    filteredData.forEach(r => {
+      const cur = byMonth.get(r.mes) ?? { faturamento: 0, custo: 0 };
+      byMonth.set(r.mes, { faturamento: cur.faturamento + r.faturamento, custo: cur.custo + r.custo });
+    });
+    return [...byMonth.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([mes, { faturamento, custo }]) => ({
+        mes,
+        mesLabel: fmtMesLabel(mes),
+        lucratividade: faturamento > 0 ? ((faturamento - custo) / faturamento) * 100 : 0,
+      }));
   }, [filteredData]);
 
   const monthlyTicketData = useMemo(() => {
@@ -218,6 +234,15 @@ export default function EvolucaoParceiroPage() {
                 {monthlyTicketData.length === 0
                   ? <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Nenhum dado para o período selecionado.</div>
                   : <TicketMedioAreaChart data={monthlyTicketData} />}
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 shrink-0">Lucratividade</p>
+              <div className="flex-1 min-h-0">
+                {monthlyLucroData.length === 0
+                  ? <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Nenhum dado para o período selecionado.</div>
+                  : <LucratividadeAreaChart data={monthlyLucroData} />}
               </div>
             </div>
           </div>
