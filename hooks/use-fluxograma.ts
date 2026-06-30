@@ -11,6 +11,13 @@ import { toast } from 'sonner';
 
 export type FlowNodeType = 'process' | 'decision' | 'terminal';
 
+export interface FlowNodeData {
+  label: string;
+  nodeType: FlowNodeType;
+  description?: string;
+  responsavel?: string;
+}
+
 const FLUXOGRAMA_DOC = doc(db, 'fluxogramas', 'empresa');
 
 interface PendingSave { nodes: Node[]; edges: Edge[] }
@@ -25,16 +32,17 @@ export function useFluxograma() {
   const pendingRef   = useRef<PendingSave | null>(null);
   const loadedRef    = useRef(false);
 
-  // Sincroniza ref com state
   useEffect(() => { loadedRef.current = loaded; }, [loaded]);
 
-  // Carrega do Firestore
+  // Carrega do Firestore — migra edges antigas para o tipo customizado
   useEffect(() => {
     const unsub = onSnapshot(FLUXOGRAMA_DOC, (snap) => {
       if (snap.exists()) {
         const d = snap.data();
         setNodes(d.nodes ?? []);
-        setEdges(d.edges ?? []);
+        setEdges(
+          (d.edges ?? []).map((e: Edge) => ({ ...e, type: 'flowEdge' }))
+        );
       }
       setLoaded(true);
     }, () => setLoaded(true));
@@ -77,7 +85,7 @@ export function useFluxograma() {
 
   const onConnect = useCallback((connection: Connection) => {
     setEdges(prev => {
-      const next = addEdge({ ...connection, type: 'smoothstep' }, prev);
+      const next = addEdge({ ...connection, type: 'flowEdge' }, prev);
       setNodes(n => { scheduleSave(n, next); return n; });
       return next;
     });
@@ -94,7 +102,7 @@ export function useFluxograma() {
       id,
       type: 'flowNode',
       position: { x: 200 + Math.random() * 200, y: 200 + Math.random() * 150 },
-      data: { label: labels[type], nodeType: type },
+      data: { label: labels[type], nodeType: type } satisfies FlowNodeData,
     };
     setNodes(prev => {
       const next = [...prev, newNode];
@@ -103,10 +111,20 @@ export function useFluxograma() {
     });
   }, [scheduleSave]);
 
-  const updateNodeLabel = useCallback((id: string, label: string) => {
+  const updateNodeData = useCallback((id: string, updates: Partial<FlowNodeData>) => {
     setNodes(prev => {
-      const next = prev.map(n => n.id === id ? { ...n, data: { ...n.data, label } } : n);
+      const next = prev.map(n => n.id === id ? { ...n, data: { ...n.data, ...updates } } : n);
       setEdges(e => { scheduleSave(next, e); return e; });
+      return next;
+    });
+  }, [scheduleSave]);
+
+  const updateEdgeLabel = useCallback((id: string, label: string) => {
+    setEdges(prev => {
+      const next = prev.map(e =>
+        e.id === id ? { ...e, data: { ...(e.data ?? {}), label } } : e
+      );
+      setNodes(n => { scheduleSave(n, next); return n; });
       return next;
     });
   }, [scheduleSave]);
@@ -117,5 +135,9 @@ export function useFluxograma() {
     scheduleSave([], []);
   }, [scheduleSave]);
 
-  return { nodes, edges, saving, loaded, onNodesChange, onEdgesChange, onConnect, addNode, updateNodeLabel, clearAll };
+  return {
+    nodes, edges, saving, loaded,
+    onNodesChange, onEdgesChange, onConnect,
+    addNode, updateNodeData, updateEdgeLabel, clearAll,
+  };
 }
