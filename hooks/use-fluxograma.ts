@@ -135,9 +135,17 @@ export function useFluxograma() {
     scheduleSave([], []);
   }, [scheduleSave]);
 
+  const loadFluxo = useCallback((newNodes: Node[], newEdges: Edge[]) => {
+    const ns = newNodes;
+    const es = newEdges.map(e => ({ ...e, type: 'flowEdge' }));
+    setNodes(ns);
+    setEdges(es);
+    scheduleSave(ns, es);
+  }, [scheduleSave]);
+
   return {
     nodes, edges, saving, loaded,
     onNodesChange, onEdgesChange, onConnect,
-    addNode, updateNodeData, updateEdgeLabel, clearAll,
+    addNode, updateNodeData, updateEdgeLabel, clearAll, loadFluxo,
   };
 }
