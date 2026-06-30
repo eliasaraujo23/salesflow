@@ -21,7 +21,7 @@ export function FlowNode({ data, selected }: NodeProps) {
   const ring = selected ? 'ring-2 ring-indigo-500 ring-offset-1 ring-offset-transparent' : '';
 
   if (d.nodeType === 'decision') {
-    const bg     = d.color ?? (selected ? '#854d0e' : '#92400e');
+    const bg     = d.color || (selected ? '#854d0e' : '#92400e');
     const border = d.color ? 'rgba(255,255,255,0.35)' : '#d97706';
     return (
       <div className="relative" style={{ width: 130, height: 130 }}>
@@ -55,7 +55,7 @@ export function FlowNode({ data, selected }: NodeProps) {
   }
 
   if (d.nodeType === 'terminal') {
-    const bg     = d.color ?? (selected ? '#14532d' : '#166534');
+    const bg     = d.color || (selected ? '#14532d' : '#166534');
     const border = d.color ? 'rgba(255,255,255,0.35)' : '#22c55e';
     return (
       <div
@@ -81,7 +81,7 @@ export function FlowNode({ data, selected }: NodeProps) {
   }
 
   // Default: process
-  const bg     = d.color ?? (selected ? '#1e3a5f' : '#1e40af');
+  const bg     = d.color || (selected ? '#1e3a5f' : '#1e40af');
   const border = d.color ? 'rgba(255,255,255,0.35)' : '#3b82f6';
   return (
     <div
