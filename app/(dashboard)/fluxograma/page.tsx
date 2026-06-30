@@ -5,7 +5,7 @@ import '@xyflow/react/dist/style.css';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow, Background, Controls, MiniMap,
-  BackgroundVariant, type NodeTypes, type EdgeTypes, type Node,
+  BackgroundVariant, ConnectionMode, type NodeTypes, type EdgeTypes, type Node,
 } from '@xyflow/react';
 import { Plus, Trash2, Save, Download } from 'lucide-react';
 import { useFluxograma, type FlowNodeType } from '@/hooks/use-fluxograma';
@@ -169,6 +169,7 @@ export default function FluxogramaPage() {
             fitView
             deleteKeyCode="Delete"
             colorMode={colorMode}
+            connectionMode={ConnectionMode.Loose}
             defaultEdgeOptions={{
               type: 'flowEdge',
               markerEnd: { type: 'arrowclosed' as never, color: '#6366f1' },
