@@ -8,16 +8,17 @@ function edge(
   target: string,
   opts?: { label?: string; sourceHandle?: string; targetHandle?: string }
 ): Edge {
-  return {
+  const e: Edge = {
     id,
     source,
     target,
     type: 'flowEdge',
-    sourceHandle: opts?.sourceHandle,
-    targetHandle: opts?.targetHandle,
     data: opts?.label ? { label: opts.label } : {},
     markerEnd: ARROW,
   };
+  if (opts?.sourceHandle) e.sourceHandle = opts.sourceHandle;
+  if (opts?.targetHandle) e.targetHandle = opts.targetHandle;
+  return e;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

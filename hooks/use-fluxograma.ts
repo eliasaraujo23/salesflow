@@ -58,7 +58,9 @@ export function useFluxograma() {
       const { nodes: ns, edges: es } = pendingRef.current;
       setSaving(true);
       try {
-        await setDoc(FLUXOGRAMA_DOC, { nodes: ns, edges: es, updatedAt: new Date().toISOString() });
+        // JSON round-trip strips undefined fields, which Firestore rejects
+        const payload = JSON.parse(JSON.stringify({ nodes: ns, edges: es, updatedAt: new Date().toISOString() }));
+        await setDoc(FLUXOGRAMA_DOC, payload);
       } catch {
         toast.error('Erro ao salvar fluxograma');
       } finally {
