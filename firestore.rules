@@ -49,6 +49,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Fluxograma — any auth user can read and write.
+    match /fluxogramas/{docId} {
+      allow read, write: if isAuth();
+    }
+
     // Deny all other collections by default.
     match /{document=**} {
       allow read, write: if false;

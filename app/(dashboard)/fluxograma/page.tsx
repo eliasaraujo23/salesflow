@@ -2,7 +2,7 @@
 
 import '@xyflow/react/dist/style.css';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow, Background, Controls, MiniMap,
   BackgroundVariant, type NodeTypes,
@@ -23,6 +23,15 @@ export default function FluxogramaPage() {
     onNodesChange, onEdgesChange, onConnect,
     addNode, updateNodeLabel, clearAll,
   } = useFluxograma();
+
+  const [colorMode, setColorMode] = useState<'dark' | 'light'>('dark');
+  useEffect(() => {
+    const update = () => setColorMode(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    update();
+    const obs = new MutationObserver(update);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
 
   // Injeta o callback de edição nos dados de cada nó
   const nodesWithCallback = useMemo(
@@ -49,8 +58,8 @@ export default function FluxogramaPage() {
   return (
     <div className="h-full overflow-hidden flex flex-col">
       {/* ── Toolbar ──────────────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 bg-zinc-900 border-b border-white/[0.08]">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mr-1">Adicionar</span>
+      <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08]">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mr-1">Adicionar</span>
 
         {NODE_TYPES_CONFIG.map(({ type, label, color }) => (
           <button
@@ -66,14 +75,14 @@ export default function FluxogramaPage() {
         <div className="flex-1" />
 
         <div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
-          <Save size={12} className={saving ? 'animate-pulse text-indigo-400' : 'text-zinc-600'} />
+          <Save size={12} className={saving ? 'animate-pulse text-indigo-400' : 'text-zinc-400 dark:text-zinc-600'} />
           {saving ? 'Salvando...' : 'Salvo'}
         </div>
 
         <button
           onClick={handleClear}
           disabled={nodes.length === 0}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-800 bg-red-950 text-red-300 text-xs font-semibold hover:bg-red-900 disabled:opacity-30 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-300 text-xs font-semibold hover:bg-red-100 dark:hover:bg-red-900 disabled:opacity-30 transition-colors"
         >
           <Trash2 size={12} />
           Limpar
@@ -81,14 +90,14 @@ export default function FluxogramaPage() {
       </div>
 
       {/* ── Legend ───────────────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center gap-5 px-4 py-1.5 bg-zinc-950 border-b border-white/[0.04]">
+      <div className="shrink-0 flex items-center gap-5 px-4 py-1.5 bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-100 dark:border-white/[0.04]">
         {NODE_TYPES_CONFIG.map(({ type, label, desc }) => (
-          <span key={type} className="text-[10px] text-zinc-500">
-            <span className="font-bold text-zinc-400">{label}</span> — {desc}
+          <span key={type} className="text-[10px] text-zinc-400 dark:text-zinc-500">
+            <span className="font-bold text-zinc-600 dark:text-zinc-400">{label}</span> — {desc}
             {' · '}
           </span>
         ))}
-        <span className="text-[10px] text-zinc-600">Duplo clique para editar · Arraste as bolinhas para conectar</span>
+        <span className="text-[10px] text-zinc-400 dark:text-zinc-600">Duplo clique para editar · Arraste as bolinhas para conectar</span>
       </div>
 
       {/* ── Canvas ───────────────────────────────────────────────── */}
@@ -102,17 +111,22 @@ export default function FluxogramaPage() {
           nodeTypes={nodeTypes}
           fitView
           deleteKeyCode="Delete"
-          colorMode="dark"
+          colorMode={colorMode}
           defaultEdgeOptions={{
             type: 'smoothstep',
             style: { stroke: '#6366f1', strokeWidth: 2 },
             markerEnd: { type: 'arrowclosed' as any, color: '#6366f1' },
           }}
         >
-          <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#ffffff10" />
-          <Controls className="!bg-zinc-900 !border-zinc-700 !shadow-none" />
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={20}
+            size={1}
+            color={colorMode === 'dark' ? '#ffffff10' : '#00000012'}
+          />
+          <Controls className="!bg-white dark:!bg-zinc-900 !border-zinc-200 dark:!border-zinc-700 !shadow-sm" />
           <MiniMap
-            className="!bg-zinc-900 !border-zinc-700"
+            className="!bg-white dark:!bg-zinc-900 !border-zinc-200 dark:!border-zinc-700"
             nodeColor={(n) => {
               const t = (n.data as any)?.nodeType;
               return t === 'terminal' ? '#16a34a' : t === 'decision' ? '#d97706' : '#2563eb';
