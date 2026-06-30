@@ -9,6 +9,9 @@ const pool = new Pool({
 });
 
 export async function GET() {
+  if (!process.env.PG_CONNECTION_STRING) {
+    return NextResponse.json({ error: 'PG_CONNECTION_STRING não configurada no ambiente.' }, { status: 500 });
+  }
   const client = await pool.connect();
   try {
     const SOLD = `pd."statusProdutoId" IN (2, 4, 13)`;
@@ -61,6 +64,9 @@ export async function GET() {
       por_tipo: tipoRes.rows,
       por_pedra: pedraRes.rows,
     });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
   } finally {
     client.release();
   }
