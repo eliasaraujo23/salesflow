@@ -71,6 +71,7 @@ export const LOJAS: LojaConfig[] = [
     permission: 'controle-gtt',
     cor: '#6366f1',
     caixa_bruto: ['Sala', 'Cofre', 'Papeleiro', 'Gaveta', 'Caixa'],
+    trocados: ['Trocado Guardado', 'Trocado Caixa', 'Trocado Sala'],
     avaliadores: AVALIADORES_ATIVOS,
     feedbacks_compra: [
       ...FEEDBACKS_TODOS,
