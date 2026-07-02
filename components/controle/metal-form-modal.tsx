@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { X, Scale } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
-import { type LojaConfig } from '@/lib/controle-config';
+import { type LojaConfig, EMPRESA_TIPO_MAP } from '@/lib/controle-config';
 import { type MetalRecord, QUALIDADES, QUALIDADE_LABELS } from '@/types/controle';
 import { useControleOpcoes } from '@/hooks/use-controle-opcoes';
 
@@ -128,8 +128,14 @@ export function MetalFormModal({ record, loja, codInterno, onClose, onSave, onDe
 
   const transacao = watch('transacao');
   const feedbackOptions = transacao === 'COMPRA' ? opcoes.feedbacks_compra : opcoes.feedbacks_nc;
+  const razaoSocialWatch = watch('razao_social');
 
   useEffect(() => { setValue('feedback', ''); }, [transacao, setValue]);
+
+  useEffect(() => {
+    const mapped = EMPRESA_TIPO_MAP[razaoSocialWatch];
+    if (mapped) setValue('tipo', mapped);
+  }, [razaoSocialWatch, setValue]);
 
   const qualValues = QUALIDADES.map(q => watch(q as keyof FormValues) as number);
   const totalPeso = useMemo(() => qualValues.reduce((sum, v) => sum + (Number(v) || 0), 0), [qualValues]);

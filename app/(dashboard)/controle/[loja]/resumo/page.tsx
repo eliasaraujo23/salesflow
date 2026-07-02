@@ -8,7 +8,8 @@ import { useMetal } from '@/hooks/use-metal';
 import { useDespesas } from '@/hooks/use-despesas';
 import { useLancamentos } from '@/hooks/use-lancamentos';
 import { type LojaCode } from '@/lib/controle-config';
-import { Loader2, TrendingUp, Scale, Package, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
+import { QUALIDADES, QUALIDADE_LABELS } from '@/types/controle';
+import { Loader2, TrendingUp, Scale, Package, DollarSign, Target, Vault } from 'lucide-react';
 
 function formatBRL(value: number): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -59,11 +60,24 @@ export default function ResumoPage() {
   const { records: metalRecords, loading: metalLoading } = useMetal(loja.code as LojaCode);
   const { records: despesas, loading: despLoading } = useDespesas(loja.code as LojaCode);
   const { records: lancamentos, loading: lancLoading } = useLancamentos(loja.code as LojaCode);
-  const [showCaixaDetail, setShowCaixaDetail] = useState(false);
 
   const now = new Date();
   const todayStart = startOfDay(now);
   const monthStart = startOfMonth(now);
+
+  const saldoKey = `saldo_inicial_${lojaCode}_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const [saldoInicial, setSaldoInicial] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      return parseFloat(localStorage.getItem(saldoKey) ?? '0') || 0;
+    }
+    return 0;
+  });
+
+  function updateSaldoInicial(val: number) {
+    localStorage.setItem(saldoKey, String(val));
+    setSaldoInicial(val);
+  }
 
   const kpis = useMemo(() => {
     const toDate = (ts: Timestamp | null | undefined): Date => {
@@ -74,7 +88,6 @@ export default function ResumoPage() {
     const today = metalRecords.filter(r => toDate(r.data) >= todayStart);
     const month = metalRecords.filter(r => toDate(r.data) >= monthStart);
 
-    // Sem bijuteria = BX == 0
     const todaySemBX = today.filter(r => !r.bx || r.bx === 0);
     const monthSemBX = month.filter(r => !r.bx || r.bx === 0);
 
@@ -100,14 +113,25 @@ export default function ResumoPage() {
     const todayTotal = today.length;
     const monthTotal = month.length;
 
-    // Financeiro mês
     const totalDespesas = despesas
       .filter(r => toDate(r.data) >= monthStart)
       .reduce((s, r) => s + r.valor, 0);
 
     const totalEntradas = lancamentos
-      .filter(r => r.tipo === 'Entrada' && toDate(r.data) >= monthStart)
+      .filter(r => toDate(r.data) >= monthStart)
       .reduce((s, r) => s + r.valor, 0);
+
+    const monthCompras = month.filter(r => r.transacao === 'COMPRA');
+    const metaNovaTotal = monthCompras.length;
+    const metaNovaHit = monthCompras.filter(r => r.pago_por_grama > 0 && r.pago_por_grama <= 250).length;
+    const metaNova = metaNovaTotal > 0 ? metaNovaHit / metaNovaTotal : 0;
+
+    const teoresMonth = QUALIDADES.map(q => {
+      const peso = month
+        .filter(r => r.transacao === 'COMPRA')
+        .reduce((s, r) => s + (r[q] ?? 0), 0);
+      return { qualidade: q, label: QUALIDADE_LABELS[q], peso };
+    });
 
     return {
       todayConversao, monthConversao,
@@ -117,6 +141,8 @@ export default function ResumoPage() {
       todayBijuteria, monthBijuteria,
       todayTotal, monthTotal,
       totalDespesas, totalEntradas,
+      metaNova,
+      teoresMonth,
     };
   }, [metalRecords, despesas, lancamentos, todayStart, monthStart]);
 
@@ -130,9 +156,10 @@ export default function ResumoPage() {
     );
   }
 
+  const saldoFinal = saldoInicial + kpis.totalEntradas - kpis.monthValor - kpis.totalDespesas;
+
   return (
     <div className="p-5 space-y-6">
-      {/* Metal KPIs */}
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Scale size={14} className="text-zinc-400" />
@@ -174,7 +201,7 @@ export default function ResumoPage() {
           <Scale size={14} className="text-zinc-400" />
           <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Metal — Mês</h2>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <KpiCard
             label="Conversão (sem BX)"
             value={formatPct(kpis.monthConversao)}
@@ -201,65 +228,100 @@ export default function ResumoPage() {
             icon={<DollarSign size={14} className="text-red-500" />}
             color="bg-red-50 dark:bg-red-500/10"
           />
+          <KpiCard
+            label="Meta Nova (≤ R$250/g)"
+            value={formatPct(kpis.metaNova)}
+            sub="compras ≤ 250/g"
+            icon={<Target size={14} className="text-violet-600" />}
+            color="bg-violet-50 dark:bg-violet-500/10"
+          />
         </div>
       </div>
 
-      {/* Caixa Summary */}
       <div>
-        <button
-          onClick={() => setShowCaixaDetail(v => !v)}
-          className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors mb-3"
-        >
-          <DollarSign size={14} />
-          Controle de Caixa — Lançamentos
-          {showCaixaDetail ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-        </button>
-
-        {showCaixaDetail && (
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
-            {lancamentos.length === 0 ? (
-              <div className="py-8 text-center text-sm text-zinc-400">Nenhum lançamento registrado</div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-zinc-100 dark:border-white/[0.04]">
-                    <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-zinc-400">Data</th>
-                    <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-zinc-400">Tipo</th>
-                    <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-zinc-400">Banco/Caixa</th>
-                    <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-zinc-400">Descrição</th>
-                    <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-zinc-400">Valor</th>
+        <div className="flex items-center gap-2 mb-3">
+          <Scale size={14} className="text-zinc-400" />
+          <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Breakdown por Teor — Mês</h2>
+        </div>
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-100 dark:border-white/[0.04]">
+                <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-zinc-400">Qualidade</th>
+                <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-zinc-400">Peso (g)</th>
+                <th className="px-4 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-zinc-400">% do Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(() => {
+                const totalPeso = kpis.teoresMonth.reduce((s, t) => s + t.peso, 0);
+                return kpis.teoresMonth.filter(t => t.peso > 0).map(t => (
+                  <tr key={t.qualidade} className="border-b border-zinc-50 dark:border-white/[0.02] last:border-0">
+                    <td className="px-4 py-2.5 font-medium text-zinc-700 dark:text-zinc-300">{t.label}</td>
+                    <td className="px-4 py-2.5 text-right font-mono tabular-nums text-zinc-800 dark:text-zinc-200">{t.peso.toFixed(3)}g</td>
+                    <td className="px-4 py-2.5 text-right font-mono tabular-nums text-zinc-500 dark:text-zinc-400">
+                      {totalPeso > 0 ? ((t.peso / totalPeso) * 100).toFixed(1) + '%' : '—'}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {lancamentos.slice(0, 10).map(l => {
-                    const d = l.data instanceof Timestamp ? l.data.toDate() : new Date();
-                    return (
-                      <tr key={l.id} className="border-b border-zinc-50 dark:border-white/[0.02] last:border-0">
-                        <td className="px-4 py-2.5 text-zinc-600 dark:text-zinc-400 tabular-nums">
-                          {d.toLocaleDateString('pt-BR')}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium ${
-                            l.tipo === 'Entrada'
-                              ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                              : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
-                          }`}>
-                            {l.tipo}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5 text-zinc-600 dark:text-zinc-400">{l.banco}</td>
-                        <td className="px-4 py-2.5 text-zinc-500 dark:text-zinc-500 text-xs">{l.descricao}</td>
-                        <td className="px-4 py-2.5 text-right font-mono font-medium text-zinc-800 dark:text-zinc-200 tabular-nums">
-                          {formatBRL(l.valor)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
+                ));
+              })()}
+              {kpis.teoresMonth.every(t => t.peso === 0) && (
+                <tr>
+                  <td colSpan={3} className="px-4 py-6 text-center text-zinc-400 text-sm">Nenhuma compra no mês</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Vault size={14} className="text-zinc-400" />
+          <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Fluxo de Caixa — Mês</h2>
+        </div>
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <tbody>
+              <tr className="border-b border-zinc-100 dark:border-white/[0.04]">
+                <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400 font-medium">Saldo Inicial</td>
+                <td className="px-4 py-3 text-right">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={saldoInicial}
+                    onChange={e => updateSaldoInicial(parseFloat(e.target.value) || 0)}
+                    className="w-36 px-2 py-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-sm text-right font-mono tabular-nums text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors"
+                  />
+                </td>
+              </tr>
+              <tr className="border-b border-zinc-100 dark:border-white/[0.04]">
+                <td className="px-4 py-3 text-emerald-600 dark:text-emerald-400 font-medium">(+) Entradas / Lançamentos</td>
+                <td className="px-4 py-3 text-right font-mono font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                  {formatBRL(kpis.totalEntradas)}
+                </td>
+              </tr>
+              <tr className="border-b border-zinc-100 dark:border-white/[0.04]">
+                <td className="px-4 py-3 text-red-500 dark:text-red-400 font-medium">(-) Metal Comprado</td>
+                <td className="px-4 py-3 text-right font-mono font-semibold tabular-nums text-red-500 dark:text-red-400">
+                  {formatBRL(kpis.monthValor)}
+                </td>
+              </tr>
+              <tr className="border-b border-zinc-100 dark:border-white/[0.04]">
+                <td className="px-4 py-3 text-red-500 dark:text-red-400 font-medium">(-) Despesas</td>
+                <td className="px-4 py-3 text-right font-mono font-semibold tabular-nums text-red-500 dark:text-red-400">
+                  {formatBRL(kpis.totalDespesas)}
+                </td>
+              </tr>
+              <tr className="bg-zinc-50 dark:bg-zinc-800/50">
+                <td className="px-4 py-3 font-bold text-zinc-800 dark:text-zinc-100">(=) Saldo Final</td>
+                <td className={`px-4 py-3 text-right font-mono font-bold tabular-nums text-lg ${saldoFinal >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                  {formatBRL(saldoFinal)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

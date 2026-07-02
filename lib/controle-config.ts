@@ -171,3 +171,13 @@ export function lancamentoCollection(loja: LojaCode): string {
 export function caixaDoc(loja: LojaCode): string {
   return `caixa_${loja}`;
 }
+
+export const EMPRESA_TIPO_MAP: Record<string, string> = {
+  'G. Tech Comércio de Joias LTDA': 'SCRAP',
+  'A. Tech Comércio De Joias LTDA': 'SCRAP',
+  'H. Tech Comércio De Joias LTDA': 'SCRAP',
+  'Gold Tech Comércio de Joias LTDA': 'SECOND HAND',
+  'Tech Gold Ipanema Comércio de Joias LTDA': 'SECOND HAND',
+  '24K Joias | Thais Joias LTDA': 'SECOND HAND',
+  'ETERNNO Comércio de Jóias e Artigos de Luxo LTDA': 'SECOND HAND',
+};

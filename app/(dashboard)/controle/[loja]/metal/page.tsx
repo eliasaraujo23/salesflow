@@ -8,6 +8,7 @@ import { getLojaConfig, type LojaCode } from '@/lib/controle-config';
 import { useMetal } from '@/hooks/use-metal';
 import { type MetalRecord, QUALIDADES, QUALIDADE_LABELS } from '@/types/controle';
 import { MetalFormModal } from '@/components/controle/metal-form-modal';
+import { MesNav } from '@/components/controle/mes-nav';
 
 function formatBRL(v: number): string {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -29,15 +30,19 @@ export default function MetalPage() {
   const [editing, setEditing] = useState<MetalRecord | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [filterTransacao, setFilterTransacao] = useState<'ALL' | 'COMPRA' | 'NAO_COMPRA'>('ALL');
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth() + 1);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return records.filter(r => {
+      const d = r.data instanceof Timestamp ? r.data.toDate() : new Date(r.data as unknown as string);
+      if (d.getFullYear() !== selectedYear || d.getMonth() + 1 !== selectedMonth) return false;
       if (filterTransacao !== 'ALL' && r.transacao !== filterTransacao) return false;
       if (q && !r.nome.toLowerCase().includes(q) && !r.cod_interno.toLowerCase().includes(q) && !r.avaliadores.join(' ').toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [records, search, filterTransacao]);
+  }, [records, search, filterTransacao, selectedYear, selectedMonth]);
 
   const newCod = generateCodInterno(loja.cod_prefix);
 
@@ -57,8 +62,9 @@ export default function MetalPage() {
         <div className="flex items-center gap-2">
           <Scale size={15} className="text-zinc-400" />
           <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Avaliações de Metal</h2>
-          <span className="text-xs text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">{records.length}</span>
+          <span className="text-xs text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">{filtered.length}</span>
         </div>
+        <MesNav year={selectedYear} month={selectedMonth} onChange={(y, m) => { setSelectedYear(y); setSelectedMonth(m); }} />
         <div className="flex items-center gap-2">
           {/* Filter buttons */}
           {(['ALL', 'COMPRA', 'NAO_COMPRA'] as const).map(f => (

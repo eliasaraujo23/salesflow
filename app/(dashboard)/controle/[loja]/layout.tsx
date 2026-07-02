@@ -9,6 +9,7 @@ import { ChevronRight } from 'lucide-react';
 const TABS = [
   { label: 'Resumo',   href: 'resumo' },
   { label: 'Metal',    href: 'metal' },
+  { label: 'Caixa',    href: 'caixa' },
   { label: 'Entradas', href: 'entradas' },
   { label: 'Despesas', href: 'despesas' },
 ];

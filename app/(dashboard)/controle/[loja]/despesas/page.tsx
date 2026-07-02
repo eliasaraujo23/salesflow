@@ -8,6 +8,7 @@ import { getLojaConfig, type LojaCode } from '@/lib/controle-config';
 import { useDespesas } from '@/hooks/use-despesas';
 import { type DespesaRecord } from '@/types/controle';
 import { DespesaFormModal } from '@/components/controle/despesa-form-modal';
+import { MesNav } from '@/components/controle/mes-nav';
 
 function formatBRL(v: number): string {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -28,20 +29,23 @@ export default function DespesasPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<DespesaRecord | undefined>(undefined);
   const [search, setSearch] = useState('');
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth() + 1);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return records.filter(r =>
-      !q ||
-      r.tipo_despesa.toLowerCase().includes(q) ||
-      r.banco_caixa.toLowerCase().includes(q) ||
-      r.observacao.toLowerCase().includes(q)
-    );
-  }, [records, search]);
+    return records.filter(r => {
+      const d = r.data instanceof Timestamp ? r.data.toDate() : new Date(r.data as unknown as string);
+      if (d.getFullYear() !== selectedYear || d.getMonth() + 1 !== selectedMonth) return false;
+      return !q ||
+        r.tipo_despesa.toLowerCase().includes(q) ||
+        r.banco_caixa.toLowerCase().includes(q) ||
+        r.observacao.toLowerCase().includes(q);
+    });
+  }, [records, search, selectedYear, selectedMonth]);
 
   const totalDespesas = filtered.reduce((s, r) => s + r.valor, 0);
 
-  // Group by tipo for summary
   const byTipo = useMemo(() => {
     const map: Record<string, number> = {};
     filtered.forEach(r => {
@@ -66,8 +70,9 @@ export default function DespesasPage() {
         <div className="flex items-center gap-2">
           <Receipt size={15} className="text-zinc-400" />
           <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Despesas</h2>
-          <span className="text-xs text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">{records.length}</span>
+          <span className="text-xs text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">{filtered.length}</span>
         </div>
+        <MesNav year={selectedYear} month={selectedMonth} onChange={(y, m) => { setSelectedYear(y); setSelectedMonth(m); }} />
         <button
           onClick={openNew}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"

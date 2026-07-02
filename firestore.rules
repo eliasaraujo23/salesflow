@@ -64,6 +64,9 @@ service cloud.firestore {
     match /lancamento_gtt/{docId} { allow read, write: if isAuth(); }
     match /lancamento_gti/{docId} { allow read, write: if isAuth(); }
     match /lancamento_24k/{docId} { allow read, write: if isAuth(); }
+    match /caixa_gtt/{docId}    { allow read, write: if isAuth(); }
+    match /caixa_gti/{docId}    { allow read, write: if isAuth(); }
+    match /caixa_24k/{docId}    { allow read, write: if isAuth(); }
 
     // Deny all other collections by default.
     match /{document=**} {

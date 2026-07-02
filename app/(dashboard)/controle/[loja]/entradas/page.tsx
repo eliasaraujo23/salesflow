@@ -8,6 +8,7 @@ import { getLojaConfig, type LojaCode } from '@/lib/controle-config';
 import { useLancamentos } from '@/hooks/use-lancamentos';
 import { type LancamentoRecord } from '@/types/controle';
 import { LancamentoFormModal } from '@/components/controle/lancamento-form-modal';
+import { MesNav } from '@/components/controle/mes-nav';
 
 function formatBRL(v: number): string {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -28,13 +29,17 @@ export default function EntradasPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<LancamentoRecord | undefined>(undefined);
   const [search, setSearch] = useState('');
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth() + 1);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return records.filter(r =>
-      !q || r.descricao.toLowerCase().includes(q) || r.tipo.toLowerCase().includes(q) || r.banco.toLowerCase().includes(q)
-    );
-  }, [records, search]);
+    return records.filter(r => {
+      const d = r.data instanceof Timestamp ? r.data.toDate() : new Date(r.data as unknown as string);
+      if (d.getFullYear() !== selectedYear || d.getMonth() + 1 !== selectedMonth) return false;
+      return !q || r.descricao.toLowerCase().includes(q) || r.tipo.toLowerCase().includes(q) || r.banco.toLowerCase().includes(q);
+    });
+  }, [records, search, selectedYear, selectedMonth]);
 
   const totalEntradas = filtered.filter(r => r.tipo === 'Entrada').reduce((s, r) => s + r.valor, 0);
   const totalSaidas = filtered.filter(r => r.tipo !== 'Entrada').reduce((s, r) => s + r.valor, 0);
@@ -55,8 +60,9 @@ export default function EntradasPage() {
         <div className="flex items-center gap-2">
           <ArrowLeftRight size={15} className="text-zinc-400" />
           <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Lançamentos / Entradas</h2>
-          <span className="text-xs text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">{records.length}</span>
+          <span className="text-xs text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">{filtered.length}</span>
         </div>
+        <MesNav year={selectedYear} month={selectedMonth} onChange={(y, m) => { setSelectedYear(y); setSelectedMonth(m); }} />
         <button
           onClick={openNew}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
