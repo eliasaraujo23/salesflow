@@ -6,7 +6,7 @@ import { Timestamp } from 'firebase/firestore';
 import { getLojaConfig, type LojaCode } from '@/lib/controle-config';
 import { useMetal } from '@/hooks/use-metal';
 import { Loader2 } from 'lucide-react';
-import { MetalPanel } from '@/components/controle/metal-panel';
+import { MetalUnified } from '@/components/controle/metal-unified';
 import { CaixaCalculator } from '@/components/controle/caixa-calculator';
 
 function toDate(ts: Timestamp | null | undefined): Date {
@@ -53,10 +53,7 @@ export default function ResumoPage() {
         <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-3">
           Controle de Metal
         </p>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <MetalPanel title="DIA" records={todayRecords} />
-          <MetalPanel title="MÊS" records={monthRecords} showMetaNova />
-        </div>
+        <MetalUnified dayRecords={todayRecords} monthRecords={monthRecords} />
       </div>
 
       <div>
