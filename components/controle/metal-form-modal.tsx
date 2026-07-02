@@ -370,8 +370,10 @@ export function MetalFormModal({ record, loja, codInterno, onClose, onSave, onDe
               </label>
               <select {...register('feedback')} className={inputCls}>
                 <option value="">Selecionar...</option>
-                {feedbackOptions.map(f => (
-                  <option key={f} value={f}>{f}</option>
+                {feedbackOptions.map((f, idx) => (
+                  <option key={f} value={f}>
+                    {transacao === 'NAO_COMPRA' ? `${idx + 1} · ${f}` : f}
+                  </option>
                 ))}
               </select>
               {errors.feedback && <p className="text-xs text-red-500 mt-1">{errors.feedback.message}</p>}
