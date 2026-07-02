@@ -24,11 +24,11 @@ function fmtBRL(v: number): string {
 }
 
 const thCls =
-  'px-2 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-zinc-400 whitespace-nowrap border-r border-zinc-100 dark:border-white/[0.04] last:border-0';
+  'px-2 py-2 text-center text-[10px] font-bold uppercase tracking-wider text-zinc-400 whitespace-nowrap border-r border-zinc-100 dark:border-white/[0.04] last:border-0';
 const tdCls =
-  'px-2 py-1.5 text-[11px] whitespace-nowrap border-r border-zinc-50 dark:border-white/[0.02] last:border-0';
+  'px-2 py-1.5 text-[11px] text-center whitespace-nowrap border-r border-zinc-50 dark:border-white/[0.02] last:border-0';
 const tdNum =
-  'px-2 py-1.5 text-[11px] font-mono tabular-nums text-right whitespace-nowrap border-r border-zinc-50 dark:border-white/[0.02] last:border-0';
+  'px-2 py-1.5 text-[11px] font-mono tabular-nums text-center whitespace-nowrap border-r border-zinc-50 dark:border-white/[0.02] last:border-0';
 
 export default function MetalPage() {
   const { loja: lojaCode } = useParams<{ loja: string }>();
