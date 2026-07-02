@@ -54,6 +54,17 @@ service cloud.firestore {
       allow read, write: if isAuth();
     }
 
+    // Controle de Lojas — metal, despesas e lançamentos por loja.
+    match /metal_gtt/{docId}      { allow read, write: if isAuth(); }
+    match /metal_gti/{docId}      { allow read, write: if isAuth(); }
+    match /metal_24k/{docId}      { allow read, write: if isAuth(); }
+    match /despesa_gtt/{docId}    { allow read, write: if isAuth(); }
+    match /despesa_gti/{docId}    { allow read, write: if isAuth(); }
+    match /despesa_24k/{docId}    { allow read, write: if isAuth(); }
+    match /lancamento_gtt/{docId} { allow read, write: if isAuth(); }
+    match /lancamento_gti/{docId} { allow read, write: if isAuth(); }
+    match /lancamento_24k/{docId} { allow read, write: if isAuth(); }
+
     // Deny all other collections by default.
     match /{document=**} {
       allow read, write: if false;
