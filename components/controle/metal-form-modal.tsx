@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Scale } from 'lucide-react';
@@ -9,11 +9,15 @@ import { Timestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { type LojaConfig } from '@/lib/controle-config';
 import { type MetalRecord, QUALIDADES, QUALIDADE_LABELS } from '@/types/controle';
+import { useControleOpcoes } from '@/hooks/use-controle-opcoes';
 
 const schema = z.object({
   data:         z.string().min(1, 'Data obrigatória'),
   hora:         z.string().min(1, 'Hora obrigatória'),
-  avaliadores:  z.array(z.string()).min(1, 'Selecione ao menos um avaliador'),
+  av1:          z.string().min(1, '1º avaliador obrigatório'),
+  av2:          z.string(),
+  av3:          z.string(),
+  av4:          z.string(),
   nome:         z.string().min(1, 'Nome obrigatório'),
   cpf:          z.string(),
   transacao:    z.enum(['COMPRA', 'NAO_COMPRA']),
@@ -54,7 +58,10 @@ function recordToFormValues(r: MetalRecord): FormValues {
   return {
     data:         d.toISOString().slice(0, 10),
     hora:         r.hora,
-    avaliadores:  r.avaliadores,
+    av1:          r.avaliadores[0] ?? '',
+    av2:          r.avaliadores[1] ?? '',
+    av3:          r.avaliadores[2] ?? '',
+    av4:          r.avaliadores[3] ?? '',
     nome:         r.nome,
     cpf:          r.cpf,
     transacao:    r.transacao,
@@ -87,13 +94,17 @@ interface Props {
 
 export function MetalFormModal({ record, loja, codInterno, onClose, onSave, onDelete }: Props) {
   const isEdit = !!record;
+  const opcoes = useControleOpcoes(loja.code);
 
-  const { register, handleSubmit, watch, control, setValue, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: record ? recordToFormValues(record) : {
-      data:       nowDate(),
-      hora:       nowTime(),
-      avaliadores:  [],
+      data:         nowDate(),
+      hora:         nowTime(),
+      av1:          '',
+      av2:          '',
+      av3:          '',
+      av4:          '',
       nome:         '',
       cpf:          '',
       transacao:    'COMPRA',
@@ -102,41 +113,29 @@ export function MetalFormModal({ record, loja, codInterno, onClose, onSave, onDe
       tipo:         '',
       razao_social: '',
       ouro_24k:     0,
-      ouro_22k:   0,
-      pt:         0,
-      ouro_750:   0,
-      ouro_720:   0,
-      bx:         0,
-      platina:    0,
-      prata:      0,
-      preco:      0,
-      valor:      0,
-      observacao: '',
+      ouro_22k:     0,
+      pt:           0,
+      ouro_750:     0,
+      ouro_720:     0,
+      bx:           0,
+      platina:      0,
+      prata:        0,
+      preco:        0,
+      valor:        0,
+      observacao:   '',
     },
   });
 
   const transacao = watch('transacao');
-  const feedbackOptions = transacao === 'COMPRA' ? loja.feedbacks_compra : loja.feedbacks_nc;
+  const feedbackOptions = transacao === 'COMPRA' ? opcoes.feedbacks_compra : opcoes.feedbacks_nc;
 
-  // Auto-clear feedback when transacao changes
   useEffect(() => { setValue('feedback', ''); }, [transacao, setValue]);
 
-  // Watch qualidades to calculate total
   const qualValues = QUALIDADES.map(q => watch(q as keyof FormValues) as number);
   const totalPeso = useMemo(() => qualValues.reduce((sum, v) => sum + (Number(v) || 0), 0), [qualValues]);
 
   const valorWatch = watch('valor');
   const pagoPorGrama = totalPeso > 0 ? ((Number(valorWatch) || 0) / totalPeso) : 0;
-
-  const avaliadores = watch('avaliadores');
-
-  function toggleAvaliador(name: string, current: string[]) {
-    if (current.includes(name)) {
-      setValue('avaliadores', current.filter(a => a !== name));
-    } else {
-      setValue('avaliadores', [...current, name]);
-    }
-  }
 
   async function onSubmit(values: FormValues) {
     try {
@@ -144,32 +143,33 @@ export function MetalFormModal({ record, loja, codInterno, onClose, onSave, onDe
       const date = new Date(y, m - 1, d);
       const totalPesoCalc = QUALIDADES.reduce((sum, q) => sum + (Number(values[q as keyof FormValues]) || 0), 0);
       const pagoPorGramaCalc = totalPesoCalc > 0 ? values.valor / totalPesoCalc : 0;
+      const avaliadores = [values.av1, values.av2, values.av3, values.av4].filter(Boolean);
 
       await onSave({
-        cod_interno: record?.cod_interno ?? codInterno,
-        data:        Timestamp.fromDate(date),
-        hora:        values.hora,
-        avaliadores: values.avaliadores,
-        nome:        values.nome,
-        cpf:         values.cpf,
-        transacao:   values.transacao,
-        feedback:     values.feedback,
-        motivo_nc:    values.motivo_nc,
-        tipo:         values.tipo,
-        razao_social: values.razao_social,
-        ouro_24k:     values.ouro_24k,
-        ouro_22k:    values.ouro_22k,
-        pt:          values.pt,
-        ouro_750:    values.ouro_750,
-        ouro_720:    values.ouro_720,
-        bx:          values.bx,
-        platina:     values.platina,
-        prata:       values.prata,
-        total_peso:  totalPesoCalc,
-        preco:       values.preco,
-        valor:       values.valor,
+        cod_interno:    record?.cod_interno ?? codInterno,
+        data:           Timestamp.fromDate(date),
+        hora:           values.hora,
+        avaliadores,
+        nome:           values.nome,
+        cpf:            values.cpf,
+        transacao:      values.transacao,
+        feedback:       values.feedback,
+        motivo_nc:      values.motivo_nc,
+        tipo:           values.tipo,
+        razao_social:   values.razao_social,
+        ouro_24k:       values.ouro_24k,
+        ouro_22k:       values.ouro_22k,
+        pt:             values.pt,
+        ouro_750:       values.ouro_750,
+        ouro_720:       values.ouro_720,
+        bx:             values.bx,
+        platina:        values.platina,
+        prata:          values.prata,
+        total_peso:     totalPesoCalc,
+        preco:          values.preco,
+        valor:          values.valor,
         pago_por_grama: pagoPorGramaCalc,
-        observacao:  values.observacao,
+        observacao:     values.observacao,
       });
       toast.success(isEdit ? 'Registro atualizado' : 'Registro salvo');
       onClose();
@@ -188,6 +188,8 @@ export function MetalFormModal({ record, loja, codInterno, onClose, onSave, onDe
       toast.error('Erro ao excluir');
     }
   }
+
+  const avSelectCls = `${inputCls} appearance-none`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 overflow-y-auto">
@@ -239,6 +241,50 @@ export function MetalFormModal({ record, loja, codInterno, onClose, onSave, onDe
             </div>
           </div>
 
+          {/* Avaliadores AV1 / AV2 / AV3 / AV4 */}
+          <div>
+            <label className={labelCls}>Avaliadores</label>
+            <div className="grid grid-cols-4 gap-2">
+              <div>
+                <label className="block text-[10px] text-zinc-400 mb-1">AV1 *</label>
+                <select {...register('av1')} className={avSelectCls}>
+                  <option value="">—</option>
+                  {opcoes.avaliadores.map(a => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+                {errors.av1 && <p className="text-[10px] text-red-500 mt-0.5">{errors.av1.message}</p>}
+              </div>
+              <div>
+                <label className="block text-[10px] text-zinc-400 mb-1">AV2</label>
+                <select {...register('av2')} className={avSelectCls}>
+                  <option value="">—</option>
+                  {opcoes.avaliadores.map(a => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] text-zinc-400 mb-1">AV3</label>
+                <select {...register('av3')} className={avSelectCls}>
+                  <option value="">—</option>
+                  {opcoes.avaliadores.map(a => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] text-zinc-400 mb-1">AV4</label>
+                <select {...register('av4')} className={avSelectCls}>
+                  <option value="">—</option>
+                  {opcoes.avaliadores.map(a => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* Nome / CPF */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -258,7 +304,7 @@ export function MetalFormModal({ record, loja, codInterno, onClose, onSave, onDe
               <label className={labelCls}>Tipo (Modalidade)</label>
               <select {...register('tipo')} className={inputCls}>
                 <option value="">Selecionar...</option>
-                {loja.tipos.map(t => (
+                {opcoes.tipos.map(t => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>
@@ -267,39 +313,11 @@ export function MetalFormModal({ record, loja, codInterno, onClose, onSave, onDe
               <label className={labelCls}>Razão Social</label>
               <select {...register('razao_social')} className={inputCls}>
                 <option value="">Selecionar...</option>
-                {loja.empresas.map(e => (
+                {opcoes.empresas.map(e => (
                   <option key={e} value={e}>{e}</option>
                 ))}
               </select>
             </div>
-          </div>
-
-          {/* Avaliadores */}
-          <div>
-            <label className={labelCls}>Avaliadores</label>
-            <Controller
-              name="avaliadores"
-              control={control}
-              render={() => (
-                <div className="flex flex-wrap gap-2">
-                  {loja.avaliadores.map(a => (
-                    <button
-                      key={a}
-                      type="button"
-                      onClick={() => toggleAvaliador(a, avaliadores)}
-                      className={`px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-all ${
-                        avaliadores.includes(a)
-                          ? 'bg-indigo-600 border-indigo-600 text-white'
-                          : 'border-zinc-200 dark:border-white/[0.08] text-zinc-500 dark:text-zinc-400 hover:border-indigo-300 dark:hover:border-indigo-700'
-                      }`}
-                    >
-                      {a}
-                    </button>
-                  ))}
-                </div>
-              )}
-            />
-            {errors.avaliadores && <p className="text-xs text-red-500 mt-1">{errors.avaliadores.message as string}</p>}
           </div>
 
           {/* Qualidades */}

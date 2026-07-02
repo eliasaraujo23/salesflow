@@ -152,8 +152,8 @@ export default function MetalPage() {
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-zinc-800 dark:text-zinc-200 max-w-[120px] truncate">{r.nome || '—'}</td>
-                    <td className="px-3 py-2.5 text-zinc-500 dark:text-zinc-400 text-[12px] max-w-[100px] truncate">
-                      {r.avaliadores?.join(', ')}
+                    <td className="px-3 py-2.5 text-zinc-500 dark:text-zinc-400 text-[12px] max-w-[120px] truncate">
+                      {r.avaliadores?.join('/')}
                     </td>
                     {QUALIDADES.map(q => (
                       <td key={q} className="px-2 py-2.5 text-center font-mono text-[11px] text-zinc-500 dark:text-zinc-400 tabular-nums">

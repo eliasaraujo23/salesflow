@@ -24,7 +24,7 @@ const AVALIADORES_ATIVOS = [
   'Ana Clara', 'Ana Paula', 'Andressa', 'Augusto', 'Bruno',
   'Caroline', 'Clarisse', 'Daiana', 'Eduardo', 'Fernanda',
   'Francesco', 'Giovanna', 'Helton', 'Joyce', 'Juliana',
-  'Larissa', 'Luciana', 'Matheus', 'Palmira', 'Paula',
+  'Larissa', 'Luciana', 'Matheus', 'Paula',
   'Raphael Borges', 'Thaís', 'Thays', 'Vinicius de Paula',
 ];
 
