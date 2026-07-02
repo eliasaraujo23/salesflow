@@ -3,13 +3,14 @@
 import React, { useState, useMemo } from 'react';
 import { notFound, useParams } from 'next/navigation';
 import { getLojaConfig } from '@/lib/controle-config';
+import { CurrencyInput } from '@/components/ui/currency-input';
 
 function formatBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 const inputCls =
-  'w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded text-sm font-mono tabular-nums text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors text-right';
+  'w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded text-sm font-mono tabular-nums text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors text-right placeholder:text-zinc-300 dark:placeholder:text-zinc-600';
 
 function loadLS(key: string): number {
   if (typeof window === 'undefined') return 0;
@@ -79,26 +80,21 @@ export default function CaixaPage() {
 
           <table className="w-full text-sm">
             <tbody>
-              {/* Bruto */}
               {loja.caixa_bruto.map(local => (
                 <tr key={local} className="border-b border-zinc-50 dark:border-white/[0.03]">
                   <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400 font-medium w-2/5 whitespace-nowrap">
                     {local}
                   </td>
                   <td className="px-3 py-1.5 w-3/5">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
+                    <CurrencyInput
                       value={bruto[local] ?? 0}
-                      onChange={e => setBrutoVal(local, parseFloat(e.target.value) || 0)}
+                      onChange={v => setBrutoVal(local, v)}
                       className={inputCls}
                     />
                   </td>
                 </tr>
               ))}
 
-              {/* Total Bruto */}
               <tr className="bg-zinc-100 dark:bg-zinc-800/70 border-b border-zinc-200 dark:border-white/[0.08]">
                 <td className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-200">
                   Total Bruto
@@ -108,7 +104,6 @@ export default function CaixaPage() {
                 </td>
               </tr>
 
-              {/* Trocados */}
               {hasTrocados && (
                 <>
                   {(loja.trocados ?? []).map(local => (
@@ -117,19 +112,15 @@ export default function CaixaPage() {
                         {local}
                       </td>
                       <td className="px-3 py-1.5">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
+                        <CurrencyInput
                           value={trocados[local] ?? 0}
-                          onChange={e => setTrocadoVal(local, parseFloat(e.target.value) || 0)}
+                          onChange={v => setTrocadoVal(local, v)}
                           className={inputCls}
                         />
                       </td>
                     </tr>
                   ))}
 
-                  {/* Total Trocados */}
                   <tr className="bg-zinc-100 dark:bg-zinc-800/70 border-b border-zinc-200 dark:border-white/[0.08]">
                     <td className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-200">
                       Total Trocados
@@ -141,7 +132,6 @@ export default function CaixaPage() {
                 </>
               )}
 
-              {/* Total Loja */}
               <tr className="bg-zinc-800 dark:bg-zinc-700">
                 <td className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-zinc-100">
                   Total Loja
@@ -156,7 +146,6 @@ export default function CaixaPage() {
 
         {/* ── Coluna direita ── */}
         <div className="space-y-3">
-          {/* Início do Caixa */}
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
             <div className="bg-indigo-600 px-4 py-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-100">
@@ -164,17 +153,14 @@ export default function CaixaPage() {
               </span>
             </div>
             <div className="p-3">
-              <input
-                type="number"
-                step="0.01"
+              <CurrencyInput
                 value={inicioCaixa}
-                onChange={e => setInicio(parseFloat(e.target.value) || 0)}
+                onChange={setInicio}
                 className={inputCls}
               />
             </div>
           </div>
 
-          {/* Diferença de Caixa */}
           <div className="rounded-xl overflow-hidden border border-zinc-200 dark:border-white/[0.08]">
             <div className={`px-4 py-2 text-center ${difStyle.header}`}>
               <span className="text-[11px] font-bold uppercase tracking-wider text-white">
