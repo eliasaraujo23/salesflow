@@ -7,7 +7,6 @@ import { getLojaConfig, type LojaCode } from '@/lib/controle-config';
 import { useMetal } from '@/hooks/use-metal';
 import { Loader2 } from 'lucide-react';
 import { MetalUnified } from '@/components/controle/metal-unified';
-import { CaixaCalculator } from '@/components/controle/caixa-calculator';
 
 function toDate(ts: Timestamp | null | undefined): Date {
   if (!ts) return new Date(0);
@@ -20,24 +19,25 @@ export default function ResumoPage() {
   if (!loja) notFound();
 
   const [now] = useState(() => new Date());
+  const y = now.getFullYear();
+  const m = now.getMonth();
 
   const { records: metalRecords, loading: metalLoading } = useMetal(loja.code as LojaCode);
 
   const todayRecords = useMemo(() => {
-    const d = now.getDate(), m = now.getMonth(), y = now.getFullYear();
+    const d = now.getDate();
     return metalRecords.filter(r => {
       const rd = toDate(r.data);
       return rd.getFullYear() === y && rd.getMonth() === m && rd.getDate() === d;
     });
-  }, [metalRecords, now]);
+  }, [metalRecords, now, y, m]);
 
   const monthRecords = useMemo(() => {
-    const m = now.getMonth(), y = now.getFullYear();
     return metalRecords.filter(r => {
       const rd = toDate(r.data);
       return rd.getFullYear() === y && rd.getMonth() === m;
     });
-  }, [metalRecords, now]);
+  }, [metalRecords, y, m]);
 
   if (metalLoading) {
     return (
@@ -48,20 +48,8 @@ export default function ResumoPage() {
   }
 
   return (
-    <div className="p-5 space-y-6">
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-3">
-          Controle de Metal
-        </p>
-        <MetalUnified dayRecords={todayRecords} monthRecords={monthRecords} />
-      </div>
-
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-3">
-          Caixa
-        </p>
-        <CaixaCalculator lojaCode={lojaCode} />
-      </div>
+    <div className="p-5">
+      <MetalUnified dayRecords={todayRecords} monthRecords={monthRecords} />
     </div>
   );
 }

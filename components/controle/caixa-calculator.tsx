@@ -6,6 +6,10 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 
 interface Props {
   lojaCode: string;
+  totalEntradas?: number;
+  totalDespesas?: number;
+  totalMetal?: number;
+  compact?: boolean;
 }
 
 function formatBRL(v: number) {
@@ -14,6 +18,9 @@ function formatBRL(v: number) {
 
 const inputCls =
   'w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded text-sm font-mono tabular-nums text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors text-right placeholder:text-zinc-300 dark:placeholder:text-zinc-600';
+
+const cardBase =
+  'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden';
 
 function loadLS(key: string): number {
   if (typeof window === 'undefined') return 0;
@@ -24,7 +31,60 @@ function saveLS(key: string, v: number) {
   if (typeof window !== 'undefined') localStorage.setItem(key, String(v));
 }
 
-export function CaixaCalculator({ lojaCode }: Props) {
+function SectionHeader({ label, color }: { label: string; color: string }) {
+  return (
+    <tr>
+      <td
+        colSpan={2}
+        className={`px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white ${color}`}
+      >
+        {label}
+      </td>
+    </tr>
+  );
+}
+
+function Row({
+  label,
+  value,
+  dim,
+}: {
+  label: string;
+  value: number;
+  dim?: boolean;
+}) {
+  return (
+    <tr className="border-b border-zinc-50 dark:border-white/[0.03]">
+      <td className={`px-4 py-2 text-sm ${dim ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-600 dark:text-zinc-400'}`}>
+        {label}
+      </td>
+      <td className={`px-4 py-2 text-right font-mono tabular-nums text-sm ${dim ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-800 dark:text-zinc-200'}`}>
+        {formatBRL(value)}
+      </td>
+    </tr>
+  );
+}
+
+function SubtotalRow({ label, value }: { label: string; value: number }) {
+  return (
+    <tr className="bg-zinc-100 dark:bg-zinc-800/70 border-b border-zinc-200 dark:border-white/[0.08]">
+      <td className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-200">
+        {label}
+      </td>
+      <td className="px-4 py-2.5 text-right font-mono font-bold tabular-nums text-zinc-900 dark:text-zinc-100">
+        {formatBRL(value)}
+      </td>
+    </tr>
+  );
+}
+
+export function CaixaCalculator({
+  lojaCode,
+  totalEntradas = 0,
+  totalDespesas = 0,
+  totalMetal = 0,
+  compact = false,
+}: Props) {
   const loja = getLojaConfig(lojaCode);
   if (!loja) return null;
 
@@ -57,20 +117,26 @@ export function CaixaCalculator({ lojaCode }: Props) {
   const totalBruto = useMemo(() => Object.values(bruto).reduce((s, v) => s + v, 0), [bruto]);
   const totalTrocados = useMemo(() => Object.values(trocados).reduce((s, v) => s + v, 0), [trocados]);
   const totalLoja = totalBruto + totalTrocados;
-  const diferenca = totalLoja - inicioCaixa;
 
   const hasTrocados = (loja.trocados ?? []).length > 0;
 
+  // Fórmula do Access
+  const entradasDeCaixa = inicioCaixa + totalEntradas;
+  const saidasDeCaixa = totalMetal + totalDespesas;
+  const sobraDeCaixa = entradasDeCaixa - saidasDeCaixa;
+  const diferenca = sobraDeCaixa - totalLoja;
+
   const difStyle =
-    diferenca === 0
+    Math.abs(diferenca) < 0.01
       ? { header: 'bg-emerald-600', body: 'bg-emerald-50 dark:bg-emerald-500/10', text: 'text-emerald-700 dark:text-emerald-400' }
       : diferenca > 0
       ? { header: 'bg-blue-600', body: 'bg-blue-50 dark:bg-blue-500/10', text: 'text-blue-700 dark:text-blue-400' }
       : { header: 'bg-red-600', body: 'bg-red-50 dark:bg-red-500/10', text: 'text-red-700 dark:text-red-400' };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[1fr_200px] gap-5 items-start max-w-2xl">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
+    <div className={`grid gap-4 items-start ${compact ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`}>
+      {/* Dinheiro na Loja */}
+      <div className={cardBase}>
         <div className="bg-zinc-800 dark:bg-zinc-700 px-4 py-2 text-center">
           <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-200">
             Dinheiro na Loja
@@ -92,7 +158,6 @@ export function CaixaCalculator({ lojaCode }: Props) {
                 </td>
               </tr>
             ))}
-
             <tr className="bg-zinc-100 dark:bg-zinc-800/70 border-b border-zinc-200 dark:border-white/[0.08]">
               <td className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-200">
                 Total Bruto
@@ -101,7 +166,6 @@ export function CaixaCalculator({ lojaCode }: Props) {
                 {formatBRL(totalBruto)}
               </td>
             </tr>
-
             {hasTrocados && (
               <>
                 {(loja.trocados ?? []).map(local => (
@@ -128,7 +192,6 @@ export function CaixaCalculator({ lojaCode }: Props) {
                 </tr>
               </>
             )}
-
             <tr className="bg-zinc-800 dark:bg-zinc-700">
               <td className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-zinc-100">
                 Total Loja
@@ -141,22 +204,47 @@ export function CaixaCalculator({ lojaCode }: Props) {
         </table>
       </div>
 
+      {/* Painel de cálculo */}
       <div className="space-y-3">
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
+        {/* Início do Caixa */}
+        <div className={cardBase}>
           <div className="bg-indigo-600 px-4 py-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-100">
               Início do Caixa
             </span>
           </div>
           <div className="p-3">
-            <CurrencyInput
-              value={inicioCaixa}
-              onChange={setInicio}
-              className={inputCls}
-            />
+            <CurrencyInput value={inicioCaixa} onChange={setInicio} className={inputCls} />
           </div>
         </div>
 
+        {/* Entradas / Saídas / Sobra */}
+        <div className={cardBase}>
+          <table className="w-full text-sm">
+            <tbody>
+              <SectionHeader label="Entradas de Caixa" color="bg-emerald-700" />
+              <Row label="Início do Mês" value={inicioCaixa} />
+              <Row label="+ Entradas" value={totalEntradas} />
+              <SubtotalRow label="= Total" value={entradasDeCaixa} />
+
+              <SectionHeader label="Saídas de Caixa" color="bg-red-700" />
+              <Row label="Metal (compras)" value={totalMetal} />
+              <Row label="+ Despesas" value={totalDespesas} />
+              <SubtotalRow label="= Total" value={saidasDeCaixa} />
+
+              <tr className="bg-zinc-800 dark:bg-zinc-700">
+                <td className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-zinc-100">
+                  Sobra de Caixa
+                </td>
+                <td className="px-4 py-3 text-right font-mono font-bold text-white text-base tabular-nums">
+                  {formatBRL(sobraDeCaixa)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Diferença */}
         <div className="rounded-xl overflow-hidden border border-zinc-200 dark:border-white/[0.08]">
           <div className={`px-4 py-2 text-center ${difStyle.header}`}>
             <span className="text-[11px] font-bold uppercase tracking-wider text-white">
@@ -164,9 +252,10 @@ export function CaixaCalculator({ lojaCode }: Props) {
             </span>
           </div>
           <div className={`px-4 py-4 text-center ${difStyle.body}`}>
-            <span className={`text-xl font-bold font-mono tabular-nums ${difStyle.text}`}>
+            <span className={`text-2xl font-bold font-mono tabular-nums ${difStyle.text}`}>
               {formatBRL(diferenca)}
             </span>
+            <p className="text-[10px] text-zinc-400 mt-1">Sobra − Dinheiro na Loja</p>
           </div>
         </div>
       </div>
