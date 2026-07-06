@@ -17,7 +17,7 @@ export function useMetal(loja: LojaCode) {
 
   useEffect(() => {
     const col = metalCollection(loja);
-    const q = query(collection(db, col), orderBy('data', 'desc'));
+    const q = query(collection(db, col), orderBy('datetime', 'desc'));
     const unsub = onSnapshot(q, snap => {
       const docs = snap.docs.map(d => ({ id: d.id, ...d.data() } as MetalRecord));
       setRecords(docs);
@@ -30,8 +30,12 @@ export function useMetal(loja: LojaCode) {
     const col = metalCollection(loja);
     const totalPeso = QUALIDADES.reduce((sum, q) => sum + (Number(data[q]) || 0), 0);
     const pagoPorGrama = totalPeso > 0 ? (data.valor / totalPeso) : 0;
+    const horaStr = data.hora ?? '00:00';
+    const datePart = data.data.toDate().toISOString().slice(0, 10);
+    const datetime = Timestamp.fromDate(new Date(`${datePart}T${horaStr}:00`));
     await addDoc(collection(db, col), {
       ...data,
+      datetime,
       total_peso: totalPeso,
       pago_por_grama: pagoPorGrama,
       createdAt: serverTimestamp(),
@@ -57,11 +61,19 @@ export function useMetal(loja: LojaCode) {
 
   function generateCodInterno(prefix: string): string {
     const now = new Date();
-    const yy = String(now.getFullYear()).slice(-2);
     const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const seq = String(records.length + 1).padStart(4, '0');
-    return `${prefix}${yy}${mm}${dd}${seq}`;
+    const yyyy = String(now.getFullYear());
+    // Deriva o próximo número a partir do maior seq encontrado nos registros existentes
+    const pattern = new RegExp(`^${prefix}(\\d+)-`);
+    let maxSeq = 0;
+    for (const r of records) {
+      const m = r.cod_interno.match(pattern);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (n > maxSeq) maxSeq = n;
+      }
+    }
+    return `${prefix}${maxSeq + 1}-${mm}${yyyy}`;
   }
 
   function todayTimestamp(): Timestamp {

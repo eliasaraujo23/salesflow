@@ -90,3 +90,48 @@ export async function importPricesFromCsv(formData: FormData): Promise<ResponseA
 - **Do not** write complex business logic, extensive state manipulation, or API calling logic directly inside a component.
 - Always encapsulate this logic in custom React hooks (e.g., `useImportPrices`, `useProductTable`, etc.) and export the necessary state and event handlers to the component.
 
+---
+
+## 5. Paridade entre Lojas (Controle de Lojas)
+
+> [!IMPORTANT]
+> **GTT (Tijuca) é a loja de referência.** Toda alteração feita para GTT — seja em código, componentes, hooks, types, scripts de migração ou regras de negócio — deve ser aplicada **imediatamente e automaticamente** para GTI (Ipanema) e 24K (Méier), **sem precisar ser solicitado**.
+
+- O agente deve, por conta própria, verificar e propagar qualquer mudança para as três lojas antes de considerar uma tarefa concluída.
+- As lojas diferem **apenas** em dados de configuração (avaliadores, feedbacks locais, bancas, caixa_bruto, trocados) definidos em `lib/controle-config.ts`. Todo o restante — lógica, UI, hooks, types, scripts — é idêntico.
+- Scripts de migração Access → Firestore (`migrate-gtt.js`, `migrate-gti.js`) devem sempre ter a mesma estrutura e os mesmos campos. Ao adicionar um campo em um, adicionar em todos e re-executar as migrações afetadas.
+
+---
+
+## 6. Regras de Negócio do Resumo (Metal)
+Estas regras governam todos os cálculos de `components/controle/metal-unified.tsx` e são **idênticas para todas as lojas**.
+
+### Qualidades que contam como "Ouro + Platina"
+`ouro_24k`, `ouro_22k`, `pt`, `ouro_750`, `ouro_720`, `bx`, `platina`
+- **BX (baixa liga) é ouro** e obrigatoriamente entra nessa soma.
+- `prata` não entra em "Ouro + Platina".
+
+### Compra válida
+Um registro conta como compra válida quando:
+1. `transacao === 'COMPRA'`
+2. `somaOuroPlatina(r) > 0` — tem pelo menos algum metal dos campos acima
+
+### Bijuteria
+- `motivo_nc === '4'` → é bijuteria.
+- Bijuteria é excluída do denominador de **Conversão** (não conta como oportunidade real).
+
+### Métricas calculadas
+| Métrica | Fórmula |
+|---|---|
+| Peso Ouro | soma de `total_peso` das compras válidas |
+| Ouro + Platina | soma de `somaOuroPlatina` das compras válidas |
+| Média Preço | `valorGasto / ouroPlatina` |
+| Conversão | `totalCompras / semBijuteria` |
+| Meta Nova | proporção de compras com `0 < pago_por_grama <= 250` |
+| Peso Sem Venda | soma de `somaOuroPlatina` dos registros `NAO_COMPRA` que não são bijuteria |
+| Sem Bijuteria | `totalAvaliacoes - bijuteria` |
+
+### Ordenação dos registros
+- Registros são ordenados por `datetime` decrescente (`data` + `hora` combinados em um `Timestamp`).
+- Nunca usar `orderBy('data')` sozinho — causa ordenação errada em registros do mesmo dia.
+

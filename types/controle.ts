@@ -6,6 +6,7 @@ export interface MetalRecord {
   id: string;
   cod_interno: string;
   data: Timestamp;
+  datetime?: Timestamp;
   hora: string;
   avaliadores: string[];
   nome: string;

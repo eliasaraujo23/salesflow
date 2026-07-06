@@ -10,7 +10,6 @@ import { useEvolucaoParceiros } from '@/hooks/use-evolucao-parceiros';
 import { ParceirosDestinoSidebar } from '@/components/graficos/parceiros-destino-sidebar';
 import { EvolucaoParceiroAreaChart } from '@/components/graficos/evolucao-parceiros-area-chart';
 import { TicketMedioAreaChart } from '@/components/graficos/ticket-medio-area-chart';
-import { LucratividadeAreaChart } from '@/components/graficos/lucratividade-area-chart';
 
 const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -66,20 +65,6 @@ export default function EvolucaoParceiroPage() {
       .map(([mes, total]) => ({ mes, mesLabel: fmtMesLabel(mes), total }));
   }, [filteredData]);
 
-  const monthlyLucroData = useMemo(() => {
-    const byMonth = new Map<string, { faturamento: number; custo: number }>();
-    filteredData.forEach(r => {
-      const cur = byMonth.get(r.mes) ?? { faturamento: 0, custo: 0 };
-      byMonth.set(r.mes, { faturamento: cur.faturamento + r.faturamento, custo: cur.custo + r.custo });
-    });
-    return [...byMonth.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([mes, { faturamento, custo }]) => ({
-        mes,
-        mesLabel: fmtMesLabel(mes),
-        lucratividade: faturamento > 0 ? ((faturamento - custo) / faturamento) * 100 : 0,
-      }));
-  }, [filteredData]);
 
   const monthlyTicketData = useMemo(() => {
     const byMonth = new Map<string, { faturamento: number; quantidade: number }>();
@@ -97,12 +82,10 @@ export default function EvolucaoParceiroPage() {
   }, [filteredData]);
 
   const totalFaturamento = filteredData.reduce((s, r) => s + r.faturamento, 0);
-  const totalCusto       = filteredData.reduce((s, r) => s + r.custo,       0);
   const totalQuantidade  = filteredData.reduce((s, r) => s + r.quantidade,  0);
   const totalMeses = monthlyData.length;
   const mediaMensal    = totalMeses > 0       ? totalFaturamento / totalMeses        : 0;
   const ticketMedio    = totalQuantidade > 0  ? totalFaturamento / totalQuantidade   : 0;
-  const lucratividade  = totalFaturamento > 0 ? ((totalFaturamento - totalCusto) / totalFaturamento) * 100 : 0;
 
   function handleToggle(p: string) {
     setSelectedPartners(prev => {
@@ -180,14 +163,6 @@ export default function EvolucaoParceiroPage() {
           </span>
         </div>
 
-        {/* Lucratividade */}
-        <div className="flex flex-col justify-center gap-0.5 px-5 py-3 flex-1">
-          <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Lucratividade</span>
-          <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
-            {isLoading ? '—' : `${lucratividade.toFixed(1).replace('.', ',')}%`}
-          </span>
-        </div>
-
         {/* Refresh */}
         <button
           onClick={() => refetch()}
@@ -247,14 +222,6 @@ export default function EvolucaoParceiroPage() {
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 shrink-0">Lucratividade</p>
-              <div className="flex-1 min-h-0">
-                {monthlyLucroData.length === 0
-                  ? <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Nenhum dado para o período selecionado.</div>
-                  : <LucratividadeAreaChart data={monthlyLucroData} />}
-              </div>
-            </div>
           </div>
         </div>
       )}

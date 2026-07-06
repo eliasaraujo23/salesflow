@@ -8,7 +8,6 @@ import { getLojaConfig, type LojaCode } from '@/lib/controle-config';
 import { useMetal } from '@/hooks/use-metal';
 import { type MetalRecord } from '@/types/controle';
 import { MetalFormModal } from '@/components/controle/metal-form-modal';
-import { MesNav } from '@/components/controle/mes-nav';
 
 function fmtDate(ts: Timestamp | null | undefined): string {
   if (!ts) return '—';
@@ -35,21 +34,22 @@ export default function MetalPage() {
   const loja = getLojaConfig(lojaCode);
   if (!loja) notFound();
 
+  const [now] = useState(() => new Date());
   const { records, loading, addRecord, updateRecord, deleteRecord, generateCodInterno } =
     useMetal(loja.code as LojaCode);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<MetalRecord | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [filterTransacao, setFilterTransacao] = useState<'ALL' | 'COMPRA' | 'NAO_COMPRA'>('ALL');
-  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth() + 1);
 
   const filtered = useMemo(() => {
+    const y = now.getFullYear();
+    const m = now.getMonth();
     const q = search.toLowerCase();
     return records
       .filter(r => {
         const d = r.data instanceof Timestamp ? r.data.toDate() : new Date(r.data as unknown as string);
-        if (d.getFullYear() !== selectedYear || d.getMonth() + 1 !== selectedMonth) return false;
+        if (d.getFullYear() !== y || d.getMonth() !== m) return false;
         if (filterTransacao !== 'ALL' && r.transacao !== filterTransacao) return false;
         if (
           q &&
@@ -61,11 +61,13 @@ export default function MetalPage() {
         return true;
       })
       .sort((a, b) => {
-        const ta = a.data instanceof Timestamp ? a.data.toMillis() : 0;
-        const tb2 = b.data instanceof Timestamp ? b.data.toMillis() : 0;
-        return tb2 - ta;
+        const seq = (cod: string) => {
+          const m = cod.match(/[A-Za-z](\d+)-/);
+          return m ? parseInt(m[1], 10) : 0;
+        };
+        return seq(b.cod_interno) - seq(a.cod_interno);
       });
-  }, [records, search, filterTransacao, selectedYear, selectedMonth]);
+  }, [records, search, filterTransacao, now]);
 
   const newCod = generateCodInterno(loja.cod_prefix);
 
@@ -85,11 +87,6 @@ export default function MetalPage() {
             {filtered.length}
           </span>
         </div>
-        <MesNav
-          year={selectedYear}
-          month={selectedMonth}
-          onChange={(y, m) => { setSelectedYear(y); setSelectedMonth(m); }}
-        />
         <div className="flex items-center gap-2">
           {(['ALL', 'COMPRA', 'NAO_COMPRA'] as const).map(f => (
             <button
