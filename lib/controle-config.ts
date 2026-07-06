@@ -1,4 +1,4 @@
-export type LojaCode = 'gtt' | 'gti' | '24k';
+export type LojaCode = 'gtt' | 'gti' | '24k' | 'ci';
 
 export interface LojaConfig {
   code: LojaCode;
@@ -179,6 +179,47 @@ export const LOJAS: LojaConfig[] = [
       'Oxford', 'Pacheco', 'Padaria Rainha do Méier', 'Planeta Mulher', 'Ponto Mix',
       'Praça', 'Shopping Méier', 'Taco', 'Venâncio',
     ].sort(),
+    feedbacks_nc: MOTIVOS_NC,
+    tipos: MODALIDADES,
+    empresas: EMPRESAS,
+    tipos_despesa: [
+      'Alimentação', 'Transporte', 'Material de escritório',
+      'Serviço', 'Fornecedor', 'Outros',
+    ],
+    formas_pagamento: ['Dinheiro', 'PIX', 'Transferência', 'Cartão'],
+    tipos_lancamento: ['PIX', 'SAQUE', 'PAGAMENTO', 'EMPRÉSTIMO', 'ENTRADA', 'DEVOLUÇÃO', 'CORRETO'],
+    bancos_caixa: [
+      'BMG KADU',
+      'BTG AUGUSTO', 'BTG ETERNNO', 'BTG HELTON', 'BTG KADU', 'BTG THAÍS',
+      'C6 AUGUSTO', 'C6 HELTON', 'C6 KADU',
+      'ESPECIE',
+      'INTER CLARISSE', 'INTER KADU', 'INTER MATHEUS', 'INTER THAIS',
+      'ITAÚ A. TECH', 'ITAÚ AUGUSTO', 'ITAÚ BRUNO', 'ITAÚ  G. TECH', 'ITAÚ KADU', 'ITAÚ MATHEUS',
+      'LANCAMENTOS',
+      'MERCADO PAGO 24K', 'MERCADO PAGO A. TECH', 'MERCADO PAGO AUGUSTO',
+      'MERCADO PAGO ETERNNO', 'MERCADO PAGO GOLD TECH', 'MERCADO PAGO G. TECH',
+      'MERCADO PAGO KADU', 'MERCADO PAGO TECH GOLD',
+      'METAL',
+      'NUBANK BRUNO', 'NUBANK G.TECH', 'NUBANK HELTON', 'NUBANK KADU', 'NUBANK THAÍS',
+      'PAYPAL 24K', 'PAYPAL ETERNNO', 'PAYPAL GOLDTECH', 'PAYPAL TECHGOLD',
+      'SANTANDER 24K', 'SANTANDER AUGUSTO', 'SANTANDER BRUNO', 'SANTANDER ETERNNO',
+      'SANTANDER GOLD TECH', 'SANTANDER G. TECH', 'SANTANDER HELTON',
+      'SANTANDER  H. TECH', 'SANTANDER KADU', 'SANTANDER TECH GOLD', 'SANTANDER THAIS',
+      'SERGIO METAL',
+      'SICREDI BRUNO',
+    ],
+  },
+  {
+    code: 'ci',
+    label: 'Copanema',
+    sigla: 'CI',
+    cod_prefix: 'C',
+    permission: 'controle-ci',
+    cor: '#f43f5e',
+    caixa_bruto: ['Frente', 'Gaveta', 'Cafofo 1', 'Cafofo 2', 'Escritório'],
+    trocados: ['Caixa 007', 'Caixa Trocados', 'Cofre'],
+    avaliadores: AVALIADORES_ATIVOS,
+    feedbacks_compra: [...FEEDBACKS_TODOS].sort(),
     feedbacks_nc: MOTIVOS_NC,
     tipos: MODALIDADES,
     empresas: EMPRESAS,

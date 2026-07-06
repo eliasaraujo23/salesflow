@@ -12,6 +12,7 @@ const TABS = [
   { label: 'Caixa',    href: 'caixa' },
   { label: 'Entradas', href: 'entradas' },
   { label: 'Despesas', href: 'despesas' },
+  { label: 'Config',   href: 'config' },
 ];
 
 interface Props {

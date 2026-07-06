@@ -58,15 +58,26 @@ service cloud.firestore {
     match /metal_gtt/{docId}      { allow read, write: if isAuth(); }
     match /metal_gti/{docId}      { allow read, write: if isAuth(); }
     match /metal_24k/{docId}      { allow read, write: if isAuth(); }
+    match /metal_ci/{docId}       { allow read, write: if isAuth(); }
     match /despesa_gtt/{docId}    { allow read, write: if isAuth(); }
     match /despesa_gti/{docId}    { allow read, write: if isAuth(); }
     match /despesa_24k/{docId}    { allow read, write: if isAuth(); }
+    match /despesa_ci/{docId}     { allow read, write: if isAuth(); }
     match /lancamento_gtt/{docId} { allow read, write: if isAuth(); }
     match /lancamento_gti/{docId} { allow read, write: if isAuth(); }
     match /lancamento_24k/{docId} { allow read, write: if isAuth(); }
-    match /caixa_gtt/{docId}    { allow read, write: if isAuth(); }
-    match /caixa_gti/{docId}    { allow read, write: if isAuth(); }
-    match /caixa_24k/{docId}    { allow read, write: if isAuth(); }
+    match /lancamento_ci/{docId}  { allow read, write: if isAuth(); }
+    match /caixa_gtt/{docId}      { allow read, write: if isAuth(); }
+    match /caixa_gti/{docId}      { allow read, write: if isAuth(); }
+    match /caixa_24k/{docId}      { allow read, write: if isAuth(); }
+    match /caixa_ci/{docId}       { allow read, write: if isAuth(); }
+
+    // Configurações dinâmicas — listas globais e feedbacks por loja.
+    match /config_global/{docId}  { allow read, write: if isAuth(); }
+    match /config_loja/{docId}    { allow read, write: if isAuth(); }
+
+    // Brechós — mapeamento de concorrentes no Brasil.
+    match /breachos/{docId}       { allow read, write: if isAuth(); }
 
     // Deny all other collections by default.
     match /{document=**} {

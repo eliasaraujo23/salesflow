@@ -17,7 +17,7 @@ export function useMetal(loja: LojaCode) {
 
   useEffect(() => {
     const col = metalCollection(loja);
-    const q = query(collection(db, col), orderBy('datetime', 'desc'));
+    const q = query(collection(db, col), orderBy('data', 'desc'));
     const unsub = onSnapshot(q, snap => {
       const docs = snap.docs.map(d => ({ id: d.id, ...d.data() } as MetalRecord));
       setRecords(docs);

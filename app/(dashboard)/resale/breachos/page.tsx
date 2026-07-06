@@ -1,0 +1,52 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useBreachos } from '@/hooks/use-breachos';
+import { BrechosMapa } from '@/components/resale/breachos-mapa';
+import { BrechoLista } from '@/components/resale/brecho-lista';
+import { BrechoFormModal } from '@/components/resale/brecho-form-modal';
+
+export default function BrechosPage() {
+  const { breachos, loading, addBrecho, removeBrecho } = useBreachos();
+  const [showModal, setShowModal] = useState(false);
+
+  return (
+    <div className="p-5 flex flex-col" style={{ height: 'calc(100vh - 130px)' }}>
+      <div className="mb-3 shrink-0">
+        <h1 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Brechós no Brasil</h1>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+          Passe o mouse sobre um estado para ver os brechós daquela região.
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-sm text-zinc-400 dark:text-zinc-500">Carregando...</div>
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 grid gap-4" style={{ gridTemplateColumns: '1fr 300px' }}>
+          {/* Map — fills height */}
+          <div className="min-h-0 flex flex-col">
+            <BrechosMapa breachos={breachos} />
+          </div>
+
+          {/* List */}
+          <div className="min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col overflow-hidden">
+            <BrechoLista
+              breachos={breachos}
+              onAdd={() => setShowModal(true)}
+              onRemove={removeBrecho}
+            />
+          </div>
+        </div>
+      )}
+
+      {showModal && (
+        <BrechoFormModal
+          onClose={() => setShowModal(false)}
+          onSave={addBrecho}
+        />
+      )}
+    </div>
+  );
+}

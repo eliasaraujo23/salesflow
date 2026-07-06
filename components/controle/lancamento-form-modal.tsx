@@ -9,6 +9,7 @@ import { Timestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { type LojaConfig } from '@/lib/controle-config';
 import { type LancamentoRecord } from '@/types/controle';
+import { useConfigGlobal } from '@/hooks/use-config-global';
 
 const schema = z.object({
   data:      z.string().min(1, 'Data obrigatória'),
@@ -48,6 +49,7 @@ interface Props {
 
 export function LancamentoFormModal({ record, loja, onClose, onSave, onDelete }: Props) {
   const isEdit = !!record;
+  const config = useConfigGlobal();
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -115,7 +117,7 @@ export function LancamentoFormModal({ record, loja, onClose, onSave, onDelete }:
               <label className={labelCls}>Tipo</label>
               <select {...register('tipo')} className={inputCls}>
                 <option value="">Selecionar...</option>
-                {loja.tipos_lancamento.map(t => <option key={t} value={t}>{t}</option>)}
+                {config.tipos_lancamento.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
               {errors.tipo && <p className="text-xs text-red-500 mt-1">{errors.tipo.message}</p>}
             </div>
@@ -123,7 +125,7 @@ export function LancamentoFormModal({ record, loja, onClose, onSave, onDelete }:
               <label className={labelCls}>Banco / Caixa</label>
               <select {...register('banco')} className={inputCls}>
                 <option value="">Selecionar...</option>
-                {loja.bancos_caixa.map(b => <option key={b} value={b}>{b}</option>)}
+                {config.bancos_caixa.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
               {errors.banco && <p className="text-xs text-red-500 mt-1">{errors.banco.message}</p>}
             </div>

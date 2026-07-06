@@ -9,6 +9,7 @@ import { Timestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { type LojaConfig } from '@/lib/controle-config';
 import { type DespesaRecord } from '@/types/controle';
+import { useConfigGlobal } from '@/hooks/use-config-global';
 
 const schema = z.object({
   data:            z.string().min(1, 'Data obrigatória'),
@@ -50,6 +51,7 @@ interface Props {
 
 export function DespesaFormModal({ record, loja, onClose, onSave, onDelete }: Props) {
   const isEdit = !!record;
+  const config = useConfigGlobal();
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -119,7 +121,7 @@ export function DespesaFormModal({ record, loja, onClose, onSave, onDelete }: Pr
               <label className={labelCls}>Tipo de Despesa</label>
               <select {...register('tipo_despesa')} className={inputCls}>
                 <option value="">Selecionar...</option>
-                {loja.tipos_despesa.map(t => <option key={t} value={t}>{t}</option>)}
+                {config.tipos_despesa.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
               {errors.tipo_despesa && <p className="text-xs text-red-500 mt-1">{errors.tipo_despesa.message}</p>}
             </div>
@@ -127,7 +129,7 @@ export function DespesaFormModal({ record, loja, onClose, onSave, onDelete }: Pr
               <label className={labelCls}>Forma de Pagamento</label>
               <select {...register('forma_pagamento')} className={inputCls}>
                 <option value="">Selecionar...</option>
-                {loja.formas_pagamento.map(f => <option key={f} value={f}>{f}</option>)}
+                {config.formas_pagamento.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
               {errors.forma_pagamento && <p className="text-xs text-red-500 mt-1">{errors.forma_pagamento.message}</p>}
             </div>
@@ -138,7 +140,7 @@ export function DespesaFormModal({ record, loja, onClose, onSave, onDelete }: Pr
               <label className={labelCls}>Banco / Caixa</label>
               <select {...register('banco_caixa')} className={inputCls}>
                 <option value="">Selecionar...</option>
-                {loja.bancos_caixa.map(b => <option key={b} value={b}>{b}</option>)}
+                {config.bancos_caixa.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
               {errors.banco_caixa && <p className="text-xs text-red-500 mt-1">{errors.banco_caixa.message}</p>}
             </div>
