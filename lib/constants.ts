@@ -12,7 +12,6 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { label: 'Kanban',            href: '/kanban',         icon: 'ti-layout-kanban',   section: 'Tarefas',     permission: 'kanban' },
   { label: 'Calendário',        href: '/calendar',       icon: 'ti-calendar',        section: 'Tarefas',     permission: 'calendario' },
   { label: 'Relatórios',        href: '/reports',        icon: 'ti-file-analytics',  section: 'Análise',     permission: 'relatorios' },
-  { label: 'Análise JF',        href: '/analise-jf',     icon: 'ti-chart-bar',       section: 'Análise',     permission: 'analise-jf' },
   { label: 'Evolução Parceiros',href: '/graficos/parceiros', icon: 'ti-chart-line', section: 'Gráficos',    permission: 'graficos-parceiros' },
   { label: 'Controle de Metais',href: '/metals',         icon: 'ti-weight',          section: 'Estoque',     permission: 'metais' },
   { label: 'Fabricações JF',    href: '/fabricacoes-jf', icon: 'ti-hammer',          section: 'Estoque',     permission: 'fabricacoes' },
