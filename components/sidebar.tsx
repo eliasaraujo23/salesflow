@@ -230,7 +230,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           </button>
 
           {profileMenuOpen && (
-            <div className="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-xl shadow-xl overflow-hidden z-50">
+            <div className={`absolute bottom-full left-0 mb-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-xl shadow-xl overflow-hidden z-50 ${collapsed ? 'min-w-[160px]' : 'right-0'}`}>
               <button
                 onClick={openChangePw}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/[0.05] transition-colors text-left"
