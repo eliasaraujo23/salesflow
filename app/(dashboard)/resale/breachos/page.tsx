@@ -1,10 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useBreachos } from '@/hooks/use-breachos';
-import { BrechosMapa } from '@/components/resale/breachos-mapa';
 import { BrechoLista } from '@/components/resale/brecho-lista';
 import { BrechoFormModal } from '@/components/resale/brecho-form-modal';
+
+// Lazy-load: react-simple-maps + brazil-states.json (3.3 MB) não bloqueiam o primeiro render
+const BrechosMapa = dynamic(
+  () => import('@/components/resale/breachos-mapa').then(m => ({ default: m.BrechosMapa })),
+  { ssr: false, loading: () => <div className="flex-1 rounded-xl bg-zinc-900 animate-pulse" /> }
+);
 
 export default function BrechosPage() {
   const { breachos, loading, addBrecho, removeBrecho } = useBreachos();

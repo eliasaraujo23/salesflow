@@ -72,9 +72,9 @@ service cloud.firestore {
     match /caixa_24k/{docId}      { allow read, write: if isAuth(); }
     match /caixa_ci/{docId}       { allow read, write: if isAuth(); }
 
-    // Configurações dinâmicas — listas globais e feedbacks por loja.
-    match /config_global/{docId}  { allow read, write: if isAuth(); }
-    match /config_loja/{docId}    { allow read, write: if isAuth(); }
+    // Configurações dinâmicas — leitura para todos autenticados, escrita só admin.
+    match /config_global/{docId}  { allow read: if isAuth(); allow write: if isAdmin(); }
+    match /config_loja/{docId}    { allow read: if isAuth(); allow write: if isAdmin(); }
 
     // Brechós — mapeamento de concorrentes no Brasil.
     match /breachos/{docId}       { allow read, write: if isAuth(); }

@@ -17,7 +17,7 @@ export function useMetal(loja: LojaCode) {
 
   useEffect(() => {
     const col = metalCollection(loja);
-    const q = query(collection(db, col), orderBy('data', 'desc'));
+    const q = query(collection(db, col), orderBy('datetime', 'desc'));
     const unsub = onSnapshot(q, snap => {
       const docs = snap.docs.map(d => ({ id: d.id, ...d.data() } as MetalRecord));
       setRecords(docs);
@@ -52,7 +52,7 @@ export function useMetal(loja: LojaCode) {
       payload.total_peso = totalPeso;
       payload.pago_por_grama = totalPeso > 0 ? ((merged.valor || 0) / totalPeso) : 0;
     }
-    await updateDoc(doc(db, metalCollection(loja), id), payload);
+    await updateDoc(doc(db, col, id), payload);
   }
 
   async function deleteRecord(id: string) {
