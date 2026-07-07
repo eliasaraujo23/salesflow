@@ -57,9 +57,10 @@ const COMMON_AXIS = {
 interface Props {
   data: ChartRow[];
   chartType: 'area' | 'line' | 'bar';
+  showLabels: boolean;
 }
 
-export function EvolucaoParceiroAreaChart({ data, chartType }: Props) {
+export function EvolucaoParceiroAreaChart({ data, chartType, showLabels }: Props) {
   const chartData = useMemo(() => data.map(r => ({ ...r, totalFmt: fmtBRL(r.total) })), [data]);
   const margin = { top: 40, right: 70, left: 8, bottom: 0 };
 
@@ -72,7 +73,7 @@ export function EvolucaoParceiroAreaChart({ data, chartType }: Props) {
           {COMMON_AXIS.yAxis}
           {COMMON_AXIS.tooltip}
           <Bar dataKey="total" fill="#10b981" radius={[4, 4, 0, 0]}>
-            <LabelList dataKey="total" content={DataLabel as never} />
+            {showLabels && <LabelList dataKey="total" content={DataLabel as never} />}
           </Bar>
         </BarChart>
       </ResponsiveContainer>
@@ -95,7 +96,7 @@ export function EvolucaoParceiroAreaChart({ data, chartType }: Props) {
             dot={{ r: 4, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
             activeDot={{ r: 6 }}
           >
-            <LabelList dataKey="total" content={DataLabel as never} />
+            {showLabels && <LabelList dataKey="total" content={DataLabel as never} />}
           </Line>
         </LineChart>
       </ResponsiveContainer>
@@ -124,7 +125,7 @@ export function EvolucaoParceiroAreaChart({ data, chartType }: Props) {
           dot={{ r: 4, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
           activeDot={{ r: 6 }}
         >
-          <LabelList dataKey="total" content={DataLabel as never} />
+          {showLabels && <LabelList dataKey="total" content={DataLabel as never} />}
         </Area>
       </AreaChart>
     </ResponsiveContainer>

@@ -35,6 +35,7 @@ export default function EvolucaoParceiroPage() {
   const [tipo, setTipo] = useState<'todos' | 'JF' | 'JM' | 'JR' | 'JC'>('todos');
   const [selectedPartners, setSelectedPartners] = useState<Set<string>>(new Set());
   const [chartType, setChartType] = useState<'area' | 'line' | 'bar'>('area');
+  const [showLabels, setShowLabels] = useState(true);
 
   const dataInicio = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined;
   const dataFim    = dateRange?.to   ? format(dateRange.to,   'yyyy-MM-dd') : undefined;
@@ -164,6 +165,21 @@ export default function EvolucaoParceiroPage() {
           </span>
         </div>
 
+        {/* Labels toggle */}
+        <div className="flex items-center px-3 border-r border-zinc-200 dark:border-white/[0.08]">
+          <button
+            onClick={() => setShowLabels(v => !v)}
+            title={showLabels ? 'Ocultar valores' : 'Mostrar valores'}
+            className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
+              showLabels
+                ? 'bg-zinc-200 dark:bg-white/[0.1] text-zinc-700 dark:text-zinc-200'
+                : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.06]'
+            }`}
+          >
+            Valores
+          </button>
+        </div>
+
         {/* Chart type toggle */}
         <div className="flex items-center gap-0.5 px-3 border-r border-zinc-200 dark:border-white/[0.08]">
           {([['area', 'Área'], ['line', 'Linha'], ['bar', 'Barra']] as const).map(([type, label]) => (
@@ -227,7 +243,7 @@ export default function EvolucaoParceiroPage() {
               <div className="flex-1 min-h-0">
                 {monthlyData.length === 0
                   ? <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Nenhum dado para o período selecionado.</div>
-                  : <EvolucaoParceiroAreaChart data={monthlyData} chartType={chartType} />}
+                  : <EvolucaoParceiroAreaChart data={monthlyData} chartType={chartType} showLabels={showLabels} />}
               </div>
             </div>
 
@@ -236,7 +252,7 @@ export default function EvolucaoParceiroPage() {
               <div className="flex-1 min-h-0">
                 {monthlyTicketData.length === 0
                   ? <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Nenhum dado para o período selecionado.</div>
-                  : <TicketMedioAreaChart data={monthlyTicketData} chartType={chartType} />}
+                  : <TicketMedioAreaChart data={monthlyTicketData} chartType={chartType} showLabels={showLabels} />}
               </div>
             </div>
 
