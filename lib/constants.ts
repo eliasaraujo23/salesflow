@@ -19,7 +19,6 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { label: 'Revenda',           href: '/resale',         icon: 'ti-shopping-bag',    section: 'Estoque',     permission: 'revenda' },
   { label: 'Fluxograma',        href: '/fluxograma',     icon: 'ti-hierarchy',       section: 'Operacional', permission: 'fluxograma' },
   { label: 'Controle de Lojas', href: '/controle',       icon: 'ti-building-store',  section: 'Operacional', permission: 'controle' },
-  { label: 'IA de Reuniões',    href: '/ia',             icon: 'ti-brain',           section: 'IA',          permission: 'ia' },
   { label: 'Fotografia',        href: '/photography',    icon: 'ti-camera',          section: 'Operacional', permission: 'fotografia' },
   { label: 'Parceiros',         href: '/partners',       icon: 'ti-building-store',  section: 'Operacional', permission: 'parceiros' },
   { label: 'Usuários & Acesso', href: '/users',          icon: 'ti-shield-check',    section: 'Admin',       adminOnly: true },

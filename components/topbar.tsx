@@ -62,6 +62,8 @@ export function Topbar({ title, subtitle, onSearch, onMobileMenu }: TopbarProps)
               ? 'Fabricações JF'
               : (pathname.startsWith('/partners') || pathname.startsWith('/graficos/parceiros'))
               ? 'Parceiros'
+              : (pathname === '/tasks' || pathname === '/ia')
+              ? 'Minhas Tarefas'
               : pageTitle}
           </div>
           {subtitle && (
@@ -82,6 +84,31 @@ export function Topbar({ title, subtitle, onSearch, onMobileMenu }: TopbarProps)
                 const isActive = tab.href === '/fabricacoes-jf'
                   ? pathname === '/fabricacoes-jf'
                   : pathname === tab.href;
+                return (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    className={`px-3 py-1 rounded-md text-[13px] font-medium transition-colors ${
+                      isActive
+                        ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.06]'
+                    }`}
+                  >
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+          {/* Inline tabs for /tasks + /ia */}
+          {(pathname === '/tasks' || pathname === '/ia') && (
+            <div className="flex items-center gap-1 ml-1">
+              <ChevronRight size={14} className="text-zinc-400 shrink-0" />
+              {[
+                { label: 'Tarefas',      href: '/tasks' },
+                { label: 'IA Reuniões',  href: '/ia' },
+              ].map(tab => {
+                const isActive = pathname === tab.href;
                 return (
                   <Link
                     key={tab.href}
