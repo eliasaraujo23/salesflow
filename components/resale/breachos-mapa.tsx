@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps';
 import { Plus, Minus } from 'lucide-react';
 
@@ -33,8 +33,8 @@ const ZOOM_MAX = 5;
 interface TooltipState { x: number; y: number; uf: string; nome: string; items: Brecho[] }
 interface Props { breachos: Brecho[] }
 
-function getColor(count: number): string {
-  if (count === 0) return '#27272a';
+function getColor(count: number, isDark: boolean): string {
+  if (count === 0) return isDark ? '#27272a' : '#e4e4e7';
   if (count === 1) return '#4338ca';
   if (count <= 3) return '#6366f1';
   if (count <= 6) return '#818cf8';
@@ -44,6 +44,15 @@ function getColor(count: number): string {
 export function BrechosMapa({ breachos }: Props) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    const check = () => setIsDark(document.documentElement.classList.contains('dark'));
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
   const [dragging, setDragging] = useState(false);
 
@@ -111,7 +120,7 @@ const canPan = zoom > 1;
       {/* Map */}
       <div
         ref={mapRef}
-        className="relative flex-1 min-h-0 rounded-xl overflow-hidden bg-zinc-900 dark:bg-zinc-950 select-none"
+        className="relative flex-1 min-h-0 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-950 select-none"
         style={{ cursor }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -138,12 +147,12 @@ const canPan = zoom > 1;
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    fill={getColor(count)}
-                    stroke="#09090b"
+                    fill={getColor(count, isDark)}
+                    stroke={isDark ? '#09090b' : '#d4d4d8'}
                     strokeWidth={0.5}
                     style={{
                       default: { outline: 'none' },
-                      hover:   { outline: 'none', fill: count > 0 ? '#c7d2fe' : '#3f3f46' },
+                      hover:   { outline: 'none', fill: count > 0 ? '#c7d2fe' : (isDark ? '#3f3f46' : '#d4d4d8') },
                       pressed: { outline: 'none' },
                     }}
                     onMouseEnter={(e: React.MouseEvent<SVGPathElement>) => {
@@ -188,7 +197,7 @@ const canPan = zoom > 1;
             onMouseDown={e => e.stopPropagation()}
             onClick={() => setZoom(z => Math.min(z + 1, ZOOM_MAX))}
             disabled={zoom >= ZOOM_MAX}
-            className="w-8 h-8 flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 text-zinc-200 rounded-lg border border-white/[0.1] transition-colors shadow-lg"
+            className="w-8 h-8 flex items-center justify-center bg-zinc-800 dark:bg-zinc-800 hover:bg-zinc-700 dark:hover:bg-zinc-700 bg-white hover:bg-zinc-50 disabled:opacity-30 text-zinc-700 dark:text-zinc-200 rounded-lg border border-zinc-300 dark:border-white/[0.1] transition-colors shadow-lg"
           >
             <Plus size={14} />
           </button>
@@ -196,7 +205,7 @@ const canPan = zoom > 1;
             onMouseDown={e => e.stopPropagation()}
             onClick={() => setZoom(z => Math.max(z - 1, ZOOM_MIN))}
             disabled={zoom <= ZOOM_MIN}
-            className="w-8 h-8 flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 disabled:opacity-30 text-zinc-200 rounded-lg border border-white/[0.1] transition-colors shadow-lg"
+            className="w-8 h-8 flex items-center justify-center bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-30 text-zinc-700 dark:text-zinc-200 rounded-lg border border-zinc-300 dark:border-white/[0.1] transition-colors shadow-lg"
           >
             <Minus size={14} />
           </button>
@@ -205,18 +214,18 @@ const canPan = zoom > 1;
         {/* Tooltip */}
         {tooltip && !dragging && (
           <div
-            className="absolute z-10 pointer-events-none bg-zinc-900 border border-white/[0.13] rounded-lg shadow-xl px-3 py-2.5 min-w-[160px]"
+            className="absolute z-10 pointer-events-none bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-lg shadow-xl px-3 py-2.5 min-w-[160px]"
             style={{ left: tooltip.x + 12, top: tooltip.y - 8 }}
           >
-            <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1.5">
               {tooltip.nome} · {tooltip.uf}
             </div>
             {tooltip.items.length > 0 ? tooltip.items.map(b => (
-              <div key={b.nome} className="text-xs text-zinc-200 leading-snug py-0.5 border-b border-white/[0.06] last:border-0">
+              <div key={b.nome} className="text-xs text-zinc-800 dark:text-zinc-200 leading-snug py-0.5 border-b border-zinc-100 dark:border-white/[0.06] last:border-0">
                 {b.nome}
               </div>
             )) : (
-              <div className="text-xs text-zinc-500 italic">Nenhum brechó neste estado</div>
+              <div className="text-xs text-zinc-400 dark:text-zinc-500 italic">Nenhum brechó neste estado</div>
             )}
           </div>
         )}
