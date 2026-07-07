@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useFirebase } from '@/components/firebase-provider';
@@ -27,8 +27,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const { mutate: logout } = useLogout();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
-  const profileBtnRef = useRef<HTMLButtonElement>(null);
-  const [popupPos, setPopupPos] = useState<{ bottom: number; left: number } | null>(null);
   const [changePwOpen, setChangePwOpen] = useState(false);
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
@@ -37,9 +35,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const [pwError, setPwError] = useState('');
 
   const handleProfileToggle = () => {
-    if (!profileMenuOpen && profileBtnRef.current) {
-      const rect = profileBtnRef.current.getBoundingClientRect();
-      setPopupPos({ bottom: window.innerHeight - rect.top + 6, left: rect.left });
+    if (collapsed) {
+      setCollapsed(false);
+      setProfileMenuOpen(true);
+      return;
     }
     setProfileMenuOpen(v => !v);
   };
@@ -215,7 +214,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       <div className="border-t border-zinc-200 dark:border-white/[0.13] p-1.5">
         <div className="relative">
           <button
-            ref={profileBtnRef}
             onClick={handleProfileToggle}
             className={`w-full flex items-center gap-2.5 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/[0.05] transition-colors ${
               collapsed ? 'justify-center px-0' : 'px-2.5'
@@ -240,11 +238,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             )}
           </button>
 
-          {profileMenuOpen && popupPos && (
-            <div
-              style={{ position: 'fixed', bottom: popupPos.bottom, left: popupPos.left, minWidth: 160, zIndex: 200 }}
-              className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-xl shadow-xl overflow-hidden"
-            >
+          {profileMenuOpen && (
+            <div className="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-xl shadow-xl overflow-hidden z-50">
               <button
                 onClick={openChangePw}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/[0.05] transition-colors text-left"
