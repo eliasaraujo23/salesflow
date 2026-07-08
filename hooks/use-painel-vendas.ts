@@ -3,26 +3,20 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchPainelRows, type PainelRow } from '@/lib/actions/fetch-painel';
 
-const RV_DESTINOS = new Set([
-  'DESAPEGO DO LUXO', 'DESAPEGO LEGAL', 'DESAPEGUE BR', 'JUGELLI DESAPEGO',
-  'RESOLVI DESAPEGO', 'RESOLVI DESAPEGAR', 'ACHADOS PERDIDOS', 'ALINE RAMOS', 'ALINI DUARTE',
-  'ANDRÉ FAUSTINO', 'BRILHO VINTAGE', 'CARLA LEILÃO', 'CIRCULAR JOIAS',
-  'CLAUDIA MASCARENHAS', 'DANIELLE VOGUE', 'ELIANE DANTAS', 'ETERNNO',
-  'ETIQUETA ÚNICA', 'ETSY BRECHO', 'FERNANDA SCARAMBONE', 'GRINGA',
-  'ILA LUX', 'IVAIR ONGARATTO', 'IZABELLA BARCKI', 'JOÃO FECHY JOIAS',
-  'LAURA BATEZINI', 'LEILÃO 24K', 'LEILÃO BRUNO', 'LEILÃO ETERNNO',
-  'LOHANA COELHO', 'LOUCA POR JÓIAS', 'LUCIMARY', 'MEGA DO LUXO',
-  'MERCADO LIVRE', 'NIUMA', 'REAL DEAL', 'SECOND HAND', 'SIDNEI QUARTIER',
-  'TATI CANTO', 'TRIZZ JOIAS', 'UMA VEZ MAIS', 'JÓIAS EM DESAPEGO',
-]);
-
 const RV_STATUS_MAIN = new Set([2, 4, 13]);
+
+function normDest(s: string | null | undefined): string {
+  return (s ?? '').replace(/[​-‍﻿­]/g, '').trim().toUpperCase();
+}
 
 const B2C_DESTINOS = new Set([
   'ETERNNO', 'MERCADO LIVRE', 'LEILÃO ETERNNO', 'LEILÃO BRUNO', 'LEILÃO 24K',
 ]);
 
 const LEILAO_DESTINOS = new Set(['LEILÃO ETERNNO', 'LEILÃO BRUNO', 'LEILÃO 24K']);
+
+function isB2C(destino: string | null | undefined) { return B2C_DESTINOS.has(normDest(destino)); }
+function isLeilao(destino: string | null | undefined) { return LEILAO_DESTINOS.has(normDest(destino)); }
 
 const MESES_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -117,7 +111,7 @@ export interface PainelVendasData {
 function agg(rows: PainelRow[], keyFn: (r: PainelRow) => string | null | undefined): PainelAgg[] {
   const map = new Map<string, PainelAgg>();
   for (const r of rows) {
-    const key = keyFn(r)?.replace(/[​-‍﻿­]/g, '').trim().toUpperCase();
+    const key = normDest(keyFn(r));
     if (!key) continue;
     const fat = r.preco_cobrado ?? 0;
     const e = map.get(key);
@@ -136,14 +130,14 @@ function kpiOf(rows: PainelRow[]): PainelKpi {
 
 function buildPainelData(data: PainelRow[]): PainelVendasData {
   const allowed = data.filter(r =>
-    r.destino && RV_DESTINOS.has(r.destino.toUpperCase()) &&
-    r.nf_joia?.toUpperCase() !== 'SCRAP' &&
+    r.destino &&
+    normDest(r.nf_joia) !== 'SCRAP' &&
     RV_STATUS_MAIN.has(Number(r.status_id))
   );
 
-  const b2cRows = allowed.filter(r => B2C_DESTINOS.has((r.destino ?? '').toUpperCase()));
-  const b2bRows = allowed.filter(r => !B2C_DESTINOS.has((r.destino ?? '').toUpperCase()));
-  const leilaoRows = allowed.filter(r => LEILAO_DESTINOS.has((r.destino ?? '').toUpperCase()));
+  const b2cRows = allowed.filter(r => isB2C(r.destino));
+  const b2bRows = allowed.filter(r => !isB2C(r.destino));
+  const leilaoRows = allowed.filter(r => isLeilao(r.destino));
   const jfRows = allowed.filter(r => tipoOf(r.tipo) === 'JF');
   const revendaRows = allowed.filter(r => tipoOf(r.tipo) !== 'JF');
 
@@ -187,7 +181,7 @@ function buildPainelData(data: PainelRow[]): PainelVendasData {
   const leilaoNames = ['LEILÃO ETERNNO', 'LEILÃO BRUNO', 'LEILÃO 24K'];
   const leiloes: LeilaoData[] = leilaoNames
     .map(nome => {
-      const rows = leilaoRows.filter(r => r.destino?.toUpperCase() === nome);
+      const rows = leilaoRows.filter(r => normDest(r.destino) === nome);
       if (rows.length === 0) return null;
       const jfR = rows.filter(r => tipoOf(r.tipo) === 'JF');
       const rvR = rows.filter(r => tipoOf(r.tipo) !== 'JF');
