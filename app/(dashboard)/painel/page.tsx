@@ -85,20 +85,6 @@ export default function PainelPage() {
               </div>
             </div>
 
-            {data.monthly.length > 0 && (
-              <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col overflow-hidden">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
-                  Ticket Médio por Mês
-                </p>
-                <div className="flex-1 overflow-y-auto min-h-0">
-                  <HBarChart
-                    data={data.monthly.map(m => ({ name: m.mesLabel, value: m.ticketMedio }))}
-                    color="#a855f7"
-                    formatter={fmtBRL}
-                  />
-                </div>
-              </div>
-            )}
           </div>
 
         </div>

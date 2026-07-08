@@ -16,40 +16,60 @@ interface Props {
   color?: string;
   formatter?: (v: number) => string;
   height?: number;
-  maxItems?: number; // undefined = sem limite
+  maxItems?: number;
 }
 
 function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 }
 
-function truncate(s: string, n: number) {
-  return s.length > n ? s.substring(0, n - 1) + '…' : s;
+// Estimativa de largura em px para fonte 12px maiúscula (igual ResaleHBar)
+function estimatePx(label: string): number {
+  let w = 0;
+  for (const ch of label) {
+    if ('MW'.includes(ch))             w += 12;
+    else if ('ADGONQCOU'.includes(ch)) w += 10;
+    else if (ch === ' ')               w += 4;
+    else if ('IJ1l'.includes(ch))      w += 5;
+    else                               w += 8;
+  }
+  return w;
+}
+
+function CustomYAxisTick(props: { x?: number; y?: number; payload?: { value: string } }) {
+  const { x = 0, y = 0, payload } = props;
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={-4} y={0} textAnchor="end" dominantBaseline="central" fill="#71717a" fontSize={12}>
+        {payload?.value}
+      </text>
+    </g>
+  );
 }
 
 export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height, maxItems }: Props) {
   const rows = (maxItems != null ? data.slice(0, maxItems) : data).map(r => ({
     ...r,
-    // Padrão qty+fat: "NAME (qty)" no eixo Y
-    label: r.qty != null
-      ? `${truncate(r.name, 20)} (${r.qty})`
-      : truncate(r.name, 22),
+    label: r.qty != null ? `${r.name} (${r.qty})` : r.name,
   }));
 
-  const dynamicHeight = height ?? Math.max(180, rows.length * 32 + 40);
-  const labelWidth = Math.min(180, Math.max(110, Math.max(...rows.map(r => r.label.length)) * 6.5));
+  const autoWidth = rows.reduce((m, r) => Math.max(m, estimatePx(r.label)), 80);
+  const labelWidth = Math.min(240, Math.max(80, autoWidth + 16));
+
+  const dynamicHeight = height ?? Math.max(180, rows.length * 30 + 40);
 
   return (
     <ResponsiveContainer width="100%" height={dynamicHeight}>
-      <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 80, left: 4, bottom: 4 }}>
+      <BarChart data={rows} layout="vertical" margin={{ top: 0, right: 90, bottom: 20, left: 0 }}>
         <XAxis
           type="number"
           tickFormatter={v => {
-            if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-            if (v >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
+            if (v === 0) return 'R$0';
+            if (v >= 1_000_000) return `R$${(v / 1_000_000).toFixed(1)}M`;
+            if (v >= 1_000) return `R$${(v / 1_000).toFixed(0)}k`;
             return String(v);
           }}
-          tick={{ fontSize: 11, fill: '#a1a1aa' }}
+          tick={{ fontSize: 12, fill: '#71717a' }}
           tickLine={false}
           axisLine={false}
         />
@@ -57,9 +77,10 @@ export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height,
           type="category"
           dataKey="label"
           width={labelWidth}
-          tick={{ fontSize: 11, fill: '#71717a' }}
+          tick={<CustomYAxisTick />}
           tickLine={false}
           axisLine={false}
+          interval={0}
         />
         <Tooltip
           formatter={(v) => [formatter(Number(v)), '']}
@@ -74,7 +95,7 @@ export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height,
           labelStyle={{ color: '#71717a', fontSize: 11 }}
           cursor={{ fill: 'rgba(99,102,241,0.05)' }}
         />
-        <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={22}>
+        <Bar dataKey="value" radius={[0, 3, 3, 0]} maxBarSize={22} minPointSize={3} isAnimationActive={false}>
           {rows.map((_, i) => (
             <Cell key={i} fill={color} fillOpacity={1 - i * 0.025} />
           ))}
@@ -91,8 +112,8 @@ export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height,
                   y={(p.y ?? 0) + (p.height ?? 0) / 2}
                   textAnchor="start"
                   dominantBaseline="middle"
-                  fontSize={11}
-                  fill="#a1a1aa"
+                  fontSize={12}
+                  fill="#71717a"
                   fontWeight={600}
                 >
                   {txt}
