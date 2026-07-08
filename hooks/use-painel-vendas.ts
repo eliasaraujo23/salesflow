@@ -36,14 +36,16 @@ const isLeilao = (d: string | null | undefined) => LEILAO_DESTINOS.has(clean(d))
 const MESES_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 const TIPO_COLORS: Record<string, string> = {
-  JF: '#6366f1', JMF: '#f97316', JR: '#10b981', JM: '#a855f7',
+  JF: '#6366f1', JM: '#a855f7', JR: '#10b981', JC: '#f59e0b',
 };
 
-function tipoOf(tipo: string | null | undefined): string {
-  if (!tipo) return 'JR';
-  if (tipo === 'JF') return 'JF';
-  if (tipo === 'JMF') return 'JMF';
-  if (tipo === 'JMCP' || tipo === 'JMSP') return 'JM';
+// JF = JF + JMF | JM = JMCP + JMSP | JC = JC | FAKE = excluído | JR = resto
+function tipoOf(tipo: string | null | undefined): string | null {
+  const t = (tipo ?? '').toUpperCase().trim();
+  if (t === 'FAKE') return null; // não contabiliza
+  if (t === 'JF' || t === 'JMF') return 'JF';
+  if (t === 'JMCP' || t === 'JMSP') return 'JM';
+  if (t === 'JC') return 'JC';
   return 'JR';
 }
 
@@ -156,10 +158,11 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
   const destinos = byDestinoAll.map(d => d.name);
   const destinosSorted = destinos.slice().sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
-  // Aplica filtro de destinos (multi-select) para todos os KPIs, breakdowns e gráficos
-  const filtered = destinoFilter && destinoFilter.length > 0
+  // Aplica filtro de destinos + exclui FAKE (não contabiliza)
+  const filtered = (destinoFilter && destinoFilter.length > 0
     ? main.filter(r => destinoFilter.includes(clean(r.destino)))
-    : main;
+    : main
+  ).filter(r => tipoOf(r.tipo) !== null);
 
   // Gráfico de destinos reflete o filtro aplicado
   const byDestinoFiltered = agg(filtered, r => r.destino);
@@ -168,7 +171,7 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
   const b2bRows = filtered.filter(r => !isB2C(r.destino));
   const leilaoRows = filtered.filter(r => isLeilao(r.destino));
   const jfRows = filtered.filter(r => tipoOf(r.tipo) === 'JF');
-  const revendaRows = filtered.filter(r => tipoOf(r.tipo) !== 'JF');
+  const revendaRows = filtered.filter(r => tipoOf(r.tipo) !== 'JF' && tipoOf(r.tipo) !== 'JC');
 
   // Monthly
   const monthMap = new Map<string, { fat: number; custo: number; qtd: number }>();
@@ -188,10 +191,11 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
       return { mes, mesLabel: MESES_PT[parseInt(m) - 1] ?? mes, faturamento: fat, custo, qtd, ticketMedio: tm(fat, qtd) };
     });
 
-  // Tipo donut
+  // Tipo donut (FAKE já excluído de filtered)
   const tipoMap = new Map<string, number>();
   for (const r of filtered) {
     const t = tipoOf(r.tipo);
+    if (!t) continue;
     tipoMap.set(t, (tipoMap.get(t) ?? 0) + (r.preco_cobrado ?? 0));
   }
   const byTipo = Array.from(tipoMap.entries())
@@ -231,7 +235,7 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
       destino: r.destino ?? '—',
       custo_real: r.custo_real,
       preco_cobrado: r.preco_cobrado ?? 0,
-      tipo: tipoOf(r.tipo),
+      tipo: tipoOf(r.tipo) ?? 'JR',
       tipo_pedra: r.tipo_pedra ?? null,
       lucrat: lucrat(r.preco_cobrado ?? 0, r.custo_real),
       data_venda: r.data_venda ?? null,

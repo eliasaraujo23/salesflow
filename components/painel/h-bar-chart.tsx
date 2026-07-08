@@ -7,6 +7,7 @@ import {
 interface HBarRow {
   name: string;
   value: number;
+  displayLabel?: string; // se fornecido, substitui formatter(value) na etiqueta direita
 }
 
 interface Props {
@@ -76,8 +77,24 @@ export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height,
           <LabelList
             dataKey="value"
             position="right"
-            formatter={(v: unknown) => formatter(Number(v))}
-            style={{ fontSize: 11, fill: '#a1a1aa', fontWeight: 600 }}
+            content={(props: unknown) => {
+              const p = props as { x?: number; y?: number; width?: number; height?: number; value?: unknown; index?: number };
+              const row = rows[p.index ?? 0];
+              const txt = row?.displayLabel ?? formatter(Number(p.value));
+              return (
+                <text
+                  x={(p.x ?? 0) + (p.width ?? 0) + 6}
+                  y={(p.y ?? 0) + (p.height ?? 0) / 2}
+                  textAnchor="start"
+                  dominantBaseline="middle"
+                  fontSize={11}
+                  fill="#a1a1aa"
+                  fontWeight={600}
+                >
+                  {txt}
+                </text>
+              );
+            }}
           />
         </Bar>
       </BarChart>

@@ -12,6 +12,10 @@ function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 }
 
+function fmtPct(v: number) {
+  return `${v.toFixed(2)}%`;
+}
+
 function defaultRange(): DateRange {
   const now = new Date();
   const m = now.getMonth();
@@ -38,21 +42,23 @@ export default function PainelParceirosPage() {
 
   const { data, isLoading, isError, error, refetch, isFetching } = usePainelVendas(from, to);
 
-  const jfQtyData = useMemo(
-    () => (data?.jfByProduto ?? []).map(d => ({ name: d.name, value: d.qtd })),
-    [data]
+  // Gráfico unificado: barra = faturamento, etiqueta = "R$ X · N un"
+  const jfData = useMemo(
+    () => (data?.jfByProduto ?? []).map(d => ({
+      name: d.name,
+      value: d.faturamento,
+      displayLabel: `${fmtBRL(d.faturamento)} · ${d.qtd} un`,
+    })),
+    [data],
   );
-  const jfFatData = useMemo(
-    () => (data?.jfByProduto ?? []).map(d => ({ name: d.name, value: d.faturamento })),
-    [data]
-  );
-  const rvQtyData = useMemo(
-    () => (data?.revendaByProduto ?? []).map(d => ({ name: d.name, value: d.qtd })),
-    [data]
-  );
-  const rvFatData = useMemo(
-    () => (data?.revendaByProduto ?? []).map(d => ({ name: d.name, value: d.faturamento })),
-    [data]
+
+  const rvData = useMemo(
+    () => (data?.revendaByProduto ?? []).map(d => ({
+      name: d.name,
+      value: d.faturamento,
+      displayLabel: `${fmtBRL(d.faturamento)} · ${d.qtd} un`,
+    })),
+    [data],
   );
 
   return (
@@ -61,27 +67,35 @@ export default function PainelParceirosPage() {
       <div className="flex flex-wrap items-stretch gap-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 text-sm">
         <div className="flex flex-col justify-center gap-1 px-4 py-3 border-r border-zinc-200 dark:border-white/[0.08]">
           <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Período</span>
-          <CalendarDateRangePicker dateRange={dateRange} setDateRange={setDateRange} buttonClassName="border-0 px-0 text-xs font-semibold rounded-none hover:border-0" />
+          <CalendarDateRangePicker
+            dateRange={dateRange}
+            setDateRange={setDateRange}
+            buttonClassName="border-0 px-0 text-xs font-semibold rounded-none hover:border-0"
+          />
         </div>
         <div className="flex flex-col justify-center px-4 py-2 border-r border-zinc-200 dark:border-white/[0.08]">
           <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Fabricado JF</span>
           <div className="flex divide-x divide-zinc-200 dark:divide-white/[0.06]">
-            <KpiCell label="Faturamento" value={isLoading ? '—' : fmtBRL(data?.jf.faturamento ?? 0)} />
+            <KpiCell label="Faturamento"  value={isLoading ? '—' : fmtBRL(data?.jf.faturamento ?? 0)} />
             <KpiCell label="Ticket Médio" value={isLoading ? '—' : fmtBRL(data?.jf.tm ?? 0)} />
-            <KpiCell label="Qtd" value={isLoading ? '—' : String(data?.jf.qtd ?? 0)} />
-            <KpiCell label="Lucrat." value={isLoading ? '—' : `${data?.jf.lucrat ?? 0}%`} border={false} />
+            <KpiCell label="Qtd"          value={isLoading ? '—' : String(data?.jf.qtd ?? 0)} />
+            <KpiCell label="Lucrat."      value={isLoading ? '—' : fmtPct(data?.jf.lucrat ?? 0)} border={false} />
           </div>
         </div>
         <div className="flex flex-col justify-center px-4 py-2">
           <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Revenda</span>
           <div className="flex divide-x divide-zinc-200 dark:divide-white/[0.06]">
-            <KpiCell label="Faturamento" value={isLoading ? '—' : fmtBRL(data?.revenda.faturamento ?? 0)} />
+            <KpiCell label="Faturamento"  value={isLoading ? '—' : fmtBRL(data?.revenda.faturamento ?? 0)} />
             <KpiCell label="Ticket Médio" value={isLoading ? '—' : fmtBRL(data?.revenda.tm ?? 0)} />
-            <KpiCell label="Qtd" value={isLoading ? '—' : String(data?.revenda.qtd ?? 0)} />
-            <KpiCell label="Lucrat." value={isLoading ? '—' : `${data?.revenda.lucrat ?? 0}%`} border={false} />
+            <KpiCell label="Qtd"          value={isLoading ? '—' : String(data?.revenda.qtd ?? 0)} />
+            <KpiCell label="Lucrat."      value={isLoading ? '—' : fmtPct(data?.revenda.lucrat ?? 0)} border={false} />
           </div>
         </div>
-        <button onClick={() => refetch()} disabled={isFetching} className="px-4 ml-auto border-l border-zinc-200 dark:border-white/[0.08] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 disabled:opacity-40 transition-colors">
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="px-4 ml-auto border-l border-zinc-200 dark:border-white/[0.08] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 disabled:opacity-40 transition-colors"
+        >
           <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
         </button>
       </div>
@@ -100,23 +114,19 @@ export default function PainelParceirosPage() {
 
       {data && !isLoading && (
         <>
-          {/* 4 charts grid */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* 2 gráficos unificados */}
+          <div className="grid grid-cols-2 gap-3 items-start">
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">Quantidade Produto — JF Fabricado</p>
-              <HBarChart data={jfQtyData} color="#6366f1" formatter={v => String(v)} maxItems={15} />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
+                Produto — JF Fabricado
+              </p>
+              <HBarChart data={jfData} color="#6366f1" formatter={fmtBRL} />
             </div>
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">Faturamento Produto — JF Fabricado</p>
-              <HBarChart data={jfFatData} color="#6366f1" formatter={fmtBRL} maxItems={15} />
-            </div>
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">Quantidade Produto — Revenda</p>
-              <HBarChart data={rvQtyData} color="#10b981" formatter={v => String(v)} maxItems={15} />
-            </div>
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">Faturamento Produto — Revenda</p>
-              <HBarChart data={rvFatData} color="#10b981" formatter={fmtBRL} maxItems={15} />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
+                Produto — Revenda
+              </p>
+              <HBarChart data={rvData} color="#10b981" formatter={fmtBRL} />
             </div>
           </div>
 
@@ -151,7 +161,7 @@ export default function PainelParceirosPage() {
                       <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
                       <td className="px-3 py-2 tabular-nums whitespace-nowrap">
                         <span className={r.lucrat >= 40 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : r.lucrat >= 0 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-500'}>
-                          {r.lucrat}%
+                          {r.lucrat.toFixed(2)}%
                         </span>
                       </td>
                       <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.data_venda ?? '—'}</td>
