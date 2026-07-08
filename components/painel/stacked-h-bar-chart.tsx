@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const TIPO_COLORS: Record<string, string> = {
   JF: '#6366f1', JM: '#a855f7', JR: '#10b981', JC: '#f59e0b',
@@ -103,7 +103,12 @@ export function StackedHBarChart({ data, formatter = fmtBRL, fill = false, heigh
                 {nonZero.map(s => (
                   <div key={s.name} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 2 }}>
                     <span style={{ color: TIPO_COLORS[s.name] ?? s.color, fontWeight: 700 }}>{s.name}</span>
-                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatter(s.value)}</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {formatter(s.value)}
+                      <span style={{ color: '#a1a1aa', marginLeft: 6 }}>
+                        {row.total > 0 ? `${((s.value / row.total) * 100).toFixed(1)}%` : ''}
+                      </span>
+                    </span>
                   </div>
                 ))}
                 <div style={{ borderTop: '1px solid #e4e4e7', marginTop: 4, paddingTop: 4, display: 'flex', justifyContent: 'space-between', gap: 16 }}>
@@ -123,32 +128,20 @@ export function StackedHBarChart({ data, formatter = fmtBRL, fill = false, heigh
             fill={TIPO_COLORS[tipo]}
             maxBarSize={maxBar}
             isAnimationActive={false}
-          >
-            {idx === TIPOS.length - 1 && (
-              <LabelList
-                dataKey={tipo}
-                position="right"
-                content={(props: unknown) => {
-                  const p = props as { x?: number; y?: number; width?: number; height?: number; index?: number };
-                  const row = rows[p.index ?? 0];
-                  if (!row) return null;
-                  return (
-                    <text
-                      x={(p.x ?? 0) + (p.width ?? 0) + 6}
-                      y={(p.y ?? 0) + (p.height ?? 0) / 2}
-                      textAnchor="start"
-                      dominantBaseline="middle"
-                      fontSize={12}
-                      fill="#71717a"
-                      fontWeight={600}
-                    >
-                      {formatter(row.total)}
-                    </text>
-                  );
-                }}
-              />
-            )}
-          </Bar>
+            shape={idx === TIPOS.length - 1 ? (props: unknown) => {
+              const p = props as { x?: number; y?: number; width?: number; height?: number; index?: number };
+              const x = p.x ?? 0, y = p.y ?? 0, w = p.width ?? 0, h = p.height ?? 0;
+              const row = rows[p.index ?? 0];
+              return (
+                <g>
+                  {w > 0 && <rect x={x} y={y} width={w} height={h} fill={TIPO_COLORS.JC} />}
+                  <text x={x + w + 6} y={y + h / 2} textAnchor="start" dominantBaseline="middle" fontSize={12} fill="#71717a" fontWeight={600}>
+                    {row ? formatter(row.total) : ''}
+                  </text>
+                </g>
+              );
+            } : undefined}
+          />
         ))}
       </BarChart>
     </ResponsiveContainer>
