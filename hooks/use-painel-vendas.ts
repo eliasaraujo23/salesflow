@@ -151,15 +151,18 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
   // Scrap rows sempre entram (igual Revenda)
   const main = allowed.filter(r => isScrap(r) || RV_STATUS_MAIN.has(Number(r.status_id)));
 
-  // byDestino e lista de destinos: sempre sem filtro (para o gráfico geral e o seletor)
+  // Lista de destinos para o seletor: sempre vem de main (sem filtro aplicado)
   const byDestinoAll = agg(main, r => r.destino).slice(0, 30);
   const destinos = byDestinoAll.map(d => d.name);
   const destinosSorted = destinos.slice().sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
-  // Aplica filtro de destinos (multi-select) para todos os KPIs e breakdowns
+  // Aplica filtro de destinos (multi-select) para todos os KPIs, breakdowns e gráficos
   const filtered = destinoFilter && destinoFilter.length > 0
     ? main.filter(r => destinoFilter.includes(clean(r.destino)))
     : main;
+
+  // Gráfico de destinos reflete o filtro aplicado
+  const byDestinoFiltered = agg(filtered, r => r.destino);
 
   const b2cRows = filtered.filter(r => isB2C(r.destino));
   const b2bRows = filtered.filter(r => !isB2C(r.destino));
@@ -239,7 +242,7 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
     b2b: kpiOf(b2bRows),
     b2c: kpiOf(b2cRows),
     byTipo,
-    byDestino: byDestinoAll,
+    byDestino: byDestinoFiltered,
     destinos,
     destinosSorted,
     b2bByDestino: agg(b2bRows, r => r.destino),
