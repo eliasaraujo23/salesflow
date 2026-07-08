@@ -152,23 +152,23 @@ export default function PainelPage() {
           </div>
 
           {/* ── Destinos + Donut + Tipo ─────────────────── */}
-          <div className="grid grid-cols-3 gap-3">
-            <Card className="col-span-2 flex flex-col">
+          <div className="grid grid-cols-2 gap-3">
+            <Card className="flex flex-col">
               <SectionTitle>Faturamento Total por Destino</SectionTitle>
               <HBarChart data={destinoData} color="#6366f1" formatter={fmtBRL} maxItems={25} height={Math.max(300, destinoData.length * 30 + 40)} />
             </Card>
             <div className="flex flex-col gap-3">
-              <Card className="flex flex-col flex-1">
+              <Card className="flex flex-col">
                 <SectionTitle>Revenda × Fabricado</SectionTitle>
-                <div style={{ height: 240 }}>
+                <div style={{ height: 260 }}>
                   {tipoData.length > 0
                     ? <TipoDonut data={tipoData} formatter={fmtBRL} />
                     : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem dados</div>}
                 </div>
               </Card>
-              <Card className="flex flex-col flex-1">
+              <Card className="flex flex-col">
                 <SectionTitle>Faturamento por Tipo</SectionTitle>
-                <div style={{ height: 180 }}>
+                <div style={{ height: 200 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={tipoBarData} margin={{ top: 16, right: 8, left: 0, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
