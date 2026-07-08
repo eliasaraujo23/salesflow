@@ -110,10 +110,10 @@ export default function PainelPage() {
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
                 Revenda × Fabricado
               </p>
-              <div className="flex-1 min-h-0">
+              <div className="flex-1 flex items-center justify-center">
                 {tipoData.length > 0
                   ? <TipoDonut data={tipoData} formatter={fmtBRL} />
-                  : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem dados</div>}
+                  : <div className="text-zinc-400 text-sm">Sem dados</div>}
               </div>
             </div>
 

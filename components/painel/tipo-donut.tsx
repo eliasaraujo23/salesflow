@@ -21,9 +21,9 @@ export function TipoDonut({ data, formatter = fmtBRL }: Props) {
   const sorted = [...data].sort((a, b) => b.value - a.value);
 
   return (
-    <div className="flex items-center justify-center gap-6 h-full">
+    <div className="flex items-center justify-center gap-6">
       {/* Donut */}
-      <div className="shrink-0" style={{ width: 160, height: 160 }}>
+      <div className="shrink-0" style={{ width: 130, height: 130 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -55,12 +55,12 @@ export function TipoDonut({ data, formatter = fmtBRL }: Props) {
         </ResponsiveContainer>
       </div>
 
-      {/* Lista ordenada por valor */}
+      {/* Lista ordenada por valor — sem largura fixa para não sobrepor */}
       <div className="flex flex-col gap-2">
         {sorted.map(item => (
-          <div key={item.name} className="flex items-center gap-2">
+          <div key={item.name} className="flex items-center gap-2 whitespace-nowrap">
             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.color }} />
-            <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200 w-7">{item.name}</span>
+            <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">{item.name}</span>
             <span className="text-sm text-zinc-500 dark:text-zinc-400 tabular-nums">{formatter(item.value)}</span>
           </div>
         ))}
