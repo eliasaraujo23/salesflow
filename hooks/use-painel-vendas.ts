@@ -109,7 +109,8 @@ export interface PainelVendasData {
   b2c: PainelKpi;
   byTipo: Array<{ name: string; value: number; color: string }>;
   byDestino: PainelAgg[];        // sempre sem filtro de destino (visão geral)
-  destinos: string[];            // lista de destinos disponíveis para o seletor
+  destinos: string[];            // lista por faturamento (para o gráfico)
+  destinosSorted: string[];      // lista alfabética (para o dropdown)
   b2bByDestino: PainelAgg[];
   b2cByDestino: PainelAgg[];
   monthly: PainelMonthRow[];
@@ -141,7 +142,7 @@ function kpiOf(rows: PainelRow[]): PainelKpi {
   return { faturamento: fat, custo, qtd, lucrat: lucrat(fat, custo), tm: tm(fat, qtd) };
 }
 
-function buildPainelData(data: PainelRow[], destinoFilter?: string | null): PainelVendasData {
+function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): PainelVendasData {
   // Mesma lógica de fetch-resale.ts — sem normDest no allowed (igual Revenda)
   const allowed = data.filter(r => {
     const d = (r.destino ?? '').trim().toUpperCase();
@@ -153,10 +154,11 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string | null): Pain
   // byDestino e lista de destinos: sempre sem filtro (para o gráfico geral e o seletor)
   const byDestinoAll = agg(main, r => r.destino).slice(0, 30);
   const destinos = byDestinoAll.map(d => d.name);
+  const destinosSorted = destinos.slice().sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
-  // Aplica filtro de destino para todos os KPIs e breakdowns
-  const filtered = destinoFilter
-    ? main.filter(r => clean(r.destino) === destinoFilter)
+  // Aplica filtro de destinos (multi-select) para todos os KPIs e breakdowns
+  const filtered = destinoFilter && destinoFilter.length > 0
+    ? main.filter(r => destinoFilter.includes(clean(r.destino)))
     : main;
 
   const b2cRows = filtered.filter(r => isB2C(r.destino));
@@ -239,6 +241,7 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string | null): Pain
     byTipo,
     byDestino: byDestinoAll,
     destinos,
+    destinosSorted,
     b2bByDestino: agg(b2bRows, r => r.destino),
     b2cByDestino: agg(b2cRows, r => r.destino),
     monthly,
@@ -254,15 +257,16 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string | null): Pain
 export function usePainelVendas(
   from: string | undefined,
   to: string | undefined,
-  destino?: string | null,
+  destinos?: string[] | null,
 ) {
+  const destinoKey = destinos && destinos.length > 0 ? [...destinos].sort().join(',') : null;
   return useQuery({
-    queryKey: ['painel-vendas', from, to, destino ?? null],
+    queryKey: ['painel-vendas', from, to, destinoKey],
     queryFn: async () => {
       if (!from || !to) throw new Error('Date range required');
       const res = await fetchPainelRows(from, to);
       if (!res.data) throw new Error(res.message ?? 'Erro ao carregar dados');
-      return buildPainelData(res.data, destino);
+      return buildPainelData(res.data, destinos);
     },
     enabled: !!from && !!to,
     staleTime: 5 * 60 * 1000,

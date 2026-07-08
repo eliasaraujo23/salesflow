@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
 import { type DateRange } from 'react-day-picker';
-import { RefreshCw, ChevronDown, X } from 'lucide-react';
+import { RefreshCw, ChevronDown, Check } from 'lucide-react';
 import { CalendarDateRangePicker } from '@/components/ui/date-range-picker';
 import { usePainelVendas } from '@/hooks/use-painel-vendas';
 import { HBarChart } from '@/components/painel/h-bar-chart';
@@ -46,10 +46,11 @@ function Card({ children, className = '' }: { children: React.ReactNode; classNa
   );
 }
 
+// Multi-select dropdown — opções sempre em ordem alfabética
 function DestinoSelect({ value, onChange, options }: {
-  value: string | null;
-  onChange: (v: string | null) => void;
-  options: string[];
+  value: string[];
+  onChange: (v: string[]) => void;
+  options: string[]; // já deve vir ordenado
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -62,50 +63,71 @@ function DestinoSelect({ value, onChange, options }: {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  function toggle(d: string) {
+    if (value.includes(d)) onChange(value.filter(x => x !== d));
+    else onChange([...value, d]);
+  }
+
+  function clearAll() { onChange([]); }
+
+  const label =
+    value.length === 0 ? 'Todos os destinos'
+    : value.length === 1 ? value[0]
+    : `${value.length} destinos`;
+
   return (
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1.5 text-sm font-semibold text-zinc-800 dark:text-zinc-100 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
       >
-        <span className="max-w-[160px] truncate">{value ?? 'Todos os destinos'}</span>
-        {value ? (
-          <X
-            size={13}
-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 shrink-0"
-            onClick={e => { e.stopPropagation(); onChange(null); setOpen(false); }}
-          />
-        ) : (
-          <ChevronDown size={13} className="text-zinc-400 shrink-0" />
-        )}
+        <span className={`max-w-[180px] truncate ${value.length > 0 ? 'text-indigo-600 dark:text-indigo-400' : ''}`}>
+          {label}
+        </span>
+        <ChevronDown size={13} className="text-zinc-400 shrink-0" />
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 z-50 mt-1.5 min-w-[200px] max-h-72 overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.10] rounded-xl shadow-xl">
-          <button
-            onClick={() => { onChange(null); setOpen(false); }}
-            className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-              !value
-                ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold'
-                : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/[0.04]'
-            }`}
-          >
-            Todos os destinos
-          </button>
-          <div className="border-t border-zinc-100 dark:border-white/[0.06]" />
-          {options.map(d => (
-            <button
-              key={d}
-              onClick={() => { onChange(d); setOpen(false); }}
-              className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                value === d
-                  ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-semibold'
-                  : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/[0.04]'
-              }`}
-            >
-              {d}
-            </button>
-          ))}
+        <div className="absolute top-full left-0 z-50 mt-1.5 min-w-[220px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.10] rounded-xl shadow-xl flex flex-col">
+          {/* Cabeçalho */}
+          <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-100 dark:border-white/[0.06]">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Destino</span>
+            {value.length > 0 && (
+              <button
+                onClick={clearAll}
+                className="text-[10px] text-indigo-500 hover:text-indigo-700 font-semibold"
+              >
+                Limpar tudo
+              </button>
+            )}
+          </div>
+
+          {/* Lista scrollável */}
+          <div className="overflow-y-auto max-h-72">
+            {options.map(d => {
+              const checked = value.includes(d);
+              return (
+                <button
+                  key={d}
+                  onClick={() => toggle(d)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+                    checked
+                      ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'
+                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                    checked
+                      ? 'bg-indigo-500 border-indigo-500'
+                      : 'border-zinc-300 dark:border-zinc-600'
+                  }`}>
+                    {checked && <Check size={10} className="text-white" strokeWidth={3} />}
+                  </span>
+                  {d}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -114,12 +136,16 @@ function DestinoSelect({ value, onChange, options }: {
 
 export default function PainelPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(defaultRange);
-  const [destinoFilter, setDestinoFilter] = useState<string | null>(null);
+  const [destinoFilter, setDestinoFilter] = useState<string[]>([]);
 
   const from = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined;
   const to = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined;
 
-  const { data, isLoading, isError, error, refetch, isFetching } = usePainelVendas(from, to, destinoFilter);
+  const { data, isLoading, isError, error, refetch, isFetching } = usePainelVendas(
+    from,
+    to,
+    destinoFilter.length > 0 ? destinoFilter : null,
+  );
 
   const tipoData = useMemo(() => data?.byTipo ?? [], [data]);
   const destinoData = useMemo(
@@ -148,7 +174,7 @@ export default function PainelPage() {
           <DestinoSelect
             value={destinoFilter}
             onChange={setDestinoFilter}
-            options={data?.destinos ?? []}
+            options={data?.destinosSorted ?? []}
           />
         </div>
 
@@ -256,7 +282,7 @@ export default function PainelPage() {
             </div>
           </div>
 
-          {/* B2C por Canal + B2B por Parceiro — todos os itens */}
+          {/* B2C por Canal + B2B por Parceiro */}
           <div className="grid grid-cols-2 gap-3 items-start">
             <Card className="flex flex-col">
               <SectionTitle>Vendas B2C por Canal</SectionTitle>
