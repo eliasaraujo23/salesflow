@@ -90,6 +90,7 @@ export default function PainelParceirosPage() {
   const sections = [
     {
       label: 'Joias Fabricadas — JF',
+      headerCls: 'bg-indigo-600 text-white',
       kpis: [
         { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(data?.jf.faturamento ?? 0) },
         { label: 'Ticket Médio', value: isLoading ? '—' : fmtBRL(data?.jf.tm ?? 0) },
@@ -99,6 +100,7 @@ export default function PainelParceirosPage() {
     },
     {
       label: 'Joias Modificadas — JM',
+      headerCls: 'bg-purple-600 text-white',
       kpis: [
         { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(data?.jm.faturamento ?? 0) },
         { label: 'Ticket Médio', value: isLoading ? '—' : fmtBRL(data?.jm.tm ?? 0) },
@@ -108,6 +110,7 @@ export default function PainelParceirosPage() {
     },
     {
       label: 'Joias Revenda — JR',
+      headerCls: 'bg-emerald-600 text-white',
       kpis: [
         { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(data?.revenda.faturamento ?? 0) },
         { label: 'Ticket Médio', value: isLoading ? '—' : fmtBRL(data?.revenda.tm ?? 0) },
@@ -124,8 +127,8 @@ export default function PainelParceirosPage() {
       <div className="shrink-0 grid grid-cols-3 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 divide-x divide-zinc-200 dark:divide-white/[0.08]">
         {sections.map(s => (
           <div key={s.label}>
-            <div className="px-4 pt-2 pb-0">
-              <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{s.label}</span>
+            <div className={`px-4 py-1.5 ${s.headerCls}`}>
+              <span className="text-[9px] font-bold uppercase tracking-widest opacity-90">{s.label}</span>
             </div>
             <div className="grid grid-cols-4 divide-x divide-zinc-200 dark:divide-white/[0.08]">
               {s.kpis.map(k => (
