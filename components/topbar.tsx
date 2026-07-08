@@ -160,6 +160,7 @@ export function Topbar({ title, subtitle, onSearch, onMobileMenu }: TopbarProps)
               <ChevronRight size={14} className="text-zinc-400 shrink-0" />
               {[
                 { label: 'Vendas',    href: '/painel' },
+                { label: 'Canais',    href: '/painel/canais' },
                 { label: 'Parceiros', href: '/painel/parceiros' },
                 { label: 'Leilões',   href: '/painel/leiloes' },
                 { label: 'Joias',     href: '/painel/joias' },
