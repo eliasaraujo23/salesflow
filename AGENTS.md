@@ -135,3 +135,46 @@ Um registro conta como compra válida quando:
 - Registros são ordenados por `datetime` decrescente (`data` + `hora` combinados em um `Timestamp`).
 - Nunca usar `orderBy('data')` sozinho — causa ordenação errada em registros do mesmo dia.
 
+---
+
+## 7. Padrão de Tabelas no Painel Mensal
+
+Toda tabela de detalhamento dentro de `app/(dashboard)/painel/` **deve** seguir este padrão obrigatório:
+
+### Estrutura sticky com scroll
+```tsx
+<div className="overflow-auto bg-white dark:bg-zinc-900 border ... rounded-xl" style={{ maxHeight: '400px' }}>
+  <table className="w-full text-xs border-separate border-spacing-0">
+    <thead>
+      {/* Linha 1: título fixo em top-0 */}
+      <tr>
+        <th colSpan={N} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b ...">
+          Título — X itens
+        </th>
+      </tr>
+      {/* Linha 2: colunas ordenáveis fixas em top-[41px] */}
+      <tr>
+        {COLS.map(col => (
+          <th onClick={() => toggleSort(col.key)} className="sticky top-[41px] z-10 bg-white dark:bg-zinc-900 border-b ... cursor-pointer select-none">
+            <span className="inline-flex items-center gap-1">
+              {col.label}
+              {sortKey === col.key
+                ? sortDir === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
+                : <ChevronsUpDown size={10} className="opacity-30" />}
+            </span>
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>...</tbody>
+  </table>
+</div>
+```
+
+### Regras
+- **Nunca** usar `overflow-x-auto` em um div filho separado do `overflow-y` — quebra o `sticky`.
+- O container usa `overflow-auto` (ambos), a tabela usa `border-separate border-spacing-0` para manter bordas.
+- Ordenação local via `useState` + `useMemo` no próprio componente de página.
+- Default de ordenação: coluna de data/dias desc (mais recente primeiro).
+- Ícones: `ChevronUp` / `ChevronDown` (coluna ativa) e `ChevronsUpDown opacity-30` (inativa) — importados de `lucide-react`.
+

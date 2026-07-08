@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { usePainelVendas } from '@/hooks/use-painel-vendas';
 import { useJfDashboard } from '@/hooks/use-jf-dashboard';
@@ -58,6 +58,26 @@ export default function PainelJoiasPage() {
     if (!vendas) return [];
     return vendas.rows.filter(r => r.tipo === 'JF');
   }, [vendas]);
+
+  type JFSortKey = 'referencia' | 'produto' | 'subtipo' | 'destino' | 'custo_real' | 'preco_cobrado' | 'tipo_pedra' | 'lucrat' | 'data_venda';
+  const [jfSortKey, setJfSortKey] = useState<JFSortKey>('data_venda');
+  const [jfSortDir, setJfSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const toggleJfSort = (key: JFSortKey) => {
+    if (jfSortKey === key) setJfSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setJfSortKey(key); setJfSortDir('desc'); }
+  };
+
+  const jfSortedRows = useMemo(() => {
+    return [...jfDetailRows].sort((a, b) => {
+      const av = a[jfSortKey] ?? '';
+      const bv = b[jfSortKey] ?? '';
+      const cmp = typeof av === 'number' && typeof bv === 'number'
+        ? av - bv
+        : String(av).localeCompare(String(bv), 'pt-BR', { numeric: true });
+      return jfSortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [jfDetailRows, jfSortKey, jfSortDir]);
 
   const TABS: { key: TabKey; label: string }[] = [
     { key: 'cadastradas', label: 'Joias Cadastradas' },
@@ -165,47 +185,72 @@ export default function PainelJoiasPage() {
           </div>
 
           {/* JF detail table */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-200 dark:border-white/[0.08] flex items-center justify-between">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Detalhamento JF — {jfDetailRows.length} vendas</p>
-              <div className="flex gap-4 text-[10px] text-zinc-500">
-                <span>Custo: <span className="font-bold text-zinc-900 dark:text-zinc-100">{fmtBRL(jfDetailRows.reduce((s, r) => s + r.custo_real, 0))}</span></span>
-                <span>Faturamento: <span className="font-bold text-indigo-600 dark:text-indigo-400">{fmtBRL(jfDetailRows.reduce((s, r) => s + r.preco_cobrado, 0))}</span></span>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-zinc-200 dark:border-white/[0.06]">
-                    {['Referência', 'Produto', 'Subtipo', 'Destino', 'Custo Real', 'Preço Cobrado', 'Tipo Pedra', 'Lucrat.', 'Data Venda'].map(h => (
-                      <th key={h} className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {jfDetailRows.map((r, i) => (
-                    <tr key={i} className="border-b border-zinc-100 dark:border-white/[0.04] hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
-                      <td className="px-3 py-2 font-mono text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.referencia}</td>
-                      <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.produto}</td>
-                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.subtipo ?? '—'}</td>
-                      <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.destino}</td>
-                      <td className="px-3 py-2 tabular-nums text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
-                      <td className="px-3 py-2 tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{fmtBRL(r.preco_cobrado)}</td>
-                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
-                      <td className="px-3 py-2 tabular-nums whitespace-nowrap">
-                        <span className={r.lucrat >= 40 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : r.lucrat >= 0 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-500'}>
-                          {r.lucrat.toFixed(2)}%
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtDate(r.data_venda)}</td>
-                    </tr>
+          <div className="overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl" style={{ maxHeight: '400px' }}>
+            <table className="w-full text-xs border-separate border-spacing-0">
+              <thead>
+                <tr>
+                  <th colSpan={9} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                        Detalhamento JF — {jfDetailRows.length} vendas
+                      </span>
+                      <div className="flex gap-4 text-[10px] text-zinc-500">
+                        <span>Custo: <span className="font-bold text-zinc-900 dark:text-zinc-100">{fmtBRL(jfDetailRows.reduce((s, r) => s + r.custo_real, 0))}</span></span>
+                        <span>Faturamento: <span className="font-bold text-indigo-600 dark:text-indigo-400">{fmtBRL(jfDetailRows.reduce((s, r) => s + r.preco_cobrado, 0))}</span></span>
+                      </div>
+                    </div>
+                  </th>
+                </tr>
+                <tr>
+                  {([
+                    { label: 'Referência',    key: 'referencia' },
+                    { label: 'Produto',       key: 'produto' },
+                    { label: 'Subtipo',       key: 'subtipo' },
+                    { label: 'Destino',       key: 'destino' },
+                    { label: 'Custo Real',    key: 'custo_real' },
+                    { label: 'Preço Cobrado', key: 'preco_cobrado' },
+                    { label: 'Tipo Pedra',    key: 'tipo_pedra' },
+                    { label: 'Lucrat.',       key: 'lucrat' },
+                    { label: 'Data Venda',    key: 'data_venda' },
+                  ] as { label: string; key: JFSortKey }[]).map(col => (
+                    <th
+                      key={col.key}
+                      onClick={() => toggleJfSort(col.key)}
+                      className="sticky top-[41px] z-10 px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap cursor-pointer select-none hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {col.label}
+                        {jfSortKey === col.key
+                          ? jfSortDir === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
+                          : <ChevronsUpDown size={10} className="opacity-30" />}
+                      </span>
+                    </th>
                   ))}
-                </tbody>
-              </table>
-              {jfDetailRows.length === 0 && (
-                <div className="text-center py-12 text-zinc-400 text-sm">Nenhuma venda JF no período selecionado.</div>
-              )}
-            </div>
+                </tr>
+              </thead>
+              <tbody>
+                {jfSortedRows.map((r, i) => (
+                  <tr key={i} className="border-b border-zinc-100 dark:border-white/[0.04] hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
+                    <td className="px-3 py-2 font-mono text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.referencia}</td>
+                    <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.produto}</td>
+                    <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.subtipo ?? '—'}</td>
+                    <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.destino}</td>
+                    <td className="px-3 py-2 tabular-nums text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
+                    <td className="px-3 py-2 tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{fmtBRL(r.preco_cobrado)}</td>
+                    <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
+                    <td className="px-3 py-2 tabular-nums whitespace-nowrap">
+                      <span className={r.lucrat >= 40 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : r.lucrat >= 0 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-500'}>
+                        {r.lucrat.toFixed(2)}%
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtDate(r.data_venda)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {jfDetailRows.length === 0 && (
+              <div className="text-center py-12 text-zinc-400 text-sm">Nenhuma venda JF no período selecionado.</div>
+            )}
           </div>
         </div>
       )}

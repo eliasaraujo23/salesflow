@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { useJfDashboard } from '@/hooks/use-jf-dashboard';
 import { HBarChart } from '@/components/painel/h-bar-chart';
 
@@ -62,6 +62,31 @@ export default function PainelProducaoPage() {
       .map(([name, value]) => ({ name, value }));
   }, [data]);
 
+  type ProdSortKey = 'referencia' | 'produto' | 'subtipo' | 'tipo_pedra' | 'custo_real' | 'fabricante' | 'data_envio_fabricacao' | 'dias';
+  const [prodSortKey, setProdSortKey] = useState<ProdSortKey>('dias');
+  const [prodSortDir, setProdSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const toggleProdSort = (key: ProdSortKey) => {
+    if (prodSortKey === key) setProdSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setProdSortKey(key); setProdSortDir('desc'); }
+  };
+
+  const prodSortedRows = useMemo(() => {
+    if (!data?.emFabricacao) return [];
+    return [...data.emFabricacao].sort((a, b) => {
+      const av: string | number = prodSortKey === 'fabricante'
+        ? (a.destino_manutencao ?? a.destino ?? '')
+        : (a[prodSortKey as keyof typeof a] as string | number) ?? '';
+      const bv: string | number = prodSortKey === 'fabricante'
+        ? (b.destino_manutencao ?? b.destino ?? '')
+        : (b[prodSortKey as keyof typeof b] as string | number) ?? '';
+      const cmp = typeof av === 'number' && typeof bv === 'number'
+        ? av - bv
+        : String(av).localeCompare(String(bv), 'pt-BR', { numeric: true });
+      return prodSortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [data, prodSortKey, prodSortDir]);
+
   // Conversão: vendidos / totalFabricado
   const conversao = totalFabricado > 0
     ? ((data?.resumo.vendidos ?? 0) / totalFabricado * 100).toFixed(2)
@@ -117,45 +142,67 @@ export default function PainelProducaoPage() {
           </div>
 
           {/* Em Fabricação table */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-200 dark:border-white/[0.08] flex items-center justify-between">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                Em Fabricação — {data.emFabricacao.length} peças
-              </p>
-              <span className="text-[10px] text-zinc-500">Custo Total: <span className="font-bold text-zinc-900 dark:text-zinc-100">{fmtBRL(custoFabricacao)}</span></span>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-zinc-200 dark:border-white/[0.06]">
-                    {['Referência', 'Produto', 'Subtipo', 'Tipo Pedra', 'Custo Real', 'Fabricante', 'Data Envio', 'Dias'].map(h => (
-                      <th key={h} className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.emFabricacao.map((r, i) => (
-                    <tr key={i} className="border-b border-zinc-100 dark:border-white/[0.04] hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
-                      <td className="px-3 py-2 font-mono text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.referencia}</td>
-                      <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.produto ?? '—'}</td>
-                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.subtipo ?? '—'}</td>
-                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
-                      <td className="px-3 py-2 tabular-nums text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
-                      <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.destino_manutencao ?? r.destino ?? '—'}</td>
-                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.data_envio_fabricacao ?? '—'}</td>
-                      <td className="px-3 py-2 tabular-nums whitespace-nowrap">
-                        <span className={r.dias > 30 ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-zinc-700 dark:text-zinc-300'}>
-                          {r.dias}
-                        </span>
-                      </td>
-                    </tr>
+          <div className="overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl" style={{ maxHeight: '400px' }}>
+            <table className="w-full text-xs border-separate border-spacing-0">
+              <thead>
+                <tr>
+                  <th colSpan={8} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                        Em Fabricação — {data.emFabricacao.length} peças
+                      </span>
+                      <span className="text-[10px] text-zinc-500">Custo Total: <span className="font-bold text-zinc-900 dark:text-zinc-100">{fmtBRL(custoFabricacao)}</span></span>
+                    </div>
+                  </th>
+                </tr>
+                <tr>
+                  {([
+                    { label: 'Referência',  key: 'referencia' },
+                    { label: 'Produto',     key: 'produto' },
+                    { label: 'Subtipo',     key: 'subtipo' },
+                    { label: 'Tipo Pedra',  key: 'tipo_pedra' },
+                    { label: 'Custo Real',  key: 'custo_real' },
+                    { label: 'Fabricante',  key: 'fabricante' },
+                    { label: 'Data Envio',  key: 'data_envio_fabricacao' },
+                    { label: 'Dias',        key: 'dias' },
+                  ] as { label: string; key: ProdSortKey }[]).map(col => (
+                    <th
+                      key={col.key}
+                      onClick={() => toggleProdSort(col.key)}
+                      className="sticky top-[41px] z-10 px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap cursor-pointer select-none hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {col.label}
+                        {prodSortKey === col.key
+                          ? prodSortDir === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
+                          : <ChevronsUpDown size={10} className="opacity-30" />}
+                      </span>
+                    </th>
                   ))}
-                </tbody>
-              </table>
-              {data.emFabricacao.length === 0 && (
-                <div className="text-center py-12 text-zinc-400 text-sm">Nenhum item em fabricação no momento.</div>
-              )}
-            </div>
+                </tr>
+              </thead>
+              <tbody>
+                {prodSortedRows.map((r, i) => (
+                  <tr key={i} className="border-b border-zinc-100 dark:border-white/[0.04] hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
+                    <td className="px-3 py-2 font-mono text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.referencia}</td>
+                    <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.produto ?? '—'}</td>
+                    <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.subtipo ?? '—'}</td>
+                    <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
+                    <td className="px-3 py-2 tabular-nums text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
+                    <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.destino_manutencao ?? r.destino ?? '—'}</td>
+                    <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.data_envio_fabricacao ?? '—'}</td>
+                    <td className="px-3 py-2 tabular-nums whitespace-nowrap">
+                      <span className={r.dias > 30 ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-zinc-700 dark:text-zinc-300'}>
+                        {r.dias}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {data.emFabricacao.length === 0 && (
+              <div className="text-center py-12 text-zinc-400 text-sm">Nenhum item em fabricação no momento.</div>
+            )}
           </div>
 
           {/* Conversão section */}
