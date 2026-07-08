@@ -48,7 +48,7 @@ function tipoOf(tipo: string | null | undefined): string {
 }
 
 function lucrat(fat: number, custo: number): number {
-  return fat > 0 ? Math.round(((fat - custo) / fat) * 100) : 0;
+  return fat > 0 ? Math.round(((fat - custo) / fat) * 10000) / 100 : 0;
 }
 
 function tm(fat: number, qtd: number): number {

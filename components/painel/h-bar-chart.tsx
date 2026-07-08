@@ -14,7 +14,7 @@ interface Props {
   color?: string;
   formatter?: (v: number) => string;
   height?: number;
-  maxItems?: number;
+  maxItems?: number; // undefined = sem limite
 }
 
 function fmtBRL(v: number) {
@@ -25,8 +25,8 @@ function truncate(s: string, n: number) {
   return s.length > n ? s.substring(0, n - 1) + '…' : s;
 }
 
-export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height, maxItems = 20 }: Props) {
-  const rows = data.slice(0, maxItems).map(r => ({
+export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height, maxItems }: Props) {
+  const rows = (maxItems != null ? data.slice(0, maxItems) : data).map(r => ({
     ...r,
     label: truncate(r.name, 22),
   }));
@@ -59,12 +59,14 @@ export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height,
         <Tooltip
           formatter={(v) => [formatter(Number(v)), '']}
           contentStyle={{
-            background: '#18181b',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: '#ffffff',
+            border: '1px solid #e4e4e7',
             borderRadius: 8,
             fontSize: 12,
+            color: '#18181b',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
           }}
-          labelStyle={{ color: '#a1a1aa', fontSize: 11 }}
+          labelStyle={{ color: '#71717a', fontSize: 11 }}
           cursor={{ fill: 'rgba(99,102,241,0.05)' }}
         />
         <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={22}>

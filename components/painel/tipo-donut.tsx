@@ -17,11 +17,6 @@ function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 }
 
-function fmtK(v: number) {
-  if (v >= 1_000_000) return `R$${(v / 1_000_000).toFixed(2)} Mi`;
-  if (v >= 1_000) return `R$${(v / 1_000).toFixed(2)} Mil`;
-  return fmtBRL(v);
-}
 
 interface LegendEntry {
   value: string;
@@ -65,7 +60,7 @@ export function TipoDonut({ data, formatter = fmtBRL }: Props) {
             const y = cy + radius * Math.sin(-(midAngle ?? 0) * RADIAN);
             return (
               <text x={x} y={y} fill="#a1a1aa" textAnchor={x > (cx ?? 0) ? 'start' : 'end'} dominantBaseline="central" fontSize={11}>
-                {`${name ?? ''} ${fmtK(value ?? 0)}`}
+                {`${name ?? ''} ${fmtBRL(value ?? 0)}`}
               </text>
             );
           }}
@@ -78,10 +73,12 @@ export function TipoDonut({ data, formatter = fmtBRL }: Props) {
         <Tooltip
           formatter={(v) => [formatter(Number(v)), '']}
           contentStyle={{
-            background: '#18181b',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: '#ffffff',
+            border: '1px solid #e4e4e7',
             borderRadius: 8,
             fontSize: 12,
+            color: '#18181b',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
           }}
         />
         <Legend content={<CustomLegend />} />
