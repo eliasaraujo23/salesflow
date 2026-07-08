@@ -103,7 +103,7 @@ export default function PainelParceirosPage() {
       {data && !isLoading && (
         <>
           {/* Fill charts — mesmo box, barras adaptam à altura */}
-          <div className="shrink-0 h-[360px] grid grid-cols-2 gap-3">
+          <div className="flex-1 min-h-0 grid grid-cols-2 gap-3">
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
                 Produto — JF Fabricado
@@ -127,7 +127,7 @@ export default function PainelParceirosPage() {
           </div>
 
           {/* Scrollable detail table */}
-          <div className="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
+          <div className="shrink-0 h-56 overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-200 dark:border-white/[0.08] sticky top-0 bg-white dark:bg-zinc-900 z-10">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                 Detalhamento — {data.rows.length} vendas
