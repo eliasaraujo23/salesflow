@@ -36,7 +36,8 @@ export default function PainelParceirosPage() {
     destinoFilter.length > 0 ? destinoFilter : null,
   );
 
-  const [selectedProduto, setSelectedProduto] = useState<string | null>(null);
+  const [selectedJF, setSelectedJF] = useState<string | null>(null);
+  const [selectedRV, setSelectedRV] = useState<string | null>(null);
 
   const jfData = useMemo(
     () => (data?.jfByProduto ?? []).map(d => ({ name: d.name, value: d.faturamento, qty: d.qtd })),
@@ -50,9 +51,13 @@ export default function PainelParceirosPage() {
 
   const filteredRows = useMemo(() => {
     if (!data) return [];
-    if (!selectedProduto) return data.rows;
-    return data.rows.filter(r => r.produto === selectedProduto || r.subtipo === selectedProduto);
-  }, [data, selectedProduto]);
+    if (selectedJF) return data.rows.filter(r => r.tipo === 'JF' && (r.produto === selectedJF || r.subtipo === selectedJF));
+    if (selectedRV) return data.rows.filter(r => r.tipo !== 'JF' && (r.produto === selectedRV || r.subtipo === selectedRV));
+    return data.rows;
+  }, [data, selectedJF, selectedRV]);
+
+  const activeFilter = selectedJF ?? selectedRV ?? null;
+  const clearFilter = () => { setSelectedJF(null); setSelectedRV(null); };
 
   const sections = [
     {
@@ -118,7 +123,7 @@ export default function PainelParceirosPage() {
               </p>
               <div className="flex-1 min-h-0">
                 {jfData.length > 0
-                  ? <HBarChart data={jfData} color="#6366f1" formatter={fmtBRL} fill selected={selectedProduto} onSelect={setSelectedProduto} />
+                  ? <HBarChart data={jfData} color="#6366f1" formatter={fmtBRL} fill selected={selectedJF} onSelect={v => { setSelectedJF(v); setSelectedRV(null); }} />
                   : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem vendas JF</div>}
               </div>
             </div>
@@ -128,30 +133,30 @@ export default function PainelParceirosPage() {
               </p>
               <div className="flex-1 min-h-0">
                 {rvData.length > 0
-                  ? <HBarChart data={rvData} color="#10b981" formatter={fmtBRL} fill selected={selectedProduto} onSelect={setSelectedProduto} />
+                  ? <HBarChart data={rvData} color="#10b981" formatter={fmtBRL} fill selected={selectedRV} onSelect={v => { setSelectedRV(v); setSelectedJF(null); }} />
                   : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem vendas de revenda</div>}
               </div>
             </div>
           </div>
 
           {/* Scrollable detail table */}
-          <div className="shrink-0 h-56 overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-200 dark:border-white/[0.08] sticky top-0 bg-white dark:bg-zinc-900 z-10 flex items-center gap-3">
+          <div className="shrink-0 h-56 overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
+            <div className="px-4 py-3 border-b border-zinc-200 dark:border-white/[0.08] sticky top-0 bg-white dark:bg-zinc-900 z-20 flex items-center gap-3">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                 Detalhamento — {filteredRows.length} vendas
               </p>
-              {selectedProduto && (
+              {activeFilter && (
                 <button
-                  onClick={() => setSelectedProduto(null)}
+                  onClick={clearFilter}
                   className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
                 >
-                  {selectedProduto} <X size={10} />
+                  {selectedJF ? 'JF' : 'Revenda'} — {activeFilter} <X size={10} />
                 </button>
               )}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
-                <thead>
+                <thead className="sticky top-[42px] z-10 bg-white dark:bg-zinc-900">
                   <tr className="border-b border-zinc-200 dark:border-white/[0.06]">
                     {['Referência', 'Produto', 'Subtipo', 'Destino', 'Tipo', 'Custo Real', 'Preço Cobrado', 'Tipo Pedra', 'Lucrat.', 'Data Venda'].map(h => (
                       <th key={h} className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap">{h}</th>
