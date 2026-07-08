@@ -26,7 +26,7 @@ export default function PainelPage() {
 
   const tipoData = useMemo(() => data?.byTipo ?? [], [data]);
   const destinoData = useMemo(
-    () => (data?.byDestino ?? []).map(d => ({ name: d.name, value: d.faturamento })),
+    () => (data?.byDestino ?? []).map(d => ({ name: d.name, value: d.faturamento, qty: d.qtd })),
     [data],
   );
 
