@@ -178,7 +178,7 @@ export default function PainelPage() {
                         width={48}
                       />
                       <Tooltip
-                        formatter={(v: number) => [fmtBRL(v), 'Faturamento']}
+                        formatter={(v) => [fmtBRL(Number(v)), 'Faturamento']}
                         contentStyle={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12 }}
                         labelStyle={{ color: '#a1a1aa', fontSize: 11 }}
                       />
@@ -214,7 +214,7 @@ export default function PainelPage() {
                       width={48}
                     />
                     <Tooltip
-                      formatter={(v: number) => [fmtBRL(v), 'Ticket Médio']}
+                      formatter={(v) => [fmtBRL(Number(v)), 'Ticket Médio']}
                       contentStyle={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12 }}
                       labelStyle={{ color: '#a1a1aa', fontSize: 11 }}
                     />

@@ -57,7 +57,7 @@ export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height,
           axisLine={false}
         />
         <Tooltip
-          formatter={(v: number) => [formatter(v), '']}
+          formatter={(v) => [formatter(Number(v)), '']}
           contentStyle={{
             background: '#18181b',
             border: '1px solid rgba(255,255,255,0.08)',
@@ -74,7 +74,7 @@ export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height,
           <LabelList
             dataKey="value"
             position="right"
-            formatter={formatter}
+            formatter={(v: unknown) => formatter(Number(v))}
             style={{ fontSize: 11, fill: '#a1a1aa', fontWeight: 600 }}
           />
         </Bar>

@@ -53,14 +53,19 @@ export function TipoDonut({ data, formatter = fmtBRL }: Props) {
           outerRadius="72%"
           dataKey="value"
           paddingAngle={2}
-          label={({ name, value, cx, cy, midAngle, innerRadius, outerRadius }) => {
+          label={(props) => {
+            const { name, value, cx, cy, midAngle, innerRadius, outerRadius } = props as {
+              name?: string; value?: number; cx?: number; cy?: number;
+              midAngle?: number; innerRadius?: number; outerRadius?: number;
+            };
+            if (cx == null || cy == null || innerRadius == null || outerRadius == null) return null;
             const RADIAN = Math.PI / 180;
             const radius = innerRadius + (outerRadius - innerRadius) * 1.35;
-            const x = cx + radius * Math.cos(-midAngle * RADIAN);
-            const y = cy + radius * Math.sin(-midAngle * RADIAN);
+            const x = cx + radius * Math.cos(-(midAngle ?? 0) * RADIAN);
+            const y = cy + radius * Math.sin(-(midAngle ?? 0) * RADIAN);
             return (
-              <text x={x} y={y} fill="#a1a1aa" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={11}>
-                {`${name} ${fmtK(value)}`}
+              <text x={x} y={y} fill="#a1a1aa" textAnchor={x > (cx ?? 0) ? 'start' : 'end'} dominantBaseline="central" fontSize={11}>
+                {`${name ?? ''} ${fmtK(value ?? 0)}`}
               </text>
             );
           }}
@@ -71,7 +76,7 @@ export function TipoDonut({ data, formatter = fmtBRL }: Props) {
           ))}
         </Pie>
         <Tooltip
-          formatter={(v: number) => [formatter(v), '']}
+          formatter={(v) => [formatter(Number(v)), '']}
           contentStyle={{
             background: '#18181b',
             border: '1px solid rgba(255,255,255,0.08)',
