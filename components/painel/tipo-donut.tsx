@@ -23,7 +23,7 @@ export function TipoDonut({ data, formatter = fmtBRL }: Props) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 h-full py-2">
       {/* Donut — tamanho proporcional ao container */}
-      <div className="w-[min(100%,200px)] aspect-square">
+      <div className="w-[min(100%,260px)] aspect-square">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie

@@ -17,6 +17,7 @@ interface Props {
   formatter?: (v: number) => string;
   height?: number;
   maxItems?: number;
+  fill?: boolean; // preenche o container — barras se ajustam à altura disponível
 }
 
 function fmtBRL(v: number) {
@@ -47,7 +48,7 @@ function CustomYAxisTick(props: { x?: number; y?: number; payload?: { value: str
   );
 }
 
-export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height, maxItems }: Props) {
+export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height, maxItems, fill = false }: Props) {
   const rows = (maxItems != null ? data.slice(0, maxItems) : data).map(r => ({
     ...r,
     label: r.qty != null ? `${r.name} (${r.qty})` : r.name,
@@ -56,10 +57,11 @@ export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height,
   const autoWidth = rows.reduce((m, r) => Math.max(m, estimatePx(r.label)), 80);
   const labelWidth = Math.min(240, Math.max(80, autoWidth + 16));
 
-  const dynamicHeight = height ?? Math.max(180, rows.length * 30 + 40);
+  const dynamicHeight = fill ? '100%' : (height ?? Math.max(180, rows.length * 30 + 40));
+  const maxBar = fill ? 48 : 22;
 
   return (
-    <ResponsiveContainer width="100%" height={dynamicHeight}>
+    <ResponsiveContainer width="100%" height={dynamicHeight as number | string}>
       <BarChart data={rows} layout="vertical" margin={{ top: 0, right: 90, bottom: 20, left: 0 }}>
         <XAxis
           type="number"
@@ -95,7 +97,7 @@ export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height,
           labelStyle={{ color: '#71717a', fontSize: 11 }}
           cursor={{ fill: 'rgba(99,102,241,0.05)' }}
         />
-        <Bar dataKey="value" radius={[0, 3, 3, 0]} maxBarSize={22} minPointSize={3} isAnimationActive={false}>
+        <Bar dataKey="value" radius={[0, 3, 3, 0]} maxBarSize={maxBar} minPointSize={3} isAnimationActive={false}>
           {rows.map((_, i) => (
             <Cell key={i} fill={color} fillOpacity={1 - i * 0.025} />
           ))}
