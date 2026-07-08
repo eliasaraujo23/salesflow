@@ -89,7 +89,7 @@ export default function PainelParceirosPage() {
 
   const sections = [
     {
-      label: 'Fabricado JF',
+      label: 'Joias Fabricadas — JF',
       kpis: [
         { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(data?.jf.faturamento ?? 0) },
         { label: 'Ticket Médio', value: isLoading ? '—' : fmtBRL(data?.jf.tm ?? 0) },
@@ -98,7 +98,7 @@ export default function PainelParceirosPage() {
       ],
     },
     {
-      label: 'JM',
+      label: 'Joias Modificadas — JM',
       kpis: [
         { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(data?.jm.faturamento ?? 0) },
         { label: 'Ticket Médio', value: isLoading ? '—' : fmtBRL(data?.jm.tm ?? 0) },
@@ -107,7 +107,7 @@ export default function PainelParceirosPage() {
       ],
     },
     {
-      label: 'Revenda',
+      label: 'Joias Revenda — JR',
       kpis: [
         { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(data?.revenda.faturamento ?? 0) },
         { label: 'Ticket Médio', value: isLoading ? '—' : fmtBRL(data?.revenda.tm ?? 0) },
@@ -156,7 +156,7 @@ export default function PainelParceirosPage() {
           <div className="flex-1 min-h-0 grid grid-cols-3 gap-3">
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
-                Produto — JF Fabricado
+                Joias Fabricadas — JF
               </p>
               <div className="flex-1 min-h-0">
                 {jfData.length > 0
@@ -166,7 +166,7 @@ export default function PainelParceirosPage() {
             </div>
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
-                Produto — JM
+                Joias Modificadas — JM
               </p>
               <div className="flex-1 min-h-0">
                 {jmData.length > 0
@@ -176,7 +176,7 @@ export default function PainelParceirosPage() {
             </div>
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
-                Produto — Revenda
+                Joias Revenda — JR
               </p>
               <div className="flex-1 min-h-0">
                 {rvData.length > 0
