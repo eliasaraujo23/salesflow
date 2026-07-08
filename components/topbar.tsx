@@ -64,6 +64,8 @@ export function Topbar({ title, subtitle, onSearch, onMobileMenu }: TopbarProps)
               ? 'Parceiros'
               : (pathname === '/tasks' || pathname === '/ia')
               ? 'Minhas Tarefas'
+              : pathname.startsWith('/painel')
+              ? 'Painel Mensal'
               : pageTitle}
           </div>
           {subtitle && (
@@ -135,6 +137,37 @@ export function Topbar({ title, subtitle, onSearch, onMobileMenu }: TopbarProps)
               ].map(tab => {
                 const isActive = tab.href === '/partners'
                   ? pathname === '/partners'
+                  : pathname.startsWith(tab.href);
+                return (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    className={`px-3 py-1 rounded-md text-[13px] font-medium transition-colors ${
+                      isActive
+                        ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.06]'
+                    }`}
+                  >
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+          {/* Inline tabs for /painel */}
+          {pathname.startsWith('/painel') && (
+            <div className="flex items-center gap-1 ml-1">
+              <ChevronRight size={14} className="text-zinc-400 shrink-0" />
+              {[
+                { label: 'Vendas',    href: '/painel' },
+                { label: 'Parceiros', href: '/painel/parceiros' },
+                { label: 'Leilões',   href: '/painel/leiloes' },
+                { label: 'Joias',     href: '/painel/joias' },
+                { label: 'Produção',  href: '/painel/producao' },
+                { label: 'Evolutivo', href: '/painel/evolutivo' },
+              ].map(tab => {
+                const isActive = tab.href === '/painel'
+                  ? pathname === '/painel'
                   : pathname.startsWith(tab.href);
                 return (
                   <Link
