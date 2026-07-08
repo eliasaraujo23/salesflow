@@ -1,10 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { format } from 'date-fns';
-import { type DateRange } from 'react-day-picker';
+import { useMemo } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { CalendarDateRangePicker } from '@/components/ui/date-range-picker';
+import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { usePainelVendas } from '@/hooks/use-painel-vendas';
 import { HBarChart } from '@/components/painel/h-bar-chart';
 
@@ -16,13 +14,13 @@ function fmtPct(v: number) {
   return `${v.toFixed(2)}%`;
 }
 
-function defaultRange(): DateRange {
-  const now = new Date();
-  const m = now.getMonth();
-  const y = m === 0 ? now.getFullYear() - 1 : now.getFullYear();
-  const pm = m === 0 ? 11 : m - 1;
-  return { from: new Date(y, pm, 1), to: new Date(y, pm + 1, 0) };
-}
+// Cores por tipo — JF=indigo JM=purple JC=amber JR=green
+const TIPO_CLASS: Record<string, string> = {
+  JF: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
+  JM: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  JC: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  JR: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+};
 
 interface KpiCellProps { label: string; value: string; border?: boolean; }
 function KpiCell({ label, value, border = true }: KpiCellProps) {
@@ -35,19 +33,19 @@ function KpiCell({ label, value, border = true }: KpiCellProps) {
 }
 
 export default function PainelParceirosPage() {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(defaultRange);
+  const { from, to, destinoFilter } = usePainelFilters();
 
-  const from = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined;
-  const to = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined;
+  const { data, isLoading, isError, error } = usePainelVendas(
+    from,
+    to,
+    destinoFilter.length > 0 ? destinoFilter : null,
+  );
 
-  const { data, isLoading, isError, error, refetch, isFetching } = usePainelVendas(from, to);
-
-  // Gráfico unificado: barra = faturamento, etiqueta = "R$ X · N un"
   const jfData = useMemo(
     () => (data?.jfByProduto ?? []).map(d => ({
       name: d.name,
       value: d.faturamento,
-      displayLabel: `${fmtBRL(d.faturamento)} · ${d.qtd} un`,
+      qty: d.qtd,
     })),
     [data],
   );
@@ -56,24 +54,16 @@ export default function PainelParceirosPage() {
     () => (data?.revendaByProduto ?? []).map(d => ({
       name: d.name,
       value: d.faturamento,
-      displayLabel: `${fmtBRL(d.faturamento)} · ${d.qtd} un`,
+      qty: d.qtd,
     })),
     [data],
   );
 
   return (
     <div className="h-full overflow-auto p-4 flex flex-col gap-3">
-      {/* Filter bar */}
-      <div className="flex flex-wrap items-stretch gap-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 text-sm">
-        <div className="flex flex-col justify-center gap-1 px-4 py-3 border-r border-zinc-200 dark:border-white/[0.08]">
-          <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Período</span>
-          <CalendarDateRangePicker
-            dateRange={dateRange}
-            setDateRange={setDateRange}
-            buttonClassName="border-0 px-0 text-xs font-semibold rounded-none hover:border-0"
-          />
-        </div>
-        <div className="flex flex-col justify-center px-4 py-2 border-r border-zinc-200 dark:border-white/[0.08]">
+      {/* KPIs */}
+      <div className="flex items-stretch border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 text-sm divide-x divide-zinc-200 dark:divide-white/[0.08]">
+        <div className="flex flex-col justify-center px-4 py-2">
           <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Fabricado JF</span>
           <div className="flex divide-x divide-zinc-200 dark:divide-white/[0.06]">
             <KpiCell label="Faturamento"  value={isLoading ? '—' : fmtBRL(data?.jf.faturamento ?? 0)} />
@@ -91,13 +81,6 @@ export default function PainelParceirosPage() {
             <KpiCell label="Lucrat."      value={isLoading ? '—' : fmtPct(data?.revenda.lucrat ?? 0)} border={false} />
           </div>
         </div>
-        <button
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="px-4 ml-auto border-l border-zinc-200 dark:border-white/[0.08] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 disabled:opacity-40 transition-colors"
-        >
-          <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
-        </button>
       </div>
 
       {isLoading && (
@@ -108,7 +91,6 @@ export default function PainelParceirosPage() {
       {isError && !isLoading && (
         <div className="flex flex-col items-center justify-center py-24 gap-3">
           <p className="text-sm text-red-500">{(error as Error)?.message || 'Erro ao carregar dados.'}</p>
-          <button onClick={() => refetch()} className="text-sm text-indigo-500 hover:underline">Tentar novamente</button>
         </div>
       )}
 
@@ -154,7 +136,9 @@ export default function PainelParceirosPage() {
                       <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.subtipo ?? '—'}</td>
                       <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.destino}</td>
                       <td className="px-3 py-2">
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">{r.tipo}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${TIPO_CLASS[r.tipo] ?? TIPO_CLASS.JR}`}>
+                          {r.tipo}
+                        </span>
                       </td>
                       <td className="px-3 py-2 tabular-nums text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
                       <td className="px-3 py-2 tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{fmtBRL(r.preco_cobrado)}</td>

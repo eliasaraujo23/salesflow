@@ -7,7 +7,8 @@ import {
 interface HBarRow {
   name: string;
   value: number;
-  displayLabel?: string; // se fornecido, substitui formatter(value) na etiqueta direita
+  qty?: number;          // se fornecido: label esquerdo mostra "NAME (qty)"
+  displayLabel?: string; // substitui formatter(value) na etiqueta direita
 }
 
 interface Props {
@@ -29,11 +30,14 @@ function truncate(s: string, n: number) {
 export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height, maxItems }: Props) {
   const rows = (maxItems != null ? data.slice(0, maxItems) : data).map(r => ({
     ...r,
-    label: truncate(r.name, 22),
+    // Padrão qty+fat: "NAME (qty)" no eixo Y
+    label: r.qty != null
+      ? `${truncate(r.name, 20)} (${r.qty})`
+      : truncate(r.name, 22),
   }));
 
   const dynamicHeight = height ?? Math.max(180, rows.length * 32 + 40);
-  const labelWidth = Math.min(160, Math.max(100, Math.max(...rows.map(r => r.label.length)) * 6.5));
+  const labelWidth = Math.min(180, Math.max(110, Math.max(...rows.map(r => r.label.length)) * 6.5));
 
   return (
     <ResponsiveContainer width="100%" height={dynamicHeight}>

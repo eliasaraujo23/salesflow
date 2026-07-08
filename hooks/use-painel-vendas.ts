@@ -220,7 +220,7 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
         lucrat: kpi.lucrat,
         tmJF: jfR.length > 0 ? jfR.reduce((s, r) => s + (r.preco_cobrado ?? 0), 0) / jfR.length : 0,
         tmRevenda: rvR.length > 0 ? rvR.reduce((s, r) => s + (r.preco_cobrado ?? 0), 0) / rvR.length : 0,
-        byProduto: agg(lRows, r => r.produto ?? r.subtipo),
+        byProduto: agg(lRows, r => isScrap(r) ? 'SCRAP' : (r.produto ?? r.subtipo)),
       };
     })
     .filter(Boolean) as LeilaoData[];
