@@ -25,10 +25,42 @@ export default function PainelPage() {
   );
 
   const tipoData = useMemo(() => data?.byTipo ?? [], [data]);
+
   const destinoData = useMemo(
     () => (data?.byDestino ?? []).map(d => ({ name: d.name, value: d.faturamento, qty: d.qtd })),
     [data],
   );
+
+  const canalData = useMemo(() => {
+    if (!data) return [];
+    const b2bNames = new Set(data.b2bByDestino.map(d => d.name));
+    const map = new Map<string, { value: number; color: string }>();
+
+    const add = (name: string, value: number, color: string) => {
+      const cur = map.get(name) ?? { value: 0, color };
+      map.set(name, { value: cur.value + value, color });
+    };
+
+    for (const d of data.byDestino) {
+      const u = d.name.toUpperCase().trim();
+      if (u.startsWith('LEILÃ') || u.startsWith('LEILAO')) {
+        add('Leilão', d.faturamento, '#a855f7');
+      } else if (u === 'ETERNNO') {
+        add('Eternno', d.faturamento, '#6366f1');
+      } else if (u === 'MERCADO LIVRE') {
+        add('Mercado Livre', d.faturamento, '#f59e0b');
+      } else if (b2bNames.has(d.name)) {
+        add('Parceiros', d.faturamento, '#f97316');
+      } else {
+        add('Outros', d.faturamento, '#10b981');
+      }
+    }
+
+    return [...map.entries()]
+      .map(([name, { value, color }]) => ({ name, value, color }))
+      .filter(d => d.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [data]);
 
   return (
     <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
@@ -72,7 +104,7 @@ export default function PainelPage() {
             </div>
           </div>
 
-          {/* Donut + Ticket Médio */}
+          {/* Dois donuts empilhados */}
           <div className="flex flex-col gap-3 min-h-0">
             <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col overflow-hidden">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
@@ -85,6 +117,16 @@ export default function PainelPage() {
               </div>
             </div>
 
+            <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col overflow-hidden">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
+                Canal de Venda
+              </p>
+              <div className="flex-1 min-h-0">
+                {canalData.length > 0
+                  ? <TipoDonut data={canalData} formatter={fmtBRL} />
+                  : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem dados</div>}
+              </div>
+            </div>
           </div>
 
         </div>
