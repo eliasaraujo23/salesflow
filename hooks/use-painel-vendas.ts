@@ -128,8 +128,10 @@ export interface PainelVendasData {
   b2cByDestino: PainelAgg[];
   monthly: PainelMonthRow[];
   jf: PainelKpi;
+  jm: PainelKpi;
   revenda: PainelKpi;
   jfByProduto: PainelAgg[];
+  jmByProduto: PainelAgg[];
   revendaByProduto: PainelAgg[];
   leiloes: LeilaoData[];
   rows: PainelDetailRow[];
@@ -202,7 +204,8 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
   const b2bRows = filtered.filter(r => !isB2C(r.destino));
   const leilaoRows = filtered.filter(r => isLeilao(r.destino));
   const jfRows = filtered.filter(r => tipoOf(r.tipo) === 'JF');
-  const revendaRows = filtered.filter(r => tipoOf(r.tipo) !== 'JF' && tipoOf(r.tipo) !== 'JC');
+  const jmRows = filtered.filter(r => tipoOf(r.tipo) === 'JM');
+  const revendaRows = filtered.filter(r => tipoOf(r.tipo) !== 'JF' && tipoOf(r.tipo) !== 'JM' && tipoOf(r.tipo) !== 'JC');
 
   // Monthly
   const monthMap = new Map<string, { fat: number; custo: number; qtd: number }>();
@@ -285,8 +288,10 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
     b2cByDestino: agg(b2cRows, r => r.destino),
     monthly,
     jf: kpiOf(jfRows),
+    jm: kpiOf(jmRows),
     revenda: kpiOf(revendaRows),
     jfByProduto: agg(jfRows, r => r.produto ?? r.subtipo),
+    jmByProduto: agg(jmRows, r => r.produto ?? r.subtipo),
     revendaByProduto: agg(revendaRows, r => r.produto ?? r.subtipo),
     leiloes,
     rows,

@@ -37,10 +37,16 @@ export default function PainelParceirosPage() {
   );
 
   const [selectedJF, setSelectedJF] = useState<string | null>(null);
+  const [selectedJM, setSelectedJM] = useState<string | null>(null);
   const [selectedRV, setSelectedRV] = useState<string | null>(null);
 
   const jfData = useMemo(
     () => (data?.jfByProduto ?? []).map(d => ({ name: d.name, value: d.faturamento, qty: d.qtd })),
+    [data],
+  );
+
+  const jmData = useMemo(
+    () => (data?.jmByProduto ?? []).map(d => ({ name: d.name, value: d.faturamento, qty: d.qtd })),
     [data],
   );
 
@@ -52,12 +58,14 @@ export default function PainelParceirosPage() {
   const filteredRows = useMemo(() => {
     if (!data) return [];
     if (selectedJF) return data.rows.filter(r => r.tipo === 'JF' && (r.produto === selectedJF || r.subtipo === selectedJF));
-    if (selectedRV) return data.rows.filter(r => r.tipo !== 'JF' && (r.produto === selectedRV || r.subtipo === selectedRV));
+    if (selectedJM) return data.rows.filter(r => r.tipo === 'JM' && (r.produto === selectedJM || r.subtipo === selectedJM));
+    if (selectedRV) return data.rows.filter(r => r.tipo !== 'JF' && r.tipo !== 'JM' && (r.produto === selectedRV || r.subtipo === selectedRV));
     return data.rows;
-  }, [data, selectedJF, selectedRV]);
+  }, [data, selectedJF, selectedJM, selectedRV]);
 
-  const activeFilter = selectedJF ?? selectedRV ?? null;
-  const clearFilter = () => { setSelectedJF(null); setSelectedRV(null); };
+  const activeFilter = selectedJF ?? selectedJM ?? selectedRV ?? null;
+  const activeLabel = selectedJF ? 'JF' : selectedJM ? 'JM' : 'Revenda';
+  const clearFilter = () => { setSelectedJF(null); setSelectedJM(null); setSelectedRV(null); };
 
   type SortKey = 'referencia' | 'produto' | 'subtipo' | 'destino' | 'tipo' | 'custo_real' | 'preco_cobrado' | 'tipo_pedra' | 'lucrat' | 'data_venda';
   const [sortKey, setSortKey] = useState<SortKey>('data_venda');
@@ -90,6 +98,15 @@ export default function PainelParceirosPage() {
       ],
     },
     {
+      label: 'JM',
+      kpis: [
+        { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(data?.jm.faturamento ?? 0) },
+        { label: 'Ticket Médio', value: isLoading ? '—' : fmtBRL(data?.jm.tm ?? 0) },
+        { label: 'Qtd',          value: isLoading ? '—' : String(data?.jm.qtd ?? 0) },
+        { label: 'Lucrat.',      value: isLoading ? '—' : fmtPct(data?.jm.lucrat ?? 0) },
+      ],
+    },
+    {
       label: 'Revenda',
       kpis: [
         { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(data?.revenda.faturamento ?? 0) },
@@ -103,8 +120,8 @@ export default function PainelParceirosPage() {
   return (
     <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
 
-      {/* KPI bar */}
-      <div className="shrink-0 grid grid-cols-2 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+      {/* KPI bar — 3 seções */}
+      <div className="shrink-0 grid grid-cols-3 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 divide-x divide-zinc-200 dark:divide-white/[0.08]">
         {sections.map(s => (
           <div key={s.label}>
             <div className="px-4 pt-2 pb-0">
@@ -135,16 +152,26 @@ export default function PainelParceirosPage() {
 
       {data && !isLoading && (
         <>
-          {/* Fill charts — mesmo box, barras adaptam à altura */}
-          <div className="flex-1 min-h-0 grid grid-cols-2 gap-3">
+          {/* 3 charts em grid */}
+          <div className="flex-1 min-h-0 grid grid-cols-3 gap-3">
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
                 Produto — JF Fabricado
               </p>
               <div className="flex-1 min-h-0">
                 {jfData.length > 0
-                  ? <HBarChart data={jfData} color="#6366f1" formatter={fmtBRL} fill selected={selectedJF} onSelect={v => { setSelectedJF(v); setSelectedRV(null); }} />
+                  ? <HBarChart data={jfData} color="#6366f1" formatter={fmtBRL} fill selected={selectedJF} onSelect={v => { setSelectedJF(v); setSelectedJM(null); setSelectedRV(null); }} />
                   : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem vendas JF</div>}
+              </div>
+            </div>
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
+                Produto — JM
+              </p>
+              <div className="flex-1 min-h-0">
+                {jmData.length > 0
+                  ? <HBarChart data={jmData} color="#a855f7" formatter={fmtBRL} fill selected={selectedJM} onSelect={v => { setSelectedJM(v); setSelectedJF(null); setSelectedRV(null); }} />
+                  : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem vendas JM</div>}
               </div>
             </div>
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
@@ -153,17 +180,16 @@ export default function PainelParceirosPage() {
               </p>
               <div className="flex-1 min-h-0">
                 {rvData.length > 0
-                  ? <HBarChart data={rvData} color="#10b981" formatter={fmtBRL} fill selected={selectedRV} onSelect={v => { setSelectedRV(v); setSelectedJF(null); }} />
+                  ? <HBarChart data={rvData} color="#10b981" formatter={fmtBRL} fill selected={selectedRV} onSelect={v => { setSelectedRV(v); setSelectedJF(null); setSelectedJM(null); }} />
                   : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem vendas de revenda</div>}
               </div>
             </div>
           </div>
 
-          {/* Scrollable detail table — overflow-x no mesmo elemento do overflow-y para sticky funcionar */}
+          {/* Tabela de detalhamento */}
           <div className="shrink-0 h-56 overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
             <table className="w-full text-xs border-separate border-spacing-0">
               <thead>
-                {/* Título fixo */}
                 <tr>
                   <th colSpan={10} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
                     <div className="flex items-center gap-3">
@@ -175,14 +201,13 @@ export default function PainelParceirosPage() {
                           onClick={clearFilter}
                           className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
                         >
-                          {selectedJF ? 'JF' : 'Revenda'} — {activeFilter} <X size={10} />
+                          {activeLabel} — {activeFilter} <X size={10} />
                         </button>
                       )}
                     </div>
                   </th>
                 </tr>
-                {/* Colunas ordenáveis fixas */}
-                <tr className="border-b border-zinc-200 dark:border-white/[0.06]">
+                <tr>
                   {([
                     { label: 'Referência',    key: 'referencia' },
                     { label: 'Produto',       key: 'produto' },
