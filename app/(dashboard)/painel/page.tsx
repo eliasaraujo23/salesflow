@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { usePainelVendas } from '@/hooks/use-painel-vendas';
-import { HBarChart } from '@/components/painel/h-bar-chart';
+import { StackedHBarChart } from '@/components/painel/stacked-h-bar-chart';
 import { TipoDonut } from '@/components/painel/tipo-donut';
 
 function fmtBRL(v: number) {
@@ -25,11 +25,7 @@ export default function PainelPage() {
   );
 
   const tipoData = useMemo(() => data?.byTipo ?? [], [data]);
-
-  const destinoData = useMemo(
-    () => (data?.byDestino ?? []).map(d => ({ name: d.name, value: d.faturamento, qty: d.qtd, color: d.color })),
-    [data],
-  );
+  const destinoData = data?.byDestinoStacked ?? [];
 
   const canalData = useMemo(() => {
     if (!data) return [];
@@ -100,7 +96,7 @@ export default function PainelPage() {
               Faturamento Total por Destino
             </p>
             <div className="flex-1 overflow-y-auto min-h-0">
-              <HBarChart data={destinoData} color="#6366f1" formatter={fmtBRL} />
+              <StackedHBarChart data={destinoData} formatter={fmtBRL} />
             </div>
           </div>
 

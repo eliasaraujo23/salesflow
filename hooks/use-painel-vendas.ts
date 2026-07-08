@@ -62,7 +62,16 @@ export interface PainelAgg {
   faturamento: number;
   custo: number;
   qtd: number;
-  color?: string;
+}
+
+export interface PainelDestinoAgg {
+  name: string;
+  qtd: number;
+  total: number;
+  JR: number;
+  JF: number;
+  JM: number;
+  JC: number;
 }
 
 export interface PainelKpi {
@@ -111,9 +120,10 @@ export interface PainelVendasData {
   b2b: PainelKpi;
   b2c: PainelKpi;
   byTipo: Array<{ name: string; value: number; color: string }>;
-  byDestino: PainelAgg[];        // sempre sem filtro de destino (visão geral)
-  destinos: string[];            // lista por faturamento (para o gráfico)
-  destinosSorted: string[];      // lista alfabética (para o dropdown)
+  byDestino: PainelAgg[];
+  byDestinoStacked: PainelDestinoAgg[];
+  destinos: string[];
+  destinosSorted: string[];
   b2bByDestino: PainelAgg[];
   b2cByDestino: PainelAgg[];
   monthly: PainelMonthRow[];
@@ -165,26 +175,28 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
     : main
   ).filter(r => tipoOf(r.tipo) !== null);
 
-  // Cor dominante por destino (tipo com maior faturamento)
-  const destinoTipoFat = new Map<string, Map<string, number>>();
+  // Per-destino tipo breakdown for stacked chart
+  const destinoBreakdownMap = new Map<string, { qtd: number; JR: number; JF: number; JM: number; JC: number }>();
   for (const r of filtered) {
     const dest = clean(r.destino);
-    const t = tipoOf(r.tipo);
+    const t = tipoOf(r.tipo) as 'JR' | 'JF' | 'JM' | 'JC' | null;
     if (!dest || !t) continue;
-    const inner = destinoTipoFat.get(dest) ?? new Map<string, number>();
-    inner.set(t, (inner.get(t) ?? 0) + (r.preco_cobrado ?? 0));
-    destinoTipoFat.set(dest, inner);
+    const fat = r.preco_cobrado ?? 0;
+    const e = destinoBreakdownMap.get(dest) ?? { qtd: 0, JR: 0, JF: 0, JM: 0, JC: 0 };
+    e.qtd++;
+    e[t] += fat;
+    destinoBreakdownMap.set(dest, e);
   }
-  const dominantColor = (dest: string): string => {
-    const inner = destinoTipoFat.get(dest);
-    if (!inner) return '#71717a';
-    let best = ''; let bestVal = 0;
-    inner.forEach((v, k) => { if (v > bestVal) { bestVal = v; best = k; } });
-    return TIPO_COLORS[best] ?? '#71717a';
-  };
+  const byDestinoStacked: PainelDestinoAgg[] = Array.from(destinoBreakdownMap.entries())
+    .map(([name, e]) => ({
+      name, qtd: e.qtd,
+      total: e.JR + e.JF + e.JM + e.JC,
+      JR: e.JR, JF: e.JF, JM: e.JM, JC: e.JC,
+    }))
+    .sort((a, b) => b.total - a.total);
 
   // Gráfico de destinos reflete o filtro aplicado
-  const byDestinoFiltered = agg(filtered, r => r.destino).map(d => ({ ...d, color: dominantColor(d.name) }));
+  const byDestinoFiltered = agg(filtered, r => r.destino);
 
   const b2cRows = filtered.filter(r => isB2C(r.destino));
   const b2bRows = filtered.filter(r => !isB2C(r.destino));
@@ -266,6 +278,7 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
     b2c: kpiOf(b2cRows),
     byTipo,
     byDestino: byDestinoFiltered,
+    byDestinoStacked,
     destinos,
     destinosSorted,
     b2bByDestino: agg(b2bRows, r => r.destino),
