@@ -18,29 +18,25 @@ const RV_DESTINOS = new Set([
 
 const RV_STATUS_MAIN = new Set([2, 4, 13]);
 
-// Mesma normalização do agg() em fetch-resale.ts (strip chars invisíveis, trim, uppercase)
-function normDest(s: string | null | undefined): string {
-  return (s ?? '').replace(/[​-‍﻿­ --]/g, '').trim().toUpperCase();
-}
-
-const isScrap = (r: { nf_joia?: string | null }) => normDest(r.nf_joia) === 'SCRAP';
-
 const B2C_DESTINOS = new Set([
   'ETERNNO', 'MERCADO LIVRE', 'LEILÃO ETERNNO', 'LEILÃO BRUNO', 'LEILÃO 24K',
 ]);
 
 const LEILAO_DESTINOS = new Set(['LEILÃO ETERNNO', 'LEILÃO BRUNO', 'LEILÃO 24K']);
 
-function isB2C(destino: string | null | undefined) { return B2C_DESTINOS.has(normDest(destino)); }
-function isLeilao(destino: string | null | undefined) { return LEILAO_DESTINOS.has(normDest(destino)); }
+// Só remove chars invisíveis Unicode — NÃO remove espaços
+function clean(s: string | null | undefined): string {
+  return (s ?? '').replace(/[​‌‍﻿­]/g, '').trim().toUpperCase();
+}
+
+const isScrap = (r: { nf_joia?: string | null }) => clean(r.nf_joia) === 'SCRAP';
+const isB2C = (d: string | null | undefined) => B2C_DESTINOS.has(clean(d));
+const isLeilao = (d: string | null | undefined) => LEILAO_DESTINOS.has(clean(d));
 
 const MESES_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 const TIPO_COLORS: Record<string, string> = {
-  JF: '#6366f1',
-  JMF: '#f97316',
-  JR: '#10b981',
-  JM: '#a855f7',
+  JF: '#6366f1', JMF: '#f97316', JR: '#10b981', JM: '#a855f7',
 };
 
 function tipoOf(tipo: string | null | undefined): string {
@@ -112,7 +108,8 @@ export interface PainelVendasData {
   b2b: PainelKpi;
   b2c: PainelKpi;
   byTipo: Array<{ name: string; value: number; color: string }>;
-  byDestino: PainelAgg[];
+  byDestino: PainelAgg[];        // sempre sem filtro de destino (visão geral)
+  destinos: string[];            // lista de destinos disponíveis para o seletor
   b2bByDestino: PainelAgg[];
   b2cByDestino: PainelAgg[];
   monthly: PainelMonthRow[];
@@ -127,7 +124,7 @@ export interface PainelVendasData {
 function agg(rows: PainelRow[], keyFn: (r: PainelRow) => string | null | undefined): PainelAgg[] {
   const map = new Map<string, PainelAgg>();
   for (const r of rows) {
-    const key = normDest(keyFn(r));
+    const key = clean(keyFn(r));
     if (!key) continue;
     const fat = r.preco_cobrado ?? 0;
     const e = map.get(key);
@@ -144,23 +141,33 @@ function kpiOf(rows: PainelRow[]): PainelKpi {
   return { faturamento: fat, custo, qtd, lucrat: lucrat(fat, custo), tm: tm(fat, qtd) };
 }
 
-function buildPainelData(data: PainelRow[]): PainelVendasData {
-  // Mesma lógica de fetch-resale.ts: allowed → main (scrap sempre entra)
+function buildPainelData(data: PainelRow[], destinoFilter?: string | null): PainelVendasData {
+  // Mesma lógica de fetch-resale.ts — sem normDest no allowed (igual Revenda)
   const allowed = data.filter(r => {
-    const d = normDest(r.destino);
+    const d = (r.destino ?? '').trim().toUpperCase();
     return d && RV_DESTINOS.has(d);
   });
+  // Scrap rows sempre entram (igual Revenda)
   const main = allowed.filter(r => isScrap(r) || RV_STATUS_MAIN.has(Number(r.status_id)));
 
-  const b2cRows = main.filter(r => isB2C(r.destino));
-  const b2bRows = main.filter(r => !isB2C(r.destino));
-  const leilaoRows = main.filter(r => isLeilao(r.destino));
-  const jfRows = main.filter(r => tipoOf(r.tipo) === 'JF');
-  const revendaRows = main.filter(r => tipoOf(r.tipo) !== 'JF');
+  // byDestino e lista de destinos: sempre sem filtro (para o gráfico geral e o seletor)
+  const byDestinoAll = agg(main, r => r.destino).slice(0, 30);
+  const destinos = byDestinoAll.map(d => d.name);
 
-  // Monthly grouping
+  // Aplica filtro de destino para todos os KPIs e breakdowns
+  const filtered = destinoFilter
+    ? main.filter(r => clean(r.destino) === destinoFilter)
+    : main;
+
+  const b2cRows = filtered.filter(r => isB2C(r.destino));
+  const b2bRows = filtered.filter(r => !isB2C(r.destino));
+  const leilaoRows = filtered.filter(r => isLeilao(r.destino));
+  const jfRows = filtered.filter(r => tipoOf(r.tipo) === 'JF');
+  const revendaRows = filtered.filter(r => tipoOf(r.tipo) !== 'JF');
+
+  // Monthly
   const monthMap = new Map<string, { fat: number; custo: number; qtd: number }>();
-  for (const r of main) {
+  for (const r of filtered) {
     if (!r.data_venda) continue;
     const mes = r.data_venda.substring(0, 7);
     const e = monthMap.get(mes) ?? { fat: 0, custo: 0, qtd: 0 };
@@ -173,19 +180,12 @@ function buildPainelData(data: PainelRow[]): PainelVendasData {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([mes, { fat, custo, qtd }]) => {
       const [, m] = mes.split('-');
-      return {
-        mes,
-        mesLabel: MESES_PT[parseInt(m) - 1] ?? mes,
-        faturamento: fat,
-        custo,
-        qtd,
-        ticketMedio: tm(fat, qtd),
-      };
+      return { mes, mesLabel: MESES_PT[parseInt(m) - 1] ?? mes, faturamento: fat, custo, qtd, ticketMedio: tm(fat, qtd) };
     });
 
   // Tipo donut
   const tipoMap = new Map<string, number>();
-  for (const r of main) {
+  for (const r of filtered) {
     const t = tipoOf(r.tipo);
     tipoMap.set(t, (tipoMap.get(t) ?? 0) + (r.preco_cobrado ?? 0));
   }
@@ -198,11 +198,11 @@ function buildPainelData(data: PainelRow[]): PainelVendasData {
   const leilaoNames = ['LEILÃO ETERNNO', 'LEILÃO BRUNO', 'LEILÃO 24K'];
   const leiloes: LeilaoData[] = leilaoNames
     .map(nome => {
-      const rows = leilaoRows.filter(r => normDest(r.destino) === nome);
-      if (rows.length === 0) return null;
-      const jfR = rows.filter(r => tipoOf(r.tipo) === 'JF');
-      const rvR = rows.filter(r => tipoOf(r.tipo) !== 'JF');
-      const kpi = kpiOf(rows);
+      const lRows = leilaoRows.filter(r => clean(r.destino) === nome);
+      if (lRows.length === 0) return null;
+      const jfR = lRows.filter(r => tipoOf(r.tipo) === 'JF');
+      const rvR = lRows.filter(r => tipoOf(r.tipo) !== 'JF');
+      const kpi = kpiOf(lRows);
       return {
         nome,
         faturamento: kpi.faturamento,
@@ -211,12 +211,12 @@ function buildPainelData(data: PainelRow[]): PainelVendasData {
         lucrat: kpi.lucrat,
         tmJF: jfR.length > 0 ? jfR.reduce((s, r) => s + (r.preco_cobrado ?? 0), 0) / jfR.length : 0,
         tmRevenda: rvR.length > 0 ? rvR.reduce((s, r) => s + (r.preco_cobrado ?? 0), 0) / rvR.length : 0,
-        byProduto: agg(rows, r => r.produto ?? r.subtipo),
+        byProduto: agg(lRows, r => r.produto ?? r.subtipo),
       };
     })
     .filter(Boolean) as LeilaoData[];
 
-  const rows: PainelDetailRow[] = [...main]
+  const rows: PainelDetailRow[] = [...filtered]
     .filter(r => r.data_venda)
     .sort((a, b) => ((b.data_venda ?? '') > (a.data_venda ?? '') ? 1 : -1))
     .map(r => ({
@@ -233,11 +233,12 @@ function buildPainelData(data: PainelRow[]): PainelVendasData {
     }));
 
   return {
-    total: kpiOf(main),
+    total: kpiOf(filtered),
     b2b: kpiOf(b2bRows),
     b2c: kpiOf(b2cRows),
     byTipo,
-    byDestino: agg(main, r => r.destino).slice(0, 25),
+    byDestino: byDestinoAll,
+    destinos,
     b2bByDestino: agg(b2bRows, r => r.destino),
     b2cByDestino: agg(b2cRows, r => r.destino),
     monthly,
@@ -250,14 +251,18 @@ function buildPainelData(data: PainelRow[]): PainelVendasData {
   };
 }
 
-export function usePainelVendas(from: string | undefined, to: string | undefined) {
+export function usePainelVendas(
+  from: string | undefined,
+  to: string | undefined,
+  destino?: string | null,
+) {
   return useQuery({
-    queryKey: ['painel-vendas', from, to],
+    queryKey: ['painel-vendas', from, to, destino ?? null],
     queryFn: async () => {
       if (!from || !to) throw new Error('Date range required');
       const res = await fetchPainelRows(from, to);
       if (!res.data) throw new Error(res.message ?? 'Erro ao carregar dados');
-      return buildPainelData(res.data);
+      return buildPainelData(res.data, destino);
     },
     enabled: !!from && !!to,
     staleTime: 5 * 60 * 1000,

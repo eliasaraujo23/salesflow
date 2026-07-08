@@ -54,11 +54,12 @@ function Card({ children, className = '' }: { children: React.ReactNode; classNa
 
 export default function PainelPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(defaultRange);
+  const [destinoFilter, setDestinoFilter] = useState<string | null>(null);
 
   const from = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined;
   const to = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined;
 
-  const { data, isLoading, isError, error, refetch, isFetching } = usePainelVendas(from, to);
+  const { data, isLoading, isError, error, refetch, isFetching } = usePainelVendas(from, to, destinoFilter);
 
   const tipoData = useMemo(() => data?.byTipo ?? [], [data]);
   const destinoData = useMemo(() => (data?.byDestino ?? []).map(d => ({ name: d.name, value: d.faturamento })), [data]);
@@ -72,8 +73,8 @@ export default function PainelPage() {
     <div className="h-full overflow-auto p-4 flex flex-col gap-4">
 
       {/* ── Barra de filtro ─────────────────────────────── */}
-      <div className="flex items-center gap-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-4 py-3">
-        <div className="flex flex-col gap-0.5">
+      <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-4 py-3">
+        <div className="flex flex-col gap-0.5 shrink-0">
           <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Período</span>
           <CalendarDateRangePicker
             dateRange={dateRange}
@@ -81,6 +82,32 @@ export default function PainelPage() {
             buttonClassName="border-0 px-0 text-sm font-semibold rounded-none hover:border-0 h-auto"
           />
         </div>
+
+        <div className="w-px h-8 bg-zinc-200 dark:bg-white/[0.08] shrink-0" />
+
+        <div className="flex flex-col gap-0.5 min-w-[160px]">
+          <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Destino</span>
+          <select
+            value={destinoFilter ?? ''}
+            onChange={e => setDestinoFilter(e.target.value || null)}
+            className="bg-transparent border-0 text-sm font-semibold text-zinc-800 dark:text-zinc-100 outline-none cursor-pointer pr-4 py-0 h-auto appearance-none"
+          >
+            <option value="">Todos os destinos</option>
+            {(data?.destinos ?? []).map(d => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+
+        {destinoFilter && (
+          <button
+            onClick={() => setDestinoFilter(null)}
+            className="text-[11px] text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
+          >
+            Limpar filtro
+          </button>
+        )}
+
         <div className="ml-auto flex items-center gap-2">
           {isFetching && <span className="text-[11px] text-zinc-400">Atualizando...</span>}
           <button
