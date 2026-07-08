@@ -101,7 +101,7 @@ export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height,
           cursor={{ fill: 'rgba(99,102,241,0.05)' }}
         />
         <Bar dataKey="value" radius={[0, 3, 3, 0]} maxBarSize={maxBar} minPointSize={3} isAnimationActive={false}
-          onClick={(entry: { name: string }) => onSelect?.(selected === entry.name ? null : entry.name)}
+          onClick={(entry: { name?: string }) => { if (entry.name) onSelect?.(selected === entry.name ? null : entry.name); }}
           style={onSelect ? { cursor: 'pointer' } : undefined}
         >
           {rows.map((row, i) => {
