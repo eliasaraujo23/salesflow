@@ -22,15 +22,6 @@ const TIPO_CLASS: Record<string, string> = {
   JR: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
 };
 
-interface KpiCellProps { label: string; value: string; border?: boolean; }
-function KpiCell({ label, value, border = true }: KpiCellProps) {
-  return (
-    <div className={`flex flex-col justify-center gap-0.5 px-5 py-3 ${border ? 'border-r border-zinc-200 dark:border-white/[0.08]' : ''} flex-1 min-w-0`}>
-      <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{label}</span>
-      <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{value}</span>
-    </div>
-  );
-}
 
 export default function PainelParceirosPage() {
   const { from, to, destinoFilter } = usePainelFilters();
@@ -59,28 +50,46 @@ export default function PainelParceirosPage() {
     [data],
   );
 
+  const sections = [
+    {
+      label: 'Fabricado JF',
+      kpis: [
+        { label: 'Faturamento',   value: isLoading ? '—' : fmtBRL(data?.jf.faturamento ?? 0) },
+        { label: 'Ticket Médio',  value: isLoading ? '—' : fmtBRL(data?.jf.tm ?? 0) },
+        { label: 'Qtd',           value: isLoading ? '—' : String(data?.jf.qtd ?? 0) },
+        { label: 'Lucrat.',       value: isLoading ? '—' : fmtPct(data?.jf.lucrat ?? 0) },
+      ],
+    },
+    {
+      label: 'Revenda',
+      kpis: [
+        { label: 'Faturamento',   value: isLoading ? '—' : fmtBRL(data?.revenda.faturamento ?? 0) },
+        { label: 'Ticket Médio',  value: isLoading ? '—' : fmtBRL(data?.revenda.tm ?? 0) },
+        { label: 'Qtd',           value: isLoading ? '—' : String(data?.revenda.qtd ?? 0) },
+        { label: 'Lucrat.',       value: isLoading ? '—' : fmtPct(data?.revenda.lucrat ?? 0) },
+      ],
+    },
+  ];
+
   return (
     <div className="h-full overflow-auto p-4 flex flex-col gap-3">
-      {/* KPIs */}
-      <div className="flex items-stretch border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 text-sm divide-x divide-zinc-200 dark:divide-white/[0.08]">
-        <div className="flex flex-col justify-center px-4 py-2">
-          <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Fabricado JF</span>
-          <div className="flex divide-x divide-zinc-200 dark:divide-white/[0.06]">
-            <KpiCell label="Faturamento"  value={isLoading ? '—' : fmtBRL(data?.jf.faturamento ?? 0)} />
-            <KpiCell label="Ticket Médio" value={isLoading ? '—' : fmtBRL(data?.jf.tm ?? 0)} />
-            <KpiCell label="Qtd"          value={isLoading ? '—' : String(data?.jf.qtd ?? 0)} />
-            <KpiCell label="Lucrat."      value={isLoading ? '—' : fmtPct(data?.jf.lucrat ?? 0)} border={false} />
+      {/* KPIs — grid 2 colunas para evitar flex-1 comprimido */}
+      <div className="grid grid-cols-2 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+        {sections.map(s => (
+          <div key={s.label}>
+            <div className="px-4 pt-2 pb-0">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{s.label}</span>
+            </div>
+            <div className="grid grid-cols-4 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+              {s.kpis.map(k => (
+                <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
+                  <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{k.value}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="flex flex-col justify-center px-4 py-2">
-          <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Revenda</span>
-          <div className="flex divide-x divide-zinc-200 dark:divide-white/[0.06]">
-            <KpiCell label="Faturamento"  value={isLoading ? '—' : fmtBRL(data?.revenda.faturamento ?? 0)} />
-            <KpiCell label="Ticket Médio" value={isLoading ? '—' : fmtBRL(data?.revenda.tm ?? 0)} />
-            <KpiCell label="Qtd"          value={isLoading ? '—' : String(data?.revenda.qtd ?? 0)} />
-            <KpiCell label="Lucrat."      value={isLoading ? '—' : fmtPct(data?.revenda.lucrat ?? 0)} border={false} />
-          </div>
-        </div>
+        ))}
       </div>
 
       {isLoading && (
