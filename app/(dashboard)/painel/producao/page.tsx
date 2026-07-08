@@ -68,9 +68,9 @@ export default function PainelProducaoPage() {
     : '0.00';
 
   return (
-    <div className="h-full overflow-auto p-4 flex flex-col gap-3">
+    <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
       {/* KPI bar */}
-      <div className="grid border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 text-sm" style={{ gridTemplateColumns: 'repeat(6, 1fr) auto' }}>
+      <div className="shrink-0 grid border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 text-sm" style={{ gridTemplateColumns: 'repeat(6, 1fr) auto' }}>
         <KpiCell label="Fabricando" value={isLoading ? '—' : String(data?.resumo.em_fabricacao ?? 0)} />
         <KpiCell label="Custo em Fabricação" value={isLoading ? '—' : fmtBRL(custoFabricacao)} />
         <KpiCell label="Total Fabricado" value={isLoading ? '—' : String(totalFabricado)} />
@@ -83,19 +83,19 @@ export default function PainelProducaoPage() {
       </div>
 
       {isLoading && (
-        <div className="flex items-center justify-center py-24 text-zinc-400 text-sm gap-2">
+        <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm gap-2">
           <RefreshCw size={15} className="animate-spin" /> Carregando dados...
         </div>
       )}
       {isError && !isLoading && (
-        <div className="flex flex-col items-center justify-center py-24 gap-3">
+        <div className="flex-1 flex flex-col items-center justify-center gap-3">
           <p className="text-sm text-red-500">{(error as Error)?.message || 'Erro ao carregar dados.'}</p>
           <button onClick={() => refetch()} className="text-sm text-indigo-500 hover:underline">Tentar novamente</button>
         </div>
       )}
 
       {data && !isLoading && (
-        <>
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
           {/* Charts row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
@@ -175,7 +175,7 @@ export default function PainelProducaoPage() {
               ))}
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

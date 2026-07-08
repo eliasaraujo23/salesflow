@@ -59,9 +59,9 @@ export default function PainelJoiasPage() {
   ];
 
   return (
-    <div className="h-full overflow-auto p-4 flex flex-col gap-3">
+    <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
       {/* Tab toggle + KPIs */}
-      <div className="flex flex-wrap items-stretch gap-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 text-sm">
+      <div className="shrink-0 flex flex-wrap items-stretch gap-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 text-sm">
         <div className="flex items-center gap-1 px-3 py-2 border-r border-zinc-200 dark:border-white/[0.08]">
           {TABS.map(t => (
             <button
@@ -94,13 +94,13 @@ export default function PainelJoiasPage() {
       </div>
 
       {isLoading && (
-        <div className="flex items-center justify-center py-24 text-zinc-400 text-sm gap-2">
+        <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm gap-2">
           <RefreshCw size={15} className="animate-spin" /> Carregando dados...
         </div>
       )}
 
       {!isLoading && tab === 'cadastradas' && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-3 content-start">
           {/* JF Fabricado (stock) */}
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
             <div className="flex items-center justify-between mb-3">
@@ -147,7 +147,7 @@ export default function PainelJoiasPage() {
       )}
 
       {!isLoading && tab === 'detalhamento' && (
-        <div className="flex flex-col gap-3">
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
           {/* JF Sales KPI */}
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Faturamento JF por Produto</p>

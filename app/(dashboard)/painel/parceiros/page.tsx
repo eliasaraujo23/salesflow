@@ -14,14 +14,12 @@ function fmtPct(v: number) {
   return `${v.toFixed(2)}%`;
 }
 
-// Cores por tipo — JF=indigo JM=purple JC=amber JR=green
 const TIPO_CLASS: Record<string, string> = {
   JF: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
   JM: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400',
   JC: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400',
   JR: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
 };
-
 
 export default function PainelParceirosPage() {
   const { from, to, destinoFilter } = usePainelFilters();
@@ -33,20 +31,12 @@ export default function PainelParceirosPage() {
   );
 
   const jfData = useMemo(
-    () => (data?.jfByProduto ?? []).map(d => ({
-      name: d.name,
-      value: d.faturamento,
-      qty: d.qtd,
-    })),
+    () => (data?.jfByProduto ?? []).map(d => ({ name: d.name, value: d.faturamento, qty: d.qtd })),
     [data],
   );
 
   const rvData = useMemo(
-    () => (data?.revendaByProduto ?? []).map(d => ({
-      name: d.name,
-      value: d.faturamento,
-      qty: d.qtd,
-    })),
+    () => (data?.revendaByProduto ?? []).map(d => ({ name: d.name, value: d.faturamento, qty: d.qtd })),
     [data],
   );
 
@@ -54,27 +44,28 @@ export default function PainelParceirosPage() {
     {
       label: 'Fabricado JF',
       kpis: [
-        { label: 'Faturamento',   value: isLoading ? '—' : fmtBRL(data?.jf.faturamento ?? 0) },
-        { label: 'Ticket Médio',  value: isLoading ? '—' : fmtBRL(data?.jf.tm ?? 0) },
-        { label: 'Qtd',           value: isLoading ? '—' : String(data?.jf.qtd ?? 0) },
-        { label: 'Lucrat.',       value: isLoading ? '—' : fmtPct(data?.jf.lucrat ?? 0) },
+        { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(data?.jf.faturamento ?? 0) },
+        { label: 'Ticket Médio', value: isLoading ? '—' : fmtBRL(data?.jf.tm ?? 0) },
+        { label: 'Qtd',          value: isLoading ? '—' : String(data?.jf.qtd ?? 0) },
+        { label: 'Lucrat.',      value: isLoading ? '—' : fmtPct(data?.jf.lucrat ?? 0) },
       ],
     },
     {
       label: 'Revenda',
       kpis: [
-        { label: 'Faturamento',   value: isLoading ? '—' : fmtBRL(data?.revenda.faturamento ?? 0) },
-        { label: 'Ticket Médio',  value: isLoading ? '—' : fmtBRL(data?.revenda.tm ?? 0) },
-        { label: 'Qtd',           value: isLoading ? '—' : String(data?.revenda.qtd ?? 0) },
-        { label: 'Lucrat.',       value: isLoading ? '—' : fmtPct(data?.revenda.lucrat ?? 0) },
+        { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(data?.revenda.faturamento ?? 0) },
+        { label: 'Ticket Médio', value: isLoading ? '—' : fmtBRL(data?.revenda.tm ?? 0) },
+        { label: 'Qtd',          value: isLoading ? '—' : String(data?.revenda.qtd ?? 0) },
+        { label: 'Lucrat.',      value: isLoading ? '—' : fmtPct(data?.revenda.lucrat ?? 0) },
       ],
     },
   ];
 
   return (
-    <div className="h-full overflow-auto p-4 flex flex-col gap-3">
-      {/* KPIs — grid 2 colunas para evitar flex-1 comprimido */}
-      <div className="grid grid-cols-2 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+    <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
+
+      {/* KPI bar */}
+      <div className="shrink-0 grid grid-cols-2 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 divide-x divide-zinc-200 dark:divide-white/[0.08]">
         {sections.map(s => (
           <div key={s.label}>
             <div className="px-4 pt-2 pb-0">
@@ -93,37 +84,45 @@ export default function PainelParceirosPage() {
       </div>
 
       {isLoading && (
-        <div className="flex items-center justify-center py-24 text-zinc-400 text-sm gap-2">
+        <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm gap-2">
           <RefreshCw size={15} className="animate-spin" /> Carregando dados...
         </div>
       )}
       {isError && !isLoading && (
-        <div className="flex flex-col items-center justify-center py-24 gap-3">
+        <div className="flex-1 flex items-center justify-center">
           <p className="text-sm text-red-500">{(error as Error)?.message || 'Erro ao carregar dados.'}</p>
         </div>
       )}
 
       {data && !isLoading && (
         <>
-          {/* 2 gráficos unificados */}
-          <div className="grid grid-cols-2 gap-3 items-start">
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
+          {/* Fill charts — mesmo box, barras adaptam à altura */}
+          <div className="shrink-0 h-[360px] grid grid-cols-2 gap-3">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
                 Produto — JF Fabricado
               </p>
-              <HBarChart data={jfData} color="#6366f1" formatter={fmtBRL} />
+              <div className="flex-1 min-h-0">
+                {jfData.length > 0
+                  ? <HBarChart data={jfData} color="#6366f1" formatter={fmtBRL} fill />
+                  : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem vendas JF</div>}
+              </div>
             </div>
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
                 Produto — Revenda
               </p>
-              <HBarChart data={rvData} color="#10b981" formatter={fmtBRL} />
+              <div className="flex-1 min-h-0">
+                {rvData.length > 0
+                  ? <HBarChart data={rvData} color="#10b981" formatter={fmtBRL} fill />
+                  : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem vendas de revenda</div>}
+              </div>
             </div>
           </div>
 
-          {/* Detail table */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-200 dark:border-white/[0.08]">
+          {/* Scrollable detail table */}
+          <div className="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-zinc-200 dark:border-white/[0.08] sticky top-0 bg-white dark:bg-zinc-900 z-10">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                 Detalhamento — {data.rows.length} vendas
               </p>
