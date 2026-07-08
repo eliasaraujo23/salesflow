@@ -1,7 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
-import { RefreshCw, ChevronDown, Check } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { CalendarDateRangePicker } from '@/components/ui/date-range-picker';
 import { usePainelFilters } from './painel-filters-context';
 
@@ -86,7 +85,7 @@ function DestinoSelect({ value, onChange, options }: {
 }
 
 export function PainelFilterBar() {
-  const { dateRange, setDateRange, destinoFilter, setDestinoFilter, destinosSorted, isFetching, refetchAll } = usePainelFilters();
+  const { dateRange, setDateRange, isFetching, refetchAll } = usePainelFilters();
 
   return (
     <div className="flex flex-wrap items-center gap-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] px-4 py-3 shrink-0">
@@ -96,17 +95,6 @@ export function PainelFilterBar() {
           dateRange={dateRange}
           setDateRange={setDateRange}
           buttonClassName="border-0 px-0 text-sm font-semibold rounded-none hover:border-0 h-auto"
-        />
-      </div>
-
-      <div className="w-px h-8 bg-zinc-200 dark:bg-white/[0.08] shrink-0" />
-
-      <div className="flex flex-col gap-0.5 shrink-0">
-        <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Destino</span>
-        <DestinoSelect
-          value={destinoFilter}
-          onChange={setDestinoFilter}
-          options={destinosSorted}
         />
       </div>
 
