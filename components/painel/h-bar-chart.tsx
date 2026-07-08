@@ -58,11 +58,11 @@ export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height,
   const autoWidth = rows.reduce((m, r) => Math.max(m, estimatePx(r.label)), 80);
   const labelWidth = Math.min(240, Math.max(80, autoWidth + 16));
 
-  const dynamicHeight = fill ? '100%' : (height ?? Math.max(180, rows.length * 30 + 40));
+  const dynamicHeight: number | `${number}%` = fill ? '100%' : (height ?? Math.max(180, rows.length * 30 + 40));
   const maxBar = fill ? 48 : 22;
 
   return (
-    <ResponsiveContainer width="100%" height={dynamicHeight as number | string}>
+    <ResponsiveContainer width="100%" height={dynamicHeight}>
       <BarChart data={rows} layout="vertical" margin={{ top: 0, right: 90, bottom: 20, left: 0 }}>
         <XAxis
           type="number"
