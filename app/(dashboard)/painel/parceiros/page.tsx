@@ -14,6 +14,12 @@ function fmtPct(v: number) {
   return `${v.toFixed(2)}%`;
 }
 
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = iso.substring(0, 10).split('-');
+  return `${d[2]}/${d[1]}/${d[0]}`;
+}
+
 const TIPO_CLASS: Record<string, string> = {
   JF: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
   JM: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400',
@@ -156,7 +162,7 @@ export default function PainelParceirosPage() {
                           {r.lucrat.toFixed(2)}%
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.data_venda ?? '—'}</td>
+                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtDate(r.data_venda)}</td>
                     </tr>
                   ))}
                 </tbody>

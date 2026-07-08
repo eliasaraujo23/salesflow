@@ -15,6 +15,12 @@ function fmtPct(v: number) {
   return `${v.toFixed(2)}%`;
 }
 
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = iso.substring(0, 10).split('-');
+  return `${d[2]}/${d[1]}/${d[0]}`;
+}
+
 type TabKey = 'cadastradas' | 'detalhamento';
 
 export default function PainelJoiasPage() {
@@ -191,7 +197,7 @@ export default function PainelJoiasPage() {
                           {r.lucrat.toFixed(2)}%
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.data_venda ?? '—'}</td>
+                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtDate(r.data_venda)}</td>
                     </tr>
                   ))}
                 </tbody>
