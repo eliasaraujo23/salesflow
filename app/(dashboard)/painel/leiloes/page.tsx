@@ -16,14 +16,14 @@ function fmtPct(v: number) {
 interface KpiCellProps { label: string; value: string; border?: boolean; }
 function KpiCell({ label, value, border = true }: KpiCellProps) {
   return (
-    <div className={`flex flex-col justify-center gap-0.5 px-4 py-3 ${border ? 'border-r border-zinc-200 dark:border-white/[0.08]' : ''} flex-1 min-w-0`}>
+    <div className={`flex flex-col justify-center gap-0.5 px-4 py-3 ${border ? 'border-r border-zinc-200 dark:border-white/[0.08]' : ''}`}>
       <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{label}</span>
       <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{value}</span>
     </div>
   );
 }
 
-export default function PainelLeloesPage() {
+export default function PainelLeiloesPage() {
   const { from, to, destinoFilter } = usePainelFilters();
 
   const { data, isLoading, isError, error } = usePainelVendas(
@@ -60,8 +60,8 @@ export default function PainelLeloesPage() {
                 return (
                   <div key={leilao.nome} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
                     {/* KPI header */}
-                    <div className="flex items-stretch divide-x divide-zinc-200 dark:divide-white/[0.08] border-b border-zinc-200 dark:border-white/[0.08]">
-                      <div className="flex flex-col justify-center px-4 py-3 min-w-[120px] shrink-0">
+                    <div className="grid divide-x divide-zinc-200 dark:divide-white/[0.08] border-b border-zinc-200 dark:border-white/[0.08]" style={{ gridTemplateColumns: '120px repeat(5, 1fr)' }}>
+                      <div className="flex flex-col justify-center px-4 py-3">
                         <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Leilão</span>
                         <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">
                           {leilao.nome.replace('LEILÃO ', '')}

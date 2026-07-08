@@ -11,16 +11,20 @@ function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 }
 
+function fmtPct(v: number) {
+  return `${v.toFixed(2)}%`;
+}
+
 type TabKey = 'cadastradas' | 'detalhamento';
 
 export default function PainelJoiasPage() {
   const { from, to, destinoFilter } = usePainelFilters();
   const [tab, setTab] = useState<TabKey>('cadastradas');
 
-  const { data: vendas, isLoading: loadingVendas, refetch: refetchVendas, isFetching } = usePainelVendas(
+  const { data: vendas, isLoading: loadingVendas } = usePainelVendas(
     from, to, destinoFilter.length > 0 ? destinoFilter : null,
   );
-  const { data: jf, isLoading: loadingJf, refetch: refetchJf } = useJfDashboard();
+  const { data: jf, isLoading: loadingJf } = useJfDashboard();
 
   const isLoading = loadingVendas || loadingJf;
 
@@ -48,11 +52,6 @@ export default function PainelJoiasPage() {
     if (!vendas) return [];
     return vendas.rows.filter(r => r.tipo === 'JF');
   }, [vendas]);
-
-  function handleRefetch() {
-    refetchVendas();
-    refetchJf();
-  }
 
   const TABS: { key: TabKey; label: string }[] = [
     { key: 'cadastradas', label: 'Joias Cadastradas' },
@@ -89,7 +88,7 @@ export default function PainelJoiasPage() {
           </div>
           <div className="flex flex-col justify-center gap-0.5 px-5 py-3">
             <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Lucratividade JF</span>
-            <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{loadingVendas ? '—' : `${vendas?.jf.lucrat ?? 0}%`}</span>
+            <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{loadingVendas ? '—' : fmtPct(vendas?.jf.lucrat ?? 0)}</span>
           </div>
         </div>
       </div>
@@ -189,7 +188,7 @@ export default function PainelJoiasPage() {
                       <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
                       <td className="px-3 py-2 tabular-nums whitespace-nowrap">
                         <span className={r.lucrat >= 40 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : r.lucrat >= 0 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-500'}>
-                          {r.lucrat}%
+                          {r.lucrat.toFixed(2)}%
                         </span>
                       </td>
                       <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.data_venda ?? '—'}</td>

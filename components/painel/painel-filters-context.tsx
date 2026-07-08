@@ -42,6 +42,8 @@ export function PainelFiltersProvider({ children }: { children: React.ReactNode 
 
   function refetchAll() {
     queryClient.invalidateQueries({ queryKey: ['painel-vendas'] });
+    queryClient.invalidateQueries({ queryKey: ['jf-dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ['evolucao-parceiros'] });
   }
 
   return (

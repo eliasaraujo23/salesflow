@@ -17,7 +17,7 @@ function fmtPct(v: number) {
 
 function KpiCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-5 py-4 flex flex-col gap-0.5 flex-1 min-w-[140px]">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-5 py-4 flex flex-col gap-0.5">
       <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{label}</span>
       <span className="text-xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{value}</span>
     </div>
@@ -55,7 +55,7 @@ export default function PainelPage() {
     <div className="h-full overflow-auto p-4 flex flex-col gap-4">
 
       {/* KPIs totais */}
-      <div className="flex gap-3">
+      <div className="grid grid-cols-4 gap-3">
         <KpiCard label="Faturamento Total" value={isLoading ? '—' : fmtBRL(data?.total.faturamento ?? 0)} />
         <KpiCard label="Ticket Médio"       value={isLoading ? '—' : fmtBRL(data?.total.tm ?? 0)} />
         <KpiCard label="Quantidade"         value={isLoading ? '—' : String(data?.total.qtd ?? 0)} />

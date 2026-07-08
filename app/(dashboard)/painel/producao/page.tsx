@@ -12,7 +12,7 @@ function fmtBRL(v: number) {
 interface KpiCellProps { label: string; value: string; sub?: string; border?: boolean; }
 function KpiCell({ label, value, sub, border = true }: KpiCellProps) {
   return (
-    <div className={`flex flex-col justify-center gap-0.5 px-5 py-3 ${border ? 'border-r border-zinc-200 dark:border-white/[0.08]' : ''} flex-1 min-w-0`}>
+    <div className={`flex flex-col justify-center gap-0.5 px-5 py-3 ${border ? 'border-r border-zinc-200 dark:border-white/[0.08]' : ''}`}>
       <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{label}</span>
       <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{value}</span>
       {sub && <span className="text-[10px] text-zinc-400">{sub}</span>}
@@ -70,7 +70,7 @@ export default function PainelProducaoPage() {
   return (
     <div className="h-full overflow-auto p-4 flex flex-col gap-3">
       {/* KPI bar */}
-      <div className="flex flex-wrap items-stretch gap-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 text-sm">
+      <div className="grid border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 text-sm" style={{ gridTemplateColumns: 'repeat(6, 1fr) auto' }}>
         <KpiCell label="Fabricando" value={isLoading ? '—' : String(data?.resumo.em_fabricacao ?? 0)} />
         <KpiCell label="Custo em Fabricação" value={isLoading ? '—' : fmtBRL(custoFabricacao)} />
         <KpiCell label="Total Fabricado" value={isLoading ? '—' : String(totalFabricado)} />

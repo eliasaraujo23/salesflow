@@ -96,7 +96,10 @@ export default function PainelEvolutivoPage() {
   }, [rawData]);
 
   // Year filter
-  const activeYears = selectedYears.size === 0 ? new Set(years) : selectedYears;
+  const activeYears = useMemo(
+    () => selectedYears.size === 0 ? new Set(years) : selectedYears,
+    [selectedYears, years],
+  );
 
   function filterByYear<T extends { mes: string }>(arr: T[]): T[] {
     return arr.filter(r => activeYears.has(r.mes.substring(0, 4)));
@@ -181,7 +184,7 @@ export default function PainelEvolutivoPage() {
                   <BarChart data={filterByYear(leilaoByMonth)} margin={chartMargin} layout="vertical">
                     <XAxis type="number" tickFormatter={v => `${(v/1000).toFixed(0)}k`} tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} />
                     <YAxis type="category" dataKey="label" width={100} tick={{ fontSize: 10, fill: '#71717a' }} tickLine={false} axisLine={false} />
-                    <Tooltip formatter={(v) => [fmtBRL(Number(v)), '']} contentStyle={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12 }} />
+                    <Tooltip formatter={(v) => [fmtBRL(Number(v)), '']} contentStyle={{ background: '#ffffff', border: '1px solid #e4e4e7', borderRadius: 8, fontSize: 12, color: '#18181b', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                     <Bar dataKey="faturamento" fill="#a855f7" radius={[0, 4, 4, 0]} maxBarSize={18} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -199,7 +202,7 @@ export default function PainelEvolutivoPage() {
                       return String(v);
                     }} tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} />
                     <YAxis type="category" dataKey="label" width={100} tick={{ fontSize: 10, fill: '#71717a' }} tickLine={false} axisLine={false} />
-                    <Tooltip formatter={(v) => [fmtBRL(Number(v)), '']} contentStyle={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12 }} />
+                    <Tooltip formatter={(v) => [fmtBRL(Number(v)), '']} contentStyle={{ background: '#ffffff', border: '1px solid #e4e4e7', borderRadius: 8, fontSize: 12, color: '#18181b', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                     <Bar dataKey="faturamento" fill="#6366f1" radius={[0, 4, 4, 0]} maxBarSize={18} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -228,7 +231,7 @@ export default function PainelEvolutivoPage() {
                   />
                   <Tooltip
                     formatter={(v) => [fmtBRL(Number(v)), '']}
-                    contentStyle={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12 }}
+                    contentStyle={{ background: '#ffffff', border: '1px solid #e4e4e7', borderRadius: 8, fontSize: 12, color: '#18181b', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                   />
                   <Legend wrapperStyle={{ fontSize: 11, color: '#a1a1aa' }} />
                   {[...activeYears].sort().map((ano, i) => (
@@ -267,8 +270,8 @@ export default function PainelEvolutivoPage() {
                     width={56}
                   />
                   <Tooltip
-                    formatter={(v) => [fmtK(Number(v)), 'Faturamento']}
-                    contentStyle={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12 }}
+                    formatter={(v) => [fmtBRL(Number(v)), 'Faturamento']}
+                    contentStyle={{ background: '#ffffff', border: '1px solid #e4e4e7', borderRadius: 8, fontSize: 12, color: '#18181b', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                   />
                   <Bar dataKey="faturamento" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={60}>
                   </Bar>
