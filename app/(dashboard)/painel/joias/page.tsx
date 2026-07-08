@@ -15,7 +15,10 @@ function fmtBRL(v: number) {
 
 function defaultRange(): DateRange {
   const now = new Date();
-  return { from: new Date(now.getFullYear(), 0, 1), to: new Date(now.getFullYear(), 11, 31) };
+  const m = now.getMonth();
+  const y = m === 0 ? now.getFullYear() - 1 : now.getFullYear();
+  const pm = m === 0 ? 11 : m - 1;
+  return { from: new Date(y, pm, 1), to: new Date(y, pm + 1, 0) };
 }
 
 type TabKey = 'cadastradas' | 'detalhamento';
