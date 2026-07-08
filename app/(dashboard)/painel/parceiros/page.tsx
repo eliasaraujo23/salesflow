@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { RefreshCw, X } from 'lucide-react';
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { usePainelVendas } from '@/hooks/use-painel-vendas';
 import { HBarChart } from '@/components/painel/h-bar-chart';
@@ -36,6 +36,8 @@ export default function PainelParceirosPage() {
     destinoFilter.length > 0 ? destinoFilter : null,
   );
 
+  const [selectedProduto, setSelectedProduto] = useState<string | null>(null);
+
   const jfData = useMemo(
     () => (data?.jfByProduto ?? []).map(d => ({ name: d.name, value: d.faturamento, qty: d.qtd })),
     [data],
@@ -45,6 +47,12 @@ export default function PainelParceirosPage() {
     () => (data?.revendaByProduto ?? []).map(d => ({ name: d.name, value: d.faturamento, qty: d.qtd })),
     [data],
   );
+
+  const filteredRows = useMemo(() => {
+    if (!data) return [];
+    if (!selectedProduto) return data.rows;
+    return data.rows.filter(r => r.produto === selectedProduto || r.subtipo === selectedProduto);
+  }, [data, selectedProduto]);
 
   const sections = [
     {
@@ -110,7 +118,7 @@ export default function PainelParceirosPage() {
               </p>
               <div className="flex-1 min-h-0">
                 {jfData.length > 0
-                  ? <HBarChart data={jfData} color="#6366f1" formatter={fmtBRL} fill />
+                  ? <HBarChart data={jfData} color="#6366f1" formatter={fmtBRL} fill selected={selectedProduto} onSelect={setSelectedProduto} />
                   : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem vendas JF</div>}
               </div>
             </div>
@@ -120,7 +128,7 @@ export default function PainelParceirosPage() {
               </p>
               <div className="flex-1 min-h-0">
                 {rvData.length > 0
-                  ? <HBarChart data={rvData} color="#10b981" formatter={fmtBRL} fill />
+                  ? <HBarChart data={rvData} color="#10b981" formatter={fmtBRL} fill selected={selectedProduto} onSelect={setSelectedProduto} />
                   : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem vendas de revenda</div>}
               </div>
             </div>
@@ -128,10 +136,18 @@ export default function PainelParceirosPage() {
 
           {/* Scrollable detail table */}
           <div className="shrink-0 h-56 overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-200 dark:border-white/[0.08] sticky top-0 bg-white dark:bg-zinc-900 z-10">
+            <div className="px-4 py-3 border-b border-zinc-200 dark:border-white/[0.08] sticky top-0 bg-white dark:bg-zinc-900 z-10 flex items-center gap-3">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                Detalhamento — {data.rows.length} vendas
+                Detalhamento — {filteredRows.length} vendas
               </p>
+              {selectedProduto && (
+                <button
+                  onClick={() => setSelectedProduto(null)}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
+                >
+                  {selectedProduto} <X size={10} />
+                </button>
+              )}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -143,7 +159,7 @@ export default function PainelParceirosPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.rows.map((r, i) => (
+                  {filteredRows.map((r, i) => (
                     <tr key={i} className="border-b border-zinc-100 dark:border-white/[0.04] hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
                       <td className="px-3 py-2 font-mono text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.referencia}</td>
                       <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.produto}</td>
@@ -167,7 +183,7 @@ export default function PainelParceirosPage() {
                   ))}
                 </tbody>
               </table>
-              {data.rows.length === 0 && (
+              {filteredRows.length === 0 && (
                 <div className="text-center py-12 text-zinc-400 text-sm">Nenhuma venda no período selecionado.</div>
               )}
             </div>

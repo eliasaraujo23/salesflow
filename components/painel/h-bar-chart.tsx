@@ -18,7 +18,9 @@ interface Props {
   formatter?: (v: number) => string;
   height?: number;
   maxItems?: number;
-  fill?: boolean; // preenche o container — barras se ajustam à altura disponível
+  fill?: boolean;
+  selected?: string | null;       // nome da barra selecionada
+  onSelect?: (name: string | null) => void; // clique para selecionar/desselecionar
 }
 
 function fmtBRL(v: number) {
@@ -49,7 +51,7 @@ function CustomYAxisTick(props: { x?: number; y?: number; payload?: { value: str
   );
 }
 
-export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height, maxItems, fill = false }: Props) {
+export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height, maxItems, fill = false, selected, onSelect }: Props) {
   const rows = (maxItems != null ? data.slice(0, maxItems) : data).map(r => ({
     ...r,
     label: r.qty != null ? `${r.name} (${r.qty})` : r.name,
@@ -98,10 +100,15 @@ export function HBarChart({ data, color = '#6366f1', formatter = fmtBRL, height,
           labelStyle={{ color: '#71717a', fontSize: 11 }}
           cursor={{ fill: 'rgba(99,102,241,0.05)' }}
         />
-        <Bar dataKey="value" radius={[0, 3, 3, 0]} maxBarSize={maxBar} minPointSize={3} isAnimationActive={false}>
-          {rows.map((row, i) => (
-            <Cell key={i} fill={row.color ?? color} fillOpacity={1 - i * 0.025} />
-          ))}
+        <Bar dataKey="value" radius={[0, 3, 3, 0]} maxBarSize={maxBar} minPointSize={3} isAnimationActive={false}
+          onClick={(entry: { name: string }) => onSelect?.(selected === entry.name ? null : entry.name)}
+          style={onSelect ? { cursor: 'pointer' } : undefined}
+        >
+          {rows.map((row, i) => {
+            const isSelected = selected === row.name;
+            const dimmed = selected != null && !isSelected;
+            return <Cell key={i} fill={row.color ?? color} fillOpacity={dimmed ? 0.2 : (1 - i * 0.025)} />;
+          })}
           <LabelList
             dataKey="value"
             position="right"
