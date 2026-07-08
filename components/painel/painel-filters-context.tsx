@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, type Dispatch, type SetStateAction } from 'react';
 import { format } from 'date-fns';
 import { type DateRange } from 'react-day-picker';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,9 +16,9 @@ function defaultRange(): DateRange {
 
 export interface PainelFiltersValue {
   dateRange: DateRange | undefined;
-  setDateRange: (r: DateRange | undefined) => void;
+  setDateRange: Dispatch<SetStateAction<DateRange | undefined>>;
   destinoFilter: string[];
-  setDestinoFilter: (d: string[]) => void;
+  setDestinoFilter: Dispatch<SetStateAction<string[]>>;
   from: string | undefined;
   to: string | undefined;
   destinosSorted: string[];
