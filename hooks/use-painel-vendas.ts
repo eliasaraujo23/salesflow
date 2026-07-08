@@ -62,6 +62,7 @@ export interface PainelAgg {
   faturamento: number;
   custo: number;
   qtd: number;
+  color?: string;
 }
 
 export interface PainelKpi {
@@ -164,8 +165,26 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
     : main
   ).filter(r => tipoOf(r.tipo) !== null);
 
+  // Cor dominante por destino (tipo com maior faturamento)
+  const destinoTipoFat = new Map<string, Map<string, number>>();
+  for (const r of filtered) {
+    const dest = clean(r.destino);
+    const t = tipoOf(r.tipo);
+    if (!dest || !t) continue;
+    const inner = destinoTipoFat.get(dest) ?? new Map<string, number>();
+    inner.set(t, (inner.get(t) ?? 0) + (r.preco_cobrado ?? 0));
+    destinoTipoFat.set(dest, inner);
+  }
+  const dominantColor = (dest: string): string => {
+    const inner = destinoTipoFat.get(dest);
+    if (!inner) return '#71717a';
+    let best = ''; let bestVal = 0;
+    inner.forEach((v, k) => { if (v > bestVal) { bestVal = v; best = k; } });
+    return TIPO_COLORS[best] ?? '#71717a';
+  };
+
   // Gráfico de destinos reflete o filtro aplicado
-  const byDestinoFiltered = agg(filtered, r => r.destino);
+  const byDestinoFiltered = agg(filtered, r => r.destino).map(d => ({ ...d, color: dominantColor(d.name) }));
 
   const b2cRows = filtered.filter(r => isB2C(r.destino));
   const b2bRows = filtered.filter(r => !isB2C(r.destino));
