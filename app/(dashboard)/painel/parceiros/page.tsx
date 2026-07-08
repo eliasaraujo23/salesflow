@@ -123,12 +123,12 @@ export default function PainelParceirosPage() {
   return (
     <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
 
-      {/* KPI bar — 3 seções */}
-      <div className="shrink-0 grid grid-cols-3 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+      {/* KPI bar — 3 seções separadas */}
+      <div className="shrink-0 grid grid-cols-3 gap-3">
         {sections.map(s => (
-          <div key={s.label}>
-            <div className={`px-4 py-1.5 ${s.headerCls}`}>
-              <span className="text-[9px] font-bold uppercase tracking-widest opacity-90">{s.label}</span>
+          <div key={s.label} className="border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
+            <div className={`px-4 py-2 ${s.headerCls}`}>
+              <span className="text-xs font-bold uppercase tracking-widest opacity-95">{s.label}</span>
             </div>
             <div className="grid grid-cols-4 divide-x divide-zinc-200 dark:divide-white/[0.08]">
               {s.kpis.map(k => (
