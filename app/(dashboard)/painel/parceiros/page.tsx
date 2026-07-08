@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { RefreshCw, X } from 'lucide-react';
+import { RefreshCw, X, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { usePainelVendas } from '@/hooks/use-painel-vendas';
 import { HBarChart } from '@/components/painel/h-bar-chart';
@@ -58,6 +58,26 @@ export default function PainelParceirosPage() {
 
   const activeFilter = selectedJF ?? selectedRV ?? null;
   const clearFilter = () => { setSelectedJF(null); setSelectedRV(null); };
+
+  type SortKey = 'referencia' | 'produto' | 'subtipo' | 'destino' | 'tipo' | 'custo_real' | 'preco_cobrado' | 'tipo_pedra' | 'lucrat' | 'data_venda';
+  const [sortKey, setSortKey] = useState<SortKey>('data_venda');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('desc'); }
+  };
+
+  const sortedRows = useMemo(() => {
+    return [...filteredRows].sort((a, b) => {
+      const av = a[sortKey] ?? '';
+      const bv = b[sortKey] ?? '';
+      const cmp = typeof av === 'number' && typeof bv === 'number'
+        ? av - bv
+        : String(av).localeCompare(String(bv), 'pt-BR', { numeric: true });
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredRows, sortKey, sortDir]);
 
   const sections = [
     {
@@ -139,59 +159,85 @@ export default function PainelParceirosPage() {
             </div>
           </div>
 
-          {/* Scrollable detail table */}
-          <div className="shrink-0 h-56 overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
-            <div className="px-4 py-3 border-b border-zinc-200 dark:border-white/[0.08] sticky top-0 bg-white dark:bg-zinc-900 z-20 flex items-center gap-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                Detalhamento — {filteredRows.length} vendas
-              </p>
-              {activeFilter && (
-                <button
-                  onClick={clearFilter}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
-                >
-                  {selectedJF ? 'JF' : 'Revenda'} — {activeFilter} <X size={10} />
-                </button>
-              )}
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="sticky top-[42px] z-10 bg-white dark:bg-zinc-900">
-                  <tr className="border-b border-zinc-200 dark:border-white/[0.06]">
-                    {['Referência', 'Produto', 'Subtipo', 'Destino', 'Tipo', 'Custo Real', 'Preço Cobrado', 'Tipo Pedra', 'Lucrat.', 'Data Venda'].map(h => (
-                      <th key={h} className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRows.map((r, i) => (
-                    <tr key={i} className="border-b border-zinc-100 dark:border-white/[0.04] hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
-                      <td className="px-3 py-2 font-mono text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.referencia}</td>
-                      <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.produto}</td>
-                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.subtipo ?? '—'}</td>
-                      <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.destino}</td>
-                      <td className="px-3 py-2">
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${TIPO_CLASS[r.tipo] ?? TIPO_CLASS.JR}`}>
-                          {r.tipo}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 tabular-nums text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
-                      <td className="px-3 py-2 tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{fmtBRL(r.preco_cobrado)}</td>
-                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
-                      <td className="px-3 py-2 tabular-nums whitespace-nowrap">
-                        <span className={r.lucrat >= 40 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : r.lucrat >= 0 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-500'}>
-                          {r.lucrat.toFixed(2)}%
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtDate(r.data_venda)}</td>
-                    </tr>
+          {/* Scrollable detail table — overflow-x no mesmo elemento do overflow-y para sticky funcionar */}
+          <div className="shrink-0 h-56 overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
+            <table className="w-full text-xs border-separate border-spacing-0">
+              <thead>
+                {/* Título fixo */}
+                <tr>
+                  <th colSpan={10} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                        Detalhamento — {filteredRows.length} vendas
+                      </span>
+                      {activeFilter && (
+                        <button
+                          onClick={clearFilter}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
+                        >
+                          {selectedJF ? 'JF' : 'Revenda'} — {activeFilter} <X size={10} />
+                        </button>
+                      )}
+                    </div>
+                  </th>
+                </tr>
+                {/* Colunas ordenáveis fixas */}
+                <tr className="border-b border-zinc-200 dark:border-white/[0.06]">
+                  {([
+                    { label: 'Referência',    key: 'referencia' },
+                    { label: 'Produto',       key: 'produto' },
+                    { label: 'Subtipo',       key: 'subtipo' },
+                    { label: 'Destino',       key: 'destino' },
+                    { label: 'Tipo',          key: 'tipo' },
+                    { label: 'Custo Real',    key: 'custo_real' },
+                    { label: 'Preço Cobrado', key: 'preco_cobrado' },
+                    { label: 'Tipo Pedra',    key: 'tipo_pedra' },
+                    { label: 'Lucrat.',       key: 'lucrat' },
+                    { label: 'Data Venda',    key: 'data_venda' },
+                  ] as { label: string; key: SortKey }[]).map(col => (
+                    <th
+                      key={col.key}
+                      onClick={() => toggleSort(col.key)}
+                      className="sticky top-[41px] z-10 px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap cursor-pointer select-none hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {col.label}
+                        {sortKey === col.key
+                          ? sortDir === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
+                          : <ChevronsUpDown size={10} className="opacity-30" />}
+                      </span>
+                    </th>
                   ))}
-                </tbody>
-              </table>
-              {filteredRows.length === 0 && (
-                <div className="text-center py-12 text-zinc-400 text-sm">Nenhuma venda no período selecionado.</div>
-              )}
-            </div>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedRows.map((r, i) => (
+                  <tr key={i} className="border-b border-zinc-100 dark:border-white/[0.04] hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
+                    <td className="px-3 py-2 font-mono text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.referencia}</td>
+                    <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.produto}</td>
+                    <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.subtipo ?? '—'}</td>
+                    <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.destino}</td>
+                    <td className="px-3 py-2">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${TIPO_CLASS[r.tipo] ?? TIPO_CLASS.JR}`}>
+                        {r.tipo}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 tabular-nums text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
+                    <td className="px-3 py-2 tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{fmtBRL(r.preco_cobrado)}</td>
+                    <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
+                    <td className="px-3 py-2 tabular-nums whitespace-nowrap">
+                      <span className={r.lucrat >= 40 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : r.lucrat >= 0 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-500'}>
+                        {r.lucrat.toFixed(2)}%
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtDate(r.data_venda)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filteredRows.length === 0 && (
+              <div className="text-center py-12 text-zinc-400 text-sm">Nenhuma venda no período selecionado.</div>
+            )}
           </div>
         </>
       )}
