@@ -10,5 +10,5 @@ export async function authFetch(input: string, options: RequestInit = {}): Promi
     ...(options.headers as Record<string, string> ?? {}),
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  return fetch(input, { ...options, headers });
+  return fetch(input, { ...options, headers, cache: 'no-store' });
 }
