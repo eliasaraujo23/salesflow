@@ -30,9 +30,9 @@ const jmPecaSchema = z.object({
   preco_cobrado: z.coerce.number().nullable().optional(),
   data_venda: z.string().nullable().optional(),
   diamantes: z.string().nullable().optional(),
-  cts_diamantes: z.preprocess(v => (v === '' || v == null) ? null : Number(v), z.number().nullable()),
+  cts_diamantes: z.string().nullable().optional().transform(v => (!v || v.trim() === '') ? null : parseFloat(v) || null),
   pedra_colorida: z.string().nullable().optional(),
-  cts_pedra_colorida: z.preprocess(v => (v === '' || v == null) ? null : Number(v), z.number().nullable()),
+  cts_pedra_colorida: z.string().nullable().optional().transform(v => (!v || v.trim() === '') ? null : parseFloat(v) || null),
 });
 
 const jmFaturamentoSchema = z.object({
@@ -51,9 +51,9 @@ const jmFaturamentoSchema = z.object({
   vendedor_interno: z.string().nullable().optional(),
   status_id: z.coerce.number().nullable().optional(),
   diamantes: z.string().nullable().optional(),
-  cts_diamantes: z.preprocess(v => (v === '' || v == null) ? null : Number(v), z.number().nullable()),
+  cts_diamantes: z.string().nullable().optional().transform(v => (!v || v.trim() === '') ? null : parseFloat(v) || null),
   pedra_colorida: z.string().nullable().optional(),
-  cts_pedra_colorida: z.preprocess(v => (v === '' || v == null) ? null : Number(v), z.number().nullable()),
+  cts_pedra_colorida: z.string().nullable().optional().transform(v => (!v || v.trim() === '') ? null : parseFloat(v) || null),
 });
 
 const jmDashboardSchema = z.object({

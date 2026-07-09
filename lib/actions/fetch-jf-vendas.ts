@@ -14,9 +14,9 @@ const jfVendasItemSchema = z.object({
   custo_real: z.coerce.number().default(0),
   preco_cobrado: z.coerce.number().nullable().optional(),
   diamantes: z.string().nullable().optional(),
-  cts_diamantes: z.preprocess(v => (v === '' || v == null) ? null : Number(v), z.number().nullable()),
+  cts_diamantes: z.string().nullable().optional().transform(v => (!v || v.trim() === '') ? null : parseFloat(v) || null),
   pedra_colorida: z.string().nullable().optional(),
-  cts_pedra_colorida: z.preprocess(v => (v === '' || v == null) ? null : Number(v), z.number().nullable()),
+  cts_pedra_colorida: z.string().nullable().optional().transform(v => (!v || v.trim() === '') ? null : parseFloat(v) || null),
   nf_joia: z.string().nullable().optional(),
   vendedor_interno: z.string().nullable().optional(),
 });
