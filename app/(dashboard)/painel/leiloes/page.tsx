@@ -123,8 +123,7 @@ export default function PainelLeiloesPage() {
         ) : (
           <>
             {/* Charts — mesma altura, fill */}
-            <div className={`shrink-0 grid gap-3 ${data.leiloes.length === 1 ? 'grid-cols-1' : data.leiloes.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}
-              style={{ height: '42%' }}>
+            <div className={`flex-1 min-h-0 grid gap-3 ${data.leiloes.length === 1 ? 'grid-cols-1' : data.leiloes.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
               {data.leiloes.map(leilao => {
                 const nonScrap = leilao.byProduto.filter(p => p.name !== 'SCRAP');
                 const scrap = leilao.byProduto.find(p => p.name === 'SCRAP');

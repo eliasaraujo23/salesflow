@@ -152,7 +152,7 @@ export default function PainelJoiasPage() {
       {!isLoading && vendas && (
         <>
           {/* Cards por tipo — charts fill */}
-          <div className="shrink-0 grid gap-3" style={{ height: '42%', gridTemplateColumns: `repeat(${Math.max(porTipo.length, 1)}, 1fr)` }}>
+          <div className="flex-1 min-h-0 grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.max(porTipo.length, 1)}, 1fr)` }}>
 
             {/* Cards de vendas por tipo */}
             {porTipo.map(t => (
