@@ -27,9 +27,10 @@ const TIPO_CLASS: Record<string, string> = {
   JR: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
 };
 
-type SortKey = 'referencia' | 'produto' | 'subtipo' | 'tipo' | 'custo_real' | 'preco_cobrado' | 'tipo_pedra' | 'lucrat' | 'data_venda';
+type SortKey = 'leilao' | 'referencia' | 'produto' | 'subtipo' | 'tipo' | 'custo_real' | 'preco_cobrado' | 'tipo_pedra' | 'lucrat' | 'data_venda';
 
 const COLS: { label: string; key: SortKey }[] = [
+  { label: 'Leilão',        key: 'leilao' },
   { label: 'Referência',    key: 'referencia' },
   { label: 'Produto',       key: 'produto' },
   { label: 'Subtipo',       key: 'subtipo' },
@@ -44,29 +45,26 @@ const COLS: { label: string; key: SortKey }[] = [
 interface KpiCellProps { label: string; value: string; border?: boolean; }
 function KpiCell({ label, value, border = true }: KpiCellProps) {
   return (
-    <div className={`flex flex-col justify-center gap-0.5 px-4 py-3 ${border ? 'border-r border-zinc-200 dark:border-white/[0.08]' : ''}`}>
+    <div className={`flex flex-col justify-center gap-0.5 px-4 py-2.5 ${border ? 'border-r border-zinc-200 dark:border-white/[0.08]' : ''}`}>
       <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{label}</span>
       <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{value}</span>
     </div>
   );
 }
 
-interface LeilaoCardProps {
-  nome: string;
-  faturamento: number;
-  qtd: number;
-  lucrat: number;
-  tmJF: number;
-  tmRevenda: number;
-  byProduto: { name: string; faturamento: number; qtd: number }[];
-  rows: PainelDetailRow[];
-}
+type DetailRow = PainelDetailRow & { leilao: string };
 
-function LeilaoCard({ nome, faturamento, qtd, lucrat, tmJF, tmRevenda, byProduto, rows }: LeilaoCardProps) {
-  const nonScrap = byProduto.filter(p => p.name !== 'SCRAP');
-  const scrap = byProduto.find(p => p.name === 'SCRAP');
+export default function PainelLeiloesPage() {
+  const { from, to, destinoFilter } = usePainelFilters();
 
+  const { data, isLoading, isError, error } = usePainelVendas(
+    from, to,
+    destinoFilter.length > 0 ? destinoFilter : null,
+  );
+
+  const [selectedLeilao, setSelectedLeilao] = useState<string | null>(null);
   const [selectedProduto, setSelectedProduto] = useState<string | null>(null);
+
   const [sortKey, setSortKey] = useState<SortKey>('data_venda');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
@@ -75,15 +73,26 @@ function LeilaoCard({ nome, faturamento, qtd, lucrat, tmJF, tmRevenda, byProduto
     else { setSortKey(key); setSortDir('desc'); }
   };
 
-  const filteredRows = useMemo(() => {
-    if (!selectedProduto) return rows;
-    return rows.filter(r => r.produto === selectedProduto || r.subtipo === selectedProduto);
-  }, [rows, selectedProduto]);
+  // Todas as rows de todos os leilões com campo leilao
+  const allRows = useMemo((): DetailRow[] => {
+    if (!data) return [];
+    return data.leiloes.flatMap(l =>
+      l.rows.map(r => ({ ...r, leilao: l.nome.replace('LEILÃO ', '') }))
+    );
+  }, [data]);
 
-  const sortedRows = useMemo(() => {
+  const filteredRows = useMemo((): DetailRow[] => {
+    return allRows.filter(r => {
+      if (selectedLeilao && r.leilao !== selectedLeilao) return false;
+      if (selectedProduto && r.produto !== selectedProduto && r.subtipo !== selectedProduto) return false;
+      return true;
+    });
+  }, [allRows, selectedLeilao, selectedProduto]);
+
+  const sortedRows = useMemo((): DetailRow[] => {
     return [...filteredRows].sort((a, b) => {
-      const av = a[sortKey] ?? '';
-      const bv = b[sortKey] ?? '';
+      const av = a[sortKey as keyof DetailRow] ?? '';
+      const bv = b[sortKey as keyof DetailRow] ?? '';
       const cmp = typeof av === 'number' && typeof bv === 'number'
         ? av - bv
         : String(av).localeCompare(String(bv), 'pt-BR', { numeric: true });
@@ -91,124 +100,7 @@ function LeilaoCard({ nome, faturamento, qtd, lucrat, tmJF, tmRevenda, byProduto
     });
   }, [filteredRows, sortKey, sortDir]);
 
-  const chartData = nonScrap.map(p => ({ name: p.name, value: p.faturamento, qty: p.qtd }));
-
-  return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col">
-      {/* KPI header */}
-      <div className="shrink-0 grid divide-x divide-zinc-200 dark:divide-white/[0.08] border-b border-zinc-200 dark:border-white/[0.08]" style={{ gridTemplateColumns: '120px repeat(5, 1fr)' }}>
-        <div className="flex flex-col justify-center px-4 py-3">
-          <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Leilão</span>
-          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">
-            {nome.replace('LEILÃO ', '')}
-          </span>
-        </div>
-        <KpiCell label="Faturamento"   value={fmtBRL(faturamento)} />
-        <KpiCell label="Qtd"           value={String(qtd)} />
-        <KpiCell label="Lucratividade" value={fmtPct(lucrat)} />
-        <KpiCell label="TM Fabricado"  value={tmJF > 0 ? fmtBRL(tmJF) : '—'} />
-        <KpiCell label="TM Revenda"    value={tmRevenda > 0 ? fmtBRL(tmRevenda) : '—'} border={false} />
-      </div>
-
-      {/* Scrap destaque */}
-      {scrap && (
-        <div className="shrink-0 px-4 py-2 bg-amber-50 dark:bg-amber-500/[0.06] border-b border-amber-200 dark:border-amber-500/20 flex items-center gap-3">
-          <span className="text-[9px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Scrap</span>
-          <span className="text-sm font-bold text-amber-700 dark:text-amber-300 tabular-nums">{fmtBRL(scrap.faturamento)}</span>
-          <span className="text-xs text-amber-500 dark:text-amber-400">· {scrap.qtd} un</span>
-        </div>
-      )}
-
-      {/* Chart — fill adaptativo */}
-      <div className="shrink-0 p-4 pb-2">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Por Produto</p>
-        <HBarChart
-          data={chartData}
-          color="#a855f7"
-          formatter={fmtBRL}
-          selected={selectedProduto}
-          onSelect={setSelectedProduto}
-        />
-      </div>
-
-      {/* Tabela de detalhamento — padrão sticky */}
-      <div className="shrink-0 overflow-auto border-t border-zinc-200 dark:border-white/[0.08]" style={{ maxHeight: '280px' }}>
-        <table className="w-full text-xs border-separate border-spacing-0">
-          <thead>
-            <tr>
-              <th colSpan={9} className="sticky top-0 z-20 px-4 py-2.5 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                    Detalhamento — {filteredRows.length} vendas
-                  </span>
-                  {selectedProduto && (
-                    <button
-                      onClick={() => setSelectedProduto(null)}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-semibold hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors"
-                    >
-                      {selectedProduto} ×
-                    </button>
-                  )}
-                </div>
-              </th>
-            </tr>
-            <tr>
-              {COLS.map(col => (
-                <th
-                  key={col.key}
-                  onClick={() => toggleSort(col.key)}
-                  className="sticky top-[37px] z-10 px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap cursor-pointer select-none hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
-                >
-                  <span className="inline-flex items-center gap-1">
-                    {col.label}
-                    {sortKey === col.key
-                      ? sortDir === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
-                      : <ChevronsUpDown size={10} className="opacity-30" />}
-                  </span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedRows.map((r, i) => (
-              <tr key={i} className="border-b border-zinc-100 dark:border-white/[0.04] hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
-                <td className="px-3 py-2 font-mono text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.referencia}</td>
-                <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.produto}</td>
-                <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.subtipo ?? '—'}</td>
-                <td className="px-3 py-2">
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${TIPO_CLASS[r.tipo] ?? TIPO_CLASS.JR}`}>
-                    {r.tipo}
-                  </span>
-                </td>
-                <td className="px-3 py-2 tabular-nums text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
-                <td className="px-3 py-2 tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{fmtBRL(r.preco_cobrado)}</td>
-                <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
-                <td className="px-3 py-2 tabular-nums whitespace-nowrap">
-                  <span className={r.lucrat >= 40 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : r.lucrat >= 0 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-500'}>
-                    {r.lucrat.toFixed(2)}%
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtDate(r.data_venda)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {rows.length === 0 && (
-          <div className="text-center py-8 text-zinc-400 text-sm">Nenhuma venda no período.</div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default function PainelLeiloesPage() {
-  const { from, to, destinoFilter } = usePainelFilters();
-
-  const { data, isLoading, isError, error } = usePainelVendas(
-    from,
-    to,
-    destinoFilter.length > 0 ? destinoFilter : null,
-  );
+  const clearFilter = () => { setSelectedLeilao(null); setSelectedProduto(null); };
 
   return (
     <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
@@ -229,13 +121,135 @@ export default function PainelLeiloesPage() {
             Nenhuma venda em leilão no período selecionado.
           </div>
         ) : (
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            <div className="grid grid-cols-2 gap-3 items-start">
-              {data.leiloes.map(leilao => (
-                <LeilaoCard key={leilao.nome} {...leilao} />
-              ))}
+          <>
+            {/* Charts — mesma altura, fill */}
+            <div className={`shrink-0 grid gap-3 ${data.leiloes.length === 1 ? 'grid-cols-1' : data.leiloes.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}
+              style={{ height: '42%' }}>
+              {data.leiloes.map(leilao => {
+                const nonScrap = leilao.byProduto.filter(p => p.name !== 'SCRAP');
+                const scrap = leilao.byProduto.find(p => p.name === 'SCRAP');
+                const nomeCurto = leilao.nome.replace('LEILÃO ', '');
+                const isActive = selectedLeilao === nomeCurto;
+
+                return (
+                  <div key={leilao.nome} className={`bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden flex flex-col transition-colors ${isActive ? 'border-purple-400 dark:border-purple-500' : 'border-zinc-200 dark:border-white/[0.08]'}`}>
+                    {/* KPI header */}
+                    <div className="shrink-0 grid divide-x divide-zinc-200 dark:divide-white/[0.08] border-b border-zinc-200 dark:border-white/[0.08]"
+                      style={{ gridTemplateColumns: '100px repeat(5, 1fr)' }}>
+                      <div className="flex flex-col justify-center px-3 py-2">
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Leilão</span>
+                        <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">{nomeCurto}</span>
+                      </div>
+                      <KpiCell label="Faturamento"   value={fmtBRL(leilao.faturamento)} />
+                      <KpiCell label="Qtd"           value={String(leilao.qtd)} />
+                      <KpiCell label="Lucrat."       value={fmtPct(leilao.lucrat)} />
+                      <KpiCell label="TM Fabricado"  value={leilao.tmJF > 0 ? fmtBRL(leilao.tmJF) : '—'} />
+                      <KpiCell label="TM Revenda"    value={leilao.tmRevenda > 0 ? fmtBRL(leilao.tmRevenda) : '—'} border={false} />
+                    </div>
+
+                    {/* Scrap */}
+                    {scrap && (
+                      <div className="shrink-0 px-3 py-1.5 bg-amber-50 dark:bg-amber-500/[0.06] border-b border-amber-200 dark:border-amber-500/20 flex items-center gap-3">
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Scrap</span>
+                        <span className="text-xs font-bold text-amber-700 dark:text-amber-300 tabular-nums">{fmtBRL(scrap.faturamento)}</span>
+                        <span className="text-[10px] text-amber-500">· {scrap.qtd} un</span>
+                      </div>
+                    )}
+
+                    {/* Chart fill */}
+                    <div className="flex-1 min-h-0 p-3 pb-2 flex flex-col">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 shrink-0">Por Produto</p>
+                      <div className="flex-1 min-h-0">
+                        <HBarChart
+                          data={nonScrap.map(p => ({ name: p.name, value: p.faturamento, qty: p.qtd }))}
+                          color="#a855f7"
+                          formatter={fmtBRL}
+                          fill
+                          selected={isActive ? selectedProduto : null}
+                          onSelect={v => {
+                            if (selectedLeilao === nomeCurto && selectedProduto === v) {
+                              clearFilter();
+                            } else {
+                              setSelectedLeilao(nomeCurto);
+                              setSelectedProduto(v);
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+
+            {/* Tabela única — sticky, padrão do painel */}
+            <div className="flex-1 min-h-0 overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
+              <table className="w-full text-xs border-separate border-spacing-0">
+                <thead>
+                  <tr>
+                    <th colSpan={10} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                          Detalhamento — {filteredRows.length} vendas
+                        </span>
+                        {(selectedLeilao || selectedProduto) && (
+                          <button
+                            onClick={clearFilter}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-semibold hover:bg-purple-100 transition-colors"
+                          >
+                            {selectedLeilao}{selectedProduto ? ` — ${selectedProduto}` : ''} ×
+                          </button>
+                        )}
+                      </div>
+                    </th>
+                  </tr>
+                  <tr>
+                    {COLS.map(col => (
+                      <th
+                        key={col.key}
+                        onClick={() => toggleSort(col.key)}
+                        className="sticky top-[41px] z-10 px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap cursor-pointer select-none hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {col.label}
+                          {sortKey === col.key
+                            ? sortDir === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
+                            : <ChevronsUpDown size={10} className="opacity-30" />}
+                        </span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedRows.map((r, i) => (
+                    <tr key={i} className="border-b border-zinc-100 dark:border-white/[0.04] hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
+                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap font-semibold">{r.leilao}</td>
+                      <td className="px-3 py-2 font-mono text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.referencia}</td>
+                      <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.produto}</td>
+                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.subtipo ?? '—'}</td>
+                      <td className="px-3 py-2">
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${TIPO_CLASS[r.tipo] ?? TIPO_CLASS.JR}`}>
+                          {r.tipo}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 tabular-nums text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
+                      <td className="px-3 py-2 tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{fmtBRL(r.preco_cobrado)}</td>
+                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
+                      <td className="px-3 py-2 tabular-nums whitespace-nowrap">
+                        <span className={r.lucrat >= 40 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : r.lucrat >= 0 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-500'}>
+                          {r.lucrat.toFixed(2)}%
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtDate(r.data_venda)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {sortedRows.length === 0 && (
+                <div className="text-center py-12 text-zinc-400 text-sm">Nenhuma venda no período.</div>
+              )}
+            </div>
+          </>
         )
       )}
     </div>
