@@ -260,6 +260,7 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
       const jfR = lRows.filter(r => tipoOf(r.tipo) === 'JF');
       const rvR = lRows.filter(r => tipoOf(r.tipo) !== 'JF');
       const kpi = kpiOf(lRows);
+      const lRowsWithDate = lRows.filter(r => r.data_venda);
       return {
         nome,
         faturamento: kpi.faturamento,
@@ -268,9 +269,8 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
         lucrat: kpi.lucrat,
         tmJF: jfR.length > 0 ? jfR.reduce((s, r) => s + (r.preco_cobrado ?? 0), 0) / jfR.length : 0,
         tmRevenda: rvR.length > 0 ? rvR.reduce((s, r) => s + (r.preco_cobrado ?? 0), 0) / rvR.length : 0,
-        byProduto: agg(lRows, r => isScrap(r) ? 'SCRAP' : (r.produto ?? r.subtipo)),
-        rows: [...lRows]
-          .filter(r => r.data_venda)
+        byProduto: agg(lRowsWithDate, r => isScrap(r) ? 'SCRAP' : (r.produto ?? r.subtipo)),
+        rows: [...lRowsWithDate]
           .sort((a, b) => ((b.data_venda ?? '') > (a.data_venda ?? '') ? 1 : -1))
           .map(toDetailRow),
       };
