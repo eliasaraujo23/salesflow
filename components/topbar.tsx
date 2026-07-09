@@ -163,8 +163,9 @@ export function Topbar({ title, subtitle, onSearch, onMobileMenu }: TopbarProps)
                 { label: 'Canais',    href: '/painel/canais' },
                 { label: 'Parceiros', href: '/painel/parceiros' },
                 { label: 'Leilões',   href: '/painel/leiloes' },
-                { label: 'Joias',     href: '/painel/joias' },
-                { label: 'Produção',  href: '/painel/producao' },
+                { label: 'Joias',        href: '/painel/joias' },
+                { label: 'Conversão JF', href: '/painel/conversao-jf' },
+                { label: 'Produção',     href: '/painel/producao' },
                 { label: 'Evolutivo', href: '/painel/evolutivo' },
               ].map(tab => {
                 const isActive = tab.href === '/painel'
