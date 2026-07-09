@@ -73,21 +73,16 @@ export default function PainelLeiloesPage() {
     else { setSortKey(key); setSortDir('desc'); }
   };
 
-  // Todas as rows de todos os leilões com campo leilao
-  const allRows = useMemo((): DetailRow[] => {
-    if (!data) return [];
-    return data.leiloes.flatMap(l =>
-      l.rows.map(r => ({ ...r, leilao: l.nome.replace('LEILÃO ', '') }))
-    );
-  }, [data]);
-
   const filteredRows = useMemo((): DetailRow[] => {
-    return allRows.filter(r => {
-      if (selectedLeilao && r.leilao !== selectedLeilao) return false;
-      if (selectedProduto && r.produto !== selectedProduto) return false;
-      return true;
+    if (!data) return [];
+    return data.leiloes.flatMap(l => {
+      const nomeCurto = l.nome.replace('LEILÃO ', '');
+      if (selectedLeilao && nomeCurto !== selectedLeilao) return [];
+      return l.rows
+        .filter(r => !selectedProduto || r.produto === selectedProduto)
+        .map(r => ({ ...r, leilao: nomeCurto }));
     });
-  }, [allRows, selectedLeilao, selectedProduto]);
+  }, [data, selectedLeilao, selectedProduto]);
 
   const sortedRows = useMemo((): DetailRow[] => {
     return [...filteredRows].sort((a, b) => {
