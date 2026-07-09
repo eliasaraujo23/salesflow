@@ -183,7 +183,7 @@ export default function PainelLeiloesPage() {
             </div>
 
             {/* Tabela única — sticky, padrão do painel */}
-            <div className="flex-1 min-h-0 overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
+            <div className="shrink-0 h-56 overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
               <table className="w-full text-xs border-separate border-spacing-0">
                 <thead>
                   <tr>

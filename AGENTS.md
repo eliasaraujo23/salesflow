@@ -143,7 +143,7 @@ Toda tabela de detalhamento dentro de `app/(dashboard)/painel/` **deve** seguir 
 
 ### Estrutura sticky com scroll
 ```tsx
-<div className="overflow-auto bg-white dark:bg-zinc-900 border ... rounded-xl" style={{ maxHeight: '400px' }}>
+<div className="shrink-0 h-56 overflow-auto bg-white dark:bg-zinc-900 border ... rounded-xl">
   <table className="w-full text-xs border-separate border-spacing-0">
     <thead>
       {/* Linha 1: título fixo em top-0 */}
@@ -175,6 +175,7 @@ Toda tabela de detalhamento dentro de `app/(dashboard)/painel/` **deve** seguir 
 - **Nunca** usar `overflow-x-auto` em um div filho separado do `overflow-y` — quebra o `sticky`.
 - O container usa `overflow-auto` (ambos), a tabela usa `border-separate border-spacing-0` para manter bordas.
 - Ordenação local via `useState` + `useMemo` no próprio componente de página.
+- **Altura padrão obrigatória**: `shrink-0 h-56` — não usar `flex-1`, `h-52`, `maxHeight` ou outro valor. Referência: tabela de Parceiros.
 - Default de ordenação: coluna de data/dias desc (mais recente primeiro).
 - Ícones: `ChevronUp` / `ChevronDown` (coluna ativa) e `ChevronsUpDown opacity-30` (inativa) — importados de `lucide-react`.
 

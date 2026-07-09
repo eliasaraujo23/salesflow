@@ -191,7 +191,7 @@ export default function PainelJoiasPage() {
           </div>
 
           {/* Tabela detalhada — padrão sticky */}
-          <div className="shrink-0 h-52 overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
+          <div className="shrink-0 h-56 overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
             <table className="w-full text-xs border-separate border-spacing-0">
               <thead>
                 <tr>
