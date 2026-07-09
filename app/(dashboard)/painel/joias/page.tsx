@@ -87,14 +87,19 @@ export default function PainelJoiasPage() {
       }));
   }, [vendas]);
 
-  // Filtro por tipo
   const [selectedTipo, setSelectedTipo] = useState<string | null>(null);
+  const [selectedProduto, setSelectedProduto] = useState<string | null>(null);
+
+  function clearFilter() { setSelectedTipo(null); setSelectedProduto(null); }
 
   const filteredRows = useMemo(() => {
     if (!vendas) return [];
-    if (selectedTipo) return vendas.rows.filter(r => r.tipo === selectedTipo);
-    return vendas.rows;
-  }, [vendas, selectedTipo]);
+    return vendas.rows.filter(r => {
+      if (selectedTipo && r.tipo !== selectedTipo) return false;
+      if (selectedProduto && r.produto !== selectedProduto) return false;
+      return true;
+    });
+  }, [vendas, selectedTipo, selectedProduto]);
 
   const [sortKey, setSortKey] = useState<SortKey>('data_venda');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -133,8 +138,7 @@ export default function PainelJoiasPage() {
             {porTipo.map(t => (
               <div
                 key={t.tipo}
-                onClick={() => setSelectedTipo(selectedTipo === t.tipo ? null : t.tipo)}
-                className={`bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden flex flex-col cursor-pointer transition-colors ${selectedTipo === t.tipo ? 'border-indigo-400 dark:border-indigo-500' : 'border-zinc-200 dark:border-white/[0.08]'}`}
+                className={`bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden flex flex-col transition-colors ${selectedTipo === t.tipo ? 'border-indigo-400 dark:border-indigo-500' : 'border-zinc-200 dark:border-white/[0.08]'}`}
               >
                 <div className={`${TIPO_HEADER[t.tipo] ?? 'bg-zinc-600 text-white'} px-4 py-2 shrink-0`}>
                   <span className="text-xs font-bold uppercase tracking-widest">{TIPO_LABEL[t.tipo] ?? t.tipo}</span>
@@ -159,6 +163,15 @@ export default function PainelJoiasPage() {
                     color={TIPO_COLOR[t.tipo] ?? '#6366f1'}
                     formatter={fmtBRL}
                     fill
+                    selected={selectedTipo === t.tipo ? selectedProduto : null}
+                    onSelect={v => {
+                      if (selectedTipo === t.tipo && selectedProduto === v) {
+                        clearFilter();
+                      } else {
+                        setSelectedTipo(t.tipo);
+                        setSelectedProduto(v);
+                      }
+                    }}
                   />
                 </div>
               </div>
@@ -175,12 +188,12 @@ export default function PainelJoiasPage() {
                       <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                         Joias Cadastradas — {filteredRows.length} vendas
                       </span>
-                      {selectedTipo && (
+                      {(selectedTipo || selectedProduto) && (
                         <button
-                          onClick={() => setSelectedTipo(null)}
-                          className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${TIPO_CLASS[selectedTipo] ?? ''} hover:opacity-80`}
+                          onClick={clearFilter}
+                          className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${TIPO_CLASS[selectedTipo ?? ''] ?? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300'} hover:opacity-80`}
                         >
-                          {TIPO_LABEL[selectedTipo] ?? selectedTipo} ×
+                          {selectedTipo ? (TIPO_LABEL[selectedTipo] ?? selectedTipo) : ''}{selectedProduto ? ` — ${selectedProduto}` : ''} ×
                         </button>
                       )}
                     </div>
