@@ -3,9 +3,9 @@
 import { useMemo, useState } from 'react';
 import { RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
-import { useCadastroJoias } from '@/hooks/use-cadastro-joias';
+import { usePainelVendas } from '@/hooks/use-painel-vendas';
+import { useJfDashboard } from '@/hooks/use-jf-dashboard';
 import { HBarChart } from '@/components/painel/h-bar-chart';
-import type { CadastroJoia } from '@/lib/actions/fetch-cadastro-joias';
 
 function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -18,39 +18,20 @@ function fmtDate(iso: string | null | undefined): string {
 }
 
 const TIPO_COLOR: Record<string, string> = {
-  JF: '#6366f1',
-  JM: '#a855f7',
-  JR: '#10b981',
-  JC: '#f59e0b',
+  JF: '#6366f1', JM: '#a855f7', JR: '#10b981', JC: '#f59e0b',
 };
-
 const TIPO_HEADER: Record<string, string> = {
   JF: 'bg-indigo-600 text-white',
   JM: 'bg-purple-600 text-white',
   JR: 'bg-emerald-600 text-white',
   JC: 'bg-amber-500 text-white',
 };
-
 const TIPO_LABEL: Record<string, string> = {
-  JF: 'Joias Fabricadas',
-  JM: 'Joias Modificadas',
-  JR: 'Joias Revenda',
-  JC: 'Joias Consignadas',
+  JF: 'Joias Fabricadas — JF',
+  JM: 'Joias Modificadas — JM',
+  JR: 'Joias Revenda — JR',
+  JC: 'Joias Consignadas — JC',
 };
-
-type SortKey = 'referencia' | 'tipo' | 'produto' | 'subtipo' | 'tipo_pedra' | 'peso' | 'custo_real' | 'data_entrada';
-
-const COLS: { label: string; key: SortKey }[] = [
-  { label: 'Referência',   key: 'referencia' },
-  { label: 'Tipo',         key: 'tipo' },
-  { label: 'Produto',      key: 'produto' },
-  { label: 'Subtipo',      key: 'subtipo' },
-  { label: 'Tipo Pedra',   key: 'tipo_pedra' },
-  { label: 'Peso (g)',     key: 'peso' },
-  { label: 'Custo Real',   key: 'custo_real' },
-  { label: 'Data Entrada', key: 'data_entrada' },
-];
-
 const TIPO_CLASS: Record<string, string> = {
   JF: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
   JM: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400',
@@ -58,21 +39,89 @@ const TIPO_CLASS: Record<string, string> = {
   JR: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
 };
 
+type SortKey = 'referencia' | 'tipo' | 'produto' | 'subtipo' | 'destino' | 'tipo_pedra' | 'custo_real' | 'preco_cobrado' | 'lucrat' | 'data_venda';
+
+const COLS: { label: string; key: SortKey }[] = [
+  { label: 'Referência',    key: 'referencia' },
+  { label: 'Tipo',          key: 'tipo' },
+  { label: 'Produto',       key: 'produto' },
+  { label: 'Subtipo',       key: 'subtipo' },
+  { label: 'Destino',       key: 'destino' },
+  { label: 'Tipo Pedra',    key: 'tipo_pedra' },
+  { label: 'Custo Real',    key: 'custo_real' },
+  { label: 'Preço Cobrado', key: 'preco_cobrado' },
+  { label: 'Lucrat.',       key: 'lucrat' },
+  { label: 'Data Venda',    key: 'data_venda' },
+];
+
 export default function PainelJoiasPage() {
-  const { from, to } = usePainelFilters();
-  const { data, isLoading, isError, error } = useCadastroJoias(from, to);
+  const { from, to, destinoFilter } = usePainelFilters();
 
-  const [sortKey, setSortKey] = useState<SortKey>('data_entrada');
+  const { data: vendas, isLoading: loadingVendas } = usePainelVendas(
+    from, to, destinoFilter.length > 0 ? destinoFilter : null,
+  );
+  const { data: jf, isLoading: loadingJf } = useJfDashboard();
+
+  const isLoading = loadingVendas || loadingJf;
+
+  // Agrupa estoque JF por produto (do estoqueCategoria)
+  const jfEstoque = useMemo(() => {
+    if (!jf?.estoqueCategoria) return [];
+    const map = new Map<string, number>();
+    for (const r of jf.estoqueCategoria) {
+      if (!r.produto) continue;
+      map.set(r.produto, (map.get(r.produto) ?? 0) + r.estoque);
+    }
+    return Array.from(map.entries())
+      .sort(([, a], [, b]) => b - a)
+      .map(([name, value]) => ({ name, value }));
+  }, [jf]);
+
+  // Por tipo: agrupa as rows de vendas por tipo → produto
+  const porTipo = useMemo(() => {
+    if (!vendas) return [];
+    const tipoMap = new Map<string, Map<string, { qtd: number; fat: number; custo: number }>>();
+    for (const r of vendas.rows) {
+      const tipo = r.tipo ?? 'JR';
+      const prod = r.produto ?? r.subtipo ?? 'Outro';
+      if (!tipoMap.has(tipo)) tipoMap.set(tipo, new Map());
+      const pm = tipoMap.get(tipo)!;
+      const e = pm.get(prod) ?? { qtd: 0, fat: 0, custo: 0 };
+      e.qtd++; e.fat += r.preco_cobrado; e.custo += r.custo_real;
+      pm.set(prod, e);
+    }
+    const ORDER = ['JF', 'JM', 'JR', 'JC'];
+    return ORDER
+      .filter(t => tipoMap.has(t))
+      .map(tipo => ({
+        tipo,
+        qtd: Array.from(tipoMap.get(tipo)!.values()).reduce((s, e) => s + e.qtd, 0),
+        fat: Array.from(tipoMap.get(tipo)!.values()).reduce((s, e) => s + e.fat, 0),
+        custo: Array.from(tipoMap.get(tipo)!.values()).reduce((s, e) => s + e.custo, 0),
+        porProduto: Array.from(tipoMap.get(tipo)!.entries())
+          .map(([name, e]) => ({ name, ...e }))
+          .sort((a, b) => b.fat - a.fat),
+      }));
+  }, [vendas]);
+
+  // Filtro por tipo
+  const [selectedTipo, setSelectedTipo] = useState<string | null>(null);
+
+  const filteredRows = useMemo(() => {
+    if (!vendas) return [];
+    if (selectedTipo) return vendas.rows.filter(r => r.tipo === selectedTipo);
+    return vendas.rows;
+  }, [vendas, selectedTipo]);
+
+  const [sortKey, setSortKey] = useState<SortKey>('data_venda');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir('desc'); }
   };
 
-  const sortedRows = useMemo((): CadastroJoia[] => {
-    if (!data) return [];
-    return [...data.rows].sort((a, b) => {
+  const sortedRows = useMemo(() => {
+    return [...filteredRows].sort((a, b) => {
       const av = a[sortKey] ?? '';
       const bv = b[sortKey] ?? '';
       const cmp = typeof av === 'number' && typeof bv === 'number'
@@ -80,25 +129,29 @@ export default function PainelJoiasPage() {
         : String(av).localeCompare(String(bv), 'pt-BR', { numeric: true });
       return sortDir === 'asc' ? cmp : -cmp;
     });
-  }, [data, sortKey, sortDir]);
+  }, [filteredRows, sortKey, sortDir]);
 
   return (
     <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
 
-      {/* KPI totais */}
-      {!isLoading && data && (
-        <div className="shrink-0 grid grid-cols-3 gap-3">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-5 py-3 flex flex-col gap-0.5">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Joias Cadastradas</span>
-            <span className="text-xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{data.total.qtd}</span>
+      {/* KPI bar totais */}
+      {!isLoading && vendas && (
+        <div className="shrink-0 grid grid-cols-4 gap-3">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-4 py-2.5 flex flex-col gap-0.5">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Em Estoque JF</span>
+            <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{jf?.resumo.estoque ?? '—'}</span>
           </div>
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-5 py-3 flex flex-col gap-0.5">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Custo Total</span>
-            <span className="text-xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtBRL(data.total.custo)}</span>
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-4 py-2.5 flex flex-col gap-0.5">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Em Fabricação</span>
+            <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{jf?.resumo.em_fabricacao ?? '—'}</span>
           </div>
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-5 py-3 flex flex-col gap-0.5">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Peso Total</span>
-            <span className="text-xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{data.total.peso.toFixed(2)} g</span>
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-4 py-2.5 flex flex-col gap-0.5">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Faturamento Total</span>
+            <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtBRL(vendas.total.faturamento)}</span>
+          </div>
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-4 py-2.5 flex flex-col gap-0.5">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Lucratividade Geral</span>
+            <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{vendas.total.lucrat.toFixed(2)}%</span>
           </div>
         </div>
       )}
@@ -108,44 +161,62 @@ export default function PainelJoiasPage() {
           <RefreshCw size={15} className="animate-spin" /> Carregando dados...
         </div>
       )}
-      {isError && !isLoading && (
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-sm text-red-500">{(error as Error)?.message || 'Erro ao carregar dados.'}</p>
-        </div>
-      )}
 
-      {data && !isLoading && (
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
+      {!isLoading && vendas && (
+        <>
+          {/* Cards por tipo — charts fill */}
+          <div className="shrink-0 grid gap-3" style={{ height: '38%', gridTemplateColumns: `repeat(${Math.max(porTipo.length, 1)}, 1fr)` }}>
 
-          {/* Cards por tipo */}
-          <div className="grid grid-cols-2 gap-3">
-            {data.porTipo.map(t => (
-              <div key={t.tipo} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
-                {/* Header colorido */}
-                <div className={`px-4 py-2 ${TIPO_HEADER[t.tipo] ?? 'bg-zinc-600 text-white'}`}>
-                  <span className="text-xs font-bold uppercase tracking-widest">{TIPO_LABEL[t.tipo] ?? t.tipo} — {t.tipo}</span>
+            {/* Card estoque JF */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col">
+              <div className="bg-indigo-600 text-white px-4 py-2 shrink-0">
+                <span className="text-xs font-bold uppercase tracking-widest">Estoque JF Cadastrado</span>
+              </div>
+              <div className="grid grid-cols-2 divide-x divide-zinc-200 dark:divide-white/[0.08] border-b border-zinc-200 dark:border-white/[0.08] shrink-0">
+                <div className="px-4 py-2 flex flex-col gap-0.5">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Qtd Estoque</span>
+                  <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{jf?.resumo.estoque ?? '—'}</span>
                 </div>
-                {/* KPIs do tipo */}
-                <div className="grid grid-cols-3 divide-x divide-zinc-200 dark:divide-white/[0.08] border-b border-zinc-200 dark:border-white/[0.08]">
-                  <div className="px-4 py-2.5 flex flex-col gap-0.5">
+                <div className="px-4 py-2 flex flex-col gap-0.5">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Em Fabricação</span>
+                  <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{jf?.resumo.em_fabricacao ?? '—'}</span>
+                </div>
+              </div>
+              <div className="flex-1 min-h-0 p-3">
+                <HBarChart data={jfEstoque.map(d => ({ name: d.name, value: d.value, displayLabel: String(d.value) }))} color="#6366f1" formatter={v => String(v)} fill />
+              </div>
+            </div>
+
+            {/* Cards de vendas por tipo */}
+            {porTipo.map(t => (
+              <div
+                key={t.tipo}
+                onClick={() => setSelectedTipo(selectedTipo === t.tipo ? null : t.tipo)}
+                className={`bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden flex flex-col cursor-pointer transition-colors ${selectedTipo === t.tipo ? 'border-indigo-400 dark:border-indigo-500' : 'border-zinc-200 dark:border-white/[0.08]'}`}
+              >
+                <div className={`${TIPO_HEADER[t.tipo] ?? 'bg-zinc-600 text-white'} px-4 py-2 shrink-0`}>
+                  <span className="text-xs font-bold uppercase tracking-widest">{TIPO_LABEL[t.tipo] ?? t.tipo}</span>
+                </div>
+                <div className="grid grid-cols-3 divide-x divide-zinc-200 dark:divide-white/[0.08] border-b border-zinc-200 dark:border-white/[0.08] shrink-0">
+                  <div className="px-3 py-2 flex flex-col gap-0.5">
                     <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Qtd</span>
                     <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{t.qtd}</span>
                   </div>
-                  <div className="px-4 py-2.5 flex flex-col gap-0.5">
+                  <div className="px-3 py-2 flex flex-col gap-0.5">
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Faturamento</span>
+                    <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtBRL(t.fat)}</span>
+                  </div>
+                  <div className="px-3 py-2 flex flex-col gap-0.5">
                     <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Custo</span>
                     <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtBRL(t.custo)}</span>
                   </div>
-                  <div className="px-4 py-2.5 flex flex-col gap-0.5">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Peso</span>
-                    <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{t.peso.toFixed(2)} g</span>
-                  </div>
                 </div>
-                {/* Gráfico por produto */}
-                <div className="p-4">
+                <div className="flex-1 min-h-0 p-3">
                   <HBarChart
-                    data={t.porProduto.map(p => ({ name: p.name, value: p.qtd, qty: p.qtd, displayLabel: String(p.qtd) }))}
+                    data={t.porProduto.map(p => ({ name: p.name, value: p.fat, qty: p.qtd }))}
                     color={TIPO_COLOR[t.tipo] ?? '#6366f1'}
-                    formatter={v => String(v)}
+                    formatter={fmtBRL}
+                    fill
                   />
                 </div>
               </div>
@@ -153,19 +224,23 @@ export default function PainelJoiasPage() {
           </div>
 
           {/* Tabela detalhada — padrão sticky */}
-          <div className="overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl" style={{ maxHeight: '400px' }}>
+          <div className="flex-1 min-h-0 overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
             <table className="w-full text-xs border-separate border-spacing-0">
               <thead>
                 <tr>
-                  <th colSpan={8} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
-                    <div className="flex items-center justify-between">
+                  <th colSpan={10} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
+                    <div className="flex items-center gap-3">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                        Joias Cadastradas — {data.rows.length} peças
+                        Joias Cadastradas — {filteredRows.length} vendas
                       </span>
-                      <div className="flex gap-4 text-[10px] text-zinc-500">
-                        <span>Custo: <span className="font-bold text-zinc-900 dark:text-zinc-100">{fmtBRL(data.total.custo)}</span></span>
-                        <span>Peso: <span className="font-bold text-zinc-900 dark:text-zinc-100">{data.total.peso.toFixed(2)} g</span></span>
-                      </div>
+                      {selectedTipo && (
+                        <button
+                          onClick={() => setSelectedTipo(null)}
+                          className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${TIPO_CLASS[selectedTipo] ?? ''} hover:opacity-80`}
+                        >
+                          {TIPO_LABEL[selectedTipo] ?? selectedTipo} ×
+                        </button>
+                      )}
                     </div>
                   </th>
                 </tr>
@@ -191,25 +266,29 @@ export default function PainelJoiasPage() {
                   <tr key={i} className="border-b border-zinc-100 dark:border-white/[0.04] hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
                     <td className="px-3 py-2 font-mono text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.referencia}</td>
                     <td className="px-3 py-2">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${TIPO_CLASS[r.tipo ?? ''] ?? TIPO_CLASS.JR}`}>
-                        {r.tipo ?? '—'}
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${TIPO_CLASS[r.tipo] ?? TIPO_CLASS.JR}`}>{r.tipo}</span>
+                    </td>
+                    <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.produto}</td>
+                    <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.subtipo ?? '—'}</td>
+                    <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.destino}</td>
+                    <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
+                    <td className="px-3 py-2 tabular-nums text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
+                    <td className="px-3 py-2 tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{fmtBRL(r.preco_cobrado)}</td>
+                    <td className="px-3 py-2 tabular-nums whitespace-nowrap">
+                      <span className={r.lucrat >= 40 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : r.lucrat >= 0 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-500'}>
+                        {r.lucrat.toFixed(2)}%
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.produto ?? '—'}</td>
-                    <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.subtipo ?? '—'}</td>
-                    <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
-                    <td className="px-3 py-2 tabular-nums text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{r.peso.toFixed(2)}</td>
-                    <td className="px-3 py-2 tabular-nums text-zinc-700 dark:text-zinc-300 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
-                    <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtDate(r.data_entrada)}</td>
+                    <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtDate(r.data_venda)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {data.rows.length === 0 && (
-              <div className="text-center py-12 text-zinc-400 text-sm">Nenhuma joia cadastrada no período.</div>
+            {sortedRows.length === 0 && (
+              <div className="text-center py-12 text-zinc-400 text-sm">Nenhuma joia no período selecionado.</div>
             )}
           </div>
-        </div>
+        </>
       )}
     </div>
   );
