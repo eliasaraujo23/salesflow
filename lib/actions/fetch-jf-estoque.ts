@@ -13,9 +13,9 @@ const jfEstoqueItemSchema = z.object({
   custo_real:          z.coerce.number().default(0),
   preco_cobrado:       z.coerce.number().nullable().optional(),
   diamantes:           z.string().nullable().optional(),
-  cts_diamantes:       z.coerce.number().nullable().optional().catch(null),
+  cts_diamantes:       z.preprocess(v => (v === '' || v == null) ? null : Number(v), z.number().nullable()),
   pedra_colorida:      z.string().nullable().optional(),
-  cts_pedra_colorida:  z.coerce.number().nullable().optional().catch(null),
+  cts_pedra_colorida:  z.preprocess(v => (v === '' || v == null) ? null : Number(v), z.number().nullable()),
 });
 
 export type JfEstoqueItem = z.infer<typeof jfEstoqueItemSchema>;
