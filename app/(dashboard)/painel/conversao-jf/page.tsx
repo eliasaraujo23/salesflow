@@ -2,9 +2,13 @@
 
 import { useMemo, useState } from 'react';
 import { RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
-import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { useConversaoJf } from '@/hooks/use-conversao-jf';
 import { HBarChart } from '@/components/painel/h-bar-chart';
+
+function currentYearRange() {
+  const y = new Date().getFullYear();
+  return { from: `${y}-01-01`, to: `${y}-12-31` };
+}
 
 function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -35,7 +39,7 @@ const COLS: { label: string; key: SortKey }[] = [
 ];
 
 export default function PainelConversaoJfPage() {
-  const { from, to } = usePainelFilters();
+  const { from, to } = currentYearRange();
   const { data, isLoading, isError, error } = useConversaoJf(from, to);
 
   const [sortKey, setSortKey] = useState<SortKey>('data_entrada');
