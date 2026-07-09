@@ -238,7 +238,20 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
     .map(([name, value]) => ({ name, value, color: TIPO_COLORS[name] ?? '#71717a' }))
     .sort((a, b) => b.value - a.value);
 
-  // Leilões
+  const toDetailRow = (r: PainelRow): PainelDetailRow => ({
+    referencia: r.referencia,
+    produto: r.produto ?? r.subtipo ?? '—',
+    subtipo: r.subtipo ?? null,
+    destino: r.destino ?? '—',
+    custo_real: r.custo_real,
+    preco_cobrado: r.preco_cobrado ?? 0,
+    tipo: tipoOf(r.tipo) ?? 'JR',
+    tipo_pedra: r.tipo_pedra ?? null,
+    lucrat: lucrat(r.preco_cobrado ?? 0, r.custo_real),
+    data_venda: r.data_venda ?? null,
+  });
+
+  // Leilões — declarado após toDetailRow para evitar TDZ
   const leilaoNames = ['LEILÃO ETERNNO', 'LEILÃO BRUNO', 'LEILÃO 24K'];
   const leiloes: LeilaoData[] = leilaoNames
     .map(nome => {
@@ -263,19 +276,6 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
       };
     })
     .filter(Boolean) as LeilaoData[];
-
-  const toDetailRow = (r: PainelRow): PainelDetailRow => ({
-    referencia: r.referencia,
-    produto: r.produto ?? r.subtipo ?? '—',
-    subtipo: r.subtipo ?? null,
-    destino: r.destino ?? '—',
-    custo_real: r.custo_real,
-    preco_cobrado: r.preco_cobrado ?? 0,
-    tipo: tipoOf(r.tipo) ?? 'JR',
-    tipo_pedra: r.tipo_pedra ?? null,
-    lucrat: lucrat(r.preco_cobrado ?? 0, r.custo_real),
-    data_venda: r.data_venda ?? null,
-  });
 
   const rows: PainelDetailRow[] = [...filtered]
     .filter(r => r.data_venda)
