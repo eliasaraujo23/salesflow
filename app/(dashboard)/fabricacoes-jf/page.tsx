@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Archive, Hammer, ShoppingCart, Receipt, TrendingUp, Package, RefreshCw, TableProperties, BarChart3 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useJfDashboard } from '@/hooks/use-jf-dashboard';
 import { useCarrosChefe } from '@/hooks/use-carros-chefe';
 import { FabKpiCard } from '@/components/fabricacoes-jf/fab-kpi-card';
@@ -23,7 +24,14 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
 ];
 
 export default function FabricacoesJFPage() {
+  const queryClient = useQueryClient();
   const { data, isLoading, isError, refetch, isFetching, dataUpdatedAt } = useJfDashboard();
+
+  async function refetchAll() {
+    await queryClient.invalidateQueries({ queryKey: ['jf-estoque'] });
+    await queryClient.invalidateQueries({ queryKey: ['jf-vendas'] });
+    await refetch();
+  }
   const { isCarroChefe } = useCarrosChefe();
   const [activeTab, setActiveTab] = useState<Tab>('estoque');
 
@@ -59,7 +67,7 @@ export default function FabricacoesJFPage() {
           </nav>
           <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap shrink-0 hidden sm:block">{lastUpdate}</span>
           <button
-            onClick={() => refetch()}
+            onClick={() => refetchAll()}
             disabled={isFetching}
             className="flex items-center gap-1.5 px-2.5 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-lg hover:border-indigo-500 transition-colors disabled:opacity-50 shrink-0"
             title="Atualizar"
