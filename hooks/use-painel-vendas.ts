@@ -240,9 +240,9 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
 
   const toDetailRow = (r: PainelRow): PainelDetailRow => ({
     referencia: r.referencia,
-    produto: r.produto ?? r.subtipo ?? '—',
-    subtipo: r.subtipo ?? null,
-    destino: r.destino ?? '—',
+    produto: clean(r.produto ?? r.subtipo) || '—',
+    subtipo: r.subtipo ? clean(r.subtipo) || null : null,
+    destino: clean(r.destino) || '—',
     custo_real: r.custo_real,
     preco_cobrado: r.preco_cobrado ?? 0,
     tipo: tipoOf(r.tipo) ?? 'JR',

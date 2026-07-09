@@ -84,7 +84,7 @@ export default function PainelLeiloesPage() {
   const filteredRows = useMemo((): DetailRow[] => {
     return allRows.filter(r => {
       if (selectedLeilao && r.leilao !== selectedLeilao) return false;
-      if (selectedProduto && r.produto.toUpperCase() !== selectedProduto.toUpperCase()) return false;
+      if (selectedProduto && r.produto !== selectedProduto) return false;
       return true;
     });
   }, [allRows, selectedLeilao, selectedProduto]);
