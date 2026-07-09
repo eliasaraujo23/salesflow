@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import { RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { usePainelVendas } from '@/hooks/use-painel-vendas';
-import { useJfDashboard } from '@/hooks/use-jf-dashboard';
 import { HBarChart } from '@/components/painel/h-bar-chart';
 
 function fmtBRL(v: number) {
@@ -57,12 +56,9 @@ const COLS: { label: string; key: SortKey }[] = [
 export default function PainelJoiasPage() {
   const { from, to, destinoFilter } = usePainelFilters();
 
-  const { data: vendas, isLoading: loadingVendas } = usePainelVendas(
+  const { data: vendas, isLoading } = usePainelVendas(
     from, to, destinoFilter.length > 0 ? destinoFilter : null,
   );
-  const { data: jf, isLoading: loadingJf } = useJfDashboard();
-
-  const isLoading = loadingVendas || loadingJf;
 
   // Por tipo: agrupa as rows de vendas por tipo → produto
   const porTipo = useMemo(() => {
@@ -121,27 +117,6 @@ export default function PainelJoiasPage() {
   return (
     <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
 
-      {/* KPI bar totais */}
-      {!isLoading && vendas && (
-        <div className="shrink-0 grid grid-cols-4 gap-3">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-4 py-2.5 flex flex-col gap-0.5">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Em Estoque JF</span>
-            <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{jf?.resumo.estoque ?? '—'}</span>
-          </div>
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-4 py-2.5 flex flex-col gap-0.5">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Em Fabricação</span>
-            <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{jf?.resumo.em_fabricacao ?? '—'}</span>
-          </div>
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-4 py-2.5 flex flex-col gap-0.5">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Faturamento Total</span>
-            <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtBRL(vendas.total.faturamento)}</span>
-          </div>
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-4 py-2.5 flex flex-col gap-0.5">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Lucratividade Geral</span>
-            <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{vendas.total.lucrat.toFixed(2)}%</span>
-          </div>
-        </div>
-      )}
 
       {isLoading && (
         <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm gap-2">
