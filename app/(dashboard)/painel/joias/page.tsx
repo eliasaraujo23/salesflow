@@ -64,19 +64,6 @@ export default function PainelJoiasPage() {
 
   const isLoading = loadingVendas || loadingJf;
 
-  // Agrupa estoque JF por produto (do estoqueCategoria)
-  const jfEstoque = useMemo(() => {
-    if (!jf?.estoqueCategoria) return [];
-    const map = new Map<string, number>();
-    for (const r of jf.estoqueCategoria) {
-      if (!r.produto) continue;
-      map.set(r.produto, (map.get(r.produto) ?? 0) + r.estoque);
-    }
-    return Array.from(map.entries())
-      .sort(([, a], [, b]) => b - a)
-      .map(([name, value]) => ({ name, value }));
-  }, [jf]);
-
   // Por tipo: agrupa as rows de vendas por tipo → produto
   const porTipo = useMemo(() => {
     if (!vendas) return [];
@@ -165,27 +152,7 @@ export default function PainelJoiasPage() {
       {!isLoading && vendas && (
         <>
           {/* Cards por tipo — charts fill */}
-          <div className="shrink-0 grid gap-3" style={{ height: '38%', gridTemplateColumns: `repeat(${Math.max(porTipo.length, 1)}, 1fr)` }}>
-
-            {/* Card estoque JF */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col">
-              <div className="bg-indigo-600 text-white px-4 py-2 shrink-0">
-                <span className="text-xs font-bold uppercase tracking-widest">Estoque JF Cadastrado</span>
-              </div>
-              <div className="grid grid-cols-2 divide-x divide-zinc-200 dark:divide-white/[0.08] border-b border-zinc-200 dark:border-white/[0.08] shrink-0">
-                <div className="px-4 py-2 flex flex-col gap-0.5">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Qtd Estoque</span>
-                  <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{jf?.resumo.estoque ?? '—'}</span>
-                </div>
-                <div className="px-4 py-2 flex flex-col gap-0.5">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Em Fabricação</span>
-                  <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{jf?.resumo.em_fabricacao ?? '—'}</span>
-                </div>
-              </div>
-              <div className="flex-1 min-h-0 p-3">
-                <HBarChart data={jfEstoque.map(d => ({ name: d.name, value: d.value, displayLabel: String(d.value) }))} color="#6366f1" formatter={v => String(v)} fill />
-              </div>
-            </div>
+          <div className="shrink-0 grid gap-3" style={{ height: '42%', gridTemplateColumns: `repeat(${Math.max(porTipo.length, 1)}, 1fr)` }}>
 
             {/* Cards de vendas por tipo */}
             {porTipo.map(t => (
@@ -224,7 +191,7 @@ export default function PainelJoiasPage() {
           </div>
 
           {/* Tabela detalhada — padrão sticky */}
-          <div className="flex-1 min-h-0 overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
+          <div className="shrink-0 h-52 overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
             <table className="w-full text-xs border-separate border-spacing-0">
               <thead>
                 <tr>
