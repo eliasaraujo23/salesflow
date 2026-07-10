@@ -179,3 +179,17 @@ Toda tabela de detalhamento dentro de `app/(dashboard)/painel/` **deve** seguir 
 - Default de ordenação: coluna de data/dias desc (mais recente primeiro).
 - Ícones: `ChevronUp` / `ChevronDown` (coluna ativa) e `ChevronsUpDown opacity-30` (inativa) — importados de `lucide-react`.
 
+---
+
+## 8. Abas sem Filtro de Período
+
+Algumas abas do Painel Mensal usam dados históricos fixos (não dependem do filtro global de datas) e **não devem exibir a barra de período**.
+
+### Regra
+- A constante `TABS_WITHOUT_PERIOD` em `components/painel/painel-filter-bar.tsx` lista os pathnames que ocultam a barra.
+- Ao criar uma nova aba com dados históricos próprios (ex: evolutivo, rankings anuais), adicionar seu pathname a essa lista.
+- Abas atualmente isentas: `/painel/evolutivo`.
+
+### Ajuste de layout nessas abas
+- Como a barra de período some (~56px a menos), o conteúdo ganha altura extra.
+- Os charts devem ser dimensionados para que **tudo caiba em uma tela** sem scroll vertical — ajustar `height` dos `ResponsiveContainer` conforme necessário.

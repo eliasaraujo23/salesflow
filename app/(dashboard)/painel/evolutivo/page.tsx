@@ -240,11 +240,11 @@ export default function PainelEvolutivoPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex-1 p-3" style={{ minHeight: 180 }}>
+                  <div className="flex-1 p-3" style={{ minHeight: 140 }}>
                     {rows.every(r => r.faturamento === 0) ? (
                       <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem dados no período</div>
                     ) : (
-                      <ResponsiveContainer width="100%" height={180}>
+                      <ResponsiveContainer width="100%" height={140}>
                         <AreaChart data={rows} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                           <defs>
                             <linearGradient id={`grad-${canal.key}`} x1="0" y1="0" x2="0" y2="1">
@@ -277,7 +277,7 @@ export default function PainelEvolutivoPage() {
           {/* Gráfico comparativo multi-linha */}
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col gap-2">
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Evolução Comparativa por Canal</p>
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height={220}>
               <LineChart data={filteredRows} margin={{ top: 12, right: 24, left: 0, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />

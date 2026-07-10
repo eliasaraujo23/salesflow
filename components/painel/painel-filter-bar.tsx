@@ -1,12 +1,18 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { RefreshCw } from 'lucide-react';
 import { CalendarDateRangePicker } from '@/components/ui/date-range-picker';
 import { usePainelFilters } from './painel-filters-context';
 
+// Abas com dados históricos fixos não usam o filtro de período global
+const TABS_WITHOUT_PERIOD = ['/painel/evolutivo'];
 
 export function PainelFilterBar() {
   const { dateRange, setDateRange, isFetching, refetchAll } = usePainelFilters();
+  const pathname = usePathname();
+
+  if (TABS_WITHOUT_PERIOD.includes(pathname)) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] px-4 py-3 shrink-0">
