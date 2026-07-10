@@ -123,6 +123,33 @@ export default function PainelJoiasPage() {
     <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
 
 
+      {vendas && !isLoading && (() => {
+        const fat = porTipo.reduce((s, t) => s + t.fat, 0);
+        const custo = porTipo.reduce((s, t) => s + t.custo, 0);
+        const qtd = porTipo.reduce((s, t) => s + t.qtd, 0);
+        return (
+          <div className="shrink-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
+            <div className="px-4 py-2 bg-zinc-900 dark:bg-zinc-800 text-white">
+              <span className="text-xs font-bold uppercase tracking-widest">Total do Período</span>
+            </div>
+            <div className="grid grid-cols-5 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+              {[
+                { label: 'Faturamento',   value: fmtBRL(fat) },
+                { label: 'Ticket Médio',  value: fmtBRL(qtd > 0 ? fat / qtd : 0) },
+                { label: 'Qtd',           value: String(qtd) },
+                { label: 'Custo Total',   value: fmtBRL(custo) },
+                { label: 'Lucratividade', value: fat > 0 ? `${(((fat - custo) / fat) * 100).toFixed(2)}%` : '—' },
+              ].map(k => (
+                <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
+                  <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{k.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {isLoading && (
         <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm gap-2">
           <RefreshCw size={15} className="animate-spin" /> Carregando dados...

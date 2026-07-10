@@ -110,6 +110,33 @@ export default function PainelLeiloesPage() {
         </div>
       )}
 
+      {data && !isLoading && data.leiloes.length > 0 && (() => {
+        const fat = data.leiloes.reduce((s, l) => s + l.faturamento, 0);
+        const custo = data.leiloes.reduce((s, l) => s + l.custo, 0);
+        const qtd = data.leiloes.reduce((s, l) => s + l.qtd, 0);
+        return (
+          <div className="shrink-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
+            <div className="px-4 py-2 bg-zinc-900 dark:bg-zinc-800 text-white">
+              <span className="text-xs font-bold uppercase tracking-widest">Total do Período</span>
+            </div>
+            <div className="grid grid-cols-5 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+              {[
+                { label: 'Faturamento',   value: fmtBRL(fat) },
+                { label: 'Ticket Médio',  value: fmtBRL(qtd > 0 ? fat / qtd : 0) },
+                { label: 'Qtd',           value: String(qtd) },
+                { label: 'Custo Total',   value: fmtBRL(custo) },
+                { label: 'Lucratividade', value: fmtPct(fat > 0 ? ((fat - custo) / fat) * 100 : 0) },
+              ].map(k => (
+                <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
+                  <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{k.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {data && !isLoading && (
         data.leiloes.length === 0 ? (
           <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm">
