@@ -49,6 +49,16 @@ const COLS: { label: string; key: SortKey }[] = [
   { label: 'Data Venda',    key: 'data_venda' },
 ];
 
+interface TipoEntry {
+  tipo: string;
+  fat: number;
+  custo: number;
+  qtd: number;
+  lucrat: number;
+  tm: number;
+  byProduto: { name: string; value: number; qty: number }[];
+}
+
 export default function PainelEternnoPage() {
   const { from, to } = usePainelFilters();
 
@@ -69,15 +79,14 @@ export default function PainelEternnoPage() {
   }, [eternnoRows]);
 
   // Por tipo
-  const byTipo = useMemo(() => {
+  const byTipo = useMemo((): TipoEntry[] => {
     const tipos = ['JF', 'JM', 'JR', 'JC'] as const;
-    return tipos.map(tipo => {
+    return tipos.flatMap(tipo => {
       const rows = eternnoRows.filter(r => r.tipo === tipo);
-      if (rows.length === 0) return null;
+      if (rows.length === 0) return [];
       const fat = rows.reduce((s, r) => s + r.preco_cobrado, 0);
       const custo = rows.reduce((s, r) => s + r.custo_real, 0);
       const qtd = rows.length;
-      // agrupa por produto
       const prodMap = new Map<string, { fat: number; qtd: number }>();
       for (const r of rows) {
         const key = r.produto;
@@ -88,8 +97,8 @@ export default function PainelEternnoPage() {
       const byProduto = Array.from(prodMap.entries())
         .map(([name, e]) => ({ name, value: e.fat, qty: e.qtd }))
         .sort((a, b) => b.value - a.value);
-      return { tipo, fat, custo, qtd, lucrat: lucrat(fat, custo), tm: tm(fat, qtd), byProduto };
-    }).filter(Boolean) as NonNullable<ReturnType<typeof byTipo[0]>>[];
+      return [{ tipo, fat, custo, qtd, lucrat: lucrat(fat, custo), tm: tm(fat, qtd), byProduto }];
+    });
   }, [eternnoRows]);
 
   // Filtros
