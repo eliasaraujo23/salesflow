@@ -44,8 +44,8 @@ export default function PainelPage() {
       } else if (u === 'ETERNNO') {
         add('Eternno', d.faturamento, '#6366f1');
       } else if (u === 'MERCADO LIVRE') {
-        add('Mercado Livre', d.faturamento, '#f59e0b');
-      } else if (b2bNames.has(d.name)) {
+        add('Mercado Livre', d.faturamento, '#F5A623');
+      } else if (b2bNames.has(d.name) && u !== 'MERCADO LIVRE') {
         add('Parceiros', d.faturamento, '#f97316');
       } else {
         add('Outros', d.faturamento, '#10b981');
