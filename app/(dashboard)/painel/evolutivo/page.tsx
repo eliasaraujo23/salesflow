@@ -166,10 +166,10 @@ export default function PainelEvolutivoPage() {
   }
 
   return (
-    <div className="h-full overflow-auto p-4 flex flex-col gap-3">
+    <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
 
       {/* Control bar */}
-      <div className="flex flex-wrap items-center gap-4 border border-zinc-200 dark:border-white/[0.08] rounded-xl bg-white dark:bg-zinc-900 px-4 py-3">
+      <div className="shrink-0 flex flex-wrap items-center gap-4 border border-zinc-200 dark:border-white/[0.08] rounded-xl bg-white dark:bg-zinc-900 px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 shrink-0">Ano</span>
           <div className="flex flex-wrap gap-1">
@@ -211,15 +211,15 @@ export default function PainelEvolutivoPage() {
 
       {rawData && !isLoading && (
         <>
-          {/* 4 area charts individuais */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* 4 area charts individuais — flex-1 para preencher ~55% da altura disponível */}
+          <div className="flex-[55] min-h-0 grid grid-cols-2 gap-3">
             {CANAIS.filter(c => activeCanais.has(c.key)).map(canal => {
               const rows = filterByYear(canalData.get(canal.key) ?? []);
               const total = rows.reduce((s, r) => s + r.faturamento, 0);
               const peak = Math.max(...rows.map(r => r.faturamento), 0);
               const peakRow = rows.find(r => r.faturamento === peak);
               return (
-                <div key={canal.key} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col">
+                <div key={canal.key} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col min-h-0">
                   <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-white/[0.06]">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: canal.color }} />
@@ -240,11 +240,11 @@ export default function PainelEvolutivoPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex-1 p-3" style={{ minHeight: 140 }}>
+                  <div className="flex-1 min-h-0 p-3">
                     {rows.every(r => r.faturamento === 0) ? (
                       <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem dados no período</div>
                     ) : (
-                      <ResponsiveContainer width="100%" height={140}>
+                      <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={rows} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                           <defs>
                             <linearGradient id={`grad-${canal.key}`} x1="0" y1="0" x2="0" y2="1">
@@ -274,36 +274,38 @@ export default function PainelEvolutivoPage() {
             })}
           </div>
 
-          {/* Gráfico comparativo multi-linha */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col gap-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Evolução Comparativa por Canal</p>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={filteredRows} margin={{ top: 12, right: 24, left: 0, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                <YAxis tickFormatter={fmtY} tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} width={52} />
-                <Tooltip
-                  formatter={(v, name) => [fmtBRL(Number(v)), CANAL_LABELS[name as string] ?? name]}
-                  contentStyle={tooltipStyle}
-                />
-                <Legend
-                  formatter={name => CANAL_LABELS[name] ?? name}
-                  wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
-                />
-                {Object.keys(CANAL_LABELS).filter(k => activeCanais.has(k)).map(key => (
-                  <Line
-                    key={key}
-                    type="monotone"
-                    dataKey={key}
-                    name={key}
-                    stroke={CANAL_COLORS[key]}
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4, fill: CANAL_COLORS[key], stroke: '#fff', strokeWidth: 2 }}
+          {/* Gráfico comparativo multi-linha — flex-[45] para ~45% da altura disponível */}
+          <div className="flex-[45] min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col gap-2">
+            <p className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Evolução Comparativa por Canal</p>
+            <div className="flex-1 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={filteredRows} margin={{ top: 12, right: 24, left: 0, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                  <YAxis tickFormatter={fmtY} tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} width={52} />
+                  <Tooltip
+                    formatter={(v, name) => [fmtBRL(Number(v)), CANAL_LABELS[name as string] ?? name]}
+                    contentStyle={tooltipStyle}
                   />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+                  <Legend
+                    formatter={name => CANAL_LABELS[name] ?? name}
+                    wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                  />
+                  {Object.keys(CANAL_LABELS).filter(k => activeCanais.has(k)).map(key => (
+                    <Line
+                      key={key}
+                      type="monotone"
+                      dataKey={key}
+                      name={key}
+                      stroke={CANAL_COLORS[key]}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4, fill: CANAL_COLORS[key], stroke: '#fff', strokeWidth: 2 }}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </>
       )}
