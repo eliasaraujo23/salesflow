@@ -131,12 +131,11 @@ export default function PainelParceirosPage() {
         <div className="px-4 py-2 bg-zinc-900 dark:bg-zinc-800 text-white">
           <span className="text-xs font-bold uppercase tracking-widest">Total do Período</span>
         </div>
-        <div className="grid grid-cols-5 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+        <div className="grid grid-cols-4 divide-x divide-zinc-200 dark:divide-white/[0.08]">
           {[
             { label: 'Faturamento',   value: isLoading ? '—' : fmtBRL((data?.jf.faturamento ?? 0) + (data?.jm.faturamento ?? 0) + (data?.revenda.faturamento ?? 0)) },
             { label: 'Ticket Médio',  value: isLoading ? '—' : fmtBRL(((data?.jf.faturamento ?? 0) + (data?.jm.faturamento ?? 0) + (data?.revenda.faturamento ?? 0)) / Math.max((data?.jf.qtd ?? 0) + (data?.jm.qtd ?? 0) + (data?.revenda.qtd ?? 0), 1)) },
             { label: 'Qtd',           value: isLoading ? '—' : String((data?.jf.qtd ?? 0) + (data?.jm.qtd ?? 0) + (data?.revenda.qtd ?? 0)) },
-            { label: 'Custo Total',   value: isLoading ? '—' : fmtBRL((data?.jf.custo ?? 0) + (data?.jm.custo ?? 0) + (data?.revenda.custo ?? 0)) },
             { label: 'Lucratividade', value: isLoading ? '—' : (() => { const fat = (data?.jf.faturamento ?? 0) + (data?.jm.faturamento ?? 0) + (data?.revenda.faturamento ?? 0); const custo = (data?.jf.custo ?? 0) + (data?.jm.custo ?? 0) + (data?.revenda.custo ?? 0); return fmtPct(fat > 0 ? ((fat - custo) / fat) * 100 : 0); })() },
           ].map(k => (
             <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">

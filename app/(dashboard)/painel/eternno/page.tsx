@@ -153,12 +153,11 @@ export default function PainelEternnoPage() {
         <div className="px-4 py-2 bg-zinc-900 dark:bg-zinc-800 text-white">
           <span className="text-xs font-bold uppercase tracking-widest">Eternno</span>
         </div>
-        <div className="grid grid-cols-5 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+        <div className="grid grid-cols-4 divide-x divide-zinc-200 dark:divide-white/[0.08]">
           {[
             { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(kpi.fat) },
             { label: 'Ticket Médio', value: isLoading ? '—' : fmtBRL(kpi.tm) },
             { label: 'Qtd',          value: isLoading ? '—' : String(kpi.qtd) },
-            { label: 'Custo Total',  value: isLoading ? '—' : fmtBRL(kpi.custo) },
             { label: 'Lucratividade', value: isLoading ? '—' : fmtPct(kpi.lucrat) },
           ].map(k => (
             <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
