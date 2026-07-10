@@ -30,10 +30,13 @@ const TIPO_CLASS: Record<string, string> = {
 export default function PainelParceirosPage() {
   const { from, to, destinoFilter } = usePainelFilters();
 
+  const PARCEIROS_EXCLUDE = ['ETERNNO', 'LEILÃO ETERNNO', 'LEILÃO BRUNO', 'LEILÃO 24K', 'MERCADO LIVRE'];
+
   const { data, isLoading, isError, error } = usePainelVendas(
     from,
     to,
     destinoFilter.length > 0 ? destinoFilter : null,
+    PARCEIROS_EXCLUDE,
   );
 
   const [selectedJF, setSelectedJF] = useState<string | null>(null);

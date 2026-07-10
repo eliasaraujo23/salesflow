@@ -158,7 +158,7 @@ function kpiOf(rows: PainelRow[]): PainelKpi {
   return { faturamento: fat, custo, qtd, lucrat: lucrat(fat, custo), tm: tm(fat, qtd) };
 }
 
-function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): PainelVendasData {
+function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null, excludeDestinos?: Set<string>): PainelVendasData {
   // Mesma lógica de fetch-resale.ts — sem normDest no allowed (igual Revenda)
   const allowed = data.filter(r => {
     const d = (r.destino ?? '').trim().toUpperCase();
@@ -176,7 +176,8 @@ function buildPainelData(data: PainelRow[], destinoFilter?: string[] | null): Pa
   const filtered = (destinoFilter && destinoFilter.length > 0
     ? main.filter(r => destinoFilter.includes(clean(r.destino)))
     : main
-  ).filter(r => tipoOf(r.tipo) !== null);
+  ).filter(r => tipoOf(r.tipo) !== null)
+   .filter(r => !excludeDestinos || !excludeDestinos.has(clean(r.destino)));
 
   // Per-destino tipo breakdown for stacked chart
   const destinoBreakdownMap = new Map<string, { qtd: number; JR: number; JF: number; JM: number; JC: number }>();
@@ -310,15 +311,18 @@ export function usePainelVendas(
   from: string | undefined,
   to: string | undefined,
   destinos?: string[] | null,
+  excludeDestinos?: string[],
 ) {
   const destinoKey = destinos && destinos.length > 0 ? [...destinos].sort().join(',') : null;
+  const excludeKey = excludeDestinos && excludeDestinos.length > 0 ? [...excludeDestinos].sort().join('|') : null;
+  const excludeSet = excludeDestinos && excludeDestinos.length > 0 ? new Set(excludeDestinos) : undefined;
   return useQuery({
-    queryKey: ['painel-vendas', from, to, destinoKey],
+    queryKey: ['painel-vendas', from, to, destinoKey, excludeKey],
     queryFn: async () => {
       if (!from || !to) throw new Error('Date range required');
       const res = await fetchPainelRows(from, to);
       if (!res.data) throw new Error(res.message ?? 'Erro ao carregar dados');
-      return buildPainelData(res.data, destinos);
+      return buildPainelData(res.data, destinos, excludeSet);
     },
     enabled: !!from && !!to,
     staleTime: 5 * 60 * 1000,
