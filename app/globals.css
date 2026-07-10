@@ -249,3 +249,8 @@ table.data-table td {
 .animate-sale-new-item {
   animation: sale-slide-in 2.5s ease-out forwards;
 }
+
+/* Remove outline de foco nos elementos SVG do recharts */
+.recharts-wrapper *:focus {
+  outline: none;
+}
