@@ -162,6 +162,7 @@ export function Topbar({ title, subtitle, onSearch, onMobileMenu }: TopbarProps)
                 { label: 'Vendas Gerais', href: '/painel' },
                 { label: 'B2B B2C',       href: '/painel/canais' },
                 { label: 'Parceiros', href: '/painel/parceiros' },
+                { label: 'Eternno',   href: '/painel/eternno' },
                 { label: 'Leilões',   href: '/painel/leiloes' },
                 { label: 'Joias',        href: '/painel/joias' },
                 { label: 'Cadastradas',  href: '/painel/cadastradas' },
