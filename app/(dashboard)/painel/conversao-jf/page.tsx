@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown, X } from 'lucide-react';
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { useConversaoJf } from '@/hooks/use-conversao-jf';
 import { HBarChart } from '@/components/painel/h-bar-chart';
@@ -38,6 +38,9 @@ export default function PainelConversaoJfPage() {
   const { from, to } = usePainelFilters();
   const { data, isLoading, isError, error } = useConversaoJf(from, to);
 
+  const [selectedProduto, setSelectedProduto] = useState<string | null>(null);
+  const clearFilter = () => setSelectedProduto(null);
+
   const [sortKey, setSortKey] = useState<SortKey>('data_entrada');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const toggleSort = (key: SortKey) => {
@@ -45,9 +48,14 @@ export default function PainelConversaoJfPage() {
     else { setSortKey(key); setSortDir('desc'); }
   };
 
-  const sortedRows = useMemo(() => {
+  const filteredRows = useMemo(() => {
     if (!data) return [];
-    return [...data.rows].sort((a, b) => {
+    if (!selectedProduto) return data.rows;
+    return data.rows.filter(r => (r.produto ?? '').toUpperCase() === selectedProduto.toUpperCase());
+  }, [data, selectedProduto]);
+
+  const sortedRows = useMemo(() => {
+    return [...filteredRows].sort((a, b) => {
       const av = a[sortKey] ?? '';
       const bv = b[sortKey] ?? '';
       const cmp = typeof av === 'number' && typeof bv === 'number'
@@ -55,7 +63,7 @@ export default function PainelConversaoJfPage() {
         : String(av).localeCompare(String(bv), 'pt-BR', { numeric: true });
       return sortDir === 'asc' ? cmp : -cmp;
     });
-  }, [data, sortKey, sortDir]);
+  }, [filteredRows, sortKey, sortDir]);
 
   const kpi = data?.kpi;
 
@@ -106,6 +114,8 @@ export default function PainelConversaoJfPage() {
                   color="#6366f1"
                   formatter={fmtBRL}
                   fill
+                  selected={selectedProduto}
+                  onSelect={v => { if (selectedProduto === v) clearFilter(); else setSelectedProduto(v); }}
                 />
               </div>
             </div>
@@ -120,6 +130,8 @@ export default function PainelConversaoJfPage() {
                   color="#10b981"
                   formatter={fmtBRL}
                   fill
+                  selected={selectedProduto}
+                  onSelect={v => { if (selectedProduto === v) clearFilter(); else setSelectedProduto(v); }}
                 />
               </div>
             </div>
@@ -131,9 +143,16 @@ export default function PainelConversaoJfPage() {
               <thead>
                 <tr>
                   <th colSpan={9} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                      Detalhamento — {data.rows.length} peças · {data.kpi.qtdVendida} vendidas
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                        Detalhamento — {filteredRows.length} peças · {filteredRows.filter(r => r.preco_cobrado).length} vendidas
+                      </span>
+                      {selectedProduto && (
+                        <button onClick={clearFilter} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-semibold hover:bg-indigo-100 transition-colors">
+                          {selectedProduto} <X size={10} />
+                        </button>
+                      )}
+                    </div>
                   </th>
                 </tr>
                 <tr>
