@@ -128,7 +128,9 @@ export function CalendarDateRangePicker({
         <PopoverContent
           className="w-auto max-w-[100vw] overflow-x-auto p-0 rounded-2xl border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-zinc-900 shadow-2xl"
           align="start"
+          side="bottom"
           sideOffset={8}
+          avoidCollisions={false}
         >
           {/* INÍCIO / FIM */}
           <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-zinc-100 dark:border-white/[0.05]">
