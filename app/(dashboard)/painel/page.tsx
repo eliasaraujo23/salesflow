@@ -1,11 +1,24 @@
 'use client';
 
 import { useMemo } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Download } from 'lucide-react';
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { usePainelVendas } from '@/hooks/use-painel-vendas';
 import { StackedHBarChart } from '@/components/painel/stacked-h-bar-chart';
 import { TipoDonut } from '@/components/painel/tipo-donut';
+
+function exportCsv(rows: { referencia: string; preco_cobrado?: number | null; destino?: string | null }[], filename: string) {
+  const header = 'Referencia,Destino,Valor Venda';
+  const lines = rows
+    .filter(r => r.preco_cobrado)
+    .map(r => `"${r.referencia}","${r.destino ?? ''}","${r.preco_cobrado?.toFixed(2).replace('.', ',') ?? ''}"`)
+    .join('\n');
+  const blob = new Blob(['﻿' + header + '\n' + lines], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
 
 function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -62,18 +75,28 @@ export default function PainelPage() {
     <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
 
       {/* KPI bar compacto */}
-      <div className="shrink-0 grid grid-cols-4 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+      <div className="shrink-0 flex border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 divide-x divide-zinc-200 dark:divide-white/[0.08]">
         {[
           { label: 'Faturamento Total', value: isLoading ? '—' : fmtBRL(data?.total.faturamento ?? 0) },
           { label: 'Ticket Médio',      value: isLoading ? '—' : fmtBRL(data?.total.tm ?? 0) },
           { label: 'Quantidade',        value: isLoading ? '—' : String(data?.total.qtd ?? 0) },
           { label: 'Lucratividade',     value: isLoading ? '—' : fmtPct(data?.total.lucrat ?? 0) },
         ].map(k => (
-          <div key={k.label} className="flex flex-col gap-0.5 px-5 py-3">
+          <div key={k.label} className="flex-1 flex flex-col gap-0.5 px-5 py-3">
             <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
             <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{k.value}</span>
           </div>
         ))}
+        {data && (
+          <button
+            onClick={() => exportCsv(data.rows, `vendas-${from}-${to}.csv`)}
+            className="shrink-0 flex items-center gap-1.5 px-4 text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-50 dark:hover:bg-white/[0.03] transition-colors"
+            title="Exportar CSV"
+          >
+            <Download size={14} />
+            <span className="text-[11px] font-semibold">CSV</span>
+          </button>
+        )}
       </div>
 
       {isLoading && (
