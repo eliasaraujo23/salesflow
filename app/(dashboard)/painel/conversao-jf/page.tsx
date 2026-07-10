@@ -85,7 +85,7 @@ export default function PainelConversaoJfPage() {
       {data && !isLoading && (
         <>
           {/* KPI bar */}
-          <div className="shrink-0 grid grid-cols-7 gap-3">
+          <div className="shrink-0 grid grid-cols-6 gap-3">
             {[
               { label: 'Quantidade Fabricada', value: String(kpi!.qtdFabricada) },
               { label: 'Quantidade Vendida',   value: String(kpi!.qtdVendida) },
@@ -93,7 +93,6 @@ export default function PainelConversaoJfPage() {
               { label: 'Média Vida',           value: kpi!.mediaVida > 0 ? `${kpi!.mediaVida.toFixed(1)} dias` : '—' },
               { label: 'Custo de Fabricação',  value: fmtBRL(kpi!.custoTotal) },
               { label: 'Arrecadação',          value: fmtBRL(kpi!.arrecadacao) },
-              { label: 'Lucratividade',        value: fmtPct(kpi!.lucrat) },
             ].map(({ label, value }) => (
               <div key={label} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-4 py-2.5 flex flex-col gap-0.5">
                 <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{label}</span>
