@@ -168,7 +168,6 @@ export function Topbar({ title, subtitle, onSearch, onMobileMenu }: TopbarProps)
                 { label: 'Joias',        href: '/painel/joias' },
                 { label: 'Cadastradas',  href: '/painel/cadastradas' },
                 { label: 'Conversão JF', href: '/painel/conversao-jf' },
-                { label: 'Produção',     href: '/painel/producao' },
                 { label: 'Evolutivo', href: '/painel/evolutivo' },
               ].map(tab => {
                 const isActive = tab.href === '/painel'
