@@ -38,8 +38,12 @@ export default function PainelConversaoJfPage() {
   const { from, to } = usePainelFilters();
   const { data, isLoading, isError, error } = useConversaoJf(from, to);
 
-  const [selectedProduto, setSelectedProduto] = useState<string | null>(null);
-  const clearFilter = () => setSelectedProduto(null);
+  // selectedCusto = filtro do chart azul (todas as fabricadas com aquele produto)
+  // selectedArrecadacao = filtro do chart verde (só vendidas com aquele produto)
+  const [selectedCusto, setSelectedCusto] = useState<string | null>(null);
+  const [selectedArrecadacao, setSelectedArrecadacao] = useState<string | null>(null);
+
+  const clearFilter = () => { setSelectedCusto(null); setSelectedArrecadacao(null); };
 
   const [sortKey, setSortKey] = useState<SortKey>('data_entrada');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -50,9 +54,19 @@ export default function PainelConversaoJfPage() {
 
   const filteredRows = useMemo(() => {
     if (!data) return [];
-    if (!selectedProduto) return data.rows;
-    return data.rows.filter(r => (r.produto ?? '').toUpperCase() === selectedProduto.toUpperCase());
-  }, [data, selectedProduto]);
+    if (selectedCusto) {
+      // azul: todas as fabricadas com esse produto
+      return data.rows.filter(r => (r.produto ?? r.subtipo ?? '').toUpperCase() === selectedCusto);
+    }
+    if (selectedArrecadacao) {
+      // verde: só as vendidas com esse produto
+      return data.rows.filter(r =>
+        (r.produto ?? r.subtipo ?? '').toUpperCase() === selectedArrecadacao &&
+        r.data_venda && r.preco_cobrado
+      );
+    }
+    return data.rows;
+  }, [data, selectedCusto, selectedArrecadacao]);
 
   const sortedRows = useMemo(() => {
     return [...filteredRows].sort((a, b) => {
@@ -113,8 +127,8 @@ export default function PainelConversaoJfPage() {
                   color="#6366f1"
                   formatter={fmtBRL}
                   fill
-                  selected={selectedProduto}
-                  onSelect={v => { if (selectedProduto === v) clearFilter(); else setSelectedProduto(v); }}
+                  selected={selectedCusto}
+                  onSelect={v => { setSelectedArrecadacao(null); if (selectedCusto === v) setSelectedCusto(null); else setSelectedCusto(v); }}
                 />
               </div>
             </div>
@@ -129,8 +143,8 @@ export default function PainelConversaoJfPage() {
                   color="#10b981"
                   formatter={fmtBRL}
                   fill
-                  selected={selectedProduto}
-                  onSelect={v => { if (selectedProduto === v) clearFilter(); else setSelectedProduto(v); }}
+                  selected={selectedArrecadacao}
+                  onSelect={v => { setSelectedCusto(null); if (selectedArrecadacao === v) setSelectedArrecadacao(null); else setSelectedArrecadacao(v); }}
                 />
               </div>
             </div>
@@ -146,9 +160,9 @@ export default function PainelConversaoJfPage() {
                       <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                         Detalhamento — {filteredRows.length} peças · {filteredRows.filter(r => r.preco_cobrado).length} vendidas
                       </span>
-                      {selectedProduto && (
-                        <button onClick={clearFilter} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-semibold hover:bg-indigo-100 transition-colors">
-                          {selectedProduto} <X size={10} />
+                      {(selectedCusto ?? selectedArrecadacao) && (
+                        <button onClick={clearFilter} className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${selectedArrecadacao ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100' : 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100'}`}>
+                          {selectedCusto ?? selectedArrecadacao} <X size={10} />
                         </button>
                       )}
                     </div>
