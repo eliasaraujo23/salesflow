@@ -12,12 +12,6 @@ function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 }
 
-function fmtK(v: number) {
-  if (v >= 1_000_000) return `R$${(v / 1_000_000).toFixed(2)} Mi`;
-  if (v >= 1_000) return `R$${(v / 1_000).toFixed(2)} Mil`;
-  return fmtBRL(v);
-}
-
 const LEILAO_DESTINOS = new Set(['LEILÃO ETERNNO', 'LEILÃO BRUNO', 'LEILÃO 24K']);
 
 const MESES_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -32,39 +26,41 @@ export default function PainelEvolutivoPage() {
     tipo: 'todos',
   });
 
-  // Build monthly aggregates for leilões and parceiros
-  const { years, leilaoByMonth, parceirosByMonth, annualData, destinosDisponiveis, allMonthlyByDestino } = useMemo(() => {
+  const ETERNNO_DESTINOS = new Set(['ETERNNO']);
+  const ML_DESTINOS = new Set(['MERCADO LIVRE']);
+  const PARCEIROS_EXCLUDE = new Set(['ETERNNO', 'LEILÃO ETERNNO', 'LEILÃO BRUNO', 'LEILÃO 24K', 'MERCADO LIVRE']);
+
+  const { years, leilaoByMonth, parceirosByMonth, eternnoByMonth, mlByMonth } = useMemo(() => {
     if (!rawData) return {
       years: [] as string[],
       leilaoByMonth: [] as { mes: string; label: string; faturamento: number }[],
       parceirosByMonth: [] as { mes: string; label: string; faturamento: number }[],
-      annualData: [] as { ano: string; faturamento: number }[],
-      destinosDisponiveis: [] as string[],
-      allMonthlyByDestino: new Map<string, Map<string, number>>(),
+      eternnoByMonth: [] as { mes: string; label: string; faturamento: number }[],
+      mlByMonth: [] as { mes: string; label: string; faturamento: number }[],
     };
 
     const leilaoMap = new Map<string, number>();
     const parceirosMap = new Map<string, number>();
-    const annualMap = new Map<string, number>();
+    const eternnoMap = new Map<string, number>();
+    const mlMap = new Map<string, number>();
     const yearSet = new Set<string>();
-    const destinoSet = new Set<string>();
-    const monthlyByDestino = new Map<string, Map<string, number>>();
 
     for (const r of rawData) {
-      const ano = r.mes.substring(0, 4);
-      yearSet.add(ano);
-      annualMap.set(ano, (annualMap.get(ano) ?? 0) + r.faturamento);
+      const dest = r.destino.toUpperCase();
+      yearSet.add(r.mes.substring(0, 4));
 
-      if (LEILAO_DESTINOS.has(r.destino.toUpperCase())) {
+      if (LEILAO_DESTINOS.has(dest)) {
         leilaoMap.set(r.mes, (leilaoMap.get(r.mes) ?? 0) + r.faturamento);
-      } else {
+      }
+      if (ETERNNO_DESTINOS.has(dest)) {
+        eternnoMap.set(r.mes, (eternnoMap.get(r.mes) ?? 0) + r.faturamento);
+      }
+      if (ML_DESTINOS.has(dest)) {
+        mlMap.set(r.mes, (mlMap.get(r.mes) ?? 0) + r.faturamento);
+      }
+      if (!PARCEIROS_EXCLUDE.has(dest)) {
         parceirosMap.set(r.mes, (parceirosMap.get(r.mes) ?? 0) + r.faturamento);
       }
-
-      destinoSet.add(r.destino);
-      if (!monthlyByDestino.has(r.destino)) monthlyByDestino.set(r.destino, new Map());
-      const dm = monthlyByDestino.get(r.destino)!;
-      dm.set(r.mes, (dm.get(r.mes) ?? 0) + r.faturamento);
     }
 
     const allMeses = [...new Set(rawData.map(r => r.mes))].sort();
@@ -80,18 +76,12 @@ export default function PainelEvolutivoPage() {
       }).filter(r => r.faturamento > 0);
     }
 
-    const years = [...yearSet].sort();
-    const annualData = [...annualMap.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([ano, faturamento]) => ({ ano, faturamento }));
-
     return {
-      years,
+      years: [...yearSet].sort(),
       leilaoByMonth: toMonthRows(leilaoMap),
       parceirosByMonth: toMonthRows(parceirosMap),
-      annualData,
-      destinosDisponiveis: [...destinoSet].sort(),
-      allMonthlyByDestino: monthlyByDestino,
+      eternnoByMonth: toMonthRows(eternnoMap),
+      mlByMonth: toMonthRows(mlMap),
     };
   }, [rawData]);
 
@@ -175,39 +165,36 @@ export default function PainelEvolutivoPage() {
 
       {rawData && !isLoading && (
         <>
-          {/* Comparativo evolutivo lado a lado */}
+          {/* 4 charts evolutivos em 2x2 */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Comparativo Evolutivo Leilão</p>
-              <div style={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={filterByYear(leilaoByMonth)} margin={chartMargin} layout="vertical">
-                    <XAxis type="number" tickFormatter={v => `${(v/1000).toFixed(0)}k`} tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} />
-                    <YAxis type="category" dataKey="label" width={100} tick={{ fontSize: 10, fill: '#71717a' }} tickLine={false} axisLine={false} />
-                    <Tooltip formatter={(v) => [fmtBRL(Number(v)), '']} contentStyle={{ background: '#ffffff', border: '1px solid #e4e4e7', borderRadius: 8, fontSize: 12, color: '#18181b', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                    <Bar dataKey="faturamento" fill="#a855f7" radius={[0, 4, 4, 0]} maxBarSize={18} />
-                  </BarChart>
-                </ResponsiveContainer>
+            {[
+              { label: 'Comparativo Evolutivo Parceiros', data: parceirosByMonth, color: '#6366f1' },
+              { label: 'Comparativo Evolutivo Eternno',   data: eternnoByMonth,   color: '#18181b' },
+              { label: 'Comparativo Evolutivo Leilões',   data: leilaoByMonth,    color: '#a855f7' },
+              { label: 'Comparativo Evolutivo Mercado Livre', data: mlByMonth,    color: '#F5A623' },
+            ].map(({ label, data, color }) => (
+              <div key={label} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">{label}</p>
+                {filterByYear(data).length === 0 ? (
+                  <div className="flex items-center justify-center h-40 text-zinc-400 text-sm">Sem dados no período</div>
+                ) : (
+                  <div style={{ height: 300 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={filterByYear(data)} margin={chartMargin} layout="vertical">
+                        <XAxis type="number" tickFormatter={v => {
+                          if (v >= 1_000_000) return `${(v/1_000_000).toFixed(1)}M`;
+                          if (v >= 1_000) return `${(v/1_000).toFixed(0)}k`;
+                          return String(v);
+                        }} tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} />
+                        <YAxis type="category" dataKey="label" width={100} tick={{ fontSize: 10, fill: '#71717a' }} tickLine={false} axisLine={false} />
+                        <Tooltip formatter={(v) => [fmtBRL(Number(v)), '']} contentStyle={{ background: '#ffffff', border: '1px solid #e4e4e7', borderRadius: 8, fontSize: 12, color: '#18181b', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                        <Bar dataKey="faturamento" fill={color} radius={[0, 4, 4, 0]} maxBarSize={18} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </div>
-            </div>
-
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Comparativo Evolutivo Parceiros</p>
-              <div style={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={filterByYear(parceirosByMonth)} margin={chartMargin} layout="vertical">
-                    <XAxis type="number" tickFormatter={v => {
-                      if (v >= 1_000_000) return `${(v/1_000_000).toFixed(1)}M`;
-                      if (v >= 1_000) return `${(v/1_000).toFixed(0)}k`;
-                      return String(v);
-                    }} tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} />
-                    <YAxis type="category" dataKey="label" width={100} tick={{ fontSize: 10, fill: '#71717a' }} tickLine={false} axisLine={false} />
-                    <Tooltip formatter={(v) => [fmtBRL(Number(v)), '']} contentStyle={{ background: '#ffffff', border: '1px solid #e4e4e7', borderRadius: 8, fontSize: 12, color: '#18181b', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                    <Bar dataKey="faturamento" fill="#6366f1" radius={[0, 4, 4, 0]} maxBarSize={18} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* Comparativo mensal por ano (linha) */}
@@ -246,36 +233,6 @@ export default function PainelEvolutivoPage() {
                     />
                   ))}
                 </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Faturamento anual acumulado */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Faturamento Acumulado por Ano</p>
-            <div style={{ height: 200 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={annualData} margin={chartMargin}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
-                  <XAxis dataKey="ano" tick={{ fontSize: 12, fill: '#a1a1aa' }} tickLine={false} axisLine={false} />
-                  <YAxis
-                    tickFormatter={v => {
-                      if (v >= 1_000_000) return `${(v/1_000_000).toFixed(1)}M`;
-                      if (v >= 1_000) return `${(v/1_000).toFixed(0)}k`;
-                      return String(v);
-                    }}
-                    tick={{ fontSize: 10, fill: '#a1a1aa' }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={56}
-                  />
-                  <Tooltip
-                    formatter={(v) => [fmtBRL(Number(v)), 'Faturamento']}
-                    contentStyle={{ background: '#ffffff', border: '1px solid #e4e4e7', borderRadius: 8, fontSize: 12, color: '#18181b', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                  />
-                  <Bar dataKey="faturamento" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={60}>
-                  </Bar>
-                </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
