@@ -60,7 +60,8 @@ export default function PainelEvolutivoPage() {
       if (!PARCEIROS_EXCLUDE.has(dest)) maps.parceiros.set(r.mes, (maps.parceiros.get(r.mes) ?? 0) + r.faturamento);
     }
 
-    const allMeses = [...new Set(rawData.map(r => r.mes))].sort();
+    const currentMes = new Date().toISOString().substring(0, 7);
+    const allMeses = [...new Set(rawData.map(r => r.mes))].sort().filter(m => m < currentMes);
 
     function toRows(map: Map<string, number>) {
       return allMeses.map(mes => {

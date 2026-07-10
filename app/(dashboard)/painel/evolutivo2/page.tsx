@@ -65,7 +65,8 @@ export default function PainelEvolutivo2Page() {
       mesMap.set(r.mes, e);
     }
 
-    const allMeses = [...mesMap.keys()].sort();
+    const currentMes = new Date().toISOString().substring(0, 7);
+    const allMeses = [...mesMap.keys()].sort().filter(m => m < currentMes);
     const rows = allMeses.map(mes => {
       const [, m] = mes.split('-');
       return {
