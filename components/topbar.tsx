@@ -159,11 +159,12 @@ export function Topbar({ title, subtitle, onSearch, onMobileMenu }: TopbarProps)
             <div className="flex items-center gap-1 ml-1">
               <ChevronRight size={14} className="text-zinc-400 shrink-0" />
               {[
-                { label: 'Vendas',    href: '/painel' },
-                { label: 'Canais',    href: '/painel/canais' },
+                { label: 'Vendas Gerais', href: '/painel' },
+                { label: 'B2B B2C',       href: '/painel/canais' },
                 { label: 'Parceiros', href: '/painel/parceiros' },
                 { label: 'Leilões',   href: '/painel/leiloes' },
                 { label: 'Joias',        href: '/painel/joias' },
+                { label: 'Cadastradas',  href: '/painel/cadastradas' },
                 { label: 'Conversão JF', href: '/painel/conversao-jf' },
                 { label: 'Produção',     href: '/painel/producao' },
                 { label: 'Evolutivo', href: '/painel/evolutivo' },

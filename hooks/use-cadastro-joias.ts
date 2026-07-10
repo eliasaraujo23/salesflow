@@ -75,7 +75,7 @@ function buildData(rows: CadastroJoia[]): CadastroJoiasData {
       peso: rows.reduce((s, r) => s + r.peso, 0),
     },
     porTipo,
-    rows,
+    rows: rows.map(r => ({ ...r, tipo: tipoLabel(r.tipo) })),
   };
 }
 
