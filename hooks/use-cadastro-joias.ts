@@ -81,10 +81,10 @@ function buildData(rows: CadastroJoia[]): CadastroJoiasData {
 
 export function useCadastroJoias(from: string | undefined, to: string | undefined) {
   const { data: raw, isLoading, isError, error } = useQuery({
-    queryKey: ['cadastro-joias-v2', from, to],
+    queryKey: ['cadastro-joias-v3', from, to],
     queryFn: () => fetchCadastroJoiasAction(from!, to!),
     enabled: !!from && !!to,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 
   const data = useMemo<CadastroJoiasData | null>(() => {
