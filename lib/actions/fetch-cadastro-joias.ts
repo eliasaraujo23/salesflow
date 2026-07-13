@@ -24,7 +24,7 @@ export interface ResponseApi<T> {
 
 export async function fetchCadastroJoiasAction(from: string, to: string): Promise<ResponseApi<CadastroJoia[]>> {
   try {
-    const r = await authFetch(`${API_BASE}/product-details?from=${from}&to=${to}`);
+    const r = await authFetch(`${API_BASE}/product-details-cadastradas?from=${from}&to=${to}`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const raw = await r.json();
     const parsed = z.array(cadastroJoiaSchema).safeParse(raw);
