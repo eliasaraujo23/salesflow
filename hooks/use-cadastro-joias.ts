@@ -92,5 +92,7 @@ export function useCadastroJoias(from: string | undefined, to: string | undefine
     return buildData(raw.data);
   }, [raw]);
 
-  return { data, isLoading, isError, error };
+  const apiError = !isLoading && raw && !raw.data ? new Error(raw.message ?? `Erro ${raw.httpStatus}`) : null;
+
+  return { data, isLoading, isError: isError || !!apiError, error: error ?? apiError };
 }
