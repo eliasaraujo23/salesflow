@@ -11,7 +11,7 @@ const cadastroJoiaSchema = z.object({
   peso:                z.coerce.number().default(0),
   custo_real:          z.coerce.number().default(0),
   data_entrada:        z.string().nullable().optional(),
-}).passthrough();
+});
 
 export type CadastroJoia = z.infer<typeof cadastroJoiaSchema>;
 
@@ -25,7 +25,11 @@ export interface ResponseApi<T> {
 export async function fetchCadastroJoiasAction(from: string, to: string): Promise<ResponseApi<CadastroJoia[]>> {
   try {
     const r = await authFetch(`${API_BASE}/product-details-cadastradas?from=${from}&to=${to}`);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    if (!r.ok) {
+      const body = await r.text().catch(() => '');
+      console.error('[cadastradas] HTTP error:', r.status, body.slice(0, 200));
+      throw new Error(`HTTP ${r.status}: ${body.slice(0, 100)}`);
+    }
     const raw = await r.json();
     const parsed = z.array(cadastroJoiaSchema).safeParse(raw);
     if (!parsed.success) {
