@@ -1,22 +1,20 @@
 ﻿'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Search, Sun, Moon, CloudCheck, Bell, Menu, ChevronRight } from 'lucide-react';
+import { Sun, Moon, CloudCheck, Menu, ChevronRight } from 'lucide-react';
 import { NAVIGATION_ITEMS } from '@/lib/constants';
 
 interface TopbarProps {
   title?: string;
   subtitle?: string;
-  onSearch?: (query: string) => void;
   onMobileMenu?: () => void;
 }
 
-export function Topbar({ title, subtitle, onSearch, onMobileMenu }: TopbarProps) {
+export function Topbar({ title, subtitle, onMobileMenu }: TopbarProps) {
   const pathname = usePathname();
   const [isDark, setIsDark] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem('theme');
@@ -223,20 +221,6 @@ export function Topbar({ title, subtitle, onSearch, onMobileMenu }: TopbarProps)
 
       {/* Right: search + actions */}
       <div className="flex items-center gap-1">
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-white/[0.06] border border-zinc-200 dark:border-white/[0.13] focus-within:border-indigo-400 dark:focus-within:border-indigo-500 transition-colors">
-          <Search size={13} className="text-zinc-400 shrink-0" />
-          <input
-            type="text"
-            placeholder="Buscar tarefas..."
-            value={searchQuery}
-            onChange={e => { setSearchQuery(e.target.value); onSearch?.(e.target.value); }}
-            className="bg-transparent border-none outline-none text-[13px] text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 w-36"
-          />
-        </div>
-
-        <button className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200">
-          <Bell size={16} />
-        </button>
 
         <button
           onClick={toggleTheme}
