@@ -6,7 +6,8 @@ import { useResale } from '@/hooks/use-resale';
 import { useXauUsd } from '@/hooks/use-xau-usd';
 import { ResaleHBar } from '@/components/resale/resale-h-bar';
 import { ResaleDonut } from '@/components/resale/resale-donut';
-import { ResaleDatePicker } from '@/components/resale/resale-date-picker';
+import { CalendarDateRangePicker } from '@/components/ui/date-range-picker';
+import type { DateRange } from 'react-day-picker';
 import { ResaleTicker } from '@/components/resale/resale-ticker';
 import { ResaleUltimasVendas } from '@/components/resale/resale-ultimas-vendas';
 import { ResaleB2b2c } from '@/components/resale/resale-b2b2c';
@@ -55,8 +56,12 @@ function SectionCard({ title, children, className = '', contentClass }: {
 }
 
 export default function ResalePage() {
-  const [from, setFrom] = useState(firstDayOfMonthISO());
-  const [to, setTo]     = useState(todayISO());
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => ({
+    from: new Date(firstDayOfMonthISO()),
+    to:   new Date(todayISO()),
+  }));
+  const from = dateRange?.from ? dateRange.from.toISOString().slice(0, 10) : '';
+  const to   = dateRange?.to   ? dateRange.to.toISOString().slice(0, 10)   : '';
   const { data, isLoading, isError, refetch, isFetching } = useResale(from, to);
   const ticker = useXauUsd();
   const playChime = useSaleSound();
@@ -97,7 +102,7 @@ export default function ResalePage() {
       <div className="sticky top-0 z-10 -mx-3 sm:-mx-4 px-3 sm:px-4 py-2 sm:py-3 bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-white/[0.08] shadow-sm shrink-0">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
-            <ResaleDatePicker from={from} to={to} onApply={(f, t) => { setFrom(f); setTo(t); }} />
+            <CalendarDateRangePicker dateRange={dateRange} setDateRange={setDateRange} />
             <ResaleTicker data={ticker} />
           </div>
           <button
