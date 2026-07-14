@@ -150,7 +150,7 @@ export default function ResalePage() {
             className="flex flex-col gap-3 md:grid md:min-h-0"
             style={{ gridTemplateColumns: '1fr 1fr 180px', gridTemplateRows: '1fr 1fr' }}
           >
-            <SectionCard title="Scrap · B2B / B2C" className="md:h-full md:flex md:flex-col md:col-start-1 md:row-start-1" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
+            <SectionCard title="Scrap · B2B / B2C" className="md:h-full md:flex md:flex-col md:col-start-2 md:row-start-2" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
               {data.scrapFat === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
                 : <ResaleScrapChannels scrapB2b={data.scrapB2b} scrapB2c={data.scrapB2c} />}
@@ -171,7 +171,7 @@ export default function ResalePage() {
             </div>
 
             {/* Eternno por Tipo — col 2, row 2 */}
-            <SectionCard title="Eternno · Por Tipo" className="md:col-start-2 md:row-start-2 md:h-full md:flex md:flex-col">
+            <SectionCard title="Eternno · Por Tipo" className="md:col-start-1 md:row-start-1 md:h-full md:flex md:flex-col">
               {/* KPIs Eternno */}
               <div className="grid grid-cols-2 gap-1.5 mb-3 shrink-0">
                 <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
