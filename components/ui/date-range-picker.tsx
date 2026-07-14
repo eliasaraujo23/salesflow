@@ -52,12 +52,14 @@ export function CalendarDateRangePicker({
   const [pendingRange, setPendingRange] = useState<DateRange | undefined>(dateRange);
   const [fromText, setFromText] = useState(fmtInput(dateRange?.from));
   const [toText,   setToText]   = useState(fmtInput(dateRange?.to));
+  const [calMonth,  setCalMonth]  = useState<Date>(dateRange?.from ?? new Date());
 
   // Reseta ao abrir o popover ou quando o range aplicado muda externamente
   useEffect(() => {
     setPendingRange(dateRange);
     setFromText(fmtInput(dateRange?.from));
     setToText(fmtInput(dateRange?.to));
+    if (dateRange?.from) setCalMonth(new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), 1));
   }, [dateRange, isPopoverOpen]);
 
   // Clique direto num dia do calendário
@@ -80,8 +82,12 @@ export function CalendarDateRangePicker({
   // Validação no blur dos campos de texto
   const handleFromBlur = () => {
     const d = parseInput(fromText);
-    if (d) setPendingRange(prev => ({ from: d, to: prev?.to }));
-    else   setFromText(fmtInput(pendingRange?.from));
+    if (d) {
+      setPendingRange(prev => ({ from: d, to: prev?.to }));
+      setCalMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+    } else {
+      setFromText(fmtInput(pendingRange?.from));
+    }
   };
 
   const handleToBlur = () => {
@@ -166,7 +172,8 @@ export function CalendarDateRangePicker({
             return (
               <DayPicker
                 mode="range"
-                defaultMonth={pendingRange?.from ?? new Date()}
+                month={calMonth}
+                onMonthChange={setCalMonth}
                 selected={pendingRange}
                 onDayClick={handleDayClick}
                 numberOfMonths={numMonths}
