@@ -5,6 +5,7 @@ import { RefreshCw, X, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-rea
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { usePainelScrap, type ScrapDetailRow } from '@/hooks/use-painel-scrap';
 import { HBarChart } from '@/components/painel/h-bar-chart';
+import { TipoDonut } from '@/components/painel/tipo-donut';
 
 function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -32,12 +33,6 @@ const TIPO_CLASS: Record<string, string> = {
   JR: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
 };
 
-const TIPO_LABEL: Record<string, string> = {
-  JF: 'Joias Fabricadas',
-  JM: 'Joias Modificadas',
-  JR: 'Joias Revenda',
-  JC: 'Joias Consignadas',
-};
 
 type SortKey = keyof Pick<ScrapDetailRow,
   'referencia' | 'tipo' | 'produto' | 'destino' | 'peso' | 'custo_real' | 'preco_cobrado' | 'lucrat' | 'data_venda'
@@ -208,27 +203,8 @@ export default function PainelScrapPage() {
                 {data.byTipo.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center text-sm text-zinc-400">Sem dados</div>
                 ) : (
-                  <div className="flex flex-col gap-3 flex-1 justify-center">
-                    {data.byTipo.map(item => (
-                      <div key={item.name} className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
-                        <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 w-24 shrink-0 truncate">
-                          {TIPO_LABEL[item.name] ?? item.name}
-                        </span>
-                        <div className="flex-1 h-4 bg-zinc-100 dark:bg-zinc-800 rounded overflow-hidden">
-                          <div
-                            className="h-full rounded transition-all"
-                            style={{
-                              width: `${(item.value / data.byTipo[0].value) * 100}%`,
-                              backgroundColor: item.color,
-                            }}
-                          />
-                        </div>
-                        <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 tabular-nums whitespace-nowrap shrink-0 w-20 text-right">
-                          {fmtBRL(item.value)}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="flex-1 min-h-0">
+                    <TipoDonut data={data.byTipo} />
                   </div>
                 )}
               </div>
@@ -238,7 +214,7 @@ export default function PainelScrapPage() {
 
           {/* ── Tabela ──────────────────────────────────────────── */}
           <div className="shrink-0 h-56 overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
-            <table className="w-full text-xs border-separate border-spacing-0">
+            <table className="w-full text-xs border-separate border-spacing-0 data-table">
               <thead>
                 <tr>
                   <th colSpan={COLS.length} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
