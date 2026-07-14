@@ -165,6 +165,7 @@ export function Topbar({ title, subtitle, onSearch, onMobileMenu }: TopbarProps)
                 { label: 'Eternno',       href: '/painel/eternno' },
                 { label: 'Leilões',       href: '/painel/leiloes' },
                 { label: 'Mercado Livre', href: '/painel/mercado-livre' },
+                { label: 'Scrap',        href: '/painel/scrap' },
                 { label: 'Joias',        href: '/painel/joias' },
                 { label: 'Cadastradas',  href: '/painel/cadastradas' },
                 { label: 'Conversão JF', href: '/painel/conversao-jf' },
