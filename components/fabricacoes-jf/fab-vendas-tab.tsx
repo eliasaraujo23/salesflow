@@ -95,14 +95,14 @@ function SortIcon({ dir }: { dir: SortDir }) {
 }
 
 export function FabVendasTab() {
-  const { data = [], isLoading, isError, refetch, isFetching } = useJfVendas();
-
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     const now = new Date();
     return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: new Date(now.getFullYear(), now.getMonth() + 1, 0) };
   });
   const from = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : '';
   const to   = dateRange?.to   ? format(dateRange.to,   'yyyy-MM-dd') : '';
+
+  const { data = [], isLoading, isError, refetch, isFetching } = useJfVendas(from || undefined, to || undefined);
   const [busca, setBusca] = useState('');
   const [tipos, setTipos]         = useState<string[]>([]);
   const [produtos, setProdutos]   = useState<string[]>([]);
@@ -115,15 +115,13 @@ export function FabVendasTab() {
   const dateSearchFiltered = useMemo(() => {
     return data.filter(r => {
       if (HIDDEN_DESTINOS.has((r.destino ?? '').toLowerCase())) return false;
-      if (from && (!r.data_venda || new Date(r.data_venda) < new Date(from + 'T00:00:00'))) return false;
-      if (to && (!r.data_venda || new Date(r.data_venda) > new Date(to + 'T23:59:59'))) return false;
       if (busca) {
         const q = busca.toLowerCase();
         if (!r.referencia.toLowerCase().includes(q) && !(r.produto ?? '').toLowerCase().includes(q)) return false;
       }
       return true;
     });
-  }, [data, from, to, busca]);
+  }, [data, busca]);
 
   const filtered = useMemo(
     () => applyDimFilters(dateSearchFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes),

@@ -30,9 +30,10 @@ export interface ResponseApi<T> {
   data?: T;
 }
 
-export async function fetchJfVendasAction(): Promise<ResponseApi<JfVendasItem[]>> {
+export async function fetchJfVendasAction(from?: string, to?: string): Promise<ResponseApi<JfVendasItem[]>> {
   try {
-    const r = await authFetch(`${API_BASE}/lista-faturamento`);
+    const params = from && to ? `?from=${from}&to=${to}` : '';
+    const r = await authFetch(`${API_BASE}/lista-faturamento${params}`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const raw = await r.json();
     const parsed = z.array(jfVendasItemSchema).safeParse(raw);
