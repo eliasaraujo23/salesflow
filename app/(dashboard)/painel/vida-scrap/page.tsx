@@ -168,9 +168,16 @@ export default function VidaScrapPage() {
                       <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#71717a' }} tickLine={false} axisLine={false} />
                       <YAxis tick={{ fontSize: 11, fill: '#71717a' }} tickLine={false} axisLine={false} allowDecimals={false} />
                       <Tooltip
-                        formatter={(v: unknown) => [`${v} itens`, '']}
-                        contentStyle={{ background: '#fff', border: '1px solid #e4e4e7', borderRadius: 8, fontSize: 12 }}
                         cursor={{ fill: 'rgba(99,102,241,0.05)' }}
+                        content={({ active, payload, label }) => {
+                          if (!active || !payload?.length) return null;
+                          return (
+                            <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 shadow-sm">
+                              <p className="text-[11px] font-bold text-zinc-700 dark:text-zinc-200">{label}</p>
+                              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">{payload[0].value} itens</p>
+                            </div>
+                          );
+                        }}
                       />
                       <Bar dataKey="count" radius={[4, 4, 0, 0]} isAnimationActive={false}>
                         {distribution.map((b, i) => <Cell key={i} fill={b.color} />)}
