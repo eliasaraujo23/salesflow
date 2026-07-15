@@ -14,11 +14,13 @@ import { ResaleUltimasVendas } from '@/components/resale/resale-ultimas-vendas';
 import { ResaleScrapSummary } from '@/components/resale/resale-scrap-summary';
 import { useSaleSound } from '@/hooks/use-sale-sound';
 
-function todayISO() { return localISO(new Date()); }
-function firstDayOfMonthISO() {
+function todayDate() {
   const d = new Date();
-  d.setDate(1);
-  return localISO(d);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function firstOfMonthDate() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
 const fmtMoeda = (v: number) =>
@@ -55,8 +57,8 @@ function SectionCard({ title, children, className = '', contentClass }: {
 
 export default function ResalePage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => ({
-    from: new Date(firstDayOfMonthISO()),
-    to:   new Date(todayISO()),
+    from: firstOfMonthDate(),
+    to:   todayDate(),
   }));
   const from = dateRange?.from ? localISO(dateRange.from) : '';
   const to   = dateRange?.to   ? localISO(dateRange.to)   : '';

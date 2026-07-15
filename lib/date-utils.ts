@@ -1,3 +1,12 @@
+/**
+ * Converte string "YYYY-MM-DD" em Date local (sem UTC shift).
+ * new Date("YYYY-MM-DD") trata como UTC midnight — errado no Brasil.
+ */
+export function isoToLocalDate(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 /** Retorna a data local no formato YYYY-MM-DD, sem conversão UTC. */
 export function localISO(d: Date): string {
   const y = d.getFullYear();
