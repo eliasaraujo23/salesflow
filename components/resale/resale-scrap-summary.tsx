@@ -34,15 +34,15 @@ export function ResaleScrapSummary({ scrapFat, scrapCusto, scrapQtd, scrapByDest
 
       <div className="text-[12px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-3 shrink-0">Scrap</div>
 
-      {/* KPI row */}
-      <div className="shrink-0 grid grid-cols-4 divide-x divide-zinc-100 dark:divide-white/[0.06] border-b border-zinc-100 dark:border-white/[0.06]">
+      {/* KPI grid */}
+      <div className="shrink-0 grid grid-cols-2 gap-1.5 mb-3">
         {[
           { label: 'Faturamento',   value: fmtK(scrapFat) },
-          { label: 'Lucratividade', value: lucStr(scrapFat, scrapCusto), cls: 'text-emerald-600 dark:text-emerald-400' },
           { label: 'Quantidade',    value: String(scrapQtd) },
-          { label: 'TM',            value: tmStr(scrapFat, scrapQtd) },
+          { label: 'Lucratividade', value: lucStr(scrapFat, scrapCusto), cls: 'text-emerald-600 dark:text-emerald-400' },
+          { label: 'Ticket Médio',  value: tmStr(scrapFat, scrapQtd) },
         ].map(k => (
-          <div key={k.label} className="flex flex-col gap-0.5 px-3 py-2">
+          <div key={k.label} className="bg-zinc-50 dark:bg-zinc-800 rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
             <span className={`text-sm font-bold tabular-nums ${k.cls ?? 'text-zinc-900 dark:text-zinc-100'}`}>{k.value}</span>
           </div>
