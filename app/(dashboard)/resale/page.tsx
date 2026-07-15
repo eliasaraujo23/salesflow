@@ -10,8 +10,7 @@ import { CalendarDateRangePicker } from '@/components/ui/date-range-picker';
 import type { DateRange } from 'react-day-picker';
 import { ResaleTicker } from '@/components/resale/resale-ticker';
 import { ResaleUltimasVendas } from '@/components/resale/resale-ultimas-vendas';
-import { ResaleB2b2c } from '@/components/resale/resale-b2b2c';
-import { ResaleScrapChannels } from '@/components/resale/resale-scrap-channels';
+import { ResaleScrapSummary } from '@/components/resale/resale-scrap-summary';
 import { useSaleSound } from '@/hooks/use-sale-sound';
 
 function todayISO() {
@@ -155,15 +154,18 @@ export default function ResalePage() {
             className="flex flex-col gap-3 md:grid md:min-h-0"
             style={{ gridTemplateColumns: '1fr 1fr 180px', gridTemplateRows: '1fr 1fr' }}
           >
-            <SectionCard title="Scrap · B2B / B2C" className="md:h-full md:flex md:flex-col md:col-start-2 md:row-start-2" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
+            <div className="md:col-start-2 md:row-start-1 md:row-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl md:h-full md:flex md:flex-col md:min-h-0 overflow-hidden">
               {data.scrapFat === 0
-                ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Nenhum item de scrap</div>
-                : <ResaleScrapChannels scrapB2b={data.scrapB2b} scrapB2c={data.scrapB2c} />}
-            </SectionCard>
-
-            <SectionCard title="B2B · B2C" className="md:h-full md:flex md:flex-col md:col-start-2 md:row-start-1" contentClass="md:flex-1 md:min-h-0 md:overflow-y-auto">
-              <ResaleB2b2c b2b={data.b2b} b2c={data.b2c} />
-            </SectionCard>
+                ? <div className="flex-1 flex items-center justify-center text-xs text-zinc-500 dark:text-zinc-400">Nenhum item de scrap</div>
+                : <ResaleScrapSummary
+                    scrapFat={data.scrapFat}
+                    scrapCusto={data.scrapCusto}
+                    scrapQtd={data.scrapQtd}
+                    scrapByDestino={data.scrapByDestino}
+                    scrapB2b={data.scrapB2b}
+                    scrapB2c={data.scrapB2c}
+                  />}
+            </div>
 
             {/* Canal de Venda + Tipo de Fabricação — empilhados em col 1, row 2 */}
             <div className="flex flex-col gap-3 md:col-start-1 md:row-start-2 md:h-full">
