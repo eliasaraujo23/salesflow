@@ -7,17 +7,9 @@ import {
 } from 'recharts';
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { useEvolucaoJoias } from '@/hooks/use-evolucao-joias';
+import { LOJA_COLORS } from '@/lib/colors';
 
 const LOJAS = ['Tijuca', 'Ipanema', 'Méier', 'Eternno', 'Eduardo', 'Thaís'];
-const LOJA_COLORS: Record<string, string> = {
-  Tijuca:  '#6366f1',
-  Ipanema: '#10b981',
-  Méier:   '#f59e0b',
-  Eternno: '#3b82f6',
-  Eduardo: '#a855f7',
-  'Thaís': '#ec4899',
-  Outro:   '#71717a',
-};
 
 const MESES_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 function fmtMes(ym: string) {

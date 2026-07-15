@@ -1,10 +1,7 @@
 'use client';
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-
-const TIPO_COLORS: Record<string, string> = {
-  JF: '#6366f1', JM: '#a855f7', JR: '#10b981', JC: '#f59e0b',
-};
+import { TIPO_COLORS } from '@/lib/colors';
 
 const TIPOS = ['JR', 'JF', 'JM', 'JC'] as const;
 

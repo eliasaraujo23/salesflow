@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { fetchPainelRows, type PainelRow } from '@/lib/actions/fetch-painel';
+import { TIPO_COLORS } from '@/lib/colors';
 
 const RV_DESTINOS = new Set([
   'DESAPEGO DO LUXO', 'DESAPEGO LEGAL', 'DESAPEGUE BR', 'JUGELLI DESAPEGO',
@@ -20,9 +21,6 @@ const B2C_DESTINOS = new Set([
   'ETERNNO', 'MERCADO LIVRE', 'LEILÃO ETERNNO', 'LEILÃO BRUNO', 'LEILÃO 24K',
 ]);
 
-const TIPO_COLORS: Record<string, string> = {
-  JF: '#6366f1', JM: '#a855f7', JR: '#10b981', JC: '#f59e0b',
-};
 
 function clean(s: string | null | undefined): string {
   return (s ?? '').replace(/[​‌‍﻿­]/g, '').trim().toUpperCase();

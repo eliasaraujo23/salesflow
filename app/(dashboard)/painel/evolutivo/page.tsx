@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { CANAL_COLORS as CANAL_HEX } from '@/lib/colors';
 import { RefreshCw } from 'lucide-react';
 import { useEvolucaoParceiros } from '@/hooks/use-evolucao-parceiros';
 import {
@@ -27,17 +28,17 @@ const MESES_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set',
 const YEAR_COLORS = ['#6366f1', '#10b981', '#f97316', '#a855f7', '#3b82f6'];
 
 const CANAIS = [
-  { key: 'parceiros',    label: 'Parceiros',     color: '#6366f1' },
-  { key: 'eternno',      label: 'Eternno',        color: '#18181b' },
-  { key: 'leiloes',      label: 'Leilões',        color: '#a855f7' },
-  { key: 'mercadolivre', label: 'Mercado Livre',  color: '#F5A623' },
+  { key: 'parceiros',    label: 'Parceiros',     color: CANAL_HEX['Parceiros'] },
+  { key: 'eternno',      label: 'Eternno',        color: CANAL_HEX['Eternno'] },
+  { key: 'leiloes',      label: 'Leilões',        color: CANAL_HEX['Leilão'] },
+  { key: 'mercadolivre', label: 'Mercado Livre',  color: CANAL_HEX['Mercado Livre'] },
 ];
 
 const CANAL_COLORS: Record<string, string> = {
-  parceiros:    '#6366f1',
-  eternno:      '#18181b',
-  leiloes:      '#a855f7',
-  mercadolivre: '#F5A623',
+  parceiros:    CANAL_HEX['Parceiros'],
+  eternno:      CANAL_HEX['Eternno'],
+  leiloes:      CANAL_HEX['Leilão'],
+  mercadolivre: CANAL_HEX['Mercado Livre'],
 };
 const CANAL_LABELS: Record<string, string> = {
   parceiros:    'Parceiros',

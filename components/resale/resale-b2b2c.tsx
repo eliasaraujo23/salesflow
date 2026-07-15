@@ -26,8 +26,8 @@ export function ResaleB2b2c({ b2b, b2c }: ResaleB2b2cProps) {
   const pct = (v: number) => (total > 0 ? (v / total) * 100 : 0);
 
   const segments = [
-    { label: 'B2B', seg: b2b, pct: pct(b2b.faturamento), bar: 'bg-indigo-500',  text: 'text-indigo-600 dark:text-indigo-400',   bg: 'bg-indigo-500/10'  },
-    { label: 'B2C', seg: b2c, pct: pct(b2c.faturamento), bar: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10' },
+    { label: 'B2B', seg: b2b, pct: pct(b2b.faturamento), bar: 'bg-sky-500',   text: 'text-sky-600 dark:text-sky-400',     bg: 'bg-sky-500/10'   },
+    { label: 'B2C', seg: b2c, pct: pct(b2c.faturamento), bar: 'bg-green-500', text: 'text-green-600 dark:text-green-400', bg: 'bg-green-500/10' },
   ];
 
   return (

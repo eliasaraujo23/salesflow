@@ -5,6 +5,7 @@ import { RefreshCw } from 'lucide-react';
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { usePainelVendas } from '@/hooks/use-painel-vendas';
 import { HBarChart } from '@/components/painel/h-bar-chart';
+import { SEGMENT_HEX } from '@/lib/colors';
 
 function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -96,7 +97,7 @@ export default function PainelCanaisPage() {
             </p>
             <div className="flex-1 min-h-0">
               {b2cData.length > 0
-                ? <HBarChart data={b2cData} color="#10b981" formatter={fmtBRL} fill />
+                ? <HBarChart data={b2cData} color={SEGMENT_HEX.B2C} formatter={fmtBRL} fill />
                 : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem vendas B2C no período</div>}
             </div>
           </div>
@@ -107,7 +108,7 @@ export default function PainelCanaisPage() {
             </p>
             <div className="flex-1 min-h-0">
               {b2bData.length > 0
-                ? <HBarChart data={b2bData} color="#f97316" formatter={fmtBRL} fill />
+                ? <HBarChart data={b2bData} color={SEGMENT_HEX.B2B} formatter={fmtBRL} fill />
                 : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem vendas B2B no período</div>}
             </div>
           </div>

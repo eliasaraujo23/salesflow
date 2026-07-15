@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { fetchPainelRows, type PainelRow } from '@/lib/actions/fetch-painel';
+import { TIPO_COLORS } from '@/lib/colors';
 
 const RV_DESTINOS = new Set([
   'DESAPEGO DO LUXO', 'DESAPEGO LEGAL', 'DESAPEGUE BR', 'JUGELLI DESAPEGO',
@@ -35,9 +36,6 @@ const isLeilao = (d: string | null | undefined) => LEILAO_DESTINOS.has(clean(d))
 
 const MESES_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
-const TIPO_COLORS: Record<string, string> = {
-  JF: '#6366f1', JM: '#a855f7', JR: '#10b981', JC: '#f59e0b',
-};
 
 // JF = JF + JMF | JM = JMCP + JMSP | JC = JC | FAKE = excluído | JR = resto
 function tipoOf(tipo: string | null | undefined): string | null {
