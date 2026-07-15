@@ -51,9 +51,12 @@ const COLS: { label: string; key: SortKey }[] = [
   { label: 'Preço',      key: 'preco_cobrado' },
 ];
 
+const DESTINOS_EXCLUIDOS = new Set(['EDUARDO', 'HELTON', 'THAÍS', 'AUGUSTO', 'THAIS']);
+
 export default function VidaScrapPage() {
   const { from, to } = usePainelFilters();
-  const { data = [], isLoading, isError, error } = useScrapVida(from, to);
+  const { data: rawData = [], isLoading, isError, error } = useScrapVida(from, to);
+  const data = rawData.filter(r => !DESTINOS_EXCLUIDOS.has((r.destino ?? '').toUpperCase().trim()));
 
   const [sortKey, setSortKey] = useState<SortKey>('data_venda');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
