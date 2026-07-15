@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { localISO } from '@/lib/date-utils';
 import { RefreshCw } from 'lucide-react';
 import { useResale } from '@/hooks/use-resale';
 import { useXauUsd } from '@/hooks/use-xau-usd';
@@ -13,13 +14,11 @@ import { ResaleUltimasVendas } from '@/components/resale/resale-ultimas-vendas';
 import { ResaleScrapSummary } from '@/components/resale/resale-scrap-summary';
 import { useSaleSound } from '@/hooks/use-sale-sound';
 
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
+function todayISO() { return localISO(new Date()); }
 function firstDayOfMonthISO() {
   const d = new Date();
   d.setDate(1);
-  return d.toISOString().slice(0, 10);
+  return localISO(d);
 }
 
 const fmtMoeda = (v: number) =>
@@ -59,8 +58,8 @@ export default function ResalePage() {
     from: new Date(firstDayOfMonthISO()),
     to:   new Date(todayISO()),
   }));
-  const from = dateRange?.from ? dateRange.from.toISOString().slice(0, 10) : '';
-  const to   = dateRange?.to   ? dateRange.to.toISOString().slice(0, 10)   : '';
+  const from = dateRange?.from ? localISO(dateRange.from) : '';
+  const to   = dateRange?.to   ? localISO(dateRange.to)   : '';
   const { data, isLoading, isError, refetch, isFetching } = useResale(from, to);
   const ticker = useXauUsd();
   const playChime = useSaleSound();

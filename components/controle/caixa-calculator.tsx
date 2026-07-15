@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { getLojaConfig } from '@/lib/controle-config';
+import { todayLocalISO } from '@/lib/date-utils';
 import { CurrencyInput } from '@/components/ui/currency-input';
 
 interface Props {
@@ -88,7 +89,7 @@ export function CaixaCalculator({
   const loja = getLojaConfig(lojaCode);
   if (!loja) return null;
 
-  const [today] = useState(() => new Date().toISOString().slice(0, 10));
+  const [today] = useState(() => todayLocalISO());
   const prefix = `cx_${lojaCode}_${today}`;
 
   const [bruto, setBruto] = useState<Record<string, number>>(() =>

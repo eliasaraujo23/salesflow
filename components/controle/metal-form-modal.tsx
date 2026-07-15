@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { type LojaConfig, EMPRESA_TIPO_MAP } from '@/lib/controle-config';
 import { type MetalRecord, QUALIDADES, QUALIDADE_LABELS } from '@/types/controle';
 import { useControleOpcoes } from '@/hooks/use-controle-opcoes';
+import { localISO, todayLocalISO } from '@/lib/date-utils';
 
 const schema = z.object({
   data:         z.string().min(1, 'Data obrigatória'),
@@ -43,20 +44,16 @@ type FormValues = z.infer<typeof schema>;
 const inputCls = 'w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors';
 const labelCls = 'block text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1';
 
-function nowDate(): string {
-  const d = new Date();
-  return d.toISOString().slice(0, 10);
-}
+function nowDate(): string { return todayLocalISO(); }
 
 function nowTime(): string {
-  const d = new Date();
-  return d.toTimeString().slice(0, 5);
+  return new Date().toTimeString().slice(0, 5);
 }
 
 function recordToFormValues(r: MetalRecord): FormValues {
   const d = r.data instanceof Timestamp ? r.data.toDate() : new Date();
   return {
-    data:         d.toISOString().slice(0, 10),
+    data:         localISO(d),
     hora:         r.hora,
     av1:          r.avaliadores[0] ?? '',
     av2:          r.avaliadores[1] ?? '',

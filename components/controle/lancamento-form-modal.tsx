@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { type LojaConfig } from '@/lib/controle-config';
 import { type LancamentoRecord } from '@/types/controle';
 import { useConfigGlobal } from '@/hooks/use-config-global';
+import { localISO, todayLocalISO } from '@/lib/date-utils';
 
 const schema = z.object({
   data:      z.string().min(1, 'Data obrigatória'),
@@ -24,14 +25,12 @@ type FormValues = z.infer<typeof schema>;
 const inputCls = 'w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors';
 const labelCls = 'block text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-1';
 
-function nowDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+function nowDate(): string { return todayLocalISO(); }
 
 function recordToForm(r: LancamentoRecord): FormValues {
   const d = r.data instanceof Timestamp ? r.data.toDate() : new Date();
   return {
-    data:      d.toISOString().slice(0, 10),
+    data:      localISO(d),
     tipo:      r.tipo,
     banco:     r.banco,
     descricao: r.descricao,
