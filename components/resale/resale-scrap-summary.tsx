@@ -30,9 +30,11 @@ export function ResaleScrapSummary({ scrapFat, scrapCusto, scrapQtd, scrapByDest
   ];
 
   return (
-    <div className="h-full flex flex-col min-h-0">
+    <div className="h-full flex flex-col min-h-0 p-4">
 
-      {/* KPI row with title */}
+      <div className="text-[12px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-3 shrink-0">Scrap</div>
+
+      {/* KPI row */}
       <div className="shrink-0 grid grid-cols-4 divide-x divide-zinc-100 dark:divide-white/[0.06] border-b border-zinc-100 dark:border-white/[0.06]">
         {[
           { label: 'Faturamento',   value: fmtK(scrapFat) },
@@ -48,15 +50,15 @@ export function ResaleScrapSummary({ scrapFat, scrapCusto, scrapQtd, scrapByDest
       </div>
 
       {/* Por Destino */}
-      <div className="flex-1 min-h-0 overflow-hidden px-2 pt-3 pb-1">
-        <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-1 mb-2">Por Destino</div>
+      <div className="flex-1 min-h-0 overflow-hidden pt-3 pb-1">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Por Destino</div>
         {scrapByDestino.length === 0
           ? <div className="text-sm text-zinc-400 text-center py-4">Sem dados</div>
           : <ResaleHBar data={scrapByDestino} color="#f59e0b" fullHeight />}
       </div>
 
       {/* B2B / B2C */}
-      <div className="shrink-0 px-3 pb-3 space-y-2">
+      <div className="shrink-0 space-y-2 pb-1">
         <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">B2B / B2C</div>
         <div className="flex h-2.5 rounded-full overflow-hidden gap-px">
           {segments.map(s => (
