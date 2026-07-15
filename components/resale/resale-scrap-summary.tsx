@@ -33,37 +33,37 @@ export function ResaleScrapSummary({ scrapFat, scrapCusto, scrapQtd, scrapByDest
     <div className="h-full flex flex-col min-h-0">
 
       {/* Amber title strip */}
-      <div className="shrink-0 px-3 py-1.5 bg-amber-500 rounded-t-lg">
-        <span className="text-[11px] font-bold uppercase tracking-widest text-white">Scrap</span>
+      <div className="shrink-0 px-4 py-2 bg-amber-500 rounded-t-lg">
+        <span className="text-xs font-bold uppercase tracking-widest text-white">Scrap</span>
       </div>
 
       {/* KPI row */}
       <div className="shrink-0 grid grid-cols-4 divide-x divide-zinc-100 dark:divide-white/[0.06] border-b border-zinc-100 dark:border-white/[0.06]">
         {[
-          { label: 'Faturamento',  value: fmtK(scrapFat) },
+          { label: 'Faturamento',   value: fmtK(scrapFat) },
           { label: 'Lucratividade', value: lucStr(scrapFat, scrapCusto), cls: 'text-emerald-600 dark:text-emerald-400' },
-          { label: 'Quantidade',   value: String(scrapQtd) },
-          { label: 'TM',           value: tmStr(scrapFat, scrapQtd) },
+          { label: 'Quantidade',    value: String(scrapQtd) },
+          { label: 'TM',            value: tmStr(scrapFat, scrapQtd) },
         ].map(k => (
-          <div key={k.label} className="flex flex-col gap-0.5 px-2 py-1.5">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
-            <span className={`text-xs font-bold tabular-nums ${k.cls ?? 'text-zinc-900 dark:text-zinc-100'}`}>{k.value}</span>
+          <div key={k.label} className="flex flex-col gap-0.5 px-3 py-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
+            <span className={`text-sm font-bold tabular-nums ${k.cls ?? 'text-zinc-900 dark:text-zinc-100'}`}>{k.value}</span>
           </div>
         ))}
       </div>
 
-      {/* Por Destino — ocupa o espaço restante */}
-      <div className="flex-1 min-h-0 overflow-hidden px-1 pt-2 pb-1">
-        <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 px-2 mb-1">Por Destino</div>
+      {/* Por Destino */}
+      <div className="flex-1 min-h-0 overflow-hidden px-2 pt-3 pb-1">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-1 mb-2">Por Destino</div>
         {scrapByDestino.length === 0
-          ? <div className="text-xs text-zinc-400 text-center py-4">Sem dados</div>
+          ? <div className="text-sm text-zinc-400 text-center py-4">Sem dados</div>
           : <ResaleHBar data={scrapByDestino} color="#f59e0b" fullHeight />}
       </div>
 
       {/* B2B / B2C */}
-      <div className="shrink-0 px-3 pb-3 space-y-1.5">
-        <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-1">B2B / B2C</div>
-        <div className="flex h-2 rounded-full overflow-hidden gap-px">
+      <div className="shrink-0 px-3 pb-3 space-y-2">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">B2B / B2C</div>
+        <div className="flex h-2.5 rounded-full overflow-hidden gap-px">
           {segments.map(s => (
             <div
               key={s.label}
@@ -72,29 +72,29 @@ export function ResaleScrapSummary({ scrapFat, scrapCusto, scrapQtd, scrapByDest
             />
           ))}
         </div>
-        <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+        <div className="grid grid-cols-2 gap-2">
           {segments.map(s => (
-            <div key={s.label} className={`${s.bg} rounded-lg px-2 py-1.5`}>
-              <div className="flex items-center justify-between mb-1">
-                <span className={`text-[11px] font-bold uppercase ${s.text}`}>{s.label}</span>
-                <span className={`text-[11px] font-bold ${s.text}`}>{pct(s.seg.faturamento)}%</span>
+            <div key={s.label} className={`${s.bg} rounded-lg px-3 py-2`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className={`text-xs font-bold uppercase tracking-wide ${s.text}`}>{s.label}</span>
+                <span className={`text-xs font-bold ${s.text}`}>{pct(s.seg.faturamento)}%</span>
               </div>
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 <div className="flex justify-between gap-1">
-                  <span className="text-[10px] text-zinc-400 uppercase tracking-wide">Fat.</span>
-                  <span className="text-[10px] font-bold text-zinc-800 dark:text-zinc-200 tabular-nums">{fmtK(s.seg.faturamento)}</span>
+                  <span className="text-[11px] text-zinc-400 uppercase tracking-wide">Fat.</span>
+                  <span className="text-[11px] font-bold text-zinc-800 dark:text-zinc-200 tabular-nums">{fmtK(s.seg.faturamento)}</span>
                 </div>
                 <div className="flex justify-between gap-1">
-                  <span className="text-[10px] text-zinc-400 uppercase tracking-wide">Lucr.</span>
-                  <span className="text-[10px] text-zinc-600 dark:text-zinc-400 tabular-nums">{lucStr(s.seg.faturamento, s.seg.custo)}</span>
+                  <span className="text-[11px] text-zinc-400 uppercase tracking-wide">Lucr.</span>
+                  <span className="text-[11px] text-zinc-600 dark:text-zinc-400 tabular-nums">{lucStr(s.seg.faturamento, s.seg.custo)}</span>
                 </div>
                 <div className="flex justify-between gap-1">
-                  <span className="text-[10px] text-zinc-400 uppercase tracking-wide">Qtd</span>
-                  <span className="text-[10px] text-zinc-600 dark:text-zinc-400 tabular-nums">{s.seg.qtd}</span>
+                  <span className="text-[11px] text-zinc-400 uppercase tracking-wide">Qtd</span>
+                  <span className="text-[11px] text-zinc-600 dark:text-zinc-400 tabular-nums">{s.seg.qtd}</span>
                 </div>
                 <div className="flex justify-between gap-1">
-                  <span className="text-[10px] text-zinc-400 uppercase tracking-wide">TM</span>
-                  <span className="text-[10px] text-zinc-600 dark:text-zinc-400 tabular-nums">{tmStr(s.seg.faturamento, s.seg.qtd)}</span>
+                  <span className="text-[11px] text-zinc-400 uppercase tracking-wide">TM</span>
+                  <span className="text-[11px] text-zinc-600 dark:text-zinc-400 tabular-nums">{tmStr(s.seg.faturamento, s.seg.qtd)}</span>
                 </div>
               </div>
             </div>
