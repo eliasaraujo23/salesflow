@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList,
 } from 'recharts';
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { useScrapVida } from '@/hooks/use-scrap-vida';
@@ -174,6 +174,7 @@ export default function VidaScrapPage() {
                       />
                       <Bar dataKey="count" radius={[4, 4, 0, 0]} isAnimationActive={false}>
                         {distribution.map((b, i) => <Cell key={i} fill={b.color} />)}
+                        <LabelList dataKey="count" position="top" style={{ fontSize: 11, fontWeight: 700, fill: '#52525b' }} />
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
