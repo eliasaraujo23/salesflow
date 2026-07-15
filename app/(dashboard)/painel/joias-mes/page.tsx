@@ -162,8 +162,20 @@ export default function JoiasMesPage() {
                     <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#71717a' }} tickLine={false} axisLine={false} />
                     <YAxis tick={{ fontSize: 11, fill: '#71717a' }} tickLine={false} axisLine={false} allowDecimals={false} />
                     <Tooltip
-                      contentStyle={{ background: '#fff', border: '1px solid #e4e4e7', borderRadius: 8, fontSize: 12 }}
                       cursor={{ fill: 'rgba(99,102,241,0.05)' }}
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null;
+                        return (
+                          <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 shadow-sm">
+                            <p className="text-[11px] font-bold text-zinc-700 dark:text-zinc-200 mb-1">{label}</p>
+                            {payload.map((p) => (
+                              <p key={p.dataKey as string} className="text-[11px]" style={{ color: p.color }}>
+                                {p.name} : {p.value}
+                              </p>
+                            ))}
+                          </div>
+                        );
+                      }}
                     />
                     <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
                     <Bar dataKey="Cadastradas" fill="#6366f1" radius={[3, 3, 0, 0]} isAnimationActive={false} />
