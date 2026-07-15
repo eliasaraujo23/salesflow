@@ -7,10 +7,11 @@ const fmtMoeda = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 
 const TIPO_COLORS: Record<string, string> = {
-  JF:  'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-  JMF: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
-  JM:  'bg-purple-500/15 text-purple-600 dark:text-purple-400',
+  JF:  'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400',
+  JMF: 'bg-violet-500/15 text-violet-600 dark:text-violet-400',
+  JM:  'bg-violet-500/15 text-violet-600 dark:text-violet-400',
   JR:  'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+  JC:  'bg-red-500/15 text-red-600 dark:text-red-400',
 };
 
 interface ResaleUltimasVendasProps {
