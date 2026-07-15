@@ -32,12 +32,7 @@ export function ResaleScrapSummary({ scrapFat, scrapCusto, scrapQtd, scrapByDest
   return (
     <div className="h-full flex flex-col min-h-0">
 
-      {/* Amber title strip */}
-      <div className="shrink-0 px-4 py-2 bg-amber-500 rounded-t-lg">
-        <span className="text-xs font-bold uppercase tracking-widest text-white">Scrap</span>
-      </div>
-
-      {/* KPI row */}
+      {/* KPI row with title */}
       <div className="shrink-0 grid grid-cols-4 divide-x divide-zinc-100 dark:divide-white/[0.06] border-b border-zinc-100 dark:border-white/[0.06]">
         {[
           { label: 'Faturamento',   value: fmtK(scrapFat) },
