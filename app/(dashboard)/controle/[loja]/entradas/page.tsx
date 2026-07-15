@@ -148,7 +148,7 @@ export default function EntradasPage() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-white/[0.08]">
-          <table className="text-sm border-collapse">
+          <table className="text-sm border-collapse data-table">
             <thead>
               <tr className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08]">
                 <th className={thCls}>ID_LANCAMENTO</th>

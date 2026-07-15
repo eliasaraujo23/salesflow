@@ -178,6 +178,7 @@ Toda tabela de detalhamento dentro de `app/(dashboard)/painel/` **deve** seguir 
 - **Altura padrão obrigatória**: `shrink-0 h-56` — não usar `flex-1`, `h-52`, `maxHeight` ou outro valor. Referência: tabela de Parceiros.
 - Default de ordenação: coluna de data/dias desc (mais recente primeiro).
 - Ícones: `ChevronUp` / `ChevronDown` (coluna ativa) e `ChevronsUpDown opacity-30` (inativa) — importados de `lucide-react`.
+- **Centralização obrigatória**: todo `<table>` de dados deve ter a classe `data-table`. A regra em `globals.css` aplica `text-align: center` automaticamente em todos os `th` e `td`. **Nunca** adicionar `text-center` manualmente em células individuais — use só `data-table` no elemento `<table>`. Exceção: `components/ui/table.tsx` (componente base shadcn) e tabelas de formulário com alinhamento intencional (ex: `caixa-calculator.tsx`).
 
 ---
 

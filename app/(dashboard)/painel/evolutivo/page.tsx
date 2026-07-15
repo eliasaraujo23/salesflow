@@ -236,7 +236,7 @@ export default function PainelEvolutivoPage() {
           <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400 mb-2">
             Faturamento 2025 por destino — total: {fmtBRL((auditRows ?? []).reduce((s, r) => s + r.fat, 0))}
           </p>
-          <table className="w-full text-xs border-separate border-spacing-0">
+          <table className="w-full text-xs border-separate border-spacing-0 data-table">
             <thead>
               <tr>
                 {['Destino', 'Canal', 'Faturamento'].map(h => (

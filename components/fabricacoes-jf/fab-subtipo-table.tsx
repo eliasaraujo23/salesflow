@@ -239,7 +239,7 @@ export function FabSubtipoTable({ data, isCarroChefe }: FabSubtipoTableProps) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full" style={{ borderCollapse: 'collapse', fontSize: '13px' }}>
+        <table className="w-full data-table" style={{ borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id} className="border-b-2 border-zinc-200 dark:border-white/[0.13] bg-zinc-50 dark:bg-zinc-800/60">

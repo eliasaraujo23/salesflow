@@ -69,7 +69,7 @@ export function MetalPanel({ title, records, showMetaNova = false }: Props) {
 
       <div className="grid grid-cols-2 divide-x divide-zinc-100 dark:divide-white/[0.06]">
         {/* Quality weights */}
-        <table className="w-full">
+        <table className="w-full data-table">
           <thead>
             <tr className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-white/[0.04]">
               <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-zinc-400">Qualidade</th>
@@ -93,7 +93,7 @@ export function MetalPanel({ title, records, showMetaNova = false }: Props) {
         </table>
 
         {/* Stats */}
-        <table className="w-full">
+        <table className="w-full data-table">
           <thead>
             <tr className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-white/[0.04]">
               <th className="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider text-zinc-400 invisible">–</th>

@@ -164,7 +164,7 @@ export default function PainelCadastradasPage() {
 
           {/* Tabela detalhada */}
           <div className="shrink-0 h-56 overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl">
-            <table className="w-full text-xs border-separate border-spacing-0">
+            <table className="w-full text-xs border-separate border-spacing-0 data-table">
               <thead>
                 <tr>
                   <th colSpan={8} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
