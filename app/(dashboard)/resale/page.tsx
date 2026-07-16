@@ -27,8 +27,6 @@ const fmtMoeda = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 });
 const fmtMoedaK = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-const fmtLuc = (fat: number, custo: number) =>
-  fat > 0 ? `${(((fat - custo) / fat) * 100).toFixed(1)}%` : '—';
 const ticketMedio = (fat: number, qtd: number) =>
   qtd > 0 ? fmtMoeda(fat / qtd) : '—';
 
@@ -138,10 +136,9 @@ export default function ResalePage() {
           {/* Col 1: KPIs + Por Destino */}
           <div className="flex flex-col gap-3 md:min-h-0">
             <div className="grid gap-2 shrink-0" style={{ gridTemplateColumns: '3fr 2fr' }}>
-              <KPIBox label="Faturamento"   value={fmtMoedaK(data.faturamento)} flash={kpiFlash} />
-              <KPIBox label="Lucratividade" value={fmtLuc(data.faturamento, data.custo)} valueClass="text-emerald-600 dark:text-emerald-400" flash={kpiFlash} />
-              <KPIBox label="Ticket Médio"  value={ticketMedio(data.faturamento, data.qtd)} flash={kpiFlash} />
-              <KPIBox label="Quantidade"    value={String(data.qtd)} flash={kpiFlash} />
+              <KPIBox label="Faturamento"  value={fmtMoedaK(data.faturamento)} flash={kpiFlash} />
+              <KPIBox label="Quantidade"   value={String(data.qtd)} flash={kpiFlash} />
+              <KPIBox label="Ticket Médio" value={ticketMedio(data.faturamento, data.qtd)} flash={kpiFlash} />
             </div>
             <SectionCard title="Por Destino" className="md:flex-1 md:flex md:flex-col md:min-h-0" contentClass="min-h-[220px] md:min-h-0 md:flex-1">
               {data.byDestino.length === 0
@@ -160,7 +157,6 @@ export default function ResalePage() {
                 ? <div className="flex-1 flex items-center justify-center text-xs text-zinc-500 dark:text-zinc-400">Nenhum item de scrap</div>
                 : <ResaleScrapSummary
                     scrapFat={data.scrapFat}
-                    scrapCusto={data.scrapCusto}
                     scrapQtd={data.scrapQtd}
                     scrapByDestino={data.scrapByDestino}
                     scrapB2b={data.scrapB2b}
@@ -192,10 +188,6 @@ export default function ResalePage() {
                 <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Quantidade</span>
                   <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{data.eternnoQtd}</span>
-                </div>
-                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Lucratividade</span>
-                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{fmtLuc(data.eternnoFat, data.eternnoCusto)}</span>
                 </div>
                 <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Ticket Médio</span>

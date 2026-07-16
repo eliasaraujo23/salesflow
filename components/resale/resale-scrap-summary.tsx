@@ -6,21 +6,18 @@ import { type AgItem, type ChannelSegment } from '@/lib/actions/fetch-resale';
 
 const fmtK = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-const lucStr = (fat: number, custo: number) =>
-  fat > 0 ? `${(((fat - custo) / fat) * 100).toFixed(1)}%` : '—';
 const tmStr = (fat: number, qtd: number) =>
   qtd > 0 ? fmtK(fat / qtd) : '—';
 
 interface Props {
   scrapFat: number;
-  scrapCusto: number;
   scrapQtd: number;
   scrapByDestino: AgItem[];
   scrapB2b: ChannelSegment;
   scrapB2c: ChannelSegment;
 }
 
-export function ResaleScrapSummary({ scrapFat, scrapCusto, scrapQtd, scrapByDestino, scrapB2b, scrapB2c }: Props) {
+export function ResaleScrapSummary({ scrapFat, scrapQtd, scrapByDestino, scrapB2b, scrapB2c }: Props) {
   const total = scrapB2b.faturamento + scrapB2c.faturamento;
   const pct = (v: number) => (total > 0 ? ((v / total) * 100).toFixed(1) : '0.0');
 
@@ -37,14 +34,13 @@ export function ResaleScrapSummary({ scrapFat, scrapCusto, scrapQtd, scrapByDest
       {/* KPI grid */}
       <div className="shrink-0 grid grid-cols-2 gap-1.5 mb-3">
         {[
-          { label: 'Faturamento',   value: fmtK(scrapFat) },
-          { label: 'Quantidade',    value: String(scrapQtd) },
-          { label: 'Lucratividade', value: lucStr(scrapFat, scrapCusto), cls: 'text-emerald-600 dark:text-emerald-400' },
-          { label: 'Ticket Médio',  value: tmStr(scrapFat, scrapQtd) },
+          { label: 'Faturamento',  value: fmtK(scrapFat) },
+          { label: 'Quantidade',   value: String(scrapQtd) },
+          { label: 'Ticket Médio', value: tmStr(scrapFat, scrapQtd) },
         ].map(k => (
           <div key={k.label} className="bg-zinc-50 dark:bg-zinc-800 rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
-            <span className={`text-sm font-bold tabular-nums ${k.cls ?? 'text-zinc-900 dark:text-zinc-100'}`}>{k.value}</span>
+            <span className="text-sm font-bold tabular-nums text-zinc-900 dark:text-zinc-100">{k.value}</span>
           </div>
         ))}
       </div>
@@ -80,10 +76,6 @@ export function ResaleScrapSummary({ scrapFat, scrapCusto, scrapQtd, scrapByDest
                 <div className="flex justify-between gap-1">
                   <span className="text-[11px] text-zinc-400 uppercase tracking-wide">Fat.</span>
                   <span className="text-[11px] font-bold text-zinc-800 dark:text-zinc-200 tabular-nums">{fmtK(s.seg.faturamento)}</span>
-                </div>
-                <div className="flex justify-between gap-1">
-                  <span className="text-[11px] text-zinc-400 uppercase tracking-wide">Lucr.</span>
-                  <span className="text-[11px] text-zinc-600 dark:text-zinc-400 tabular-nums">{lucStr(s.seg.faturamento, s.seg.custo)}</span>
                 </div>
                 <div className="flex justify-between gap-1">
                   <span className="text-[11px] text-zinc-400 uppercase tracking-wide">Qtd</span>
