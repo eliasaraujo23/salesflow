@@ -194,7 +194,7 @@ export default function JoiasMesPage() {
             <table className="w-full text-xs border-separate border-spacing-0 data-table">
               <thead>
                 <tr>
-                  <th colSpan={3} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
+                  <th colSpan={3} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08]">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                       Por Mês e Loja — {tableData.length} linhas
                     </span>
@@ -207,7 +207,7 @@ export default function JoiasMesPage() {
                     { label: 'Cadastradas', key: 'cad'  as SortKey },
                   ] as { label: string; key: SortKey }[]).map(col => (
                     <th key={col.key} onClick={() => toggleSort(col.key)}
-                      className="sticky top-[41px] z-10 px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap cursor-pointer select-none hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors">
+                      className="sticky top-[41px] z-10 px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] text-[10px] font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap cursor-pointer select-none hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors">
                       <span className="inline-flex items-center gap-1">
                         {col.label}
                         {sortKey === col.key

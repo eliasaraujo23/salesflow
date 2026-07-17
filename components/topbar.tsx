@@ -174,7 +174,7 @@ export function Topbar({ title, subtitle, onMobileMenu }: TopbarProps) {
               ].map(tab => {
                 const isActive = tab.href === '/painel'
                   ? pathname === '/painel'
-                  : pathname.startsWith(tab.href);
+                  : pathname === tab.href || pathname.startsWith(tab.href + '/');
                 return (
                   <Link
                     key={tab.href}
