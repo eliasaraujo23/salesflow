@@ -298,7 +298,7 @@ export default function PainelEvolutivoPage() {
                       ].map(({ label, value, color }) => (
                         <div key={label} className="bg-zinc-50 dark:bg-zinc-800 rounded-lg px-3 py-1.5 flex flex-col gap-0.5 text-right">
                           <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{label}</span>
-                          <span className="text-xs font-bold tabular-nums" style={color ? { color } : undefined}>{value}</span>
+                          <span className="text-xs font-bold tabular-nums text-zinc-900 dark:text-zinc-100" style={color ? { color } : undefined}>{value}</span>
                         </div>
                       ))}
                     </div>
