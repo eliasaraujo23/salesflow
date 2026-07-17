@@ -289,27 +289,18 @@ export default function PainelEvolutivoPage() {
                       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: canal.color }} />
                       <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">{canal.label}</span>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Total</p>
-                        <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtBRL(total)}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Média</p>
-                        <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtBRL(media)}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Mediana</p>
-                        <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtBRL(mediana)}</p>
-                      </div>
-                      {peakRow && (
-                        <div className="text-right">
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Pico</p>
-                          <p className="text-sm font-bold tabular-nums" style={{ color: canal.color }}>
-                            {fmtBRL(peak)} <span className="text-[10px] font-normal text-zinc-400">({peakRow.label})</span>
-                          </p>
+                    <div className="flex items-center gap-2">
+                      {[
+                        { label: 'Total',   value: fmtBRL(total),   color: undefined },
+                        { label: 'Média',   value: fmtBRL(media),   color: undefined },
+                        { label: 'Mediana', value: fmtBRL(mediana), color: undefined },
+                        ...(peakRow ? [{ label: `Pico (${peakRow.label})`, value: fmtBRL(peak), color: canal.color }] : []),
+                      ].map(({ label, value, color }) => (
+                        <div key={label} className="bg-zinc-50 dark:bg-zinc-800 rounded-lg px-3 py-1.5 flex flex-col gap-0.5 text-right">
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{label}</span>
+                          <span className="text-xs font-bold tabular-nums" style={color ? { color } : undefined}>{value}</span>
                         </div>
-                      )}
+                      ))}
                     </div>
                   </div>
                   <div className="flex-1 min-h-0 p-3">
