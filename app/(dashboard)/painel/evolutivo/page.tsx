@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { CANAL_COLORS as CANAL_HEX } from '@/lib/colors';
 import { RefreshCw } from 'lucide-react';
 import { useEvolucaoParceiros } from '@/hooks/use-evolucao-parceiros';
@@ -69,6 +69,7 @@ export default function PainelEvolutivoPage() {
     new Set(['parceiros', 'eternno', 'leiloes', 'mercadolivre'])
   );
   const [showAudit, setShowAudit] = useState(false);
+  const yearsInitialized = useRef(false);
 
   const { data: rawData, isLoading, isError, error, refetch, isFetching } = useEvolucaoParceiros({
     meses: 60,
@@ -162,24 +163,27 @@ export default function PainelEvolutivoPage() {
     return { years: [...yearSet].sort(), canalData: result, monthlyRows: mRows, auditRows };
   }, [rawData]);
 
-  const activeYears = useMemo(
-    () => selectedYears.size === 0 ? new Set(years) : selectedYears,
-    [selectedYears, years],
-  );
+  useEffect(() => {
+    if (!yearsInitialized.current && years.length > 0) {
+      setSelectedYears(new Set(years));
+      yearsInitialized.current = true;
+    }
+  }, [years]);
 
   function filterByYear<T extends { mes: string }>(arr: T[]): T[] {
-    return arr.filter(r => activeYears.has(r.mes.substring(0, 4)));
+    return arr.filter(r => selectedYears.has(r.mes.substring(0, 4)));
   }
 
   const filteredRows = useMemo(
-    () => monthlyRows.filter(r => activeYears.has((r.mes as string).substring(0, 4))),
-    [monthlyRows, activeYears],
+    () => monthlyRows.filter(r => selectedYears.has((r.mes as string).substring(0, 4))),
+    [monthlyRows, selectedYears],
   );
 
   function toggleYear(y: string) {
     setSelectedYears(prev => {
       const next = new Set(prev);
-      if (next.has(y)) next.delete(y); else next.add(y);
+      if (next.has(y)) { if (next.size > 1) next.delete(y); }
+      else next.add(y);
       return next;
     });
   }
@@ -187,7 +191,8 @@ export default function PainelEvolutivoPage() {
   function toggleCanal(c: string) {
     setActiveCanais(prev => {
       const next = new Set(prev);
-      if (next.has(c) && next.size > 1) next.delete(c); else next.add(c);
+      if (next.has(c)) { if (next.size > 1) next.delete(c); }
+      else next.add(c);
       return next;
     });
   }
@@ -202,8 +207,8 @@ export default function PainelEvolutivoPage() {
           <div className="flex flex-wrap gap-1">
             {years.map((y, i) => (
               <button key={y} onClick={() => toggleYear(y)}
-                className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${activeYears.has(y) ? 'text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/[0.06]'}`}
-                style={activeYears.has(y) ? { background: YEAR_COLORS[i % YEAR_COLORS.length] } : {}}
+                className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${selectedYears.has(y) ? 'text-white' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/[0.06]'}`}
+                style={selectedYears.has(y) ? { background: YEAR_COLORS[i % YEAR_COLORS.length] } : {}}
               >{y}</button>
             ))}
           </div>
