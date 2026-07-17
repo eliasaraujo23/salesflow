@@ -10,10 +10,6 @@ function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 }
 
-function fmtPct(v: number) {
-  return `${v.toFixed(2)}%`;
-}
-
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—';
   const d = iso.substring(0, 10).split('-');
@@ -70,7 +66,7 @@ export default function PainelParceirosPage() {
   const activeLabel = selectedJF ? 'JF' : selectedJM ? 'JM' : 'Revenda';
   const clearFilter = () => { setSelectedJF(null); setSelectedJM(null); setSelectedRV(null); };
 
-  type SortKey = 'referencia' | 'produto' | 'subtipo' | 'destino' | 'tipo' | 'custo_real' | 'preco_cobrado' | 'tipo_pedra' | 'lucrat' | 'data_venda';
+  type SortKey = 'referencia' | 'produto' | 'subtipo' | 'destino' | 'tipo' | 'custo_real' | 'preco_cobrado' | 'tipo_pedra' | 'data_venda';
   const [sortKey, setSortKey] = useState<SortKey>('data_venda');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
@@ -98,7 +94,6 @@ export default function PainelParceirosPage() {
         { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(data?.jf.faturamento ?? 0) },
         { label: 'Ticket Médio', value: isLoading ? '—' : fmtBRL(data?.jf.tm ?? 0) },
         { label: 'Qtd',          value: isLoading ? '—' : String(data?.jf.qtd ?? 0) },
-        { label: 'Lucrat.',      value: isLoading ? '—' : fmtPct(data?.jf.lucrat ?? 0) },
       ],
     },
     {
@@ -108,7 +103,6 @@ export default function PainelParceirosPage() {
         { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(data?.jm.faturamento ?? 0) },
         { label: 'Ticket Médio', value: isLoading ? '—' : fmtBRL(data?.jm.tm ?? 0) },
         { label: 'Qtd',          value: isLoading ? '—' : String(data?.jm.qtd ?? 0) },
-        { label: 'Lucrat.',      value: isLoading ? '—' : fmtPct(data?.jm.lucrat ?? 0) },
       ],
     },
     {
@@ -118,7 +112,6 @@ export default function PainelParceirosPage() {
         { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(data?.revenda.faturamento ?? 0) },
         { label: 'Ticket Médio', value: isLoading ? '—' : fmtBRL(data?.revenda.tm ?? 0) },
         { label: 'Qtd',          value: isLoading ? '—' : String(data?.revenda.qtd ?? 0) },
-        { label: 'Lucrat.',      value: isLoading ? '—' : fmtPct(data?.revenda.lucrat ?? 0) },
       ],
     },
   ];
@@ -136,7 +129,6 @@ export default function PainelParceirosPage() {
             { label: 'Faturamento',   value: isLoading ? '—' : fmtBRL((data?.jf.faturamento ?? 0) + (data?.jm.faturamento ?? 0) + (data?.revenda.faturamento ?? 0)) },
             { label: 'Ticket Médio',  value: isLoading ? '—' : fmtBRL(((data?.jf.faturamento ?? 0) + (data?.jm.faturamento ?? 0) + (data?.revenda.faturamento ?? 0)) / Math.max((data?.jf.qtd ?? 0) + (data?.jm.qtd ?? 0) + (data?.revenda.qtd ?? 0), 1)) },
             { label: 'Qtd',           value: isLoading ? '—' : String((data?.jf.qtd ?? 0) + (data?.jm.qtd ?? 0) + (data?.revenda.qtd ?? 0)) },
-            { label: 'Lucratividade', value: isLoading ? '—' : (() => { const fat = (data?.jf.faturamento ?? 0) + (data?.jm.faturamento ?? 0) + (data?.revenda.faturamento ?? 0); const custo = (data?.jf.custo ?? 0) + (data?.jm.custo ?? 0) + (data?.revenda.custo ?? 0); return fmtPct(fat > 0 ? ((fat - custo) / fat) * 100 : 0); })() },
           ].map(k => (
             <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
               <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
@@ -153,7 +145,7 @@ export default function PainelParceirosPage() {
             <div className={`px-4 py-2 ${s.headerCls}`}>
               <span className="text-xs font-bold uppercase tracking-widest opacity-95">{s.label}</span>
             </div>
-            <div className="grid grid-cols-4 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+            <div className="grid grid-cols-3 divide-x divide-zinc-200 dark:divide-white/[0.08]">
               {s.kpis.map(k => (
                 <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
                   <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
@@ -217,7 +209,7 @@ export default function PainelParceirosPage() {
             <table className="w-full text-xs border-separate border-spacing-0 data-table">
               <thead>
                 <tr>
-                  <th colSpan={10} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
+                  <th colSpan={9} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
                     <div className="flex items-center gap-3">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                         Detalhamento — {filteredRows.length} vendas
@@ -243,7 +235,6 @@ export default function PainelParceirosPage() {
                     { label: 'Custo Real',    key: 'custo_real' },
                     { label: 'Preço Cobrado', key: 'preco_cobrado' },
                     { label: 'Tipo Pedra',    key: 'tipo_pedra' },
-                    { label: 'Lucrat.',       key: 'lucrat' },
                     { label: 'Data Venda',    key: 'data_venda' },
                   ] as { label: string; key: SortKey }[]).map(col => (
                     <th
@@ -276,11 +267,6 @@ export default function PainelParceirosPage() {
                     <td className="px-3 py-2 tabular-nums text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
                     <td className="px-3 py-2 tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{fmtBRL(r.preco_cobrado)}</td>
                     <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
-                    <td className="px-3 py-2 tabular-nums whitespace-nowrap">
-                      <span className={r.lucrat >= 40 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : r.lucrat >= 0 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-500'}>
-                        {r.lucrat.toFixed(2)}%
-                      </span>
-                    </td>
                     <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtDate(r.data_venda)}</td>
                   </tr>
                 ))}

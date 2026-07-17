@@ -10,10 +10,6 @@ function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 }
 
-function fmtPct(v: number) {
-  return `${v.toFixed(2)}%`;
-}
-
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—';
   const d = iso.substring(0, 10).split('-');
@@ -27,7 +23,7 @@ const TIPO_CLASS: Record<string, string> = {
   JR: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
 };
 
-type SortKey = 'leilao' | 'referencia' | 'produto' | 'subtipo' | 'tipo' | 'custo_real' | 'preco_cobrado' | 'tipo_pedra' | 'lucrat' | 'data_venda';
+type SortKey = 'leilao' | 'referencia' | 'produto' | 'subtipo' | 'tipo' | 'custo_real' | 'preco_cobrado' | 'tipo_pedra' | 'data_venda';
 
 const COLS: { label: string; key: SortKey }[] = [
   { label: 'Leilão',        key: 'leilao' },
@@ -38,7 +34,6 @@ const COLS: { label: string; key: SortKey }[] = [
   { label: 'Custo Real',    key: 'custo_real' },
   { label: 'Preço Cobrado', key: 'preco_cobrado' },
   { label: 'Tipo Pedra',    key: 'tipo_pedra' },
-  { label: 'Lucrat.',       key: 'lucrat' },
   { label: 'Data Venda',    key: 'data_venda' },
 ];
 
@@ -124,7 +119,6 @@ export default function PainelLeiloesPage() {
                 { label: 'Faturamento',   value: fmtBRL(fat) },
                 { label: 'Ticket Médio',  value: fmtBRL(qtd > 0 ? fat / qtd : 0) },
                 { label: 'Qtd',           value: String(qtd) },
-                { label: 'Lucratividade', value: fmtPct(fat > 0 ? ((fat - custo) / fat) * 100 : 0) },
               ].map(k => (
                 <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
                   <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
@@ -155,14 +149,13 @@ export default function PainelLeiloesPage() {
                   <div key={leilao.nome} className={`bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden flex flex-col transition-colors ${isActive ? 'border-purple-400 dark:border-purple-500' : 'border-zinc-200 dark:border-white/[0.08]'}`}>
                     {/* KPI header */}
                     <div className="shrink-0 grid divide-x divide-zinc-200 dark:divide-white/[0.08] border-b border-zinc-200 dark:border-white/[0.08]"
-                      style={{ gridTemplateColumns: '100px repeat(5, 1fr)' }}>
+                      style={{ gridTemplateColumns: '100px repeat(4, 1fr)' }}>
                       <div className="flex flex-col justify-center px-3 py-2">
                         <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Leilão</span>
                         <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">{nomeCurto}</span>
                       </div>
                       <KpiCell label="Faturamento"   value={fmtBRL(leilao.faturamento)} />
                       <KpiCell label="Qtd"           value={String(leilao.qtd)} />
-                      <KpiCell label="Lucrat."       value={fmtPct(leilao.lucrat)} />
                       <KpiCell label="TM Fabricado"  value={leilao.tmJF > 0 ? fmtBRL(leilao.tmJF) : '—'} />
                       <KpiCell label="TM Revenda"    value={leilao.tmRevenda > 0 ? fmtBRL(leilao.tmRevenda) : '—'} border={false} />
                     </div>
@@ -207,7 +200,7 @@ export default function PainelLeiloesPage() {
               <table className="w-full text-xs border-separate border-spacing-0 data-table">
                 <thead>
                   <tr>
-                    <th colSpan={10} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
+                    <th colSpan={9} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
                       <div className="flex items-center gap-3">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                           Detalhamento — {filteredRows.length} vendas
@@ -255,11 +248,6 @@ export default function PainelLeiloesPage() {
                       <td className="px-3 py-2 tabular-nums text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
                       <td className="px-3 py-2 tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{fmtBRL(r.preco_cobrado)}</td>
                       <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
-                      <td className="px-3 py-2 tabular-nums whitespace-nowrap">
-                        <span className={r.lucrat >= 40 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : r.lucrat >= 0 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-500'}>
-                          {r.lucrat.toFixed(2)}%
-                        </span>
-                      </td>
                       <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtDate(r.data_venda)}</td>
                     </tr>
                   ))}

@@ -11,9 +11,6 @@ function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 }
 
-function fmtPct(v: number) {
-  return `${v.toFixed(2)}%`;
-}
 
 export default function PainelPage() {
   const { from, to, destinoFilter } = usePainelFilters();
@@ -67,7 +64,6 @@ export default function PainelPage() {
           { label: 'Faturamento Total', value: isLoading ? '—' : fmtBRL(data?.total.faturamento ?? 0) },
           { label: 'Ticket Médio',      value: isLoading ? '—' : fmtBRL(data?.total.tm ?? 0) },
           { label: 'Quantidade',        value: isLoading ? '—' : String(data?.total.qtd ?? 0) },
-          { label: 'Lucratividade',     value: isLoading ? '—' : fmtPct(data?.total.lucrat ?? 0) },
         ].map(k => (
           <div key={k.label} className="flex flex-col gap-0.5 px-5 py-3">
             <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>

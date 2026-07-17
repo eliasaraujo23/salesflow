@@ -11,10 +11,6 @@ function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 }
 
-function fmtPct(v: number) {
-  return `${v.toFixed(2)}%`;
-}
-
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—';
   const d = iso.substring(0, 10).split('-');
@@ -35,7 +31,7 @@ const TIPO_CLASS: Record<string, string> = {
 
 
 type SortKey = keyof Pick<ScrapDetailRow,
-  'referencia' | 'tipo' | 'produto' | 'destino' | 'peso' | 'custo_real' | 'preco_cobrado' | 'lucrat' | 'data_venda'
+  'referencia' | 'tipo' | 'produto' | 'destino' | 'peso' | 'custo_real' | 'preco_cobrado' | 'data_venda'
 >;
 
 const COLS: { label: string; key: SortKey }[] = [
@@ -46,7 +42,6 @@ const COLS: { label: string; key: SortKey }[] = [
   { label: 'Peso (g)',   key: 'peso' },
   { label: 'Custo',      key: 'custo_real' },
   { label: 'Preço',      key: 'preco_cobrado' },
-  { label: 'Lucrat.',    key: 'lucrat' },
   { label: 'Data',       key: 'data_venda' },
 ];
 
@@ -92,7 +87,6 @@ export default function PainelScrapPage() {
         <div className="grid grid-cols-5 divide-x divide-zinc-200 dark:divide-white/[0.08]">
           {[
             { label: 'Faturamento',   value: isLoading || !data ? '—' : fmtBRL(data.kpi.faturamento),    cls: '' },
-            { label: 'Lucratividade', value: isLoading || !data ? '—' : fmtPct(data.kpi.lucrat),         cls: 'text-emerald-600 dark:text-emerald-400' },
             { label: 'Quantidade',    value: isLoading || !data ? '—' : String(data.kpi.qtd),             cls: '' },
             { label: 'Ticket Médio',  value: isLoading || !data ? '—' : fmtBRL(data.kpi.tm),             cls: '' },
             { label: 'Peso Total',    value: isLoading || !data ? '—' : fmtPeso(data.kpi.pesoTotal),     cls: '' },
@@ -163,10 +157,6 @@ export default function PainelScrapPage() {
                         <div>
                           <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Qtd</div>
                           <div className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{kpi.qtd}</div>
-                        </div>
-                        <div>
-                          <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Lucrat.</div>
-                          <div className={`text-xs font-bold ${accent}`}>{fmtPct(kpi.lucrat)}</div>
                         </div>
                         <div>
                           <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">TM</div>
@@ -264,17 +254,6 @@ export default function PainelScrapPage() {
                     <td className="px-3 py-2 tabular-nums text-zinc-500 dark:text-zinc-400 whitespace-nowrap text-right">{r.peso.toFixed(2)}</td>
                     <td className="px-3 py-2 tabular-nums text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
                     <td className="px-3 py-2 tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{fmtBRL(r.preco_cobrado)}</td>
-                    <td className="px-3 py-2 tabular-nums whitespace-nowrap">
-                      <span className={
-                        r.lucrat >= 40
-                          ? 'text-emerald-600 dark:text-emerald-400 font-semibold'
-                          : r.lucrat >= 0
-                            ? 'text-zinc-700 dark:text-zinc-300'
-                            : 'text-red-500'
-                      }>
-                        {r.lucrat.toFixed(2)}%
-                      </span>
-                    </td>
                     <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtDate(r.data_venda)}</td>
                   </tr>
                 ))}

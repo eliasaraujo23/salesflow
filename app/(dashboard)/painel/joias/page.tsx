@@ -38,7 +38,7 @@ const TIPO_CLASS: Record<string, string> = {
   JR: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
 };
 
-type SortKey = 'referencia' | 'tipo' | 'produto' | 'subtipo' | 'destino' | 'tipo_pedra' | 'custo_real' | 'preco_cobrado' | 'lucrat' | 'data_venda';
+type SortKey = 'referencia' | 'tipo' | 'produto' | 'subtipo' | 'destino' | 'tipo_pedra' | 'custo_real' | 'preco_cobrado' | 'data_venda';
 
 const COLS: { label: string; key: SortKey }[] = [
   { label: 'Referência',    key: 'referencia' },
@@ -49,7 +49,6 @@ const COLS: { label: string; key: SortKey }[] = [
   { label: 'Tipo Pedra',    key: 'tipo_pedra' },
   { label: 'Custo Real',    key: 'custo_real' },
   { label: 'Preço Cobrado', key: 'preco_cobrado' },
-  { label: 'Lucrat.',       key: 'lucrat' },
   { label: 'Data Venda',    key: 'data_venda' },
 ];
 
@@ -137,7 +136,6 @@ export default function PainelJoiasPage() {
                 { label: 'Faturamento',   value: fmtBRL(fat) },
                 { label: 'Ticket Médio',  value: fmtBRL(qtd > 0 ? fat / qtd : 0) },
                 { label: 'Qtd',           value: String(qtd) },
-                { label: 'Lucratividade', value: fat > 0 ? `${(((fat - custo) / fat) * 100).toFixed(2)}%` : '—' },
               ].map(k => (
                 <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
                   <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
@@ -209,7 +207,7 @@ export default function PainelJoiasPage() {
             <table className="w-full text-xs border-separate border-spacing-0 data-table">
               <thead>
                 <tr>
-                  <th colSpan={10} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
+                  <th colSpan={9} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
                     <div className="flex items-center gap-3">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                         Joias Cadastradas — {filteredRows.length} vendas
@@ -255,11 +253,6 @@ export default function PainelJoiasPage() {
                     <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
                     <td className="px-3 py-2 tabular-nums text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
                     <td className="px-3 py-2 tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{fmtBRL(r.preco_cobrado)}</td>
-                    <td className="px-3 py-2 tabular-nums whitespace-nowrap">
-                      <span className={r.lucrat >= 40 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : r.lucrat >= 0 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-500'}>
-                        {r.lucrat.toFixed(2)}%
-                      </span>
-                    </td>
                     <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtDate(r.data_venda)}</td>
                   </tr>
                 ))}

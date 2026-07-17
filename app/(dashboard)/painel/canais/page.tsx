@@ -11,9 +11,6 @@ function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 }
 
-function fmtPct(v: number) {
-  return `${v.toFixed(2)}%`;
-}
 
 export default function PainelCanaisPage() {
   const { from, to, destinoFilter } = usePainelFilters();
@@ -41,7 +38,6 @@ export default function PainelCanaisPage() {
         { label: 'Faturamento',   value: isLoading ? '—' : fmtBRL(data?.b2c.faturamento ?? 0) },
         { label: 'Ticket Médio',  value: isLoading ? '—' : fmtBRL(data?.b2c.tm ?? 0) },
         { label: 'Quantidade',    value: isLoading ? '—' : String(data?.b2c.qtd ?? 0) },
-        { label: 'Lucratividade', value: isLoading ? '—' : fmtPct(data?.b2c.lucrat ?? 0) },
       ],
     },
     {
@@ -50,7 +46,6 @@ export default function PainelCanaisPage() {
         { label: 'Faturamento',   value: isLoading ? '—' : fmtBRL(data?.b2b.faturamento ?? 0) },
         { label: 'Ticket Médio',  value: isLoading ? '—' : fmtBRL(data?.b2b.tm ?? 0) },
         { label: 'Quantidade',    value: isLoading ? '—' : String(data?.b2b.qtd ?? 0) },
-        { label: 'Lucratividade', value: isLoading ? '—' : fmtPct(data?.b2b.lucrat ?? 0) },
       ],
     },
   ];

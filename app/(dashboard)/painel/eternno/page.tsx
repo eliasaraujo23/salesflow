@@ -10,18 +10,10 @@ function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 }
 
-function fmtPct(v: number) {
-  return `${v.toFixed(2)}%`;
-}
-
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—';
   const d = iso.substring(0, 10).split('-');
   return `${d[2]}/${d[1]}/${d[0]}`;
-}
-
-function lucrat(fat: number, custo: number) {
-  return fat > 0 ? ((fat - custo) / fat) * 100 : 0;
 }
 
 function tm(fat: number, qtd: number) {
@@ -35,7 +27,7 @@ const TIPO_CLASS: Record<string, string> = {
   JR: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
 };
 
-type SortKey = 'referencia' | 'produto' | 'subtipo' | 'tipo' | 'custo_real' | 'preco_cobrado' | 'tipo_pedra' | 'lucrat' | 'data_venda';
+type SortKey = 'referencia' | 'produto' | 'subtipo' | 'tipo' | 'custo_real' | 'preco_cobrado' | 'tipo_pedra' | 'data_venda';
 
 const COLS: { label: string; key: SortKey }[] = [
   { label: 'Referência',    key: 'referencia' },
@@ -45,7 +37,6 @@ const COLS: { label: string; key: SortKey }[] = [
   { label: 'Custo Real',    key: 'custo_real' },
   { label: 'Preço Cobrado', key: 'preco_cobrado' },
   { label: 'Tipo Pedra',    key: 'tipo_pedra' },
-  { label: 'Lucrat.',       key: 'lucrat' },
   { label: 'Data Venda',    key: 'data_venda' },
 ];
 
@@ -54,7 +45,6 @@ interface TipoEntry {
   fat: number;
   custo: number;
   qtd: number;
-  lucrat: number;
   tm: number;
   byProduto: { name: string; value: number; qty: number }[];
 }
@@ -75,7 +65,7 @@ export default function PainelEternnoPage() {
     const fat = eternnoRows.reduce((s, r) => s + r.preco_cobrado, 0);
     const custo = eternnoRows.reduce((s, r) => s + r.custo_real, 0);
     const qtd = eternnoRows.length;
-    return { fat, custo, qtd, lucrat: lucrat(fat, custo), tm: tm(fat, qtd) };
+    return { fat, custo, qtd, tm: tm(fat, qtd) };
   }, [eternnoRows]);
 
   // Por tipo
@@ -97,7 +87,7 @@ export default function PainelEternnoPage() {
       const byProduto = Array.from(prodMap.entries())
         .map(([name, e]) => ({ name, value: e.fat, qty: e.qtd }))
         .sort((a, b) => b.value - a.value);
-      return [{ tipo, fat, custo, qtd, lucrat: lucrat(fat, custo), tm: tm(fat, qtd), byProduto }];
+      return [{ tipo, fat, custo, qtd, tm: tm(fat, qtd), byProduto }];
     });
   }, [eternnoRows]);
 
@@ -158,7 +148,6 @@ export default function PainelEternnoPage() {
             { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(kpi.fat) },
             { label: 'Ticket Médio', value: isLoading ? '—' : fmtBRL(kpi.tm) },
             { label: 'Qtd',          value: isLoading ? '—' : String(kpi.qtd) },
-            { label: 'Lucratividade', value: isLoading ? '—' : fmtPct(kpi.lucrat) },
           ].map(k => (
             <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
               <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
@@ -188,12 +177,11 @@ export default function PainelEternnoPage() {
                 <div className={`${TIPO_HEADER[t.tipo] ?? 'bg-zinc-600 text-white'} px-4 py-2 shrink-0`}>
                   <span className="text-xs font-bold uppercase tracking-widest">{TIPO_LABEL[t.tipo] ?? t.tipo}</span>
                 </div>
-                <div className="grid grid-cols-4 divide-x divide-zinc-200 dark:divide-white/[0.08] border-b border-zinc-200 dark:border-white/[0.08] shrink-0">
+                <div className="grid grid-cols-3 divide-x divide-zinc-200 dark:divide-white/[0.08] border-b border-zinc-200 dark:border-white/[0.08] shrink-0">
                   {[
                     { label: 'Faturamento',  value: fmtBRL(t.fat) },
                     { label: 'Ticket Médio', value: fmtBRL(t.tm) },
                     { label: 'Qtd',          value: String(t.qtd) },
-                    { label: 'Lucrat.',      value: fmtPct(t.lucrat) },
                   ].map(k => (
                     <div key={k.label} className="px-3 py-2 flex flex-col gap-0.5">
                       <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
@@ -223,7 +211,7 @@ export default function PainelEternnoPage() {
             <table className="w-full text-xs border-separate border-spacing-0 data-table">
               <thead>
                 <tr>
-                  <th colSpan={9} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
+                  <th colSpan={8} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
                     <div className="flex items-center gap-3">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                         Detalhamento — {filteredRows.length} vendas
@@ -262,11 +250,6 @@ export default function PainelEternnoPage() {
                     <td className="px-3 py-2 tabular-nums text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtBRL(r.custo_real)}</td>
                     <td className="px-3 py-2 tabular-nums font-semibold text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{fmtBRL(r.preco_cobrado)}</td>
                     <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{r.tipo_pedra ?? '—'}</td>
-                    <td className="px-3 py-2 tabular-nums whitespace-nowrap">
-                      <span className={r.lucrat >= 40 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : r.lucrat >= 0 ? 'text-zinc-700 dark:text-zinc-300' : 'text-red-500'}>
-                        {r.lucrat.toFixed(2)}%
-                      </span>
-                    </td>
                     <td className="px-3 py-2 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{fmtDate(r.data_venda)}</td>
                   </tr>
                 ))}
