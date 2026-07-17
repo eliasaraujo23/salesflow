@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
@@ -17,85 +17,87 @@ function fmtMes(ym: string) {
   return `${MESES_PT[parseInt(m) - 1]}/${y.slice(2)}`;
 }
 
+type SortKey = 'mes' | 'loja' | 'cad';
+
 export default function JoiasMesPage() {
   const { from, to } = usePainelFilters();
   const { data, isLoading, isError, error } = useEvolucaoJoias(from, to);
 
   const [lojaFiltro, setLojaFiltro] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>('mes');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
-  const { chartData, totaisCad, totaisVend, meses } = useMemo(() => {
-    if (!data) return { chartData: [], totaisCad: 0, totaisVend: 0, meses: [] };
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  }
 
-    const filtro = lojaFiltro;
-    const cadRows = filtro ? data.cadastradas.filter(r => r.loja === filtro) : data.cadastradas;
-    const vendRows = filtro ? data.vendidas.filter(r => r.loja === filtro) : data.vendidas;
+  const lojasPresentes = useMemo(() => {
+    if (!data) return [];
+    const s = new Set(data.cadastradas.map(r => r.loja));
+    return LOJAS.filter(l => s.has(l));
+  }, [data]);
 
-    const allMeses = Array.from(new Set([
-      ...cadRows.map(r => r.mes),
-      ...vendRows.map(r => r.mes),
-    ])).sort();
+  const { chartData, meses, totalCad } = useMemo(() => {
+    if (!data) return { chartData: [], meses: [], totalCad: 0 };
 
-    const cadByMes = new Map<string, number>();
-    const vendByMes = new Map<string, number>();
-    for (const r of cadRows)  cadByMes.set(r.mes,  (cadByMes.get(r.mes)  ?? 0) + r.count);
-    for (const r of vendRows) vendByMes.set(r.mes, (vendByMes.get(r.mes) ?? 0) + r.count);
+    const lojas = lojaFiltro ? [lojaFiltro] : lojasPresentes;
+    const cadRows = lojaFiltro ? data.cadastradas.filter(r => r.loja === lojaFiltro) : data.cadastradas;
 
-    const chartData = allMeses.map(mes => ({
-      mes: fmtMes(mes),
-      Cadastradas: cadByMes.get(mes)  ?? 0,
-      Vendidas:    vendByMes.get(mes) ?? 0,
-    }));
+    const allMeses = Array.from(new Set(cadRows.map(r => r.mes))).sort();
 
-    const totaisCad  = Array.from(cadByMes.values()).reduce((s, v) => s + v, 0);
-    const totaisVend = Array.from(vendByMes.values()).reduce((s, v) => s + v, 0);
+    const chartData = allMeses.map(mes => {
+      const row: Record<string, string | number> = { mes: fmtMes(mes) };
+      for (const loja of lojas) {
+        row[loja] = cadRows.find(r => r.mes === mes && r.loja === loja)?.count ?? 0;
+      }
+      return row;
+    });
 
-    return { chartData, totaisCad, totaisVend, meses: allMeses };
-  }, [data, lojaFiltro]);
+    const totalCad = cadRows.reduce((s, r) => s + r.count, 0);
+
+    return { chartData, meses: allMeses, totalCad };
+  }, [data, lojaFiltro, lojasPresentes]);
 
   const tableData = useMemo(() => {
     if (!data) return [];
-    const filtro = lojaFiltro;
-    const cadRows = filtro ? data.cadastradas.filter(r => r.loja === filtro) : data.cadastradas;
-    const vendRows = filtro ? data.vendidas.filter(r => r.loja === filtro) : data.vendidas;
+    const lojas = lojaFiltro ? [lojaFiltro] : lojasPresentes;
+    const cadRows = lojaFiltro ? data.cadastradas.filter(r => r.loja === lojaFiltro) : data.cadastradas;
 
-    const allLojas = Array.from(new Set([
-      ...data.cadastradas.map(r => r.loja),
-      ...data.vendidas.map(r => r.loja),
-    ])).sort();
-
-    const shownLojas = filtro ? [filtro] : allLojas;
-
-    return meses.flatMap(mes =>
-      shownLojas.map(loja => {
-        const cad  = cadRows.find(r => r.mes === mes && r.loja === loja)?.count ?? 0;
-        const vend = vendRows.find(r => r.mes === mes && r.loja === loja)?.count ?? 0;
-        if (cad === 0 && vend === 0) return null;
-        return { mes: fmtMes(mes), loja, cad, vend, diff: cad - vend };
+    const rows = meses.flatMap(mes =>
+      lojas.map(loja => {
+        const cad = cadRows.find(r => r.mes === mes && r.loja === loja)?.count ?? 0;
+        if (cad === 0) return null;
+        return { mes: fmtMes(mes), mesRaw: mes, loja, cad };
       }).filter(Boolean)
-    ) as { mes: string; loja: string; cad: number; vend: number; diff: number }[];
-  }, [data, lojaFiltro, meses]);
+    ) as { mes: string; mesRaw: string; loja: string; cad: number }[];
 
-  const pctVendido = totaisCad > 0 ? ((totaisVend / totaisCad) * 100).toFixed(1) : '—';
+    return [...rows].sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === 'mes') cmp = a.mesRaw.localeCompare(b.mesRaw);
+      else if (sortKey === 'loja') cmp = a.loja.localeCompare(b.loja, 'pt-BR');
+      else cmp = a.cad - b.cad;
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [data, lojaFiltro, lojasPresentes, meses, sortKey, sortDir]);
+
+  const activeLojas = lojaFiltro ? [lojaFiltro] : lojasPresentes;
 
   return (
     <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
 
-      {/* KPI */}
+      {/* KPI + filtro loja */}
       <div className="shrink-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
         <div className="px-4 py-2 bg-indigo-600 text-white">
           <span className="text-xs font-bold uppercase tracking-widest">Joias por Mês</span>
         </div>
         <div className="flex items-center divide-x divide-zinc-200 dark:divide-white/[0.08]">
-          {[
-            { label: 'Cadastradas', value: isLoading ? '—' : String(totaisCad) },
-            { label: 'Vendidas',    value: isLoading ? '—' : String(totaisVend) },
-            { label: '% Vendido',   value: isLoading ? '—' : `${pctVendido}%`, cls: 'text-emerald-600 dark:text-emerald-400' },
-          ].map(k => (
-            <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
-              <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
-              <span className={`text-sm font-bold tabular-nums ${k.cls ?? 'text-zinc-900 dark:text-zinc-100'}`}>{k.value}</span>
-            </div>
-          ))}
+          <div className="flex flex-col gap-0.5 px-4 py-2.5">
+            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Cadastradas</span>
+            <span className="text-sm font-bold tabular-nums text-zinc-900 dark:text-zinc-100">
+              {isLoading ? '—' : String(totalCad)}
+            </span>
+          </div>
 
           {/* Loja filter pills */}
           <div className="flex items-center gap-1.5 px-4 py-2 flex-wrap flex-1">
@@ -109,7 +111,7 @@ export default function JoiasMesPage() {
             >
               Todas
             </button>
-            {LOJAS.filter(l => data?.cadastradas.some(r => r.loja === l) || data?.vendidas.some(r => r.loja === l)).map(loja => (
+            {lojasPresentes.map(loja => (
               <button
                 key={loja}
                 onClick={() => setLojaFiltro(prev => prev === loja ? null : loja)}
@@ -140,10 +142,10 @@ export default function JoiasMesPage() {
 
       {!isLoading && !isError && (
         <>
-          {/* Chart */}
+          {/* Chart: cadastradas por loja empilhado */}
           <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
             <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
-              Cadastradas vs Vendidas por Mês
+              Cadastradas por Mês e Loja
             </div>
             {chartData.length === 0 ? (
               <div className="flex-1 flex items-center justify-center text-sm text-zinc-400">Sem dados no período</div>
@@ -157,12 +159,13 @@ export default function JoiasMesPage() {
                       cursor={{ fill: 'rgba(99,102,241,0.05)' }}
                       content={({ active, payload, label }) => {
                         if (!active || !payload?.length) return null;
+                        const total = payload.reduce((s, p) => s + (Number(p.value) || 0), 0);
                         return (
                           <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 shadow-sm">
-                            <p className="text-[11px] font-bold text-zinc-700 dark:text-zinc-200 mb-1">{label}</p>
-                            {payload.map((p) => (
+                            <p className="text-[11px] font-bold text-zinc-700 dark:text-zinc-200 mb-1">{label} — total: {total}</p>
+                            {payload.filter(p => Number(p.value) > 0).map((p) => (
                               <p key={p.dataKey as string} className="text-[11px]" style={{ color: p.color }}>
-                                {p.name} : {p.value}
+                                {p.name}: {p.value}
                               </p>
                             ))}
                           </div>
@@ -170,8 +173,16 @@ export default function JoiasMesPage() {
                       }}
                     />
                     <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                    <Bar dataKey="Cadastradas" fill="#6366f1" radius={[3, 3, 0, 0]} isAnimationActive={false} />
-                    <Bar dataKey="Vendidas"    fill="#10b981" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+                    {activeLojas.map(loja => (
+                      <Bar
+                        key={loja}
+                        dataKey={loja}
+                        stackId="a"
+                        fill={LOJA_COLORS[loja] ?? '#71717a'}
+                        radius={activeLojas.indexOf(loja) === activeLojas.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
+                        isAnimationActive={false}
+                      />
+                    ))}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -183,16 +194,26 @@ export default function JoiasMesPage() {
             <table className="w-full text-xs border-separate border-spacing-0 data-table">
               <thead>
                 <tr>
-                  <th colSpan={5} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
+                  <th colSpan={3} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
                       Por Mês e Loja — {tableData.length} linhas
                     </span>
                   </th>
                 </tr>
                 <tr>
-                  {['Mês','Loja','Cadastradas','Vendidas','Diferença'].map(h => (
-                    <th key={h} className="sticky top-[41px] z-10 px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap">
-                      {h}
+                  {([
+                    { label: 'Mês',         key: 'mes'  as SortKey },
+                    { label: 'Loja',        key: 'loja' as SortKey },
+                    { label: 'Cadastradas', key: 'cad'  as SortKey },
+                  ] as { label: string; key: SortKey }[]).map(col => (
+                    <th key={col.key} onClick={() => toggleSort(col.key)}
+                      className="sticky top-[41px] z-10 px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap cursor-pointer select-none hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors">
+                      <span className="inline-flex items-center gap-1">
+                        {col.label}
+                        {sortKey === col.key
+                          ? sortDir === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
+                          : <ChevronsUpDown size={10} className="opacity-30" />}
+                      </span>
                     </th>
                   ))}
                 </tr>
@@ -208,12 +229,6 @@ export default function JoiasMesPage() {
                       </span>
                     </td>
                     <td className="px-3 py-2 tabular-nums text-indigo-600 dark:text-indigo-400 font-semibold">{r.cad}</td>
-                    <td className="px-3 py-2 tabular-nums text-emerald-600 dark:text-emerald-400 font-semibold">{r.vend}</td>
-                    <td className="px-3 py-2 tabular-nums whitespace-nowrap">
-                      <span className={r.diff > 0 ? 'text-amber-600 dark:text-amber-400' : r.diff === 0 ? 'text-zinc-500' : 'text-emerald-600 dark:text-emerald-400'}>
-                        {r.diff > 0 ? `+${r.diff}` : r.diff}
-                      </span>
-                    </td>
                   </tr>
                 ))}
               </tbody>
