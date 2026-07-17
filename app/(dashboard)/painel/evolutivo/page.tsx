@@ -124,7 +124,7 @@ export default function PainelEvolutivoPage() {
     }
 
     const currentMes = new Date().toISOString().substring(0, 7);
-    const allMeses = [...new Set(rawData.map(r => r.mes))].sort().filter(m => m < currentMes);
+    const allMeses = [...new Set(rawData.map(r => r.mes))].sort().filter(m => m <= currentMes);
 
     function toRows(map: Map<string, number>) {
       return allMeses.map(mes => {
@@ -139,7 +139,7 @@ export default function PainelEvolutivoPage() {
     result.set('leiloes', toRows(maps.leiloes));
     result.set('mercadolivre', toRows(maps.mercadolivre));
 
-    const mRows = [...mesMap.keys()].sort().filter(m => m < currentMes).map(mes => {
+    const mRows = [...mesMap.keys()].sort().filter(m => m <= currentMes).map(mes => {
       const [, m] = mes.split('-');
       return {
         mes,
