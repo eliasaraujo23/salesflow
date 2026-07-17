@@ -278,6 +278,10 @@ export default function PainelEvolutivoPage() {
               const total = rows.reduce((s, r) => s + r.faturamento, 0);
               const peak = Math.max(...rows.map(r => r.faturamento), 0);
               const peakRow = rows.find(r => r.faturamento === peak);
+              const media = rows.length > 0 ? total / rows.length : 0;
+              const sorted = [...rows].map(r => r.faturamento).sort((a, b) => a - b);
+              const mid = Math.floor(sorted.length / 2);
+              const mediana = sorted.length === 0 ? 0 : sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
               return (
                 <div key={canal.key} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col min-h-0">
                   <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-white/[0.06]">
@@ -289,6 +293,14 @@ export default function PainelEvolutivoPage() {
                       <div className="text-right">
                         <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Total</p>
                         <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtBRL(total)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Média</p>
+                        <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtBRL(media)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Mediana</p>
+                        <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtBRL(mediana)}</p>
                       </div>
                       {peakRow && (
                         <div className="text-right">
