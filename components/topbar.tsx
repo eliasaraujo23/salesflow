@@ -154,7 +154,7 @@ export function Topbar({ title, subtitle, onMobileMenu }: TopbarProps) {
           )}
           {/* Inline tabs for /painel */}
           {pathname.startsWith('/painel') && (
-            <div className="flex items-center gap-1 ml-1">
+            <div className="flex items-center gap-1 ml-1 overflow-x-auto min-w-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <ChevronRight size={14} className="text-zinc-400 shrink-0" />
               {[
                 { label: 'Vendas Gerais', href: '/painel' },
@@ -179,7 +179,7 @@ export function Topbar({ title, subtitle, onMobileMenu }: TopbarProps) {
                   <Link
                     key={tab.href}
                     href={tab.href}
-                    className={`px-3 py-1 rounded-md text-[13px] font-medium transition-colors ${
+                    className={`shrink-0 px-3 py-1 rounded-md text-[13px] font-medium transition-colors ${
                       isActive
                         ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
                         : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.06]'
