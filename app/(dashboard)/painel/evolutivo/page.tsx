@@ -343,8 +343,35 @@ export default function PainelEvolutivoPage() {
           </div>
 
           {/* Gráfico comparativo multi-linha — flex-[45] para ~45% da altura disponível */}
+          {(() => {
+            const totaisMensais = filteredRows.map(r =>
+              Object.keys(CANAL_LABELS).filter(k => activeCanais.has(k)).reduce((s, k) => s + (Number(r[k]) || 0), 0)
+            );
+            const totalGeral = totaisMensais.reduce((s, v) => s + v, 0);
+            const mediaGeral = totaisMensais.length > 0 ? totalGeral / totaisMensais.length : 0;
+            const sortedT = [...totaisMensais].sort((a, b) => a - b);
+            const midT = Math.floor(sortedT.length / 2);
+            const medianaGeral = sortedT.length === 0 ? 0 : sortedT.length % 2 === 0 ? (sortedT[midT - 1] + sortedT[midT]) / 2 : sortedT[midT];
+            const picoValor = Math.max(...totaisMensais, 0);
+            const picoRow = filteredRows[totaisMensais.indexOf(picoValor)];
+            return (
           <div className="flex-[45] min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col gap-2">
-            <p className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Evolução Comparativa por Canal</p>
+            <div className="shrink-0 flex items-center justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Evolução Comparativa por Canal</p>
+              <div className="flex items-center gap-2">
+                {[
+                  { label: 'Total',   value: fmtBRL(totalGeral) },
+                  { label: 'Média',   value: fmtBRL(mediaGeral) },
+                  { label: 'Mediana', value: fmtBRL(medianaGeral) },
+                  ...(picoRow ? [{ label: `Pico (${picoRow.label})`, value: fmtBRL(picoValor) }] : []),
+                ].map(({ label, value }) => (
+                  <div key={label} className="bg-zinc-50 dark:bg-zinc-800 rounded-lg px-3 py-1.5 flex flex-col gap-0.5 text-right">
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{label}</span>
+                    <span className="text-xs font-bold tabular-nums text-zinc-900 dark:text-zinc-100">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={filteredRows} margin={{ top: 12, right: 24, left: 0, bottom: 4 }}>
@@ -375,6 +402,8 @@ export default function PainelEvolutivoPage() {
               </ResponsiveContainer>
             </div>
           </div>
+            );
+          })()}
         </>
       )}
     </div>
