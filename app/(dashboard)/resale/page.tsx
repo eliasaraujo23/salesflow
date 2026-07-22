@@ -135,7 +135,7 @@ export default function ResalePage() {
 
           {/* Col 1: KPIs + Por Destino */}
           <div className="flex flex-col gap-3 md:min-h-0">
-            <div className="grid gap-2 shrink-0" style={{ gridTemplateColumns: '3fr 2fr' }}>
+            <div className="grid gap-2 shrink-0" style={{ gridTemplateColumns: '3fr 2fr 2fr' }}>
               <KPIBox label="Faturamento"  value={fmtMoedaK(data.faturamento)} flash={kpiFlash} />
               <KPIBox label="Quantidade"   value={String(data.qtd)} flash={kpiFlash} />
               <KPIBox label="Ticket Médio" value={ticketMedio(data.faturamento, data.qtd)} flash={kpiFlash} />
@@ -177,7 +177,7 @@ export default function ResalePage() {
             {/* Eternno por Tipo — col 2, row 2 */}
             <SectionCard title="Eternno · Por Tipo" className="md:col-start-1 md:row-start-1 md:h-full md:flex md:flex-col">
               {/* KPIs Eternno */}
-              <div className="grid grid-cols-2 gap-1.5 mb-3 shrink-0">
+              <div className="grid grid-cols-3 gap-1.5 mb-3 shrink-0">
                 <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg px-2.5 py-1.5 flex flex-col gap-0.5">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Faturamento</span>
                   <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtMoedaK(data.eternnoFat)}</span>

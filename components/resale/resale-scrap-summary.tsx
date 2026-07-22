@@ -32,7 +32,7 @@ export function ResaleScrapSummary({ scrapFat, scrapQtd, scrapByDestino, scrapB2
       <div className="text-[12px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-3 shrink-0">Scrap</div>
 
       {/* KPI grid */}
-      <div className="shrink-0 grid grid-cols-2 gap-1.5 mb-3">
+      <div className="shrink-0 grid grid-cols-3 gap-1.5 mb-3">
         {[
           { label: 'Faturamento',  value: fmtK(scrapFat) },
           { label: 'Quantidade',   value: String(scrapQtd) },
