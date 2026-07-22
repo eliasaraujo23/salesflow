@@ -1,6 +1,7 @@
 import {
   Home,
   Layout,
+  Sparkles,
   Calendar,
   Users,
   BarChart3,
@@ -88,6 +89,7 @@ const iconMap: Record<string, LucideIcon> = {
   'ti-download': Download,
   'ti-edit': Edit,
   'ti-trash': Trash2,
+  'ti-sparkles': Sparkles,
 };
 
 interface IconProps {
