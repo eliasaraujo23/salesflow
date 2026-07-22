@@ -23,8 +23,8 @@ function buildDescription(d: ReferenciaData): string {
   if (d.tipo_pedra)    parts.push(d.tipo_pedra);
   if (d.lapidacao)     parts.push(d.lapidacao);
   if (d.peso != null)  parts.push(`${d.peso.toLocaleString('pt-BR')}g`);
-  if (d.diamantes)     parts.push(d.diamantes + (d.cts_diamantes ? ` ${d.cts_diamantes.toLocaleString('pt-BR')}ct` : ''));
-  if (d.pedra_colorida) parts.push(d.pedra_colorida + (d.cts_pedra_colorida ? ` ${d.cts_pedra_colorida.toLocaleString('pt-BR')}ct` : ''));
+  if (d.diamantes)     parts.push(d.diamantes + (d.cts_diamantes ? ` ${d.cts_diamantes}ct` : ''));
+  if (d.pedra_colorida) parts.push(d.pedra_colorida + (d.cts_pedra_colorida ? ` ${d.cts_pedra_colorida}ct` : ''));
   return parts.join(' · ');
 }
 
@@ -110,9 +110,9 @@ export function ReferenciaCard({ data }: ReferenciaCardProps) {
               <PriceBox label="Cobrado (base)" value={fmt(data.preco_cobrado)} muted />
             </div>
             <div className="grid grid-cols-3 gap-2.5">
-              <PriceBox label="Parceiro"  value={fmt(data.parceiro)} />
-              <PriceBox label="À Vista"   value={fmt(data.a_vista)}  highlight />
-              <PriceBox label="Parcelado" value={fmt(data.parcelado)} />
+              <PriceBox label="Parceiro"  value={fmt(data.preco_parceiro)} />
+              <PriceBox label="À Vista"   value={fmt(data.preco_avista)}  highlight />
+              <PriceBox label="Parcelado" value={fmt(data.preco_parcelado)} />
             </div>
           </>
         )}

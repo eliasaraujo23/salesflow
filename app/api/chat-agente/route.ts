@@ -151,14 +151,22 @@ async function checkDestinoCCCoverage(lower: string): Promise<string> {
   const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
   // Extrair nome do destino da mensagem
-  const m1 = lower.match(/(?:^|,|\s)(o|a)\s+(.+?)\s+(?:est[aá]|tem|precisa|falta)/i);
+  // Padrão 1: "O/A [DESTINO] está..."
+  const m1 = lower.match(/(?:^|\s)(o|a)\s+(.+?)\s+(?:est[aá]|tem|precisa|falta)/i);
   let destinoTerm = m1 ? m1[2].trim() : '';
 
+  // Padrão 2: "[DESTINO] Está..." (sem artigo)
+  if (!destinoTerm) {
+    const m2 = lower.match(/^(.+?)\s+(?:est[aá]|tem)\s/i);
+    if (m2) destinoTerm = m2[1].trim();
+  }
+
+  // Fallback: remove trigger words e extrai o que resta
   if (!destinoTerm) {
     destinoTerm = lower
-      .replace(/carro.?chefe|est[aá]\s*sem|falt\w*|tem\s*(todos|algum)|cobert\w*|carros?|chefe/g, ' ')
+      .replace(/carros?\s*chefes?|est[aá]\s*(sem|com\s*(qual|quais))|falt\w*|tem\s*(todos|algum|qual|quais)|cobert\w*/g, ' ')
       .replace(/[?!.,]/g, ' ')
-      .replace(/\b(o|a|os|as|um|uma|de|do|da|sem|algum|alguma|todos|todas|qual|para)\b/g, ' ')
+      .replace(/\b(o|a|os|as|um|uma|de|do|da|sem|algum|alguma|todos|todas|qual|quais|para|com|está|tem)\b/g, ' ')
       .replace(/\s+/g, ' ').trim();
   }
 
@@ -399,8 +407,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Carros chefe — destino check: "O Brilho Vintage está sem algum carro chefe?"
-  if (/carro.?chefe/.test(lower)) {
-    if (/est[aá]\s*sem|falt|tem\s*(todos|algum)|cobert/.test(lower)) {
+  if (/carros?\s*chefes?/.test(lower)) {
+    if (/est[aá]\s*(sem|com\s*(qual|quais))|falt|tem\s*(todos|algum|qual|quais)|cobert|quais?\s+.*\s+tem/.test(lower)) {
       try {
         const reply = await checkDestinoCCCoverage(lower);
         return NextResponse.json({ reply });
