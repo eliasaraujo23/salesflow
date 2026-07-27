@@ -161,6 +161,12 @@ async function checkDestinoCCCoverage(lower: string): Promise<string> {
     if (m2) destinoTerm = m2[1].trim();
   }
 
+  // Padrão 3: "com o/a X", "no/na X", "do/da X" — destino no final da frase
+  if (!destinoTerm) {
+    const m3 = lower.match(/\b(?:com\s+(?:o|a)|no|na|do|da)\s+([a-záàâãéèêíìîóòôõúùûç][a-záàâãéèêíìîóòôõúùûç\s]+?)(?:\s*(?:em\s+comodato|comodato|est[aá]|[?!.,]))*$/i);
+    if (m3) destinoTerm = m3[1].trim();
+  }
+
   // Fallback: remove trigger words e extrai o que resta
   if (!destinoTerm) {
     destinoTerm = lower
@@ -499,7 +505,10 @@ export async function POST(req: NextRequest) {
 
   // Carros chefe — destino check: "O Brilho Vintage está sem algum carro chefe?"
   if (/carros?\s*chefes?/.test(lower)) {
-    if (/est[aá]\s*(sem|com\s*(qual|quais))|falt|tem\s*(todos|algum|qual|quais)|cobert|quais?\s+.*\s+tem/.test(lower)) {
+    const isDestinoCheck =
+      /est[aá]\s*(sem|com\s*(qual|quais))|falt|tem\s*(todos|algum|qual|quais)|cobert|quais?\s+.*\s+tem/.test(lower) ||
+      /\b(com\s+(o|a)|no|na|do|da)\s+[a-záàâãéèêíìîóòôõúùûç]/i.test(lower);
+    if (isDestinoCheck) {
       try {
         const reply = await checkDestinoCCCoverage(lower);
         return NextResponse.json({ reply });
