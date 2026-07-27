@@ -366,6 +366,78 @@ async function searchByCriteria(lower: string): Promise<string> {
   }
 }
 
+async function searchByDestino(destinoTerm: string, somenteComodato: boolean): Promise<string> {
+  const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+  const client = await pool.connect();
+  try {
+    // Localizar destino no banco (busca fuzzy)
+    const destRes = await client.query<{ destino: string }>(
+      `SELECT DISTINCT d.destino FROM destinos d WHERE LOWER(d.destino) LIKE $1 ORDER BY d.destino LIMIT 5`,
+      [`%${norm(destinoTerm)}%`],
+    );
+
+    if (destRes.rows.length === 0) {
+      return `Não encontrei nenhum destino com o nome **"${destinoTerm}"**. Verifique o nome e tente novamente.`;
+    }
+
+    const destinos = destRes.rows.map(r => r.destino);
+    const destino = destinos.sort((a, b) => a.length - b.length)[0];
+
+    const statusFilter = somenteComodato ? `pd."statusProdutoId" = 6` : `pd."statusProdutoId" IN (3, 6)`;
+
+    const result = await client.query(
+      `SELECT
+         pd.referencia, pd.tipo, pd.custo_real, pd.preco_cobrado,
+         pd.preco_parceiro, pd.preco_avista, pd.preco_parcelado,
+         pd.descricao_jewel, pd."statusProdutoId" AS status_id,
+         p.produto, s.subtipo, tp.tipo_pedra
+       FROM product_details pd
+       LEFT JOIN produto    p  ON p.id  = pd."produtoId"
+       LEFT JOIN subtipo    s  ON s.id  = pd."subtipoId"
+       LEFT JOIN tipo_pedra tp ON tp.id = pd."tipoPedraId"
+       LEFT JOIN destinos   d  ON d.id  = pd."destinoId"
+       WHERE ${statusFilter} AND LOWER(d.destino) = LOWER($1)
+       ORDER BY pd.referencia`,
+      [destino],
+    );
+
+    if (result.rows.length === 0) {
+      const label = somenteComodato ? 'em comodato' : 'disponível';
+      return `Nenhuma peça ${label} encontrada para **${capitalize(destino)}**.`;
+    }
+
+    const rows = result.rows as Array<{
+      referencia: string; tipo: string; custo_real: number | null;
+      preco_cobrado: number | null; preco_parceiro: number | null;
+      preco_avista: number | null; preco_parcelado: number | null;
+      descricao_jewel: string | null; status_id: number | null;
+      produto: string | null; subtipo: string | null; tipo_pedra: string | null;
+    }>;
+
+    const label = somenteComodato ? 'em comodato' : 'disponível';
+    const lines: string[] = [
+      `📦 **${capitalize(destino)}** — ${rows.length} peça(s) ${label}:`,
+    ];
+
+    for (const r of rows) {
+      lines.push('');
+      const desc = r.descricao_jewel
+        ?? [r.produto, r.subtipo, r.tipo_pedra].filter(Boolean).join(' · ');
+      lines.push(`**${r.referencia}** (${r.tipo})${desc ? ' — ' + desc : ''}`);
+      lines.push(`Cobrado: ${fmt(r.preco_cobrado)} · Parceiro: ${fmt(r.preco_parceiro)} · À Vista: ${fmt(r.preco_avista)}`);
+    }
+
+    if (destinos.length > 1) {
+      lines.push(``, `_(Outros destinos encontrados: ${destinos.slice(1).join(', ')})_`);
+    }
+
+    return lines.join('\n');
+  } finally {
+    client.release();
+  }
+}
+
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -418,6 +490,27 @@ export async function POST(req: NextRequest) {
       }
     }
     return NextResponse.json({ reply: answerCarrosChefe(lower) });
+  }
+
+  // Busca por destino: "comodato com o brilho vintage", "peças no X", "o que está no X"
+  if (/comodato|em\s+comodato|peças?\s+(no|na|em|do|da|com\s+o|com\s+a)\b/.test(lower) ||
+      /\b(no|na|em|do|da)\s+[a-záàâãéèêíìîóòôõúùûç]/i.test(lower)) {
+    const somenteComodato = /comodato/.test(lower);
+    const destinoTerm = lower
+      .replace(/comodato|peças?|tudo\s+que\s+(está|esta|tem)|ver|quero|mostre|lista|listar/g, ' ')
+      .replace(/\b(o|a|os|as|com|no|na|em|do|da|de|um|uma|que|está|esta)\b/g, ' ')
+      .replace(/[?!.,]/g, ' ')
+      .replace(/\s+/g, ' ').trim();
+
+    if (destinoTerm.length >= 3) {
+      try {
+        const reply = await searchByDestino(destinoTerm, somenteComodato);
+        return NextResponse.json({ reply });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return NextResponse.json({ reply: `Erro ao consultar: ${msg}` }, { status: 500 });
+      }
+    }
   }
 
   // Busca por critérios (linguagem natural)
