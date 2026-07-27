@@ -366,12 +366,15 @@ async function searchByCriteria(lower: string): Promise<string> {
   }
 }
 
-async function searchByDestino(destinoTerm: string, somenteComodato: boolean): Promise<string> {
+async function searchByDestino(
+  destinoTerm: string,
+  somenteComodato: boolean,
+  keywords: string[] = [],
+): Promise<string> {
   const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
   const client = await pool.connect();
   try {
-    // Localizar destino no banco (busca fuzzy)
     const destRes = await client.query<{ destino: string }>(
       `SELECT DISTINCT d.destino FROM destinos d WHERE LOWER(d.destino) LIKE $1 ORDER BY d.destino LIMIT 5`,
       [`%${norm(destinoTerm)}%`],
@@ -386,6 +389,20 @@ async function searchByDestino(destinoTerm: string, somenteComodato: boolean): P
 
     const statusFilter = somenteComodato ? `pd."statusProdutoId" = 6` : `pd."statusProdutoId" IN (3, 6)`;
 
+    // Montar filtro de keywords de produto (opcional)
+    let kwClause = '';
+    let params: string[] = [destino];
+    if (keywords.length > 0) {
+      const kwConds = keywords.map((_, i) => `(
+        LOWER(pd.descricao_jewel) LIKE $${i + 2}
+        OR LOWER(p.produto) LIKE $${i + 2}
+        OR LOWER(s.subtipo) LIKE $${i + 2}
+        OR LOWER(tp.tipo_pedra) LIKE $${i + 2}
+      )`).join(' AND ');
+      kwClause = ` AND ${kwConds}`;
+      params = [destino, ...keywords.map(k => `%${k}%`)];
+    }
+
     const result = await client.query(
       `SELECT
          pd.referencia, pd.tipo, pd.custo_real, pd.preco_cobrado,
@@ -397,14 +414,15 @@ async function searchByDestino(destinoTerm: string, somenteComodato: boolean): P
        LEFT JOIN subtipo    s  ON s.id  = pd."subtipoId"
        LEFT JOIN tipo_pedra tp ON tp.id = pd."tipoPedraId"
        LEFT JOIN destinos   d  ON d.id  = pd."destinoId"
-       WHERE ${statusFilter} AND LOWER(d.destino) = LOWER($1)
+       WHERE ${statusFilter} AND LOWER(d.destino) = LOWER($1)${kwClause}
        ORDER BY pd.referencia`,
-      [destino],
+      params,
     );
 
     if (result.rows.length === 0) {
       const label = somenteComodato ? 'em comodato' : 'disponível';
-      return `Nenhuma peça ${label} encontrada para **${capitalize(destino)}**.`;
+      const kwLabel = keywords.length > 0 ? ` do tipo "${keywords.join(' ')}"` : '';
+      return `Nenhuma peça${kwLabel} ${label} encontrada para **${capitalize(destino)}**.`;
     }
 
     const rows = result.rows as Array<{
@@ -416,8 +434,9 @@ async function searchByDestino(destinoTerm: string, somenteComodato: boolean): P
     }>;
 
     const label = somenteComodato ? 'em comodato' : 'disponível';
+    const kwLabel = keywords.length > 0 ? ` · filtro: ${keywords.join(' ')}` : '';
     const lines: string[] = [
-      `📦 **${capitalize(destino)}** — ${rows.length} peça(s) ${label}:`,
+      `📦 **${capitalize(destino)}** — ${rows.length} peça(s) ${label}${kwLabel}:`,
     ];
 
     for (const r of rows) {
@@ -492,19 +511,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ reply: answerCarrosChefe(lower) });
   }
 
-  // Busca por destino: "comodato com o brilho vintage", "peças no X", "o que está no X"
-  if (/comodato|em\s+comodato|peças?\s+(no|na|em|do|da|com\s+o|com\s+a)\b/.test(lower) ||
-      /\b(no|na|em|do|da)\s+[a-záàâãéèêíìîóòôõúùûç]/i.test(lower)) {
+  // Busca por destino: "anel solitário em comodato com o brilho vintage"
+  if (/comodato|peças?\s+(no|na|em|do|da|com\s+o|com\s+a)\b/.test(lower)) {
     const somenteComodato = /comodato/.test(lower);
-    const destinoTerm = lower
-      .replace(/comodato|peças?|tudo\s+que\s+(está|esta|tem)|ver|quero|mostre|lista|listar/g, ' ')
-      .replace(/\b(o|a|os|as|com|no|na|em|do|da|de|um|uma|que|está|esta)\b/g, ' ')
-      .replace(/[?!.,]/g, ' ')
-      .replace(/\s+/g, ' ').trim();
+
+    // Extrair destino: o que vem depois de "com o/a", "no", "na", "do", "da" no final
+    const destMatch = lower.match(/\b(?:com\s+(?:o|a)|no|na|do|da)\s+([a-záàâãéèêíìîóòôõúùûç][a-záàâãéèêíìîóòôõúùûç\s]+?)(?:\s*[?!.,])*$/i);
+    const destinoTerm = destMatch ? destMatch[1].trim() : '';
+
+    // Keywords de produto: o que sobrar após remover comodato, destino e palavras de contexto
+    const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const kwStopwords = new Set([
+      'o','a','os','as','um','uma','de','do','da','dos','das','com','no','na','em',
+      'que','está','esta','ver','quero','mostre','lista','listar','comodato','peças',
+      'peca','tudo','todos','todas','algum','alguma','me','para',
+    ]);
+    const productPart = lower
+      .replace(destMatch ? destMatch[0] : '', '')
+      .replace(/comodato|peças?|tudo\s+que\s+(está|esta|tem)/g, ' ')
+      .replace(/[?!.,]/g, ' ');
+    const keywords = productPart
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !kwStopwords.has(normalize(w)));
 
     if (destinoTerm.length >= 3) {
       try {
-        const reply = await searchByDestino(destinoTerm, somenteComodato);
+        const reply = await searchByDestino(destinoTerm, somenteComodato, keywords);
         return NextResponse.json({ reply });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
