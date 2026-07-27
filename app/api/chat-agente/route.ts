@@ -147,52 +147,70 @@ function matchesCC(cc: (typeof CC_DEFAULTS)[0], row: DestRow): boolean {
   return true;
 }
 
-async function checkDestinoCCCoverage(lower: string): Promise<string> {
+/** Extrai candidatos de destino da mensagem (do mais específico ao mais geral) */
+function extractDestinoTerms(lower: string): string[] {
+  const candidates: string[] = [];
+
+  // Padrão A: "com o/a X", "no/na X", "do/da X" — preposição + artigo
+  const mA = lower.match(/\b(?:com\s+(?:o|a)|no|na|do|da|para\s+(?:o|a))\s+([a-záàâãéèêíìîóòôõúùûç][a-záàâãéèêíìîóòôõúùûç\s]+?)(?:\s*(?:\bem\b|\bcomodato\b|est[aá]|[?!.,]|$))/i);
+  if (mA) candidates.push(mA[1].trim());
+
+  // Padrão B: "O/A [DESTINO] está/tem..."
+  const mB = lower.match(/(?:^|\s)(?:o|a)\s+(.+?)\s+(?:est[aá]|tem|precisa|falta)/i);
+  if (mB) candidates.push(mB[1].trim());
+
+  // Padrão C: "[DESTINO] está/tem..." (sem artigo, no início)
+  const mC = lower.match(/^(.+?)\s+(?:est[aá]|tem)\s/i);
+  if (mC) candidates.push(mC[1].trim());
+
+  // Padrão D: "[DESTINO] [verbo] quais/qual carros chefe"
+  const mD = lower.match(/^(.+?)\s+(?:tem|possui|está\s+com)\s+(?:quais?|todos?)/i);
+  if (mD) candidates.push(mD[1].trim());
+
+  // Fallback: remove trigger words e usa o que resta
+  const fallback = lower
+    .replace(/carros?\s*chefes?|\bcc\b|est[aá]\s*(sem|com\s*(qual|quais))|falt\w*|tem\s*(todos|algum|qual|quais)|cobert\w*|em\s+comodato|comodato/g, ' ')
+    .replace(/[?!.,]/g, ' ')
+    .replace(/\b(o|a|os|as|um|uma|de|do|da|sem|algum|alguma|todos|todas|qual|quais|para|com|está|tem|no|na)\b/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+  if (fallback.length >= 2) candidates.push(fallback);
+
+  // Retorna únicos não-vazios
+  return [...new Set(candidates.filter(c => c.length >= 2))];
+}
+
+/**
+ * Verifica cobertura de carros chefe para um destino.
+ * Retorna null se nenhum destino for encontrado no banco (cai em answerCarrosChefe).
+ */
+async function checkDestinoCCCoverage(lower: string): Promise<string | null> {
   const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-  // Extrair nome do destino da mensagem
-  // Padrão 1: "O/A [DESTINO] está..."
-  const m1 = lower.match(/(?:^|\s)(o|a)\s+(.+?)\s+(?:est[aá]|tem|precisa|falta)/i);
-  let destinoTerm = m1 ? m1[2].trim() : '';
-
-  // Padrão 2: "[DESTINO] Está..." (sem artigo)
-  if (!destinoTerm) {
-    const m2 = lower.match(/^(.+?)\s+(?:est[aá]|tem)\s/i);
-    if (m2) destinoTerm = m2[1].trim();
-  }
-
-  // Padrão 3: "com o/a X", "no/na X", "do/da X" — destino no final da frase
-  if (!destinoTerm) {
-    const m3 = lower.match(/\b(?:com\s+(?:o|a)|no|na|do|da)\s+([a-záàâãéèêíìîóòôõúùûç][a-záàâãéèêíìîóòôõúùûç\s]+?)(?:\s*(?:em\s+comodato|comodato|est[aá]|[?!.,]))*$/i);
-    if (m3) destinoTerm = m3[1].trim();
-  }
-
-  // Fallback: remove trigger words e extrai o que resta
-  if (!destinoTerm) {
-    destinoTerm = lower
-      .replace(/carros?\s*chefes?|est[aá]\s*(sem|com\s*(qual|quais))|falt\w*|tem\s*(todos|algum|qual|quais)|cobert\w*/g, ' ')
-      .replace(/[?!.,]/g, ' ')
-      .replace(/\b(o|a|os|as|um|uma|de|do|da|sem|algum|alguma|todos|todas|qual|quais|para|com|está|tem)\b/g, ' ')
-      .replace(/\s+/g, ' ').trim();
-  }
-
-  if (!destinoTerm || destinoTerm.length < 2) {
-    return 'Qual destino você quer verificar?';
-  }
+  const terms = extractDestinoTerms(lower);
+  if (terms.length === 0) return null;
 
   const client = await pool.connect();
   try {
-    const destRes = await client.query<{ destino: string }>(
-      `SELECT DISTINCT d.destino FROM destinos d WHERE LOWER(d.destino) LIKE $1 ORDER BY d.destino LIMIT 5`,
-      [`%${norm(destinoTerm)}%`],
-    );
-
-    if (destRes.rows.length === 0) {
-      return `Não encontrei nenhum destino com o nome **"${destinoTerm}"**. Verifique o nome e tente novamente.`;
+    // Tentar cada candidato até encontrar um destino no banco
+    let destinos: string[] = [];
+    let matchedTerm = '';
+    for (const term of terms) {
+      const res = await client.query<{ destino: string }>(
+        `SELECT DISTINCT d.destino FROM destinos d WHERE LOWER(d.destino) LIKE $1 ORDER BY d.destino LIMIT 5`,
+        [`%${norm(term)}%`],
+      );
+      if (res.rows.length > 0) {
+        destinos = res.rows.map(r => r.destino);
+        matchedTerm = term;
+        break;
+      }
     }
 
-    const destinos = destRes.rows.map(r => r.destino);
+    // Nenhum destino encontrado → retorna null para o caller tentar answerCarrosChefe
+    if (destinos.length === 0) return null;
+
     const destino = destinos.sort((a, b) => a.length - b.length)[0];
+    void matchedTerm; // used only for lookup
 
     const piecesRes = await client.query<DestRow>(
       `SELECT p.produto, s.subtipo, tp.tipo_pedra, l.lapidacao
@@ -503,20 +521,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Carros chefe — destino check: "O Brilho Vintage está sem algum carro chefe?"
-  if (/carros?\s*chefes?/.test(lower)) {
-    const isDestinoCheck =
-      /est[aá]\s*(sem|com\s*(qual|quais))|falt|tem\s*(todos|algum|qual|quais)|cobert|quais?\s+.*\s+tem/.test(lower) ||
-      /\b(com\s+(o|a)|no|na|do|da)\s+[a-záàâãéèêíìîóòôõúùûç]/i.test(lower);
-    if (isDestinoCheck) {
-      try {
-        const reply = await checkDestinoCCCoverage(lower);
-        return NextResponse.json({ reply });
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        return NextResponse.json({ reply: `Erro ao consultar: ${msg}` }, { status: 500 });
-      }
+  // Carros chefe — singular, plural, abreviação, qualquer variação
+  if (/carros?\s*chefes?|\bcc\b/.test(lower)) {
+    try {
+      // Tenta destino check primeiro; retorna null se não achar destino no banco
+      const reply = await checkDestinoCCCoverage(lower);
+      if (reply !== null) return NextResponse.json({ reply });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return NextResponse.json({ reply: `Erro ao consultar: ${msg}` }, { status: 500 });
     }
+    // Sem destino reconhecido → busca/lista nos CC_DEFAULTS
     return NextResponse.json({ reply: answerCarrosChefe(lower) });
   }
 
