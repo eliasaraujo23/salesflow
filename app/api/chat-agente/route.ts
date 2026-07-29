@@ -720,7 +720,11 @@ export async function POST(req: NextRequest) {
       try {
         const reply = await searchByDestino(destinoTerm, somenteComodato, keywords, somenteVendido);
         if (reply !== null) return NextResponse.json({ reply });
-        // destino não encontrado no banco → cai no searchByCriteria abaixo
+        // destino não encontrado no banco → busca pelas keywords de produto sem o nome do destino
+        if (keywords.length > 0) {
+          const fallback = await searchByCriteria(keywords.join(' '));
+          return NextResponse.json({ reply: fallback });
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         return NextResponse.json({ reply: `Erro ao consultar: ${msg}` }, { status: 500 });
