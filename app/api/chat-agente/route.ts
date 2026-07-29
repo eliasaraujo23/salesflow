@@ -302,7 +302,7 @@ function answerCarrosChefe(lower: string): string {
     found.map(c => `• ${c.label}`).join('\n');
 }
 
-async function searchByCriteria(lower: string, limit = 200): Promise<string> {
+async function searchByCriteria(lower: string, limit = 200, somenteComodato = false, somenteVendido = false): Promise<string> {
   const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
   const stopwords = new Set([
@@ -451,7 +451,7 @@ async function searchByCriteria(lower: string, limit = 200): Promise<string> {
        LEFT JOIN subtipo    s  ON s.id  = pd."subtipoId"
        LEFT JOIN tipo_pedra tp ON tp.id = pd."tipoPedraId"
        LEFT JOIN destinos   d  ON d.id  = pd."destinoId"
-       WHERE pd."statusProdutoId" IN (3, 6) AND ${kwConditions}
+       WHERE ${somenteVendido ? `pd."statusProdutoId" IN (2,4,13)` : somenteComodato ? `pd."statusProdutoId" = 6` : `pd."statusProdutoId" IN (3, 6)`} AND ${kwConditions}
        ORDER BY
          CASE WHEN (SELECT 1 FROM leilao_image li WHERE li."productDetailsId" = pd.id LIMIT 1) IS NOT NULL THEN 0 ELSE 1 END,
          ${orderBy}
@@ -731,9 +731,20 @@ export async function POST(req: NextRequest) {
         if (reply !== null) return NextResponse.json({ reply });
         // destino não encontrado no banco → busca pelas keywords de produto sem o nome do destino
         if (keywords.length > 0) {
-          const fallback = await searchByCriteria(keywords.join(' '));
+          const fallback = await searchByCriteria(keywords.join(' '), 200, somenteComodato, somenteVendido);
           return NextResponse.json({ reply: fallback });
         }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return NextResponse.json({ reply: `Erro ao consultar: ${msg}` }, { status: 500 });
+      }
+    }
+
+    // Sem destino extraído mas com flag de status → busca por critérios com filtro correto
+    if (somenteComodato || somenteVendido) {
+      try {
+        const reply = await searchByCriteria(lower, 200, somenteComodato, somenteVendido);
+        return NextResponse.json({ reply });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         return NextResponse.json({ reply: `Erro ao consultar: ${msg}` }, { status: 500 });
