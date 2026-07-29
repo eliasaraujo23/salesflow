@@ -302,7 +302,7 @@ function answerCarrosChefe(lower: string): string {
     found.map(c => `• ${c.label}`).join('\n');
 }
 
-async function searchByCriteria(lower: string, limit = 5): Promise<string> {
+async function searchByCriteria(lower: string, limit = 200): Promise<string> {
   const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
   const stopwords = new Set([
@@ -472,9 +472,7 @@ async function searchByCriteria(lower: string, limit = 5): Promise<string> {
 
     const total   = parseInt(rows[0]?.total_count ?? '0', 10);
     const qualifier = querAntigo ? 'mais antiga' : querNovo ? 'mais recente' : 'disponível';
-    const header = total > rows.length
-      ? `Encontrei **${rows.length}** de **${total}** peça(s) ${qualifier} (mostrando as mais recentes — refine para ver mais):`
-      : `Encontrei ${rows.length} peça(s) ${qualifier}:`;
+    const header = `Encontrei **${total}** peça(s) ${qualifier}:`;
     const lines: string[] = [header];
 
     for (const r of rows) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Sparkles, Copy, Check, ZoomIn, CameraOff } from 'lucide-react';
 import { type ChatMessage } from '@/lib/hooks/use-agente-chat';
 
@@ -24,12 +24,29 @@ function renderPlainText(text: string) {
 
 interface ImageMap { [ref: string]: string }
 
+function CopyBlockButton({ text }: { text: string }) {
+  const [done, setDone] = useState(false);
+  const copy = useCallback(() => {
+    navigator.clipboard.writeText(text.replace(/\*\*/g, ''));
+    setDone(true);
+    setTimeout(() => setDone(false), 1500);
+  }, [text]);
+  return (
+    <button
+      onClick={copy}
+      title="Copiar"
+      className="opacity-0 group-hover/block:opacity-100 transition shrink-0 p-1 rounded-md border border-zinc-200 dark:border-white/[0.1] bg-white dark:bg-zinc-700 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+    >
+      {done ? <Check size={10} className="text-green-500" /> : <Copy size={10} />}
+    </button>
+  );
+}
+
 function renderWithImages(
   text: string,
   imageMap: ImageMap,
   onZoom: (url: string) => void,
 ) {
-  // Divide em blocos por linha em branco
   const blocks = text.split(/\n\n+/);
 
   return blocks.map((block, i) => {
@@ -69,9 +86,10 @@ function renderWithImages(
       );
 
       return (
-        <div key={i} className="flex gap-2.5 items-start mt-3 first:mt-0">
+        <div key={i} className="group/block flex gap-2.5 items-start mt-3 first:mt-0">
           {thumb}
           <div className="flex-1 text-xs leading-relaxed">{textNode}</div>
+          <CopyBlockButton text={block} />
         </div>
       );
     }
@@ -90,8 +108,9 @@ interface ChatMessageProps {
 
 export function ChatMessageBubble({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
-  const [copied, setCopied] = useState(false);
-  const [zoom, setZoom]     = useState<string | null>(null);
+  const [copied, setCopied]   = useState(false);
+  const [zoom, setZoom]       = useState<string | null>(null);
+  const [zoomed, setZoomed]   = useState(false);
 
   function copy() {
     navigator.clipboard.writeText(message.text);
@@ -144,15 +163,15 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
       {/* Lightbox */}
       {zoom && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-          onClick={() => setZoom(null)}
+          className={`fixed inset-0 z-50 bg-black/80 flex items-center justify-center ${zoomed ? 'overflow-auto p-0 cursor-zoom-out' : 'p-4 cursor-zoom-in'}`}
+          onClick={() => { setZoom(null); setZoomed(false); }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={zoom}
             alt="Imagem ampliada"
-            className="max-w-full max-h-full rounded-xl object-contain shadow-2xl"
-            onClick={e => e.stopPropagation()}
+            className={`shadow-2xl transition-all duration-200 ${zoomed ? 'rounded-none w-auto h-auto min-w-[150%] min-h-[150%] object-contain' : 'rounded-xl max-w-full max-h-full object-contain'}`}
+            onClick={e => { e.stopPropagation(); setZoomed(z => !z); }}
           />
         </div>
       )}
