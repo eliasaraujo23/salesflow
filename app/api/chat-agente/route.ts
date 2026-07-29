@@ -444,14 +444,17 @@ async function searchByCriteria(lower: string, limit = 200): Promise<string> {
          pd.descricao_jewel, pd."statusProdutoId" AS status_id,
          pd.data_entrada,
          p.produto, s.subtipo, tp.tipo_pedra, d.destino,
-         COUNT(*) OVER () AS total_count
+         COUNT(*) OVER () AS total_count,
+         (SELECT 1 FROM leilao_image li WHERE li."productDetailsId" = pd.id LIMIT 1) AS tem_foto
        FROM product_details pd
        LEFT JOIN produto    p  ON p.id  = pd."produtoId"
        LEFT JOIN subtipo    s  ON s.id  = pd."subtipoId"
        LEFT JOIN tipo_pedra tp ON tp.id = pd."tipoPedraId"
        LEFT JOIN destinos   d  ON d.id  = pd."destinoId"
        WHERE pd."statusProdutoId" IN (3, 6) AND ${kwConditions}
-       ORDER BY CASE WHEN pd."statusProdutoId" = 3 THEN 0 ELSE 1 END, ${orderBy}
+       ORDER BY
+         CASE WHEN (SELECT 1 FROM leilao_image li WHERE li."productDetailsId" = pd.id LIMIT 1) IS NOT NULL THEN 0 ELSE 1 END,
+         ${orderBy}
        LIMIT ${limit}`,
       kwParams,
     );
