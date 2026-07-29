@@ -22,6 +22,14 @@ function capitalize(s: string): string {
   return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 }
 
+// Remove plural suffix para melhorar o LIKE no banco
+function stemKw(w: string): string {
+  if (w.length > 5 && w.endsWith('ares')) return w.slice(0, -2); // colares→colar
+  if (w.length > 4 && w.endsWith('eis'))  return w.slice(0, -3) + 'el'; // aneis→anel
+  if (w.length > 4 && w.endsWith('s'))   return w.slice(0, -1);  // brincos→brinco
+  return w;
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type Row = {
@@ -151,8 +159,8 @@ function matchesCC(cc: (typeof CC_DEFAULTS)[0], row: DestRow): boolean {
 function extractDestinoTerms(lower: string): string[] {
   const candidates: string[] = [];
 
-  // Padrão A: "com o/a X", "no/na X", "do/da X" — preposição + artigo
-  const mA = lower.match(/\b(?:com\s+(?:o|a)|no|na|do|da|para\s+(?:o|a))\s+([a-záàâãéèêíìîóòôõúùûç][a-záàâãéèêíìîóòôõúùûç\s]+?)(?:\s*(?:\bem\b|\bcomodato\b|est[aá]|[?!.,]|$))/i);
+  // Padrão A: "com o/a X", "no/na X", "do/da X", "pelo/pela/por X" — preposição + artigo
+  const mA = lower.match(/\b(?:com\s+(?:o|a)|no|na|do|da|para\s+(?:o|a)|pelos?|pelas?|por)\s+([a-záàâãéèêíìîóòôõúùûç][a-záàâãéèêíìîóòôõúùûç\s]+?)(?:\s*(?:\bem\b|\bcomodato\b|est[aá]|[?!.,]|$))/i);
   if (mA) candidates.push(mA[1].trim());
 
   // Padrão B: "O/A [DESTINO] está/tem..."
@@ -294,19 +302,105 @@ function answerCarrosChefe(lower: string): string {
     found.map(c => `• ${c.label}`).join('\n');
 }
 
-async function searchByCriteria(lower: string): Promise<string> {
+async function searchByCriteria(lower: string, limit = 5): Promise<string> {
   const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
   const stopwords = new Set([
-    'qual','quais','o','a','os','as','um','uma','de','do','da','dos','das',
-    'que','temos','tem','disponivel','estoque','comodato','mais','menos',
-    'antigo','antiga','novo','nova','recente','caro','cara','barato','barata',
-    'velho','velha','seja','em','ou','para','com','sem','me','meu','minha',
-    'e','ao','na','no','nos','nas','por','primeiro','ultimo','eu','voce',
-    'passe','mostre','mostra','liste','listar','quero','preciso','ver','veja',
-    'opcoes','opcao','tenho','existem','existe','ha','algum','alguma','alguns',
-    'algumas','tipo','tipos','peca','pecas','joia','joias','show','traga',
-    'traz','busca','busque','encontre','encontra','todas','todos',
+    // artigos
+    'o','a','os','as','um','uma','uns','umas',
+    // preposições simples
+    'de','em','por','com','sem','sob','sobre','apos','ate','ante','entre',
+    'contra','desde','durante','perante','tras',
+    // preposições + artigo
+    'do','da','dos','das','no','na','nos','nas','ao','aos',
+    'pelo','pela','pelos','pelas','para','pra','pro','pros','pras',
+    // contrações com demonstrativos
+    'deste','desta','destes','destas','desse','dessa','desses','dessas',
+    'daquele','daquela','neste','nesta','nesse','nessa','nesses','nessas',
+    'disso','disto','daquilo','nisso','nisto',
+    // pronomes pessoais e oblíquos
+    'eu','tu','ele','ela','nos','vos','eles','elas','me','te','se','lhe','lhes',
+    'voce','voces','vc','vcs',
+    // pronomes possessivos
+    'meu','minha','meus','minhas','teu','tua','teus','tuas',
+    'seu','sua','seus','suas','nosso','nossa','nossos','nossas',
+    // pronomes demonstrativos
+    'este','esta','estes','estas','esse','essa','esses','essas',
+    'aquele','aquela','aqueles','aquelas','isto','isso','aquilo',
+    // pronomes indefinidos
+    'algum','alguma','alguns','algumas','nenhum','nenhuma',
+    'todo','toda','todos','todas','tudo','nada','ninguem','alguem',
+    'outro','outra','outros','outras','mesmo','mesma','proprio','propria',
+    'cada','qualquer','quaisquer','certo','certa','tal','tais',
+    // pronomes interrogativos e relativos
+    'que','quem','qual','quais','quanto','quanta','quantos','quantas',
+    'onde','aonde','como','quando','porque','pq','porq',
+    // conjunções
+    'e','ou','mas','nem','se','pois','porem','contudo','todavia',
+    'entretanto','portanto','logo','assim','caso','embora','enquanto',
+    'nao','sim','tambem','tb','tbm',
+    // advérbios e partículas
+    'mais','menos','muito','muita','muitos','muitas','pouco','pouca',
+    'tanto','tanta','bem','mal','so','apenas','somente','ainda','ja',
+    'sempre','nunca','jamais','agora','hoje','ai','aqui','la','ali',
+    'entao','tao','ta','ne','bastante','demais','meio','quase','mt','mto',
+    // verbo ser
+    'sou','es','somos','sao','era','eramos','eram','fui','foi','fomos','foram',
+    'serei','sera','serao','seria','seriamos','seriam','seja','sejam',
+    // verbo estar
+    'estou','esta','estamos','estao','estava','estavamos','estavam',
+    'estive','esteve','estivemos','estiveram','esteja','estejam',
+    // verbo ter
+    'tenho','tem','temos','tinha','tinhamos','tinham','tive','teve',
+    'tivemos','tiveram','terei','tera','teria','teriamos','teriam','tenha','tenham',
+    // verbo haver
+    'ha','haja','havia','houve','havera',
+    // verbo poder
+    'posso','pode','podemos','podem','podia','podiamos','podiam',
+    'pude','pudemos','puderam','possa','possam',
+    // verbo querer
+    'quero','quer','queremos','querem','queria','queriamos','queriam',
+    'quis','quisemos','quiseram',
+    // verbo precisar
+    'preciso','precisa','precisamos','precisam','precisava','precisavam',
+    // verbo ficar
+    'fico','fica','ficamos','ficam','ficava','ficavam','fiquei','ficou','ficaram',
+    // verbo ir / vir
+    'vou','vai','vamos','vao','ia','iam','venho','vem','vinha','vinham',
+    'vim','veio','viemos','vieram',
+    // verbo fazer / saber / dar
+    'faco','faz','fazemos','fazem','fazia','faziam','fiz','fez','fizemos','fizeram',
+    'sei','sabe','sabemos','sabem','sabia','sabiam',
+    'dou','da','damos','dao','dava','davam','dei','deu','demos','deram',
+    // verbos de busca e comando
+    'busco','busca','busque','buscar','procuro','procura','procure','procurar',
+    'mostre','mostra','mostrar','exibe','exibir',
+    'liste','lista','listar','ver','veja','vejo','olha','olhe','olhar',
+    'traz','traga','trazer','passe','passa','passar',
+    'encontre','encontra','encontrar','achar','ache','acha',
+    'indica','indique','informa','informe','avisa','avise','diz','diga',
+    'manda','mande','envia','envie','show','traga',
+    'gostaria','adoraria','queria','gostariamos','gostariam',
+    // qualificadores genéricos
+    'novo','nova','novos','novas','velho','velha','velhos','velhas',
+    'antigo','antiga','antigos','antigas','recente','recentes',
+    'caro','cara','caros','caras','barato','barata','baratos','baratas',
+    'bom','boa','bons','boas','otimo','otima','otimos','otimas',
+    'bonito','bonita','bonitos','bonitas','grande','pequeno','pequena',
+    'primeiro','primeira','ultimo','ultima','unico','unica',
+    'melhor','melhores','pior','piores','maior','maiores','menor','menores',
+    // termos genéricos de catálogo
+    'produto','produtos','item','itens','modelo','modelos','tipo','tipos',
+    'catalogo','colecao','colecoes','lista','listagem',
+    'estoque','disponivel','disponiveis','indisponivel',
+    'opcao','opcoes','peca','pecas','joia','joias',
+    'bijuteria','bijuterias','acessorio','acessorios','comodato',
+    // cortesia e gírias de chat
+    'obrigado','obrigada','valeu','vlw','tmj','brigado','brigada',
+    'favor','pfv','pf','ok','okay','combinado','entendido',
+    'existem','existe','tenho','temos',
+    'passe','mostre','mostra','liste','listar',
+    'qdo','qto','qts','blz','blza','flw','dai','neh','soh',
   ]);
 
   const keywords = lower
@@ -331,10 +425,11 @@ async function searchByCriteria(lower: string): Promise<string> {
   )`).join(' AND ');
   const kwParams = keywords.map(k => `%${k}%`);
 
+  // default: mais recentes primeiro (ASC apenas quando o usuário pedir "antigo/primeiro")
   const orderBy = querCaro   ? 'pd.preco_cobrado DESC NULLS LAST'
                 : querBarato ? 'pd.preco_cobrado ASC NULLS LAST'
-                : querNovo   ? 'pd.data_entrada DESC NULLS LAST'
-                :              'pd.data_entrada ASC NULLS LAST';
+                : querAntigo ? 'pd.data_entrada ASC NULLS LAST'
+                :              'pd.data_entrada DESC NULLS LAST';
 
   const client = await pool.connect();
   try {
@@ -344,15 +439,16 @@ async function searchByCriteria(lower: string): Promise<string> {
          pd.preco_parceiro, pd.preco_avista, pd.preco_parcelado,
          pd.descricao_jewel, pd."statusProdutoId" AS status_id,
          pd.data_entrada,
-         p.produto, s.subtipo, tp.tipo_pedra, d.destino
+         p.produto, s.subtipo, tp.tipo_pedra, d.destino,
+         COUNT(*) OVER () AS total_count
        FROM product_details pd
        LEFT JOIN produto    p  ON p.id  = pd."produtoId"
        LEFT JOIN subtipo    s  ON s.id  = pd."subtipoId"
        LEFT JOIN tipo_pedra tp ON tp.id = pd."tipoPedraId"
        LEFT JOIN destinos   d  ON d.id  = pd."destinoId"
        WHERE pd."statusProdutoId" IN (3, 6) AND ${kwConditions}
-       ORDER BY ${orderBy}
-       LIMIT 5`,
+       ORDER BY CASE WHEN pd."statusProdutoId" = 3 THEN 0 ELSE 1 END, ${orderBy}
+       LIMIT ${limit}`,
       kwParams,
     );
 
@@ -367,10 +463,15 @@ async function searchByCriteria(lower: string): Promise<string> {
       descricao_jewel: string | null; status_id: number | null;
       data_entrada: string | null; produto: string | null;
       subtipo: string | null; destino: string | null;
+      total_count: string | null;
     }>;
 
+    const total   = parseInt(rows[0]?.total_count ?? '0', 10);
     const qualifier = querAntigo ? 'mais antiga' : querNovo ? 'mais recente' : 'disponível';
-    const lines: string[] = [`Encontrei ${rows.length} peça(s) ${qualifier}:`];
+    const header = total > rows.length
+      ? `Encontrei **${rows.length}** de **${total}** peça(s) ${qualifier} (mostrando as mais recentes — refine para ver mais):`
+      : `Encontrei ${rows.length} peça(s) ${qualifier}:`;
+    const lines: string[] = [header];
 
     for (const r of rows) {
       const dataStr = r.data_entrada ? new Date(r.data_entrada).toLocaleDateString('pt-BR') : null;
@@ -394,7 +495,8 @@ async function searchByDestino(
   destinoTerm: string,
   somenteComodato: boolean,
   keywords: string[] = [],
-): Promise<string> {
+  somenteVendido = false,
+): Promise<string | null> {
   const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
   const client = await pool.connect();
@@ -405,13 +507,15 @@ async function searchByDestino(
     );
 
     if (destRes.rows.length === 0) {
-      return `Não encontrei nenhum destino com o nome **"${destinoTerm}"**. Verifique o nome e tente novamente.`;
+      return null; // destino não encontrado → caller faz fallback para searchByCriteria
     }
 
     const destinos = destRes.rows.map(r => r.destino);
     const destino = destinos.sort((a, b) => a.length - b.length)[0];
 
-    const statusFilter = somenteComodato ? `pd."statusProdutoId" = 6` : `pd."statusProdutoId" IN (3, 6)`;
+    const statusFilter = somenteVendido  ? `pd."statusProdutoId" IN (2, 4, 13)`
+                       : somenteComodato ? `pd."statusProdutoId" = 6`
+                       :                  `pd."statusProdutoId" IN (3, 6)`;
 
     // Montar filtro de keywords de produto (opcional)
     let kwClause = '';
@@ -424,7 +528,7 @@ async function searchByDestino(
         OR LOWER(tp.tipo_pedra) LIKE $${i + 2}
       )`).join(' AND ');
       kwClause = ` AND ${kwConds}`;
-      params = [destino, ...keywords.map(k => `%${k}%`)];
+      params = [destino, ...keywords.map(k => `%${stemKw(k)}%`)];
     }
 
     const result = await client.query(
@@ -444,7 +548,7 @@ async function searchByDestino(
     );
 
     if (result.rows.length === 0) {
-      const label = somenteComodato ? 'em comodato' : 'disponível';
+      const label = somenteVendido ? 'vendida' : somenteComodato ? 'em comodato' : 'disponível';
       const kwLabel = keywords.length > 0 ? ` do tipo "${keywords.join(' ')}"` : '';
       return `Nenhuma peça${kwLabel} ${label} encontrada para **${capitalize(destino)}**.`;
     }
@@ -457,7 +561,7 @@ async function searchByDestino(
       produto: string | null; subtipo: string | null; tipo_pedra: string | null;
     }>;
 
-    const label = somenteComodato ? 'em comodato' : 'disponível';
+    const label = somenteVendido ? 'vendida' : somenteComodato ? 'em comodato' : 'disponível';
     const kwLabel = keywords.length > 0 ? ` · filtro: ${keywords.join(' ')}` : '';
     const lines: string[] = [
       `📦 **${capitalize(destino)}** — ${rows.length} peça(s) ${label}${kwLabel}:`,
@@ -488,13 +592,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ reply: 'Banco de dados não configurado.' }, { status: 500 });
   }
 
-  const body = await req.json() as { message?: string };
+  type HistoryMsg = { role: 'user' | 'assistant'; text: string };
+  const body = await req.json() as { message?: string; history?: HistoryMsg[] };
   const message = (body.message ?? '').trim();
   if (!message) {
     return NextResponse.json({ reply: 'Mensagem vazia.' }, { status: 400 });
   }
 
-  const lower = message.toLowerCase();
+  const history  = body.history ?? [];
+  const lower    = message.toLowerCase();
+  const normMsg  = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const lowerNorm = normMsg(lower);
+
+  // Follow-up: "só esse?", "tem mais?", "mais algum?", etc.
+  // Re-executa a última busca do usuário com limite maior
+  const isFollowUp = /^(so\s*(esse|essa|aquele|aquela|isso|um|uma|esses|essas)?|tem\s+mais|mais\s+algum|mais\s+alguma|e\s+so|so\s*tem|nao\s+tem\s+mais|mais\s+nenhum|somente\s+(esse|essa|um|uma)|apenas\s+(um|uma|esse|essa))[?!\s.]*$/.test(lowerNorm);
+  if (isFollowUp && history.length > 0) {
+    const prevUserMsg = [...history].reverse().find(m => m.role === 'user');
+    if (prevUserMsg) {
+      try {
+        const reply = await searchByCriteria(prevUserMsg.text.toLowerCase(), 20);
+        const count = (reply.match(/^Encontrei (\d+)/)?.[1] ?? '0');
+        const prefix = count === '1' ? '☝️ Sim, há apenas **1** peça disponível com esse critério:\n\n' : '';
+        return NextResponse.json({ reply: prefix + reply });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return NextResponse.json({ reply: `Erro ao consultar: ${msg}` }, { status: 500 });
+      }
+    }
+  }
 
   // Saudações
   if (/^(ol[aá]|oi|opa|e a[ií]|bom dia|boa tarde|boa noite|tudo bem|tudo bom|como vai)[\s!?]*$/.test(lower)) {
@@ -535,24 +661,56 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ reply: answerCarrosChefe(lower) });
   }
 
-  // Busca por destino: "anel solitário em comodato com o brilho vintage"
-  if (/comodato|peças?\s+(no|na|em|do|da|com\s+o|com\s+a)\b/.test(lower)) {
+  // Busca por destino: "anel solitário em comodato com o brilho vintage" / "colar vendido pelo X"
+  if (/comodato|peças?\s+(no|na|em|do|da|com\s+o|com\s+a)\b|\bcom\s+[oa]\b|\bpel[oa]s?\b|\bpor\b/.test(lower)) {
     const somenteComodato = /comodato/.test(lower);
+    const somenteVendido  = /\bvend[ie]d[ao]\b/.test(lower);
 
-    // Extrair destino: o que vem depois de "com o/a", "no", "na", "do", "da" no final
-    const destMatch = lower.match(/\b(?:com\s+(?:o|a)|no|na|do|da)\s+([a-záàâãéèêíìîóòôõúùûç][a-záàâãéèêíìîóòôõúùûç\s]+?)(?:\s*[?!.,])*$/i);
+    // Extrair destino: preposição + nome do destino
+    const destMatch = lower.match(/\b(?:com\s+(?:o|a)|no|na|do|da|para\s+(?:o|a)|pelo|pela|pelos|pelas|por)\s+([a-záàâãéèêíìîóòôõúùûç][a-záàâãéèêíìîóòôõúùûç\s]+?)(?:\s*[?!.,])*$/i);
     const destinoTerm = destMatch ? destMatch[1].trim() : '';
 
     // Keywords de produto: o que sobrar após remover comodato, destino e palavras de contexto
     const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     const kwStopwords = new Set([
-      'o','a','os','as','um','uma','de','do','da','dos','das','com','no','na','em',
-      'que','está','esta','ver','quero','mostre','lista','listar','comodato','peças',
-      'peca','tudo','todos','todas','algum','alguma','me','para',
+      // artigos, preposições, contrações
+      'o','a','os','as','um','uma','de','do','da','dos','das',
+      'em','no','na','nos','nas','por','pelo','pela','pelos','pelas',
+      'para','pra','pro','pros','pras','com','sem','ao','ate',
+      // pronomes
+      'eu','me','te','se','vc','vcs','voce','voces',
+      'meu','minha','seu','sua','nosso','nossa',
+      'esse','essa','esses','essas','este','esta','estes','estas','isso','isto',
+      'algum','alguma','todo','toda','todos','todas','tudo','cada','qual','quais',
+      // conjunções, advérbios
+      'e','ou','que','pois','mas','nem','se','tambem','tb','tbm',
+      'so','apenas','somente','ainda','ja','mais','menos','muito','pouco',
+      'onde','como','quando','ta','ne','ai','la','aqui',
+      // verbos ser/estar/ter/haver
+      'sou','somos','sao','era','eram','fui','foi','fomos','foram','seja','sejam',
+      'estou','esta','estamos','estao','estava','estavam','esteve','esteja',
+      'tenho','tem','temos','tinha','tinham','tive','teve','ha','havia','houve',
+      // verbos modais e de ação
+      'quero','quer','queremos','querem','queria','queriam',
+      'preciso','precisa','precisamos','precisam',
+      'posso','pode','podemos','podem',
+      'vou','vai','vamos','vao',
+      // verbos de busca e comando
+      'ver','veja','vejo','olha','olhe','traz','traga',
+      'passe','passa','mostre','mostra','liste','lista',
+      'busca','busque','procura','procure','encontra','encontre',
+      'gostaria','adoraria','queria',
+      // termos genéricos de catálogo
+      'comodato','pecas','peca','produto','produtos','item','itens',
+      'tipo','tipos','modelo','modelos','joia','joias',
+      // status (status é filtro, não keyword de produto)
+      'disponivel','disponiveis','vendido','vendida','vendidos','vendidas',
+      // gírias
+      'ne','ta','ai','la','pq','porq',
     ]);
     const productPart = lower
       .replace(destMatch ? destMatch[0] : '', '')
-      .replace(/comodato|peças?|tudo\s+que\s+(está|esta|tem)/g, ' ')
+      .replace(/comodato|peças?|tudo\s+que\s+(está|esta|tem)|vend[ie]d[ao]s?/g, ' ')
       .replace(/[?!.,]/g, ' ');
     const keywords = productPart
       .split(/\s+/)
@@ -560,8 +718,9 @@ export async function POST(req: NextRequest) {
 
     if (destinoTerm.length >= 3) {
       try {
-        const reply = await searchByDestino(destinoTerm, somenteComodato, keywords);
-        return NextResponse.json({ reply });
+        const reply = await searchByDestino(destinoTerm, somenteComodato, keywords, somenteVendido);
+        if (reply !== null) return NextResponse.json({ reply });
+        // destino não encontrado no banco → cai no searchByCriteria abaixo
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         return NextResponse.json({ reply: `Erro ao consultar: ${msg}` }, { status: 500 });
