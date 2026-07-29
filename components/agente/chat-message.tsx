@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, Copy, Check, ZoomIn } from 'lucide-react';
+import { Sparkles, Copy, Check, ZoomIn, CameraOff } from 'lucide-react';
 import { type ChatMessage } from '@/lib/hooks/use-agente-chat';
 
 function renderLine(line: string) {
@@ -48,20 +48,29 @@ function renderWithImages(
       </span>
     );
 
-    if (imgUrl) {
+    if (ref) {
+      const thumb = imgUrl ? (
+        <button
+          onClick={() => onZoom(imgUrl)}
+          className="group/img relative shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-white/[0.1] hover:border-indigo-400 transition"
+          title={ref}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imgUrl} alt={ref} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition flex items-center justify-center">
+            <ZoomIn size={14} className="text-white opacity-0 group-hover/img:opacity-100 transition" />
+          </div>
+        </button>
+      ) : (
+        <div className="shrink-0 w-20 h-20 rounded-lg border border-dashed border-zinc-300 dark:border-white/[0.1] flex flex-col items-center justify-center gap-1 text-zinc-300 dark:text-zinc-600">
+          <CameraOff size={18} />
+          <span className="text-[9px] leading-none">sem foto</span>
+        </div>
+      );
+
       return (
         <div key={i} className="flex gap-2.5 items-start mt-3 first:mt-0">
-          <button
-            onClick={() => onZoom(imgUrl)}
-            className="group/img shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-white/[0.1] hover:border-indigo-400 transition"
-            title={ref ?? undefined}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imgUrl} alt={ref ?? ''} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition flex items-center justify-center">
-              <ZoomIn size={14} className="text-white opacity-0 group-hover/img:opacity-100 transition" />
-            </div>
-          </button>
+          {thumb}
           <div className="flex-1 text-xs leading-relaxed">{textNode}</div>
         </div>
       );
