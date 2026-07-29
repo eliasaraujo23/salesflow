@@ -417,13 +417,17 @@ async function searchByCriteria(lower: string, limit = 5): Promise<string> {
   const querCaro   = /mais caro|maior pre[çc]o|mais valor/.test(lower);
   const querBarato = /mais barato|menor pre[çc]o/.test(lower);
 
+  // translate() remove acentos sem precisar da extensão unaccent
+  const tr = (col: string) =>
+    `translate(LOWER(${col}), 'áàâãéèêíìîóòôõúùûçñ', 'aaaaeeeiiioooouuucn')`;
+
   const kwConditions = keywords.map((_, i) => `(
-    LOWER(pd.descricao_jewel) LIKE $${i + 1}
-    OR LOWER(p.produto) LIKE $${i + 1}
-    OR LOWER(s.subtipo) LIKE $${i + 1}
-    OR LOWER(tp.tipo_pedra) LIKE $${i + 1}
+    ${tr('pd.descricao_jewel')} LIKE $${i + 1}
+    OR ${tr('p.produto')} LIKE $${i + 1}
+    OR ${tr('s.subtipo')} LIKE $${i + 1}
+    OR ${tr('tp.tipo_pedra')} LIKE $${i + 1}
   )`).join(' AND ');
-  const kwParams = keywords.map(k => `%${k}%`);
+  const kwParams = keywords.map(k => `%${normalize(k)}%`);
 
   // default: mais recentes primeiro (ASC apenas quando o usuário pedir "antigo/primeiro")
   const orderBy = querCaro   ? 'pd.preco_cobrado DESC NULLS LAST'
@@ -518,17 +522,21 @@ async function searchByDestino(
                        :                  `pd."statusProdutoId" IN (3, 6)`;
 
     // Montar filtro de keywords de produto (opcional)
+    const trD = (col: string) =>
+      `translate(LOWER(${col}), 'áàâãéèêíìîóòôõúùûçñ', 'aaaaeeeiiioooouuucn')`;
+    const normD = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
     let kwClause = '';
     let params: string[] = [destino];
     if (keywords.length > 0) {
       const kwConds = keywords.map((_, i) => `(
-        LOWER(pd.descricao_jewel) LIKE $${i + 2}
-        OR LOWER(p.produto) LIKE $${i + 2}
-        OR LOWER(s.subtipo) LIKE $${i + 2}
-        OR LOWER(tp.tipo_pedra) LIKE $${i + 2}
+        ${trD('pd.descricao_jewel')} LIKE $${i + 2}
+        OR ${trD('p.produto')} LIKE $${i + 2}
+        OR ${trD('s.subtipo')} LIKE $${i + 2}
+        OR ${trD('tp.tipo_pedra')} LIKE $${i + 2}
       )`).join(' AND ');
       kwClause = ` AND ${kwConds}`;
-      params = [destino, ...keywords.map(k => `%${stemKw(k)}%`)];
+      params = [destino, ...keywords.map(k => `%${normD(stemKw(k))}%`)];
     }
 
     const result = await client.query(
