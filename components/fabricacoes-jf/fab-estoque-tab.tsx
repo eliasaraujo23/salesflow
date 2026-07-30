@@ -20,7 +20,7 @@ const fmtMoeda = (v: number | null | undefined): string => {
 
 function downloadCSV(rows: JfEstoqueItem[]) {
   const hdr = [
-    'Referência','Tipo','Produto','Subtipo','Pedra','Lapidação','Destino',
+    'Referência','Tipo','Produto','Subtipo','Pedra','Lapidação','Destino','Fabricante',
     'Peso(g)','Custo(R$)','Preço Cobrado(R$)',
     'Diamantes','Cts Diam.','Pedra Colorida','Cts PC',
   ];
@@ -28,7 +28,7 @@ function downloadCSV(rows: JfEstoqueItem[]) {
   const csv = [
     hdr.join(','),
     ...rows.map(r => [
-      r.referencia, r.tipo, r.produto, r.subtipo, r.tipo_pedra, r.lapidacao, r.destino,
+      r.referencia, r.tipo, r.produto, r.subtipo, r.tipo_pedra, r.lapidacao, r.destino, r.fabricante,
       r.peso > 0 ? r.peso.toFixed(2) : '',
       r.custo_real > 0 ? r.custo_real.toFixed(2) : '',
       r.preco_cobrado != null ? r.preco_cobrado.toFixed(2) : '',
@@ -42,7 +42,7 @@ function downloadCSV(rows: JfEstoqueItem[]) {
   URL.revokeObjectURL(url);
 }
 
-type StringField = 'tipo' | 'produto' | 'subtipo' | 'destino' | 'tipo_pedra' | 'lapidacao';
+type StringField = 'tipo' | 'produto' | 'subtipo' | 'destino' | 'tipo_pedra' | 'lapidacao' | 'fabricante';
 
 function uniqStrings(rows: JfEstoqueItem[], field: StringField): string[] {
   return [...new Set(rows.map(r => r[field]).filter((v): v is string => v != null && v !== ''))].sort();
@@ -52,14 +52,16 @@ function applyDimFilters(
   rows: JfEstoqueItem[],
   tipos: string[], produtos: string[], subtipos: string[],
   destinos: string[], pedras: string[], lapidacoes: string[],
+  fabricantes: string[],
 ): JfEstoqueItem[] {
   return rows.filter(r => {
-    if (tipos.length    && !tipos.includes(r.tipo ?? ''))      return false;
-    if (produtos.length && !produtos.includes(r.produto ?? '')) return false;
-    if (subtipos.length && !subtipos.includes(r.subtipo ?? '')) return false;
-    if (destinos.length && !destinos.includes(r.destino ?? '')) return false;
-    if (pedras.length   && !pedras.includes(r.tipo_pedra ?? '')) return false;
-    if (lapidacoes.length && !lapidacoes.includes(r.lapidacao ?? '')) return false;
+    if (tipos.length       && !tipos.includes(r.tipo ?? ''))        return false;
+    if (produtos.length    && !produtos.includes(r.produto ?? ''))   return false;
+    if (subtipos.length    && !subtipos.includes(r.subtipo ?? ''))   return false;
+    if (destinos.length    && !destinos.includes(r.destino ?? ''))   return false;
+    if (pedras.length      && !pedras.includes(r.tipo_pedra ?? ''))  return false;
+    if (lapidacoes.length  && !lapidacoes.includes(r.lapidacao ?? '')) return false;
+    if (fabricantes.length && !fabricantes.includes(r.fabricante ?? '')) return false;
     return true;
   });
 }
@@ -84,8 +86,9 @@ export function FabEstoqueTab() {
   const [subtipos, setSubtipos]     = useState<string[]>([]);
   const [destinos, setDestinos]     = useState<string[]>([]);
   const [pedras, setPedras]         = useState<string[]>([]);
-  const [lapidacoes, setLapidacoes] = useState<string[]>([]);
-  const [sorting, setSorting]       = useState<SortingState>([{ id: 'custo_real', desc: true }]);
+  const [lapidacoes, setLapidacoes]   = useState<string[]>([]);
+  const [fabricantes, setFabricantes] = useState<string[]>([]);
+  const [sorting, setSorting]         = useState<SortingState>([{ id: 'custo_real', desc: true }]);
 
   const buscaFiltered = useMemo(() => {
     if (!busca) return data;
@@ -96,24 +99,25 @@ export function FabEstoqueTab() {
   }, [data, busca]);
 
   const filtered = useMemo(
-    () => applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes),
-    [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes],
+    () => applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes),
+    [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes],
   );
 
-  const availTipos      = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, [],     produtos, subtipos, destinos, pedras, lapidacoes), 'tipo'),      [buscaFiltered, produtos, subtipos, destinos, pedras, lapidacoes]);
-  const availProdutos   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  [],       subtipos, destinos, pedras, lapidacoes), 'produto'),   [buscaFiltered, tipos, subtipos, destinos, pedras, lapidacoes]);
-  const availSubtipos   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, [],       destinos, pedras, lapidacoes), 'subtipo'),   [buscaFiltered, tipos, produtos, destinos, pedras, lapidacoes]);
-  const availDestinos   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, subtipos, [],       pedras, lapidacoes), 'destino'),   [buscaFiltered, tipos, produtos, subtipos, pedras, lapidacoes]);
-  const availPedras     = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, subtipos, destinos, [],     lapidacoes), 'tipo_pedra'), [buscaFiltered, tipos, produtos, subtipos, destinos, lapidacoes]);
-  const availLapidacoes = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, subtipos, destinos, pedras, []),         'lapidacao'),  [buscaFiltered, tipos, produtos, subtipos, destinos, pedras]);
+  const availTipos       = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, [],     produtos, subtipos, destinos, pedras, lapidacoes, fabricantes), 'tipo'),       [buscaFiltered, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes]);
+  const availProdutos    = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  [],       subtipos, destinos, pedras, lapidacoes, fabricantes), 'produto'),    [buscaFiltered, tipos, subtipos, destinos, pedras, lapidacoes, fabricantes]);
+  const availSubtipos    = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, [],       destinos, pedras, lapidacoes, fabricantes), 'subtipo'),    [buscaFiltered, tipos, produtos, destinos, pedras, lapidacoes, fabricantes]);
+  const availDestinos    = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, subtipos, [],       pedras, lapidacoes, fabricantes), 'destino'),    [buscaFiltered, tipos, produtos, subtipos, pedras, lapidacoes, fabricantes]);
+  const availPedras      = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, subtipos, destinos, [],     lapidacoes, fabricantes), 'tipo_pedra'), [buscaFiltered, tipos, produtos, subtipos, destinos, lapidacoes, fabricantes]);
+  const availLapidacoes  = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, subtipos, destinos, pedras, [],         fabricantes), 'lapidacao'),  [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, fabricantes]);
+  const availFabricantes = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, subtipos, destinos, pedras, lapidacoes, []),          'fabricante'), [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes]);
 
   const hasFilters = tipos.length > 0 || produtos.length > 0 || subtipos.length > 0 ||
-    destinos.length > 0 || pedras.length > 0 || lapidacoes.length > 0 || !!busca;
+    destinos.length > 0 || pedras.length > 0 || lapidacoes.length > 0 || fabricantes.length > 0 || !!busca;
 
   function clearAll() {
     setTipos([]); setProdutos([]); setSubtipos([]);
     setDestinos([]); setPedras([]); setLapidacoes([]);
-    setBusca('');
+    setFabricantes([]); setBusca('');
   }
 
   const SortBtn = ({ column, label }: { column: { toggleSorting: () => void; getIsSorted: () => false | 'asc' | 'desc' }; label: string }) => (
@@ -188,6 +192,15 @@ export function FabEstoqueTab() {
     {
       accessorKey: 'destino',
       header: ({ column }) => <SortBtn column={column} label="Destino" />,
+      cell: ({ getValue }) => (
+        <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+          {getValue<string | null | undefined>() ?? '—'}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'fabricante',
+      header: ({ column }) => <SortBtn column={column} label="Fabricante" />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
           {getValue<string | null | undefined>() ?? '—'}
@@ -282,12 +295,13 @@ export function FabEstoqueTab() {
   });
 
   const dimDefs = [
-    { label: 'Tipo',       avail: availTipos,      sel: tipos,      set: setTipos },
-    { label: 'Produto',    avail: availProdutos,   sel: produtos,   set: setProdutos },
-    { label: 'Subtipo',    avail: availSubtipos,   sel: subtipos,   set: setSubtipos },
-    { label: 'Destino',    avail: availDestinos,   sel: destinos,   set: setDestinos },
-    { label: 'Tipo Pedra', avail: availPedras,     sel: pedras,     set: setPedras },
-    { label: 'Lapidação',  avail: availLapidacoes, sel: lapidacoes, set: setLapidacoes },
+    { label: 'Tipo',        avail: availTipos,       sel: tipos,       set: setTipos },
+    { label: 'Produto',     avail: availProdutos,    sel: produtos,    set: setProdutos },
+    { label: 'Subtipo',     avail: availSubtipos,    sel: subtipos,    set: setSubtipos },
+    { label: 'Destino',     avail: availDestinos,    sel: destinos,    set: setDestinos },
+    { label: 'Tipo Pedra',  avail: availPedras,      sel: pedras,      set: setPedras },
+    { label: 'Lapidação',   avail: availLapidacoes,  sel: lapidacoes,  set: setLapidacoes },
+    { label: 'Fabricante',  avail: availFabricantes, sel: fabricantes, set: setFabricantes },
   ];
 
   if (isLoading) {

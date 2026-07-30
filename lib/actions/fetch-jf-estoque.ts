@@ -16,6 +16,7 @@ const jfEstoqueItemSchema = z.object({
   cts_diamantes:       z.string().nullable().optional().transform(v => (!v || v.trim() === '') ? null : parseFloat(v.replace(',', '.')) || null),
   pedra_colorida:      z.string().nullable().optional(),
   cts_pedra_colorida:  z.string().nullable().optional().transform(v => (!v || v.trim() === '') ? null : parseFloat(v.replace(',', '.')) || null),
+  fabricante:          z.string().nullable().optional(),
 });
 
 export type JfEstoqueItem = z.infer<typeof jfEstoqueItemSchema>;
