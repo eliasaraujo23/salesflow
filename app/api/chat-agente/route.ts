@@ -599,6 +599,70 @@ async function searchByDestino(
   }
 }
 
+// Quais destinos (filtrados por tipo) NÃO têm determinado produto disponível?
+async function searchDestinosMissing(destFilter: string, productKeywords: string[]): Promise<string> {
+  const norm  = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const tr    = (col: string) => `translate(LOWER(${col}), 'áàâãéèêíìîóòôõúùûçñ', 'aaaaeeeiiioooouuucn')`;
+
+  const client = await pool.connect();
+  try {
+    const destRes = await client.query<{ id: number; destino: string }>(
+      `SELECT d.id, d.destino FROM destinos d WHERE ${tr('d.destino')} LIKE $1 ORDER BY d.destino`,
+      [`%${norm(destFilter)}%`],
+    );
+
+    if (destRes.rows.length === 0) {
+      return `Não encontrei nenhum destino com o nome **"${destFilter}"**.`;
+    }
+
+    const kwConditions = productKeywords.map((_, i) => `(
+      ${tr('pd.descricao_jewel')} LIKE $${i + 2}
+      OR ${tr('p.produto')} LIKE $${i + 2}
+      OR ${tr('s.subtipo')} LIKE $${i + 2}
+      OR ${tr('tp.tipo_pedra')} LIKE $${i + 2}
+    )`).join(' AND ');
+    const kwParams = productKeywords.map(k => `%${norm(k)}%`);
+
+    const missing: string[] = [];
+    const present: string[] = [];
+
+    for (const row of destRes.rows) {
+      const check = await client.query<{ has_it: boolean }>(
+        `SELECT EXISTS (
+          SELECT 1 FROM product_details pd
+          LEFT JOIN produto    p  ON p.id  = pd."produtoId"
+          LEFT JOIN subtipo    s  ON s.id  = pd."subtipoId"
+          LEFT JOIN tipo_pedra tp ON tp.id = pd."tipoPedraId"
+          WHERE pd."destinoId" = $1
+            AND pd."statusProdutoId" IN (3, 6)
+            AND ${kwConditions}
+        ) AS has_it`,
+        [row.id, ...kwParams],
+      );
+      (check.rows[0].has_it ? present : missing).push(row.destino);
+    }
+
+    const total = destRes.rows.length;
+    const prodLabel = productKeywords.join(' ');
+
+    if (missing.length === 0) {
+      return `✅ Todos os **${total}** "${destFilter}" têm peças com **${prodLabel}** disponíveis!`;
+    }
+
+    const lines = [
+      `📋 **${total}** "${destFilter}" verificados — **${missing.length}** sem **${prodLabel}**:`,
+      '',
+      ...missing.map(d => `• ${d}`),
+    ];
+    if (present.length > 0) {
+      lines.push('', `_Têm: ${present.join(', ')}_`);
+    }
+    return lines.join('\n');
+  } finally {
+    client.release();
+  }
+}
+
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -658,6 +722,26 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return NextResponse.json({ reply: `Erro ao consultar: ${msg}` }, { status: 500 });
+    }
+  }
+
+  // "Quais [destinos] não tem [produto]?" — query de ausência
+  if (/\bquais\b.+\bn[aã]o\s+(tem|h[aá]|possui)\b/i.test(lowerNorm)) {
+    const mDest = lowerNorm.match(/\bquais\s+(.+?)\s+n[aã]o\s+(?:tem|ha|possui)/i);
+    const mProd = lowerNorm.match(/\bn[aã]o\s+(?:tem|ha|possui)\s+(.+?)(?:[?!.,]|$)/i);
+    const destFilter = mDest ? mDest[1].trim() : '';
+    const prodRaw    = mProd ? mProd[1] : '';
+    const norm       = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const abStops    = new Set(['joias','joia','pecas','peca','com','de','do','da','no','na','um','uma','o','a','os','as','e','que','em']);
+    const prodKws    = prodRaw.replace(/[?!.,]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !abStops.has(norm(w)));
+    if (destFilter.length >= 3 && prodKws.length > 0) {
+      try {
+        const reply = await searchDestinosMissing(destFilter, prodKws);
+        return NextResponse.json({ reply });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return NextResponse.json({ reply: `Erro ao consultar: ${msg}` }, { status: 500 });
+      }
     }
   }
 
