@@ -302,7 +302,12 @@ function answerCarrosChefe(lower: string): string {
     found.map(c => `• ${c.label}`).join('\n');
 }
 
-async function searchByCriteria(lower: string, limit = 200, somenteComodato = false, somenteVendido = false): Promise<string> {
+async function searchByCriteria(lower: string, limit = 200, somenteComodato = false, somenteVendido = false, somenteEstoque = false): Promise<string> {
+  // Detecta intenção de filtro de status a partir do texto quando não foi passado explicitamente
+  if (!somenteComodato && !somenteVendido && !somenteEstoque) {
+    if (/\bestoque\b/.test(lower)) somenteEstoque = true;
+    else if (/\bcomodato\b/.test(lower)) somenteComodato = true;
+  }
   const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
   const stopwords = new Set([
@@ -451,7 +456,7 @@ async function searchByCriteria(lower: string, limit = 200, somenteComodato = fa
        LEFT JOIN subtipo    s  ON s.id  = pd."subtipoId"
        LEFT JOIN tipo_pedra tp ON tp.id = pd."tipoPedraId"
        LEFT JOIN destinos   d  ON d.id  = pd."destinoId"
-       WHERE ${somenteVendido ? `pd."statusProdutoId" IN (2,4,13)` : somenteComodato ? `pd."statusProdutoId" = 6` : `pd."statusProdutoId" IN (3, 6)`} AND ${kwConditions}
+       WHERE ${somenteVendido ? `pd."statusProdutoId" IN (2,4,13)` : somenteComodato ? `pd."statusProdutoId" = 6` : somenteEstoque ? `pd."statusProdutoId" = 3` : `pd."statusProdutoId" IN (3, 6)`} AND ${kwConditions}
        ORDER BY
          CASE WHEN (SELECT 1 FROM leilao_image li WHERE li."productDetailsId" = pd.id LIMIT 1) IS NOT NULL THEN 0 ELSE 1 END,
          ${orderBy}
@@ -674,6 +679,7 @@ export async function POST(req: NextRequest) {
   if (/comodato|peças?\s+(no|na|em|do|da|com\s+o|com\s+a)\b|\bcom\s+[oa]\b|\bpel[oa]s?\b|\bpor\b/.test(lower)) {
     const somenteComodato = /comodato/.test(lower);
     const somenteVendido  = /\bvend[ie]d[ao]\b/.test(lower);
+    const somenteEstoque  = !somenteComodato && !somenteVendido && /\bestoque\b/.test(lower);
 
     // Extrair destino: preposição + nome do destino
     const destMatch = lower.match(/\b(?:com\s+(?:o|a)|no|na|do|da|para\s+(?:o|a)|pelo|pela|pelos|pelas|por)\s+([a-záàâãéèêíìîóòôõúùûç][a-záàâãéèêíìîóòôõúùûç\s]+?)(?:\s*[?!.,])*$/i);
@@ -731,7 +737,7 @@ export async function POST(req: NextRequest) {
         if (reply !== null) return NextResponse.json({ reply });
         // destino não encontrado no banco → busca pelas keywords de produto sem o nome do destino
         if (keywords.length > 0) {
-          const fallback = await searchByCriteria(keywords.join(' '), 200, somenteComodato, somenteVendido);
+          const fallback = await searchByCriteria(keywords.join(' '), 200, somenteComodato, somenteVendido, somenteEstoque);
           return NextResponse.json({ reply: fallback });
         }
       } catch (err) {
@@ -741,9 +747,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Sem destino extraído mas com flag de status → busca por critérios com filtro correto
-    if (somenteComodato || somenteVendido) {
+    if (somenteComodato || somenteVendido || somenteEstoque) {
       try {
-        const reply = await searchByCriteria(lower, 200, somenteComodato, somenteVendido);
+        const reply = await searchByCriteria(lower, 200, somenteComodato, somenteVendido, somenteEstoque);
         return NextResponse.json({ reply });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
