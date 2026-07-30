@@ -160,7 +160,7 @@ function extractDestinoTerms(lower: string): string[] {
   const candidates: string[] = [];
 
   // Padrão A: "com o/a X", "no/na X", "do/da X", "pelo/pela/por X" — preposição + artigo
-  const mA = lower.match(/\b(?:com\s+(?:o|a)|no|na|do|da|para\s+(?:o|a)|pelos?|pelas?|por)\s+([a-záàâãéèêíìîóòôõúùûç][a-záàâãéèêíìîóòôõúùûç\s]+?)(?:\s*(?:\bem\b|\bcomodato\b|est[aá]|[?!.,]|$))/i);
+  const mA = lower.match(/\b(?:com\s+(?:o|a)|no|na|do|da|para\s+(?:o|a)|pelos?|pelas?|por)\s+([a-záàâãéèêíìîóòôõúùûç][a-záàâãéèêíìîóòôõúùûç\s]+?)(?:\s*(?:\bem\b|\bcomodato\b|est[aá]|\bnao\b|\bnão\b|\btem\b|\bpossui\b|\bfalta\b|\bcarros?\b|[?!.,]|$))/i);
   if (mA) candidates.push(mA[1].trim());
 
   // Padrão B: "O/A [DESTINO] está/tem..."
@@ -179,7 +179,7 @@ function extractDestinoTerms(lower: string): string[] {
   const fallback = lower
     .replace(/carros?\s*chefes?|\bcc\b|est[aá]\s*(sem|com\s*(qual|quais))|falt\w*|tem\s*(todos|algum|qual|quais)|cobert\w*|em\s+comodato|comodato/g, ' ')
     .replace(/[?!.,]/g, ' ')
-    .replace(/\b(o|a|os|as|um|uma|de|do|da|sem|algum|alguma|todos|todas|qual|quais|para|com|está|tem|no|na)\b/g, ' ')
+    .replace(/\b(o|a|os|as|um|uma|de|do|da|sem|algum|alguma|todos|todas|qual|quais|para|com|está|tem|nao|não|no|na|joias?|pecas?|peca|produtos?|item|itens|quais?)\b/g, ' ')
     .replace(/\s+/g, ' ').trim();
   if (fallback.length >= 2) candidates.push(fallback);
 
