@@ -672,12 +672,23 @@ async function searchByDestino(
   }
 }
 
-// Termos genéricos que significam "todos os destinos/parceiros"
+// Termos genéricos que significam "todos os parceiros"
 const GENERIC_DEST_TERMS = new Set([
   'parceiro','parceiros','brecho','brechos','brechó','brechós',
   'destino','destinos','loja','lojas','parceria','parcerias',
   'todos','todas','todos os destinos','todas as lojas',
 ]);
+
+// Lista oficial de parceiros — únicos destinos válidos nas queries de ausência genérica
+const PARCEIROS_OFICIAIS = [
+  'ACHADOS PERDIDOS','ALINE RAMOS','ALINI DUARTE','ANDRÉ FAUSTINO',
+  'BRILHO VINTAGE','CIRCULAR JOIAS','CLAUDIA MASCARENHAS','DANIELLE VOGUE',
+  'DESAPEGO DO LUXO','ELIANE DANTAS','ETERNNO','ETIQUETA ÚNICA',
+  'ETSY BRECHO','GRINGA','IVAIR ONGARATTO','JOÃO FECHY JOIAS',
+  'JÓIAS EM DESAPEGO','LAURA BATEZINI','LOHANA COELHO','LOUCA POR JÓIAS',
+  'MEGA DO LUXO','NIUMA','REAL DEAL','RESOLVI DESAPEGAR',
+  'SECOND HAND','SIDNEI QUARTIER','TATI CANTO','TRIZZ JOIAS','UMA VEZ MAIS',
+];
 
 // Quais destinos (filtrados por tipo) NÃO têm determinado produto disponível?
 async function searchDestinosMissing(destFilter: string, productKeywords: string[]): Promise<string> {
@@ -690,9 +701,11 @@ async function searchDestinosMissing(destFilter: string, productKeywords: string
   try {
     const destRes = await client.query<{ id: number; destino: string }>(
       isGeneric
-        ? `SELECT d.id, d.destino FROM destinos d ORDER BY d.destino`
+        ? `SELECT d.id, d.destino FROM destinos d
+           WHERE UPPER(d.destino) = ANY($1::text[])
+           ORDER BY d.destino`
         : `SELECT d.id, d.destino FROM destinos d WHERE ${tr('d.destino')} LIKE $1 ORDER BY d.destino`,
-      isGeneric ? [] : [`%${norm(destFilter)}%`],
+      isGeneric ? [PARCEIROS_OFICIAIS] : [`%${norm(destFilter)}%`],
     );
 
     if (destRes.rows.length === 0) {
@@ -718,7 +731,7 @@ async function searchDestinosMissing(destFilter: string, productKeywords: string
           LEFT JOIN subtipo    s  ON s.id  = pd."subtipoId"
           LEFT JOIN tipo_pedra tp ON tp.id = pd."tipoPedraId"
           WHERE pd."destinoId" = $1
-            AND pd."statusProdutoId" IN (3, 6)
+            AND pd."statusProdutoId" = ${isGeneric ? 6 : 'ANY(ARRAY[3,6])'}
             AND ${kwConditions}
         ) AS has_it`,
         [row.id, ...kwParams],
