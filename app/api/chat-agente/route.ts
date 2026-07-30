@@ -30,6 +30,35 @@ function stemKw(w: string): string {
   return w;
 }
 
+// ── Size filter ──────────────────────────────────────────────────────────────
+
+interface SizeFilt { min?: number; max?: number; eq?: number }
+
+function extractSizeFilter(lower: string): SizeFilt {
+  const n = (s: string) => parseFloat(s.replace(',', '.'));
+  const result: SizeFilt = {};
+
+  // "entre Xcm e Ycm" / "de Xcm a Ycm"
+  const mRange = lower.match(/(?:entre|de)\s+(\d+(?:[,.]\d+)?)\s*cm\s+(?:e|a)\s+(\d+(?:[,.]\d+)?)\s*cm/i);
+  if (mRange) return { min: n(mRange[1]), max: n(mRange[2]) };
+
+  // min: "maior de Xcm" / "acima de Xcm" / "mais de Xcm" / "mínimo Xcm" / "pelo menos Xcm"
+  const mMin = lower.match(/(?:maior|acima|mais\s+de|pelo\s+menos|m[ií]nimo|no\s+m[ií]nimo)\s*(?:de|que|do\s+que)?\s*(\d+(?:[,.]\d+)?)\s*cm/i);
+  if (mMin) result.min = n(mMin[1]);
+
+  // max: "menor de Xcm" / "abaixo de Xcm" / "até Xcm" / "menos de Xcm" / "máximo Xcm"
+  const mMax = lower.match(/(?:menor|abaixo|menos\s+de|at[eé]|m[aá]ximo|no\s+m[aá]ximo)\s*(?:de|que|do\s+que)?\s*(\d+(?:[,.]\d+)?)\s*cm/i);
+  if (mMax) result.max = n(mMax[1]);
+
+  if (result.min !== undefined || result.max !== undefined) return result;
+
+  // exact: bare "Xcm" with no comparison word
+  const mEq = lower.match(/\b(\d+(?:[,.]\d+)?)\s*cm\b/i);
+  if (mEq) return { eq: n(mEq[1]) };
+
+  return {};
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type Row = {
@@ -310,6 +339,8 @@ async function searchByCriteria(lower: string, limit = 200, somenteComodato = fa
   }
   const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
+  const sizeFilter = extractSizeFilter(lower);
+
   const stopwords = new Set([
     // artigos
     'o','a','os','as','um','uma','uns','umas',
@@ -408,7 +439,13 @@ async function searchByCriteria(lower: string, limit = 200, somenteComodato = fa
     'qdo','qto','qts','blz','blza','flw','dai','neh','soh',
   ]);
 
-  const keywords = lower
+  // Strip size expressions so numbers/comparators don't pollute product keywords
+  const lowerForKw = lower
+    .replace(/(?:entre|de)\s+\d+(?:[,.]\d+)?\s*cm\s+(?:e|a)\s+\d+(?:[,.]\d+)?\s*cm/gi, ' ')
+    .replace(/(?:maior|menor|acima|abaixo|mais\s+de|menos\s+de|at[eé]|pelo\s+menos|m[ií]nimo|m[aá]ximo|no\s+m[ií]nimo|no\s+m[aá]ximo)\s*(?:de|que|do\s+que)?\s*\d+(?:[,.]\d+)?\s*cm/gi, ' ')
+    .replace(/\d+(?:[,.]\d+)?\s*cm\b/gi, ' ');
+
+  const keywords = lowerForKw
     .replace(/[^a-záàâãéèêíìîóòôõúùûç\s]/gi, ' ')
     .split(/\s+/)
     .filter(w => w.length > 2 && !stopwords.has(normalize(w)));
@@ -434,6 +471,24 @@ async function searchByCriteria(lower: string, limit = 200, somenteComodato = fa
   )`).join(' AND ');
   const kwParams = keywords.map(k => `%${normalize(k)}%`);
 
+  // Size filter SQL
+  const sizeNumExpr = `CASE WHEN pd.tamanho ~ '^[0-9]+([,.][0-9]+)? *[Cc][Mm]$' THEN CAST(REPLACE(REPLACE(REPLACE(UPPER(TRIM(pd.tamanho)), ' ', ''), ',', '.'), 'CM', '') AS NUMERIC) END`;
+  let sizeClause = '';
+  const sizeParams: number[] = [];
+  if (sizeFilter.eq !== undefined) {
+    sizeClause = ` AND ${sizeNumExpr} = $${kwParams.length + 1}`;
+    sizeParams.push(sizeFilter.eq);
+  } else {
+    if (sizeFilter.min !== undefined) {
+      sizeClause += ` AND ${sizeNumExpr} >= $${kwParams.length + sizeParams.length + 1}`;
+      sizeParams.push(sizeFilter.min);
+    }
+    if (sizeFilter.max !== undefined) {
+      sizeClause += ` AND ${sizeNumExpr} <= $${kwParams.length + sizeParams.length + 1}`;
+      sizeParams.push(sizeFilter.max);
+    }
+  }
+
   // default: mais recentes primeiro (ASC apenas quando o usuário pedir "antigo/primeiro")
   const orderBy = querCaro   ? 'pd.preco_cobrado DESC NULLS LAST'
                 : querBarato ? 'pd.preco_cobrado ASC NULLS LAST'
@@ -446,7 +501,7 @@ async function searchByCriteria(lower: string, limit = 200, somenteComodato = fa
       `SELECT
          pd.referencia, pd.tipo, pd.custo_real, pd.preco_cobrado,
          pd.preco_parceiro, pd.preco_avista, pd.preco_parcelado,
-         pd.descricao_jewel, pd."statusProdutoId" AS status_id,
+         pd.tamanho, pd.descricao_jewel, pd."statusProdutoId" AS status_id,
          pd.data_entrada,
          p.produto, s.subtipo, tp.tipo_pedra, d.destino,
          COUNT(*) OVER () AS total_count,
@@ -456,12 +511,12 @@ async function searchByCriteria(lower: string, limit = 200, somenteComodato = fa
        LEFT JOIN subtipo    s  ON s.id  = pd."subtipoId"
        LEFT JOIN tipo_pedra tp ON tp.id = pd."tipoPedraId"
        LEFT JOIN destinos   d  ON d.id  = pd."destinoId"
-       WHERE ${somenteVendido ? `pd."statusProdutoId" IN (2,4,13)` : somenteComodato ? `pd."statusProdutoId" = 6` : somenteEstoque ? `pd."statusProdutoId" = 3` : `pd."statusProdutoId" IN (3, 6)`} AND ${kwConditions}
+       WHERE ${somenteVendido ? `pd."statusProdutoId" IN (2,4,13)` : somenteComodato ? `pd."statusProdutoId" = 6` : somenteEstoque ? `pd."statusProdutoId" = 3` : `pd."statusProdutoId" IN (3, 6)`} AND ${kwConditions}${sizeClause}
        ORDER BY
          CASE WHEN (SELECT 1 FROM leilao_image li WHERE li."productDetailsId" = pd.id LIMIT 1) IS NOT NULL THEN 0 ELSE 1 END,
          ${orderBy}
        LIMIT ${limit}`,
-      kwParams,
+      [...kwParams, ...sizeParams],
     );
 
     if (result.rows.length === 0) {
@@ -472,6 +527,7 @@ async function searchByCriteria(lower: string, limit = 200, somenteComodato = fa
       referencia: string; tipo: string; custo_real: number | null;
       preco_cobrado: number | null; preco_parceiro: number | null;
       preco_avista: number | null; preco_parcelado: number | null;
+      tamanho: string | null;
       descricao_jewel: string | null; status_id: number | null;
       data_entrada: string | null; produto: string | null;
       subtipo: string | null; destino: string | null;
@@ -480,13 +536,18 @@ async function searchByCriteria(lower: string, limit = 200, somenteComodato = fa
 
     const total   = parseInt(rows[0]?.total_count ?? '0', 10);
     const qualifier = querAntigo ? 'mais antiga' : querNovo ? 'mais recente' : 'disponível';
-    const header = `Encontrei **${total}** peça(s) ${qualifier}:`;
+    const sizeLabel = sizeFilter.eq !== undefined ? ` · tamanho ${sizeFilter.eq}cm`
+                    : sizeFilter.min !== undefined && sizeFilter.max !== undefined ? ` · entre ${sizeFilter.min}cm e ${sizeFilter.max}cm`
+                    : sizeFilter.min !== undefined ? ` · ≥ ${sizeFilter.min}cm`
+                    : sizeFilter.max !== undefined ? ` · ≤ ${sizeFilter.max}cm`
+                    : '';
+    const header = `Encontrei **${total}** peça(s) ${qualifier}${sizeLabel}:`;
     const lines: string[] = [header];
 
     for (const r of rows) {
       const dataStr = r.data_entrada ? new Date(r.data_entrada).toLocaleDateString('pt-BR') : null;
       lines.push('');
-      lines.push(`**${r.referencia}** (${r.tipo})${r.produto ? ' — ' + r.produto : ''}${dataStr ? ' · Entrada: ' + dataStr : ''}`);
+      lines.push(`**${r.referencia}** (${r.tipo})${r.produto ? ' — ' + r.produto : ''}${r.tamanho ? ' · ' + r.tamanho.toUpperCase() : ''}${dataStr ? ' · Entrada: ' + dataStr : ''}`);
       if (r.descricao_jewel) lines.push(r.descricao_jewel);
       if (r.destino) lines.push(`📍 ${r.destino}`);
       lines.push(`Custo: ${fmt(r.custo_real)} · Cobrado: ${fmt(r.preco_cobrado)}`);
