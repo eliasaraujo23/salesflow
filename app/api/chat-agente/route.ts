@@ -672,16 +672,27 @@ async function searchByDestino(
   }
 }
 
+// Termos genéricos que significam "todos os destinos/parceiros"
+const GENERIC_DEST_TERMS = new Set([
+  'parceiro','parceiros','brecho','brechos','brechó','brechós',
+  'destino','destinos','loja','lojas','parceria','parcerias',
+  'todos','todas','todos os destinos','todas as lojas',
+]);
+
 // Quais destinos (filtrados por tipo) NÃO têm determinado produto disponível?
 async function searchDestinosMissing(destFilter: string, productKeywords: string[]): Promise<string> {
   const norm  = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   const tr    = (col: string) => `translate(LOWER(${col}), 'áàâãéèêíìîóòôõúùûçñ', 'aaaaeeeiiioooouuucn')`;
 
+  const isGeneric = GENERIC_DEST_TERMS.has(norm(destFilter.trim()));
+
   const client = await pool.connect();
   try {
     const destRes = await client.query<{ id: number; destino: string }>(
-      `SELECT d.id, d.destino FROM destinos d WHERE ${tr('d.destino')} LIKE $1 ORDER BY d.destino`,
-      [`%${norm(destFilter)}%`],
+      isGeneric
+        ? `SELECT d.id, d.destino FROM destinos d ORDER BY d.destino`
+        : `SELECT d.id, d.destino FROM destinos d WHERE ${tr('d.destino')} LIKE $1 ORDER BY d.destino`,
+      isGeneric ? [] : [`%${norm(destFilter)}%`],
     );
 
     if (destRes.rows.length === 0) {
@@ -718,12 +729,14 @@ async function searchDestinosMissing(destFilter: string, productKeywords: string
     const total = destRes.rows.length;
     const prodLabel = productKeywords.join(' ');
 
+    const destLabel = isGeneric ? 'parceiros' : destFilter;
+
     if (missing.length === 0) {
-      return `✅ Todos os **${total}** "${destFilter}" têm peças com **${prodLabel}** disponíveis!`;
+      return `✅ Todos os **${total}** ${destLabel} têm peças com **${prodLabel}** disponíveis!`;
     }
 
     const lines = [
-      `📋 **${total}** "${destFilter}" verificados — **${missing.length}** sem **${prodLabel}**:`,
+      `📋 **${total}** ${destLabel} verificados — **${missing.length}** sem **${prodLabel}**:`,
       '',
       ...missing.map(d => `• ${d}`),
     ];
