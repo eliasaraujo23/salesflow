@@ -39,29 +39,29 @@ function extractSizeFilter(lower: string): SizeFilt {
   const result: SizeFilt = {};
 
   // "entre Xcm e Ycm" / "de Xcm a Ycm"
-  const mRange = lower.match(/(?:entre|de)\s+(\d+(?:[,.]\d+)?)\s*cm\s+(?:e|a)\s+(\d+(?:[,.]\d+)?)\s*cm/i);
+  const mRange = lower.match(/(?:entre|de)\s+(\d+(?:[,.]\d+)?)\s*cms?\s+(?:e|a)\s+(\d+(?:[,.]\d+)?)\s*cms?/i);
   if (mRange) return { min: n(mRange[1]), max: n(mRange[2]) };
 
   // min — comparador ANTES do número: "maior de Xcm" / "acima de Xcm" / "mais de Xcm"
-  const mMinBefore = lower.match(/(?:maior|acima|mais\s+de|pelo\s+menos|m[ií]nimo|no\s+m[ií]nimo)\s*(?:de|que|do\s+que)?\s*(\d+(?:[,.]\d+)?)\s*cm/i);
+  const mMinBefore = lower.match(/(?:maior|acima|mais\s+de|pelo\s+menos|m[ií]nimo|no\s+m[ií]nimo)\s*(?:de|que|do\s+que)?\s*(\d+(?:[,.]\d+)?)\s*cms?/i);
   if (mMinBefore) result.min = n(mMinBefore[1]);
 
-  // min — comparador DEPOIS do número: "Xcm ou mais" / "Xcm para cima" / "Xcm acima"
-  const mMinAfter = lower.match(/(\d+(?:[,.]\d+)?)\s*cm\s+(?:ou\s+mais|ou\s+acima|para\s+cima|pra\s+cima|acima)/i);
+  // min — comparador DEPOIS do número: "Xcm ou mais" / "Xcm para cima" / "Xcms acima"
+  const mMinAfter = lower.match(/(\d+(?:[,.]\d+)?)\s*cms?\s+(?:ou\s+mais|ou\s+acima|para\s+cima|pra\s+cima|acima)/i);
   if (mMinAfter && result.min === undefined) result.min = n(mMinAfter[1]);
 
   // max — comparador ANTES do número: "menor de Xcm" / "abaixo de Xcm" / "até Xcm"
-  const mMaxBefore = lower.match(/(?:menor|abaixo|menos\s+de|at[eé]|m[aá]ximo|no\s+m[aá]ximo)\s*(?:de|que|do\s+que)?\s*(\d+(?:[,.]\d+)?)\s*cm/i);
+  const mMaxBefore = lower.match(/(?:menor|abaixo|menos\s+de|at[eé]|m[aá]ximo|no\s+m[aá]ximo)\s*(?:de|que|do\s+que)?\s*(\d+(?:[,.]\d+)?)\s*cms?/i);
   if (mMaxBefore) result.max = n(mMaxBefore[1]);
 
   // max — comparador DEPOIS do número: "Xcm ou menos" / "Xcm para baixo"
-  const mMaxAfter = lower.match(/(\d+(?:[,.]\d+)?)\s*cm\s+(?:ou\s+menos|ou\s+abaixo|para\s+baixo|pra\s+baixo|abaixo)/i);
+  const mMaxAfter = lower.match(/(\d+(?:[,.]\d+)?)\s*cms?\s+(?:ou\s+menos|ou\s+abaixo|para\s+baixo|pra\s+baixo|abaixo)/i);
   if (mMaxAfter && result.max === undefined) result.max = n(mMaxAfter[1]);
 
   if (result.min !== undefined || result.max !== undefined) return result;
 
-  // exact: bare "Xcm" with no comparison word
-  const mEq = lower.match(/\b(\d+(?:[,.]\d+)?)\s*cm\b/i);
+  // exact: bare "Xcm" / "Xcms" with no comparison word
+  const mEq = lower.match(/\b(\d+(?:[,.]\d+)?)\s*cms?\b/i);
   if (mEq) return { eq: n(mEq[1]) };
 
   return {};
@@ -439,6 +439,8 @@ async function searchByCriteria(lower: string, limit = 200, somenteComodato = fa
     'estoque','disponivel','disponiveis','indisponivel',
     'opcao','opcoes','peca','pecas','joia','joias',
     'bijuteria','bijuterias','acessorio','acessorios','comodato',
+    // dimensões (são filtros, não keywords de produto)
+    'tamanho','tamanhos','medida','medidas','comprimento','comprimentos',
     // cortesia e gírias de chat
     'obrigado','obrigada','valeu','vlw','tmj','brigado','brigada',
     'favor','pfv','pf','ok','okay','combinado','entendido',
@@ -449,10 +451,11 @@ async function searchByCriteria(lower: string, limit = 200, somenteComodato = fa
 
   // Strip size expressions so numbers/comparators don't pollute product keywords
   const lowerForKw = lower
-    .replace(/(?:entre|de)\s+\d+(?:[,.]\d+)?\s*cm\s+(?:e|a)\s+\d+(?:[,.]\d+)?\s*cm/gi, ' ')
-    .replace(/(?:maior|menor|acima|abaixo|mais\s+de|menos\s+de|at[eé]|pelo\s+menos|m[ií]nimo|m[aá]ximo|no\s+m[ií]nimo|no\s+m[aá]ximo)\s*(?:de|que|do\s+que)?\s*\d+(?:[,.]\d+)?\s*cm/gi, ' ')
-    .replace(/\d+(?:[,.]\d+)?\s*cm\s+(?:ou\s+(?:mais|menos|acima|abaixo)|para\s+(?:cima|baixo)|pra\s+(?:cima|baixo)|acima|abaixo)/gi, ' ')
-    .replace(/\d+(?:[,.]\d+)?\s*cm\b/gi, ' ');
+    .replace(/(?:entre|de)\s+\d+(?:[,.]\d+)?\s*cms?\s+(?:e|a)\s+\d+(?:[,.]\d+)?\s*cms?/gi, ' ')
+    .replace(/(?:maior|menor|acima|abaixo|mais\s+de|menos\s+de|at[eé]|pelo\s+menos|m[ií]nimo|m[aá]ximo|no\s+m[ií]nimo|no\s+m[aá]ximo)\s*(?:de|que|do\s+que)?\s*\d+(?:[,.]\d+)?\s*cms?/gi, ' ')
+    .replace(/\d+(?:[,.]\d+)?\s*cms?\s+(?:ou\s+(?:mais|menos|acima|abaixo)|para\s+(?:cima|baixo)|pra\s+(?:cima|baixo)|acima|abaixo)/gi, ' ')
+    .replace(/\d+(?:[,.]\d+)?\s*cms?\b/gi, ' ')
+    .replace(/\btamanho\b/gi, ' ');
 
   const keywords = lowerForKw
     .replace(/[^a-záàâãéèêíìîóòôõúùûç\s]/gi, ' ')
