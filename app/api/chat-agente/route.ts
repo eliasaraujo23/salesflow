@@ -42,13 +42,21 @@ function extractSizeFilter(lower: string): SizeFilt {
   const mRange = lower.match(/(?:entre|de)\s+(\d+(?:[,.]\d+)?)\s*cm\s+(?:e|a)\s+(\d+(?:[,.]\d+)?)\s*cm/i);
   if (mRange) return { min: n(mRange[1]), max: n(mRange[2]) };
 
-  // min: "maior de Xcm" / "acima de Xcm" / "mais de Xcm" / "mínimo Xcm" / "pelo menos Xcm"
-  const mMin = lower.match(/(?:maior|acima|mais\s+de|pelo\s+menos|m[ií]nimo|no\s+m[ií]nimo)\s*(?:de|que|do\s+que)?\s*(\d+(?:[,.]\d+)?)\s*cm/i);
-  if (mMin) result.min = n(mMin[1]);
+  // min — comparador ANTES do número: "maior de Xcm" / "acima de Xcm" / "mais de Xcm"
+  const mMinBefore = lower.match(/(?:maior|acima|mais\s+de|pelo\s+menos|m[ií]nimo|no\s+m[ií]nimo)\s*(?:de|que|do\s+que)?\s*(\d+(?:[,.]\d+)?)\s*cm/i);
+  if (mMinBefore) result.min = n(mMinBefore[1]);
 
-  // max: "menor de Xcm" / "abaixo de Xcm" / "até Xcm" / "menos de Xcm" / "máximo Xcm"
-  const mMax = lower.match(/(?:menor|abaixo|menos\s+de|at[eé]|m[aá]ximo|no\s+m[aá]ximo)\s*(?:de|que|do\s+que)?\s*(\d+(?:[,.]\d+)?)\s*cm/i);
-  if (mMax) result.max = n(mMax[1]);
+  // min — comparador DEPOIS do número: "Xcm ou mais" / "Xcm para cima" / "Xcm acima"
+  const mMinAfter = lower.match(/(\d+(?:[,.]\d+)?)\s*cm\s+(?:ou\s+mais|ou\s+acima|para\s+cima|pra\s+cima|acima)/i);
+  if (mMinAfter && result.min === undefined) result.min = n(mMinAfter[1]);
+
+  // max — comparador ANTES do número: "menor de Xcm" / "abaixo de Xcm" / "até Xcm"
+  const mMaxBefore = lower.match(/(?:menor|abaixo|menos\s+de|at[eé]|m[aá]ximo|no\s+m[aá]ximo)\s*(?:de|que|do\s+que)?\s*(\d+(?:[,.]\d+)?)\s*cm/i);
+  if (mMaxBefore) result.max = n(mMaxBefore[1]);
+
+  // max — comparador DEPOIS do número: "Xcm ou menos" / "Xcm para baixo"
+  const mMaxAfter = lower.match(/(\d+(?:[,.]\d+)?)\s*cm\s+(?:ou\s+menos|ou\s+abaixo|para\s+baixo|pra\s+baixo|abaixo)/i);
+  if (mMaxAfter && result.max === undefined) result.max = n(mMaxAfter[1]);
 
   if (result.min !== undefined || result.max !== undefined) return result;
 
@@ -443,6 +451,7 @@ async function searchByCriteria(lower: string, limit = 200, somenteComodato = fa
   const lowerForKw = lower
     .replace(/(?:entre|de)\s+\d+(?:[,.]\d+)?\s*cm\s+(?:e|a)\s+\d+(?:[,.]\d+)?\s*cm/gi, ' ')
     .replace(/(?:maior|menor|acima|abaixo|mais\s+de|menos\s+de|at[eé]|pelo\s+menos|m[ií]nimo|m[aá]ximo|no\s+m[ií]nimo|no\s+m[aá]ximo)\s*(?:de|que|do\s+que)?\s*\d+(?:[,.]\d+)?\s*cm/gi, ' ')
+    .replace(/\d+(?:[,.]\d+)?\s*cm\s+(?:ou\s+(?:mais|menos|acima|abaixo)|para\s+(?:cima|baixo)|pra\s+(?:cima|baixo)|acima|abaixo)/gi, ' ')
     .replace(/\d+(?:[,.]\d+)?\s*cm\b/gi, ' ');
 
   const keywords = lowerForKw
