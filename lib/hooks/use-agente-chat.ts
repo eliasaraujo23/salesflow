@@ -6,6 +6,7 @@ export type ChatMessage = {
   id: number;
   role: 'user' | 'assistant';
   text: string;
+  images?: { ref: string; url: string }[];
 };
 
 export function useAgenteChat() {
@@ -14,8 +15,10 @@ export function useAgenteChat() {
   const [loading, setLoading]   = useState(false);
   const nextId                  = useRef(1);
   const bottomRef               = useRef<HTMLDivElement>(null);
+  const messagesRef             = useRef<ChatMessage[]>([]);
 
   useEffect(() => {
+    messagesRef.current = messages;
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
@@ -32,19 +35,45 @@ export function useAgenteChat() {
       const res = await fetch('/api/chat-agente', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: trimmed }),
+        body: JSON.stringify({
+          message: trimmed,
+          history: messagesRef.current.slice(-6).map(m => ({ role: m.role, text: m.text })),
+        }),
       });
       const json = await res.json() as { reply?: string };
       const reply = json.reply ?? 'Sem resposta.';
-      setMessages(prev => [...prev, { id: nextId.current++, role: 'assistant', text: reply }]);
+
+      // Extrai referências do reply (ex: **E11111**) e busca imagens em paralelo
+      const refs = [...reply.matchAll(/\*\*([A-Za-z]\d{4,6})\*\*/g)].map(m => m[1]);
+      let images: { ref: string; url: string }[] = [];
+      if (refs.length > 0) {
+        try {
+          const imgRes = await fetch(`/api/chat-agente/images?refs=${refs.join(',')}`);
+          const imgJson = await imgRes.json() as { images?: { ref: string; url: string }[] };
+          images = imgJson.images ?? [];
+        } catch {
+          // imagens são opcionais — falha silenciosa
+        }
+      }
+
+      setMessages(prev => [...prev, {
+        id: nextId.current++,
+        role: 'assistant',
+        text: reply,
+        images: images.length > 0 ? images : undefined,
+      }]);
     } catch {
-      setMessages(prev => [...prev, { id: nextId.current++, role: 'assistant', text: 'Erro de conexão. Tente novamente.' }]);
+      setMessages(prev => [...prev, {
+        id: nextId.current++,
+        role: 'assistant',
+        text: 'Erro de conexão. Tente novamente.',
+      }]);
     } finally {
       setLoading(false);
     }
   }, [loading]);
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.SyntheticEvent) => {
     e.preventDefault();
     send(input);
   }, [input, send]);
