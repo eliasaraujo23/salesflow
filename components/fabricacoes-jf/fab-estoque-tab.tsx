@@ -20,7 +20,7 @@ const fmtMoeda = (v: number | null | undefined): string => {
 
 function downloadCSV(rows: JfEstoqueItem[]) {
   const hdr = [
-    'Referência','Tipo','Produto','Subtipo','Pedra','Lapidação','Destino','Fabricante',
+    'Referência','Tipo','Produto','Subtipo','Pedra','Lapidação','Destino','Fabricante','Certificada','Nº Certificado',
     'Peso(g)','Custo(R$)','Preço Cobrado(R$)',
     'Diamantes','Cts Diam.','Pedra Colorida','Cts PC',
   ];
@@ -29,6 +29,8 @@ function downloadCSV(rows: JfEstoqueItem[]) {
     hdr.join(','),
     ...rows.map(r => [
       r.referencia, r.tipo, r.produto, r.subtipo, r.tipo_pedra, r.lapidacao, r.destino, r.fabricante,
+      r.certificada,
+      r.certificada?.toUpperCase() === 'SIM' ? (r.numero_certificado ?? '') : '',
       r.peso > 0 ? r.peso.toFixed(2) : '',
       r.custo_real > 0 ? r.custo_real.toFixed(2) : '',
       r.preco_cobrado != null ? r.preco_cobrado.toFixed(2) : '',
@@ -42,7 +44,7 @@ function downloadCSV(rows: JfEstoqueItem[]) {
   URL.revokeObjectURL(url);
 }
 
-type StringField = 'tipo' | 'produto' | 'subtipo' | 'destino' | 'tipo_pedra' | 'lapidacao' | 'fabricante';
+type StringField = 'tipo' | 'produto' | 'subtipo' | 'destino' | 'tipo_pedra' | 'lapidacao' | 'fabricante' | 'certificada';
 
 function uniqStrings(rows: JfEstoqueItem[], field: StringField): string[] {
   return [...new Set(rows.map(r => r[field]).filter((v): v is string => v != null && v !== ''))].sort();
@@ -52,16 +54,17 @@ function applyDimFilters(
   rows: JfEstoqueItem[],
   tipos: string[], produtos: string[], subtipos: string[],
   destinos: string[], pedras: string[], lapidacoes: string[],
-  fabricantes: string[],
+  fabricantes: string[], certificadas: string[],
 ): JfEstoqueItem[] {
   return rows.filter(r => {
-    if (tipos.length       && !tipos.includes(r.tipo ?? ''))        return false;
-    if (produtos.length    && !produtos.includes(r.produto ?? ''))   return false;
-    if (subtipos.length    && !subtipos.includes(r.subtipo ?? ''))   return false;
-    if (destinos.length    && !destinos.includes(r.destino ?? ''))   return false;
-    if (pedras.length      && !pedras.includes(r.tipo_pedra ?? ''))  return false;
-    if (lapidacoes.length  && !lapidacoes.includes(r.lapidacao ?? '')) return false;
-    if (fabricantes.length && !fabricantes.includes(r.fabricante ?? '')) return false;
+    if (tipos.length        && !tipos.includes(r.tipo ?? ''))           return false;
+    if (produtos.length     && !produtos.includes(r.produto ?? ''))      return false;
+    if (subtipos.length     && !subtipos.includes(r.subtipo ?? ''))      return false;
+    if (destinos.length     && !destinos.includes(r.destino ?? ''))      return false;
+    if (pedras.length       && !pedras.includes(r.tipo_pedra ?? ''))     return false;
+    if (lapidacoes.length   && !lapidacoes.includes(r.lapidacao ?? ''))  return false;
+    if (fabricantes.length  && !fabricantes.includes(r.fabricante ?? '')) return false;
+    if (certificadas.length && !certificadas.includes(r.certificada ?? '')) return false;
     return true;
   });
 }
@@ -87,7 +90,8 @@ export function FabEstoqueTab() {
   const [destinos, setDestinos]     = useState<string[]>([]);
   const [pedras, setPedras]         = useState<string[]>([]);
   const [lapidacoes, setLapidacoes]   = useState<string[]>([]);
-  const [fabricantes, setFabricantes] = useState<string[]>([]);
+  const [fabricantes, setFabricantes]   = useState<string[]>([]);
+  const [certificadas, setCertificadas] = useState<string[]>([]);
   const [sorting, setSorting]         = useState<SortingState>([{ id: 'custo_real', desc: true }]);
 
   const buscaFiltered = useMemo(() => {
@@ -99,25 +103,27 @@ export function FabEstoqueTab() {
   }, [data, busca]);
 
   const filtered = useMemo(
-    () => applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes),
-    [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes],
+    () => applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes, certificadas),
+    [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes, certificadas],
   );
 
-  const availTipos       = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, [],     produtos, subtipos, destinos, pedras, lapidacoes, fabricantes), 'tipo'),       [buscaFiltered, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes]);
-  const availProdutos    = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  [],       subtipos, destinos, pedras, lapidacoes, fabricantes), 'produto'),    [buscaFiltered, tipos, subtipos, destinos, pedras, lapidacoes, fabricantes]);
-  const availSubtipos    = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, [],       destinos, pedras, lapidacoes, fabricantes), 'subtipo'),    [buscaFiltered, tipos, produtos, destinos, pedras, lapidacoes, fabricantes]);
-  const availDestinos    = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, subtipos, [],       pedras, lapidacoes, fabricantes), 'destino'),    [buscaFiltered, tipos, produtos, subtipos, pedras, lapidacoes, fabricantes]);
-  const availPedras      = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, subtipos, destinos, [],     lapidacoes, fabricantes), 'tipo_pedra'), [buscaFiltered, tipos, produtos, subtipos, destinos, lapidacoes, fabricantes]);
-  const availLapidacoes  = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, subtipos, destinos, pedras, [],         fabricantes), 'lapidacao'),  [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, fabricantes]);
-  const availFabricantes = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, subtipos, destinos, pedras, lapidacoes, []),          'fabricante'), [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes]);
+  const availTipos        = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, [],    produtos, subtipos, destinos, pedras, lapidacoes, fabricantes, certificadas), 'tipo'),        [buscaFiltered, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes, certificadas]);
+  const availProdutos     = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, [],       subtipos, destinos, pedras, lapidacoes, fabricantes, certificadas), 'produto'),     [buscaFiltered, tipos, subtipos, destinos, pedras, lapidacoes, fabricantes, certificadas]);
+  const availSubtipos     = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, [],       destinos, pedras, lapidacoes, fabricantes, certificadas), 'subtipo'),     [buscaFiltered, tipos, produtos, destinos, pedras, lapidacoes, fabricantes, certificadas]);
+  const availDestinos     = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, [],       pedras, lapidacoes, fabricantes, certificadas), 'destino'),     [buscaFiltered, tipos, produtos, subtipos, pedras, lapidacoes, fabricantes, certificadas]);
+  const availPedras       = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, [],     lapidacoes, fabricantes, certificadas), 'tipo_pedra'),  [buscaFiltered, tipos, produtos, subtipos, destinos, lapidacoes, fabricantes, certificadas]);
+  const availLapidacoes   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, [],         fabricantes, certificadas), 'lapidacao'),   [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, fabricantes, certificadas]);
+  const availFabricantes  = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, [],          certificadas), 'fabricante'),  [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, certificadas]);
+  const availCertificadas = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes, []),           'certificada'), [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes]);
 
   const hasFilters = tipos.length > 0 || produtos.length > 0 || subtipos.length > 0 ||
-    destinos.length > 0 || pedras.length > 0 || lapidacoes.length > 0 || fabricantes.length > 0 || !!busca;
+    destinos.length > 0 || pedras.length > 0 || lapidacoes.length > 0 ||
+    fabricantes.length > 0 || certificadas.length > 0 || !!busca;
 
   function clearAll() {
     setTipos([]); setProdutos([]); setSubtipos([]);
     setDestinos([]); setPedras([]); setLapidacoes([]);
-    setFabricantes([]); setBusca('');
+    setFabricantes([]); setCertificadas([]); setBusca('');
   }
 
   const SortBtn = ({ column, label }: { column: { toggleSorting: () => void; getIsSorted: () => false | 'asc' | 'desc' }; label: string }) => (
@@ -208,6 +214,25 @@ export function FabEstoqueTab() {
       ),
     },
     {
+      accessorKey: 'certificada',
+      header: ({ column }) => <SortBtn column={column} label="Certificada" />,
+      cell: ({ row }) => {
+        const cert = row.original.certificada;
+        const num  = row.original.numero_certificado;
+        const isSim = cert?.toUpperCase() === 'SIM';
+        return (
+          <div className="text-center">
+            <span className={`text-xs font-medium ${isSim ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400 dark:text-zinc-500'}`}>
+              {cert ?? '—'}
+            </span>
+            {isSim && num && (
+              <div className="text-[10px] text-zinc-400 dark:text-zinc-500 whitespace-nowrap">{num}</div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: 'peso',
       header: ({ column }) => (
         <button className="flex items-center justify-center gap-1 w-full text-[11px] font-semibold text-zinc-500 dark:text-zinc-400" onClick={() => column.toggleSorting()}>
@@ -295,13 +320,14 @@ export function FabEstoqueTab() {
   });
 
   const dimDefs = [
-    { label: 'Tipo',        avail: availTipos,       sel: tipos,       set: setTipos },
-    { label: 'Produto',     avail: availProdutos,    sel: produtos,    set: setProdutos },
-    { label: 'Subtipo',     avail: availSubtipos,    sel: subtipos,    set: setSubtipos },
-    { label: 'Destino',     avail: availDestinos,    sel: destinos,    set: setDestinos },
-    { label: 'Tipo Pedra',  avail: availPedras,      sel: pedras,      set: setPedras },
-    { label: 'Lapidação',   avail: availLapidacoes,  sel: lapidacoes,  set: setLapidacoes },
-    { label: 'Fabricante',  avail: availFabricantes, sel: fabricantes, set: setFabricantes },
+    { label: 'Tipo',         avail: availTipos,        sel: tipos,        set: setTipos },
+    { label: 'Produto',      avail: availProdutos,     sel: produtos,     set: setProdutos },
+    { label: 'Subtipo',      avail: availSubtipos,     sel: subtipos,     set: setSubtipos },
+    { label: 'Destino',      avail: availDestinos,     sel: destinos,     set: setDestinos },
+    { label: 'Tipo Pedra',   avail: availPedras,       sel: pedras,       set: setPedras },
+    { label: 'Lapidação',    avail: availLapidacoes,   sel: lapidacoes,   set: setLapidacoes },
+    { label: 'Fabricante',   avail: availFabricantes,  sel: fabricantes,  set: setFabricantes },
+    { label: 'Certificada',  avail: availCertificadas, sel: certificadas, set: setCertificadas },
   ];
 
   if (isLoading) {
