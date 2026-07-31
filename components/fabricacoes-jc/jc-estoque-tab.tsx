@@ -10,14 +10,14 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import { Download, X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
-import { type JmPeca } from '@/lib/actions/fetch-jm-dashboard';
+import { type JcPeca } from '@/lib/actions/fetch-jc-dashboard';
 
 const fmtMoeda = (v: number | null | undefined): string => {
   if (v == null || isNaN(v)) return '—';
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 };
 
-function downloadCSV(rows: JmPeca[]) {
+function downloadCSV(rows: JcPeca[]) {
   const hdr = [
     'Referência','Tipo','Produto','Subtipo','Pedra','Lapidação','Destino','Fabricante','Certificada','Nº Certificado',
     'Peso(g)','Custo(R$)','Preço Cobrado(R$)',
@@ -39,29 +39,29 @@ function downloadCSV(rows: JmPeca[]) {
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'jm-estoque.csv'; a.click();
+  a.href = url; a.download = 'jc-estoque.csv'; a.click();
   URL.revokeObjectURL(url);
 }
 
 type StringField = 'tipo' | 'produto' | 'subtipo' | 'destino' | 'tipo_pedra' | 'lapidacao' | 'fabricante' | 'certificada';
 
-function uniqStrings(rows: JmPeca[], field: StringField): string[] {
+function uniqStrings(rows: JcPeca[], field: StringField): string[] {
   return [...new Set(rows.map(r => r[field]).filter((v): v is string => v != null && v !== ''))].sort();
 }
 
 function applyDimFilters(
-  rows: JmPeca[],
+  rows: JcPeca[],
   tipos: string[], produtos: string[], subtipos: string[],
   destinos: string[], pedras: string[], lapidacoes: string[],
   fabricantes: string[], certificadas: string[],
-): JmPeca[] {
+): JcPeca[] {
   return rows.filter(r => {
-    if (tipos.length       && !tipos.includes(r.tipo ?? ''))            return false;
-    if (produtos.length    && !produtos.includes(r.produto ?? ''))      return false;
-    if (subtipos.length    && !subtipos.includes(r.subtipo ?? ''))      return false;
-    if (destinos.length    && !destinos.includes(r.destino ?? ''))      return false;
-    if (pedras.length      && !pedras.includes(r.tipo_pedra ?? ''))     return false;
-    if (lapidacoes.length  && !lapidacoes.includes(r.lapidacao ?? ''))  return false;
+    if (tipos.length       && !tipos.includes(r.tipo ?? ''))             return false;
+    if (produtos.length    && !produtos.includes(r.produto ?? ''))       return false;
+    if (subtipos.length    && !subtipos.includes(r.subtipo ?? ''))       return false;
+    if (destinos.length    && !destinos.includes(r.destino ?? ''))       return false;
+    if (pedras.length      && !pedras.includes(r.tipo_pedra ?? ''))      return false;
+    if (lapidacoes.length  && !lapidacoes.includes(r.lapidacao ?? ''))   return false;
     if (fabricantes.length && !fabricantes.includes(r.fabricante ?? '')) return false;
     if (certificadas.length) {
       const isSim = (r.certificada?.toUpperCase() ?? '') === 'SIM';
@@ -96,11 +96,11 @@ function SortBtn({ column, label }: { column: { toggleSorting: () => void; getIs
   );
 }
 
-interface JmEstoqueTabProps {
-  data: JmPeca[];
+interface JcEstoqueTabProps {
+  data: JcPeca[];
 }
 
-export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
+export function JcEstoqueTab({ data }: JcEstoqueTabProps) {
   const [busca, setBusca]               = useState('');
   const [tipos, setTipos]               = useState<string[]>([]);
   const [produtos, setProdutos]         = useState<string[]>([]);
@@ -145,7 +145,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
     setFabricantes([]); setCertificadas([]); setBusca('');
   }
 
-  const columns: ColumnDef<JmPeca>[] = [
+  const columns: ColumnDef<JcPeca>[] = [
     {
       accessorKey: 'referencia',
       header: ({ column }) => <SortBtn column={column} label="Ref" />,
@@ -358,7 +358,6 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
         className="flex items-stretch bg-zinc-50 dark:bg-zinc-800/50 w-full"
         style={{ maxHeight: '152px' }}
       >
-        {/* Filter columns */}
         {dimDefs.filter(d => d.avail.length > 0).map(d => (
           <div key={d.label} className="flex flex-col overflow-hidden border-r border-zinc-200 dark:border-white/[0.13]" style={{ flex: '1 1 0', minWidth: '80px' }}>
             <span className="block px-2 py-1 text-[9px] font-black uppercase tracking-[0.9px] text-zinc-400 dark:text-zinc-500 border-b border-zinc-200 dark:border-white/[0.13] flex-shrink-0 bg-zinc-100/50 dark:bg-zinc-800/80">
@@ -387,7 +386,6 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
           </div>
         ))}
 
-        {/* Right panel */}
         <div className="flex-none flex flex-col items-center justify-center gap-2 px-3 py-2" style={{ minWidth: '68px' }}>
           <div className="text-center">
             <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 leading-none">{filtered.length}</div>

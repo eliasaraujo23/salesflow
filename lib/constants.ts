@@ -14,6 +14,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { label: 'Controle de Metais',href: '/metals',         icon: 'ti-weight',          section: 'Estoque',     permission: 'metais' },
   { label: 'Fabricações JF',    href: '/fabricacoes-jf', icon: 'ti-hammer',          section: 'Estoque',     permission: 'fabricacoes' },
   { label: 'Fabricações JM',    href: '/fabricacoes-jm', icon: 'ti-hammer',          section: 'Estoque',     permission: 'fabricacoes-jm' },
+  { label: 'Fabricações JC',    href: '/fabricacoes-jc', icon: 'ti-hammer',          section: 'Estoque',     permission: 'fabricacoes-jc' },
   { label: 'Manutenções',       href: '/maintenance',    icon: 'ti-hammer',          section: 'Estoque',     permission: 'manutencao' },
   { label: 'Revenda',           href: '/resale',         icon: 'ti-shopping-bag',    section: 'Estoque',     permission: 'revenda' },
   { label: 'Fluxograma',        href: '/fluxograma',     icon: 'ti-hierarchy',       section: 'Operacional', permission: 'fluxograma' },
