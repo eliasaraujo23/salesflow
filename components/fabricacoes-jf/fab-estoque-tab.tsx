@@ -107,13 +107,13 @@ export function FabEstoqueTab() {
     [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes, certificadas],
   );
 
-  const availTipos        = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, [],    produtos, subtipos, destinos, pedras, lapidacoes, fabricantes, certificadas), 'tipo'),        [buscaFiltered, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes, certificadas]);
-  const availProdutos     = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, [],       subtipos, destinos, pedras, lapidacoes, fabricantes, certificadas), 'produto'),     [buscaFiltered, tipos, subtipos, destinos, pedras, lapidacoes, fabricantes, certificadas]);
-  const availSubtipos     = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, [],       destinos, pedras, lapidacoes, fabricantes, certificadas), 'subtipo'),     [buscaFiltered, tipos, produtos, destinos, pedras, lapidacoes, fabricantes, certificadas]);
-  const availDestinos     = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, [],       pedras, lapidacoes, fabricantes, certificadas), 'destino'),     [buscaFiltered, tipos, produtos, subtipos, pedras, lapidacoes, fabricantes, certificadas]);
-  const availPedras       = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, [],     lapidacoes, fabricantes, certificadas), 'tipo_pedra'),  [buscaFiltered, tipos, produtos, subtipos, destinos, lapidacoes, fabricantes, certificadas]);
-  const availLapidacoes   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, [],         fabricantes, certificadas), 'lapidacao'),   [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, fabricantes, certificadas]);
-  const availFabricantes  = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, [],          certificadas), 'fabricante'),  [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, certificadas]);
+  const availTipos       = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, [],    produtos, subtipos, destinos, pedras, lapidacoes, fabricantes, []), 'tipo'),       [buscaFiltered, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes]);
+  const availProdutos    = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, [],       subtipos, destinos, pedras, lapidacoes, fabricantes, []), 'produto'),    [buscaFiltered, tipos, subtipos, destinos, pedras, lapidacoes, fabricantes]);
+  const availSubtipos    = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, [],       destinos, pedras, lapidacoes, fabricantes, []), 'subtipo'),    [buscaFiltered, tipos, produtos, destinos, pedras, lapidacoes, fabricantes]);
+  const availDestinos    = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, [],       pedras, lapidacoes, fabricantes, []), 'destino'),    [buscaFiltered, tipos, produtos, subtipos, pedras, lapidacoes, fabricantes]);
+  const availPedras      = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, [],     lapidacoes, fabricantes, []), 'tipo_pedra'), [buscaFiltered, tipos, produtos, subtipos, destinos, lapidacoes, fabricantes]);
+  const availLapidacoes  = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, [],         fabricantes, []), 'lapidacao'),  [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, fabricantes]);
+  const availFabricantes = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, [],          []), 'fabricante'), [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes]);
 
 
   const hasFilters = tipos.length > 0 || produtos.length > 0 || subtipos.length > 0 ||
