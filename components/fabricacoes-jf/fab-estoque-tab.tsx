@@ -103,9 +103,11 @@ export function FabEstoqueTab() {
   const buscaFiltered = useMemo(() => {
     if (!busca) return data;
     const q = busca.toLowerCase();
-    return data.filter(r =>
-      r.referencia.toLowerCase().includes(q) || (r.produto ?? '').toLowerCase().includes(q),
-    );
+    return data.filter(r => [
+      r.referencia, r.tipo, r.produto, r.subtipo, r.tipo_pedra, r.lapidacao,
+      r.destino, r.fabricante, r.certificada, r.numero_certificado,
+      r.diamantes, r.pedra_colorida,
+    ].some(v => (v ?? '').toLowerCase().includes(q)));
   }, [data, busca]);
 
   const filtered = useMemo(
@@ -362,7 +364,7 @@ export function FabEstoqueTab() {
         <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 shrink-0">Estoque Disponível</span>
         <input
           type="text"
-          placeholder="Buscar ref ou produto…"
+          placeholder="Buscar em qualquer campo…"
           value={busca}
           onChange={e => setBusca(e.target.value)}
           className="flex-1 min-w-0 max-w-[220px] px-2.5 py-1 text-[12px] bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-400"
