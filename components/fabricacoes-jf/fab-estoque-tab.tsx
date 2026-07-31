@@ -358,9 +358,16 @@ export function FabEstoqueTab() {
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl overflow-hidden">
       {/* Card header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-white/[0.13]">
-        <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">Estoque Disponível</span>
-        <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-zinc-200 dark:border-white/[0.13]">
+        <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 shrink-0">Estoque Disponível</span>
+        <input
+          type="text"
+          placeholder="Buscar ref ou produto…"
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          className="flex-1 min-w-0 max-w-[220px] px-2.5 py-1 text-[12px] bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-400"
+        />
+        <div className="flex items-center gap-2 ml-auto">
           <span className="text-xs bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full font-semibold">
             {filtered.length}
           </span>
@@ -375,24 +382,11 @@ export function FabEstoqueTab() {
       </div>
 
       {/* Filter panel */}
-      {/* Filter panel — scrolls horizontally on mobile */}
       <div className="overflow-x-auto border-b-2 border-zinc-200 dark:border-white/[0.08]">
       <div
-        className="flex items-stretch bg-zinc-50 dark:bg-zinc-800/50"
-        style={{ maxHeight: '158px', minWidth: 'max-content' }}
+        className="flex items-stretch bg-zinc-50 dark:bg-zinc-800/50 w-full"
+        style={{ maxHeight: '152px' }}
       >
-        {/* Search column */}
-        <div className="flex-none flex flex-col justify-center gap-1.5 px-3 py-2 border-r border-zinc-200 dark:border-white/[0.13]" style={{ minWidth: '145px', maxWidth: '175px' }}>
-          <span className="text-[9px] font-black uppercase tracking-[0.9px] text-zinc-400 dark:text-zinc-500">Buscar</span>
-          <input
-            type="text"
-            placeholder="Ref ou produto…"
-            value={busca}
-            onChange={e => setBusca(e.target.value)}
-            className="w-full px-2.5 py-1 text-[12px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-400"
-          />
-        </div>
-
         {/* Filter columns */}
         {dimDefs.filter(d => d.avail.length > 0).map(d => (
           <div key={d.label} className="flex flex-col overflow-hidden border-r border-zinc-200 dark:border-white/[0.13]" style={{ flex: '1 1 0', minWidth: '86px' }}>
