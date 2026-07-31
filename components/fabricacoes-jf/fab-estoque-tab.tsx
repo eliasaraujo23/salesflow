@@ -29,7 +29,7 @@ function downloadCSV(rows: JfEstoqueItem[]) {
     hdr.join(','),
     ...rows.map(r => [
       r.referencia, r.tipo, r.produto, r.subtipo, r.tipo_pedra, r.lapidacao, r.destino, r.fabricante,
-      r.certificada,
+      r.certificada?.toUpperCase() === 'SIM' ? 'SIM' : 'NÃO',
       r.certificada?.toUpperCase() === 'SIM' ? (r.numero_certificado ?? '') : '',
       r.peso > 0 ? r.peso.toFixed(2) : '',
       r.custo_real > 0 ? r.custo_real.toFixed(2) : '',
@@ -224,7 +224,7 @@ export function FabEstoqueTab() {
         return (
           <div className="text-center">
             <span className={`text-xs font-medium ${isSim ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400 dark:text-zinc-500'}`}>
-              {cert ?? '—'}
+              {isSim ? 'SIM' : 'NÃO'}
             </span>
             {isSim && num && (
               <div className="text-[10px] text-zinc-400 dark:text-zinc-500 whitespace-nowrap">{num}</div>
