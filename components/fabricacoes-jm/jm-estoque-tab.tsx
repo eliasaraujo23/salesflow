@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -9,7 +9,7 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { Download, RefreshCw, X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Download, X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { type JmPeca } from '@/lib/actions/fetch-jm-dashboard';
 
 const fmtMoeda = (v: number | null | undefined): string => {
@@ -19,7 +19,7 @@ const fmtMoeda = (v: number | null | undefined): string => {
 
 function downloadCSV(rows: JmPeca[]) {
   const hdr = [
-    'Referência','Tipo','Produto','Subtipo','Pedra','Lapidação','Destino',
+    'Referência','Tipo','Produto','Subtipo','Pedra','Lapidação','Destino','Fabricante','Certificada','Nº Certificado',
     'Peso(g)','Custo(R$)','Preço Cobrado(R$)',
     'Diamantes','Cts Diam.','Pedra Colorida','Cts PC',
   ];
@@ -27,7 +27,9 @@ function downloadCSV(rows: JmPeca[]) {
   const csv = [
     hdr.join(','),
     ...rows.map(r => [
-      r.referencia, r.tipo, r.produto, r.subtipo, r.tipo_pedra, r.lapidacao, r.destino,
+      r.referencia, r.tipo, r.produto, r.subtipo, r.tipo_pedra, r.lapidacao, r.destino, r.fabricante,
+      r.certificada?.toUpperCase() === 'SIM' ? 'SIM' : 'NÃO',
+      r.certificada?.toUpperCase() === 'SIM' ? (r.numero_certificado ?? '') : '',
       r.peso > 0 ? r.peso.toFixed(2) : '',
       r.custo_real > 0 ? r.custo_real.toFixed(2) : '',
       r.preco_cobrado != null ? r.preco_cobrado.toFixed(2) : '',
@@ -41,7 +43,7 @@ function downloadCSV(rows: JmPeca[]) {
   URL.revokeObjectURL(url);
 }
 
-type StringField = 'tipo' | 'produto' | 'subtipo' | 'destino' | 'tipo_pedra' | 'lapidacao';
+type StringField = 'tipo' | 'produto' | 'subtipo' | 'destino' | 'tipo_pedra' | 'lapidacao' | 'fabricante' | 'certificada';
 
 function uniqStrings(rows: JmPeca[], field: StringField): string[] {
   return [...new Set(rows.map(r => r[field]).filter((v): v is string => v != null && v !== ''))].sort();
@@ -51,14 +53,23 @@ function applyDimFilters(
   rows: JmPeca[],
   tipos: string[], produtos: string[], subtipos: string[],
   destinos: string[], pedras: string[], lapidacoes: string[],
+  fabricantes: string[], certificadas: string[],
 ): JmPeca[] {
   return rows.filter(r => {
-    if (tipos.length    && !tipos.includes(r.tipo ?? ''))       return false;
-    if (produtos.length && !produtos.includes(r.produto ?? '')) return false;
-    if (subtipos.length && !subtipos.includes(r.subtipo ?? '')) return false;
-    if (destinos.length && !destinos.includes(r.destino ?? '')) return false;
-    if (pedras.length   && !pedras.includes(r.tipo_pedra ?? '')) return false;
-    if (lapidacoes.length && !lapidacoes.includes(r.lapidacao ?? '')) return false;
+    if (tipos.length       && !tipos.includes(r.tipo ?? ''))            return false;
+    if (produtos.length    && !produtos.includes(r.produto ?? ''))      return false;
+    if (subtipos.length    && !subtipos.includes(r.subtipo ?? ''))      return false;
+    if (destinos.length    && !destinos.includes(r.destino ?? ''))      return false;
+    if (pedras.length      && !pedras.includes(r.tipo_pedra ?? ''))     return false;
+    if (lapidacoes.length  && !lapidacoes.includes(r.lapidacao ?? ''))  return false;
+    if (fabricantes.length && !fabricantes.includes(r.fabricante ?? '')) return false;
+    if (certificadas.length) {
+      const isSim = (r.certificada?.toUpperCase() ?? '') === 'SIM';
+      const wantsSim = certificadas.includes('SIM');
+      const wantsNao = certificadas.includes('NÃO');
+      if (wantsSim && !wantsNao && !isSim) return false;
+      if (wantsNao && !wantsSim && isSim) return false;
+    }
     return true;
   });
 }
@@ -90,42 +101,48 @@ interface JmEstoqueTabProps {
 }
 
 export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
-  const [busca, setBusca]           = useState('');
-  const [tipos, setTipos]           = useState<string[]>([]);
-  const [produtos, setProdutos]     = useState<string[]>([]);
-  const [subtipos, setSubtipos]     = useState<string[]>([]);
-  const [destinos, setDestinos]     = useState<string[]>([]);
-  const [pedras, setPedras]         = useState<string[]>([]);
-  const [lapidacoes, setLapidacoes] = useState<string[]>([]);
-  const [sorting, setSorting]       = useState<SortingState>([{ id: 'custo_real', desc: true }]);
+  const [busca, setBusca]               = useState('');
+  const [tipos, setTipos]               = useState<string[]>([]);
+  const [produtos, setProdutos]         = useState<string[]>([]);
+  const [subtipos, setSubtipos]         = useState<string[]>([]);
+  const [destinos, setDestinos]         = useState<string[]>([]);
+  const [pedras, setPedras]             = useState<string[]>([]);
+  const [lapidacoes, setLapidacoes]     = useState<string[]>([]);
+  const [fabricantes, setFabricantes]   = useState<string[]>([]);
+  const [certificadas, setCertificadas] = useState<string[]>([]);
+  const [sorting, setSorting]           = useState<SortingState>([{ id: 'custo_real', desc: true }]);
 
   const buscaFiltered = useMemo(() => {
     if (!busca) return data;
     const q = busca.toLowerCase();
-    return data.filter(r =>
-      r.referencia.toLowerCase().includes(q) || (r.produto ?? '').toLowerCase().includes(q),
-    );
+    return data.filter(r => [
+      r.referencia, r.tipo, r.produto, r.subtipo, r.tipo_pedra, r.lapidacao,
+      r.destino, r.fabricante, r.certificada, r.numero_certificado,
+      r.diamantes, r.pedra_colorida,
+    ].some(v => (v ?? '').toLowerCase().includes(q)));
   }, [data, busca]);
 
   const filtered = useMemo(
-    () => applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes),
-    [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes],
+    () => applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes, certificadas),
+    [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes, certificadas],
   );
 
-  const availTipos      = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, [],     produtos, subtipos, destinos, pedras, lapidacoes), 'tipo'),      [buscaFiltered, produtos, subtipos, destinos, pedras, lapidacoes]);
-  const availProdutos   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  [],       subtipos, destinos, pedras, lapidacoes), 'produto'),   [buscaFiltered, tipos, subtipos, destinos, pedras, lapidacoes]);
-  const availSubtipos   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, [],       destinos, pedras, lapidacoes), 'subtipo'),   [buscaFiltered, tipos, produtos, destinos, pedras, lapidacoes]);
-  const availDestinos   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, subtipos, [],       pedras, lapidacoes), 'destino'),   [buscaFiltered, tipos, produtos, subtipos, pedras, lapidacoes]);
-  const availPedras     = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, subtipos, destinos, [],     lapidacoes), 'tipo_pedra'), [buscaFiltered, tipos, produtos, subtipos, destinos, lapidacoes]);
-  const availLapidacoes = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos,  produtos, subtipos, destinos, pedras, []),         'lapidacao'),  [buscaFiltered, tipos, produtos, subtipos, destinos, pedras]);
+  const availTipos       = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, [],    produtos, subtipos, destinos, pedras, lapidacoes, fabricantes, []), 'tipo'),       [buscaFiltered, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes]);
+  const availProdutos    = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, [],       subtipos, destinos, pedras, lapidacoes, fabricantes, []), 'produto'),    [buscaFiltered, tipos, subtipos, destinos, pedras, lapidacoes, fabricantes]);
+  const availSubtipos    = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, [],       destinos, pedras, lapidacoes, fabricantes, []), 'subtipo'),    [buscaFiltered, tipos, produtos, destinos, pedras, lapidacoes, fabricantes]);
+  const availDestinos    = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, [],       pedras, lapidacoes, fabricantes, []), 'destino'),    [buscaFiltered, tipos, produtos, subtipos, pedras, lapidacoes, fabricantes]);
+  const availPedras      = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, [],     lapidacoes, fabricantes, []), 'tipo_pedra'), [buscaFiltered, tipos, produtos, subtipos, destinos, lapidacoes, fabricantes]);
+  const availLapidacoes  = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, [],         fabricantes, []), 'lapidacao'),  [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, fabricantes]);
+  const availFabricantes = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, [],          []), 'fabricante'), [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes]);
 
   const hasFilters = tipos.length > 0 || produtos.length > 0 || subtipos.length > 0 ||
-    destinos.length > 0 || pedras.length > 0 || lapidacoes.length > 0 || !!busca;
+    destinos.length > 0 || pedras.length > 0 || lapidacoes.length > 0 ||
+    fabricantes.length > 0 || certificadas.length > 0 || !!busca;
 
   function clearAll() {
     setTipos([]); setProdutos([]); setSubtipos([]);
     setDestinos([]); setPedras([]); setLapidacoes([]);
-    setBusca('');
+    setFabricantes([]); setCertificadas([]); setBusca('');
   }
 
   const columns: ColumnDef<JmPeca>[] = [
@@ -133,7 +150,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
       accessorKey: 'referencia',
       header: ({ column }) => <SortBtn column={column} label="Ref" />,
       cell: ({ getValue }) => (
-        <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+        <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400">
           {getValue<string>()}
         </span>
       ),
@@ -154,7 +171,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
       accessorKey: 'produto',
       header: ({ column }) => <SortBtn column={column} label="Produto" />,
       cell: ({ getValue }) => (
-        <span className="text-xs text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+        <span className="text-xs text-zinc-900 dark:text-zinc-100">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
@@ -171,22 +188,17 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
     {
       accessorKey: 'tipo_pedra',
       header: ({ column }) => <SortBtn column={column} label="Tipo Pedra" />,
-      cell: ({ row }) => (
-        <div className="text-center">
-          <div className="text-xs text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
-            {row.original.tipo_pedra ?? '—'}
-          </div>
-          {row.original.lapidacao && (
-            <div className="text-[10px] text-zinc-400 dark:text-zinc-500">{row.original.lapidacao}</div>
-          )}
-        </div>
+      cell: ({ getValue }) => (
+        <span className="text-xs text-zinc-900 dark:text-zinc-100">
+          {getValue<string | null | undefined>() ?? '—'}
+        </span>
       ),
     },
     {
       accessorKey: 'lapidacao',
       header: ({ column }) => <SortBtn column={column} label="Lapidação" />,
       cell: ({ getValue }) => (
-        <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
@@ -195,18 +207,42 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
       accessorKey: 'destino',
       header: ({ column }) => <SortBtn column={column} label="Destino" />,
       cell: ({ getValue }) => (
-        <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
     },
     {
-      accessorKey: 'peso',
-      header: ({ column }) => (
-        <button className="flex items-center justify-center gap-1 w-full text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400" onClick={() => column.toggleSorting()}>
-          Peso <SortIcon dir={column.getIsSorted()} />
-        </button>
+      accessorKey: 'fabricante',
+      header: ({ column }) => <SortBtn column={column} label="Fabricante" />,
+      cell: ({ getValue }) => (
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+          {getValue<string | null | undefined>() ?? '—'}
+        </span>
       ),
+    },
+    {
+      accessorKey: 'certificada',
+      header: ({ column }) => <SortBtn column={column} label="Certificada" />,
+      cell: ({ row }) => {
+        const cert = row.original.certificada;
+        const num  = row.original.numero_certificado;
+        const isSim = cert?.toUpperCase() === 'SIM';
+        return (
+          <div className="text-center">
+            <span className={`text-xs font-medium ${isSim ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400 dark:text-zinc-500'}`}>
+              {isSim ? 'SIM' : 'NÃO'}
+            </span>
+            {isSim && num && (
+              <div className="text-[10px] text-zinc-400 dark:text-zinc-500 whitespace-nowrap">{num}</div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'peso',
+      header: ({ column }) => <SortBtn column={column} label="Peso" />,
       cell: ({ getValue }) => {
         const v = getValue<number>();
         return (
@@ -218,22 +254,14 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
     },
     {
       accessorKey: 'custo_real',
-      header: ({ column }) => (
-        <button className="flex items-center justify-center gap-1 w-full text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400" onClick={() => column.toggleSorting()}>
-          Custo <SortIcon dir={column.getIsSorted()} />
-        </button>
-      ),
+      header: ({ column }) => <SortBtn column={column} label="Custo" />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">{fmtMoeda(getValue<number>())}</span>
       ),
     },
     {
       accessorKey: 'preco_cobrado',
-      header: ({ column }) => (
-        <button className="flex items-center justify-center gap-1 w-full text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400" onClick={() => column.toggleSorting()}>
-          Preço Cobrado <SortIcon dir={column.getIsSorted()} />
-        </button>
-      ),
+      header: ({ column }) => <SortBtn column={column} label="Preço Cobrado" />,
       cell: ({ getValue }) => (
         <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
           {fmtMoeda(getValue<number | null>())}
@@ -242,7 +270,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
     },
     {
       accessorKey: 'diamantes',
-      header: 'Diamantes',
+      header: ({ column }) => <SortBtn column={column} label="Diamantes" />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400 max-w-[120px] truncate block">
           {getValue<string | null | undefined>() ?? '—'}
@@ -251,7 +279,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
     },
     {
       accessorKey: 'cts_diamantes',
-      header: 'Cts Diam.',
+      header: ({ column }) => <SortBtn column={column} label="Cts Diam." />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
           {getValue<number | null | undefined>() ?? '—'}
@@ -260,7 +288,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
     },
     {
       accessorKey: 'pedra_colorida',
-      header: 'Pedra Color.',
+      header: ({ column }) => <SortBtn column={column} label="Pedra Color." />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400 max-w-[120px] truncate block">
           {getValue<string | null | undefined>() ?? '—'}
@@ -269,7 +297,7 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
     },
     {
       accessorKey: 'cts_pedra_colorida',
-      header: 'Cts PC',
+      header: ({ column }) => <SortBtn column={column} label="Cts PC" />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
           {getValue<number | null | undefined>() ?? '—'}
@@ -288,20 +316,29 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
   });
 
   const dimDefs = [
-    { label: 'Tipo',       avail: availTipos,      sel: tipos,      set: setTipos },
-    { label: 'Produto',    avail: availProdutos,   sel: produtos,   set: setProdutos },
-    { label: 'Subtipo',    avail: availSubtipos,   sel: subtipos,   set: setSubtipos },
-    { label: 'Destino',    avail: availDestinos,   sel: destinos,   set: setDestinos },
-    { label: 'Tipo Pedra', avail: availPedras,     sel: pedras,     set: setPedras },
-    { label: 'Lapidação',  avail: availLapidacoes, sel: lapidacoes, set: setLapidacoes },
+    { label: 'Tipo',        avail: availTipos,       sel: tipos,        set: setTipos },
+    { label: 'Produto',     avail: availProdutos,    sel: produtos,     set: setProdutos },
+    { label: 'Subtipo',     avail: availSubtipos,    sel: subtipos,     set: setSubtipos },
+    { label: 'Destino',     avail: availDestinos,    sel: destinos,     set: setDestinos },
+    { label: 'Tipo Pedra',  avail: availPedras,      sel: pedras,       set: setPedras },
+    { label: 'Lapidação',   avail: availLapidacoes,  sel: lapidacoes,   set: setLapidacoes },
+    { label: 'Fabricante',  avail: availFabricantes, sel: fabricantes,  set: setFabricantes },
+    { label: 'Certificada', avail: ['SIM', 'NÃO'],   sel: certificadas, set: setCertificadas },
   ];
 
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl overflow-hidden">
       {/* Card header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-white/[0.13]">
-        <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">Estoque Disponível</span>
-        <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-zinc-200 dark:border-white/[0.13]">
+        <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 shrink-0">Estoque Disponível</span>
+        <input
+          type="text"
+          placeholder="Buscar em qualquer campo…"
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          className="flex-1 min-w-0 max-w-[220px] px-2.5 py-1 text-[12px] bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-400"
+        />
+        <div className="flex items-center gap-2 ml-auto">
           <span className="text-xs bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full font-semibold">
             {filtered.length}
           </span>
@@ -316,27 +353,14 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
       </div>
 
       {/* Filter panel */}
-      {/* Filter panel — scrolls horizontally on mobile */}
       <div className="overflow-x-auto border-b-2 border-zinc-200 dark:border-white/[0.08]">
       <div
-        className="flex items-stretch bg-zinc-50 dark:bg-zinc-800/50"
-        style={{ maxHeight: '158px', minWidth: 'max-content' }}
+        className="flex items-stretch bg-zinc-50 dark:bg-zinc-800/50 w-full"
+        style={{ maxHeight: '152px' }}
       >
-        {/* Search column */}
-        <div className="flex-none flex flex-col justify-center gap-1.5 px-3 py-2 border-r border-zinc-200 dark:border-white/[0.13]" style={{ minWidth: '145px', maxWidth: '175px' }}>
-          <span className="text-[9px] font-black uppercase tracking-[0.9px] text-zinc-400 dark:text-zinc-500">Buscar</span>
-          <input
-            type="text"
-            placeholder="Ref ou produto…"
-            value={busca}
-            onChange={e => setBusca(e.target.value)}
-            className="w-full px-2.5 py-1 text-[12px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-400"
-          />
-        </div>
-
         {/* Filter columns */}
         {dimDefs.filter(d => d.avail.length > 0).map(d => (
-          <div key={d.label} className="flex flex-col overflow-hidden border-r border-zinc-200 dark:border-white/[0.13]" style={{ flex: '1 1 0', minWidth: '86px' }}>
+          <div key={d.label} className="flex flex-col overflow-hidden border-r border-zinc-200 dark:border-white/[0.13]" style={{ flex: '1 1 0', minWidth: '80px' }}>
             <span className="block px-2 py-1 text-[9px] font-black uppercase tracking-[0.9px] text-zinc-400 dark:text-zinc-500 border-b border-zinc-200 dark:border-white/[0.13] flex-shrink-0 bg-zinc-100/50 dark:bg-zinc-800/80">
               {d.label}
             </span>
@@ -379,11 +403,11 @@ export function JmEstoqueTab({ data }: JmEstoqueTabProps) {
           )}
         </div>
       </div>
-      </div>{/* end overflow-x-auto filter wrapper */}
+      </div>
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full data-table" style={{ minWidth: '1300px', borderCollapse: 'collapse', fontSize: '13px' }}>
+        <table className="w-full data-table" style={{ minWidth: '1050px', borderCollapse: 'collapse', fontSize: '12px' }}>
           <thead>
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id} className="border-b-2 border-zinc-200 dark:border-white/[0.13] bg-zinc-50 dark:bg-zinc-800/60">
