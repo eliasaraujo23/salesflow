@@ -19,7 +19,7 @@ const fmtMoeda = (v: number | null | undefined): string => {
 
 function downloadCSV(rows: JcPeca[]) {
   const hdr = [
-    'Referência','Tipo','Produto','Subtipo','Pedra','Lapidação','Destino','Fabricante','Certificada','Nº Certificado',
+    'Referência','Tipo','Produto','Subtipo','Pedra','Lapidação','Destino','Fornecedor','Certificada','Nº Certificado',
     'Peso(g)','Custo(R$)','Preço Cobrado(R$)',
     'Diamantes','Cts Diam.','Pedra Colorida','Cts PC',
   ];
@@ -214,7 +214,7 @@ export function JcEstoqueTab({ data }: JcEstoqueTabProps) {
     },
     {
       accessorKey: 'fabricante',
-      header: ({ column }) => <SortBtn column={column} label="Fabricante" />,
+      header: ({ column }) => <SortBtn column={column} label="Fornecedor" />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {getValue<string | null | undefined>() ?? '—'}
@@ -322,7 +322,7 @@ export function JcEstoqueTab({ data }: JcEstoqueTabProps) {
     { label: 'Destino',     avail: availDestinos,    sel: destinos,     set: setDestinos },
     { label: 'Tipo Pedra',  avail: availPedras,      sel: pedras,       set: setPedras },
     { label: 'Lapidação',   avail: availLapidacoes,  sel: lapidacoes,   set: setLapidacoes },
-    { label: 'Fabricante',  avail: availFabricantes, sel: fabricantes,  set: setFabricantes },
+    { label: 'Fornecedor',  avail: availFabricantes, sel: fabricantes,  set: setFabricantes },
     { label: 'Certificada', avail: ['SIM', 'NÃO'],   sel: certificadas, set: setCertificadas },
   ];
 
