@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -114,7 +114,7 @@ export function FabEstoqueTab() {
   const availPedras       = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, [],     lapidacoes, fabricantes, certificadas), 'tipo_pedra'),  [buscaFiltered, tipos, produtos, subtipos, destinos, lapidacoes, fabricantes, certificadas]);
   const availLapidacoes   = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, [],         fabricantes, certificadas), 'lapidacao'),   [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, fabricantes, certificadas]);
   const availFabricantes  = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, [],          certificadas), 'fabricante'),  [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, certificadas]);
-  const availCertificadas = useMemo(() => uniqStrings(applyDimFilters(buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes, []),           'certificada'), [buscaFiltered, tipos, produtos, subtipos, destinos, pedras, lapidacoes, fabricantes]);
+
 
   const hasFilters = tipos.length > 0 || produtos.length > 0 || subtipos.length > 0 ||
     destinos.length > 0 || pedras.length > 0 || lapidacoes.length > 0 ||
@@ -327,7 +327,7 @@ export function FabEstoqueTab() {
     { label: 'Tipo Pedra',   avail: availPedras,       sel: pedras,       set: setPedras },
     { label: 'Lapidação',    avail: availLapidacoes,   sel: lapidacoes,   set: setLapidacoes },
     { label: 'Fabricante',   avail: availFabricantes,  sel: fabricantes,  set: setFabricantes },
-    { label: 'Certificada',  avail: availCertificadas, sel: certificadas, set: setCertificadas },
+    { label: 'Certificada',  avail: ['SIM', 'NÃO'],    sel: certificadas, set: setCertificadas },
   ];
 
   if (isLoading) {
