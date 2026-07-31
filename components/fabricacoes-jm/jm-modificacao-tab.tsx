@@ -1,6 +1,7 @@
-﻿'use client';
+'use client';
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+
 import {
   useReactTable,
   getCoreRowModel,
@@ -52,13 +53,13 @@ function applyDimFilters(
   destinos: string[], pedras: string[], lapidacoes: string[],
 ): JmPeca[] {
   return rows.filter(r => {
-    if (tipos.length     && !tipos.includes(r.tipo ?? ''))                   return false;
-    if (produtos.length  && !produtos.includes(r.produto ?? ''))             return false;
-    if (subtipos.length  && !subtipos.includes(r.subtipo ?? ''))             return false;
-    if (destManut.length && !destManut.includes(r.destino_manutencao ?? '')) return false;
-    if (destinos.length  && !destinos.includes(r.destino ?? ''))             return false;
-    if (pedras.length    && !pedras.includes(r.tipo_pedra ?? ''))            return false;
-    if (lapidacoes.length && !lapidacoes.includes(r.lapidacao ?? ''))        return false;
+    if (tipos.length      && !tipos.includes(r.tipo ?? ''))                   return false;
+    if (produtos.length   && !produtos.includes(r.produto ?? ''))             return false;
+    if (subtipos.length   && !subtipos.includes(r.subtipo ?? ''))             return false;
+    if (destManut.length  && !destManut.includes(r.destino_manutencao ?? '')) return false;
+    if (destinos.length   && !destinos.includes(r.destino ?? ''))             return false;
+    if (pedras.length     && !pedras.includes(r.tipo_pedra ?? ''))            return false;
+    if (lapidacoes.length && !lapidacoes.includes(r.lapidacao ?? ''))         return false;
     return true;
   });
 }
@@ -74,14 +75,23 @@ function SortIcon({ dir }: { dir: SortDir }) {
   return <ArrowUpDown size={11} className="opacity-40" />;
 }
 
+function SortBtn({ column, label }: { column: { toggleSorting: () => void; getIsSorted: () => SortDir }; label: string }) {
+  return (
+    <button
+      className="flex items-center justify-center gap-1 w-full text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400"
+      onClick={() => column.toggleSorting()}
+    >
+      {label} <SortIcon dir={column.getIsSorted()} />
+    </button>
+  );
+}
+
 function diasCls(d: number): string {
   if (d <= 15) return 'text-emerald-600 dark:text-emerald-400';
   if (d <= 30) return 'text-amber-600 dark:text-amber-400';
   if (d <= 60) return 'text-orange-500 dark:text-orange-400';
   return 'text-red-600 dark:text-red-400';
 }
-
-const inputCls = 'px-3 py-1.5 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-400';
 
 interface JmModificacaoTabProps {
   pecas: JmPeca[];
@@ -101,9 +111,10 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
   const buscaFiltered = useMemo(() => {
     if (!busca) return pecas;
     const q = busca.toLowerCase();
-    return pecas.filter(p =>
-      p.referencia.toLowerCase().includes(q) || (p.produto ?? '').toLowerCase().includes(q),
-    );
+    return pecas.filter(r => [
+      r.referencia, r.tipo, r.produto, r.subtipo, r.tipo_pedra, r.lapidacao,
+      r.destino_manutencao, r.destino,
+    ].some(v => (v ?? '').toLowerCase().includes(q)));
   }, [pecas, busca]);
 
   const filtered = useMemo(
@@ -122,6 +133,11 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
   const hasFilters = !!busca || tipos.length > 0 || produtos.length > 0 || subtipos.length > 0 ||
     destManut.length > 0 || destinos.length > 0 || pedras.length > 0 || lapidacoes.length > 0;
 
+  function clearAll() {
+    setTipos([]); setProdutos([]); setSubtipos([]);
+    setDestManut([]); setDestinos([]); setPedras([]); setLapidacoes([]); setBusca('');
+  }
+
   const dimDefs = [
     { label: 'Tipo',         avail: availTipos,      sel: tipos,      set: setTipos },
     { label: 'Produto',      avail: availProdutos,   sel: produtos,   set: setProdutos },
@@ -135,16 +151,16 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
   const columns: ColumnDef<JmPeca>[] = [
     {
       accessorKey: 'referencia',
-      header: 'Ref',
+      header: ({ column }) => <SortBtn column={column} label="Ref" />,
       cell: ({ getValue }) => (
-        <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+        <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400">
           {getValue<string>()}
         </span>
       ),
     },
     {
       accessorKey: 'tipo',
-      header: 'Tipo',
+      header: ({ column }) => <SortBtn column={column} label="Tipo" />,
       cell: ({ getValue }) => {
         const v = getValue<string | null | undefined>() ?? '';
         return v
@@ -154,16 +170,16 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
     },
     {
       accessorKey: 'produto',
-      header: 'Produto',
+      header: ({ column }) => <SortBtn column={column} label="Produto" />,
       cell: ({ getValue }) => (
-        <span className="text-xs text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+        <span className="text-xs text-zinc-900 dark:text-zinc-100">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
     },
     {
       accessorKey: 'subtipo',
-      header: 'Subtipo',
+      header: ({ column }) => <SortBtn column={column} label="Subtipo" />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {getValue<string | null | undefined>() ?? '—'}
@@ -172,7 +188,7 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
     },
     {
       accessorKey: 'tipo_pedra',
-      header: 'Pedra',
+      header: ({ column }) => <SortBtn column={column} label="Pedra" />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-700 dark:text-zinc-300">
           {getValue<string | null | undefined>() ?? '—'}
@@ -181,7 +197,7 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
     },
     {
       accessorKey: 'lapidacao',
-      header: 'Lapidação',
+      header: ({ column }) => <SortBtn column={column} label="Lapidação" />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {getValue<string | null | undefined>() ?? '—'}
@@ -190,7 +206,7 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
     },
     {
       accessorKey: 'destino_manutencao',
-      header: 'Dest. Manut.',
+      header: ({ column }) => <SortBtn column={column} label="Dest. Manut." />,
       cell: ({ getValue }) => {
         const v = getValue<string | null | undefined>() ?? '';
         return v
@@ -199,8 +215,17 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
       },
     },
     {
+      accessorKey: 'destino',
+      header: ({ column }) => <SortBtn column={column} label="Destino" />,
+      cell: ({ getValue }) => (
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+          {getValue<string | null | undefined>() ?? '—'}
+        </span>
+      ),
+    },
+    {
       accessorKey: 'data_saida_manutencao',
-      header: 'Saída Manut.',
+      header: ({ column }) => <SortBtn column={column} label="Saída Manut." />,
       cell: ({ getValue }) => (
         <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
           {fmtDate(getValue<string | null | undefined>())}
@@ -209,15 +234,15 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
     },
     {
       accessorKey: 'dias',
-      header: 'Dias',
+      header: ({ column }) => <SortBtn column={column} label="Dias" />,
       cell: ({ getValue }) => {
         const d = getValue<number>();
-        return <span className={`text-xs font-bold whitespace-nowrap ${diasCls(d)}`}>{d}d</span>;
+        return <span className={`text-xs font-bold ${diasCls(d)}`}>{d}d</span>;
       },
     },
     {
       accessorKey: 'peso',
-      header: 'Peso',
+      header: ({ column }) => <SortBtn column={column} label="Peso" />,
       cell: ({ getValue }) => {
         const v = getValue<number>();
         return <span className="text-xs text-zinc-500 dark:text-zinc-400">{v > 0 ? `${v.toFixed(2)}g` : '—'}</span>;
@@ -225,9 +250,9 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
     },
     {
       accessorKey: 'custo_real',
-      header: 'Custo',
+      header: ({ column }) => <SortBtn column={column} label="Custo" />,
       cell: ({ getValue }) => (
-        <span className="text-xs text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
+        <span className="text-xs text-zinc-700 dark:text-zinc-300 tabular-nums">
           {fmtMoeda(getValue<number>())}
         </span>
       ),
@@ -244,113 +269,118 @@ export function JmModificacaoTab({ pecas }: JmModificacaoTabProps) {
   });
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl p-4">
-        <div className="flex items-start gap-4 overflow-x-auto pb-1">
-          <div className="flex flex-col gap-1.5 shrink-0">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Buscar</span>
-            <input
-              type="text"
-              placeholder="Ref ou produto…"
-              value={busca}
-              onChange={e => setBusca(e.target.value)}
-              className={`w-44 ${inputCls}`}
-            />
-          </div>
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl overflow-hidden">
+      {/* Card header */}
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-zinc-200 dark:border-white/[0.13]">
+        <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 shrink-0">Peças em Modificação</span>
+        <input
+          type="text"
+          placeholder="Buscar em qualquer campo…"
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          className="flex-1 min-w-0 max-w-[220px] px-2.5 py-1 text-[12px] bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-400"
+        />
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="text-xs bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full font-semibold">
+            {filtered.length}
+          </span>
+          <button
+            onClick={() => downloadCSV(filtered)}
+            disabled={filtered.length === 0}
+            className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.13] rounded hover:border-emerald-500 hover:text-emerald-600 transition-colors disabled:opacity-40"
+          >
+            <Download size={12} /> Exportar
+          </button>
+        </div>
+      </div>
 
+      {/* Filter panel */}
+      <div className="overflow-x-auto border-b-2 border-zinc-200 dark:border-white/[0.08]">
+        <div
+          className="flex items-stretch bg-zinc-50 dark:bg-zinc-800/50 w-full"
+          style={{ maxHeight: '152px' }}
+        >
           {dimDefs.filter(d => d.avail.length > 0).map(d => (
-            <div key={d.label} className="flex flex-col min-w-[120px] shrink-0">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-1.5">
+            <div key={d.label} className="flex flex-col overflow-hidden border-r border-zinc-200 dark:border-white/[0.13]" style={{ flex: '1 1 0', minWidth: '80px' }}>
+              <span className="block px-2 py-1 text-[9px] font-black uppercase tracking-[0.9px] text-zinc-400 dark:text-zinc-500 border-b border-zinc-200 dark:border-white/[0.13] flex-shrink-0 bg-zinc-100/50 dark:bg-zinc-800/80">
                 {d.label}
               </span>
-              <div className="max-h-[88px] overflow-y-auto space-y-0.5 pr-1">
+              <div className="overflow-y-auto flex-1 py-0.5">
                 {d.avail.map(v => (
-                  <label key={v} className="flex items-center gap-1.5 cursor-pointer group">
+                  <label
+                    key={v}
+                    className={`flex items-center gap-1.5 px-2 py-0.5 cursor-pointer text-[11.5px] leading-[1.6] transition-colors select-none ${
+                      d.sel.includes(v)
+                        ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/[0.13] font-medium'
+                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-indigo-500/[0.07]'
+                    }`}
+                  >
                     <input
                       type="checkbox"
                       checked={d.sel.includes(v)}
                       onChange={() => d.set(toggle(d.sel, v))}
-                      className="w-3.5 h-3.5 accent-indigo-600 cursor-pointer shrink-0"
+                      className="w-3 h-3 accent-indigo-600 cursor-pointer flex-shrink-0"
                     />
-                    <span className="text-xs text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 leading-tight">
-                      {v}
-                    </span>
+                    {v}
                   </label>
                 ))}
               </div>
             </div>
           ))}
 
-          <div className="ml-auto flex flex-col items-end gap-1.5 shrink-0">
-            <div className="text-right">
-              <span className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 leading-none">{filtered.length}</span>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">itens</div>
+          <div className="flex-none flex flex-col items-center justify-center gap-2 px-3 py-2" style={{ minWidth: '68px' }}>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 leading-none">{filtered.length}</div>
+              <div className="text-[9px] font-semibold uppercase tracking-[0.5px] text-zinc-400 dark:text-zinc-500 mt-0.5">itens</div>
             </div>
             {hasFilters && (
               <button
-                onClick={() => {
-                  setTipos([]); setProdutos([]); setSubtipos([]);
-                  setDestManut([]); setDestinos([]); setPedras([]); setLapidacoes([]); setBusca('');
-                }}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.13] rounded-lg hover:border-red-400 hover:text-red-500 transition-colors"
+                onClick={clearAll}
+                className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.13] rounded hover:border-red-400 hover:text-red-500 transition-colors"
               >
-                <X size={11} /> Limpar
+                <X size={10} /> Limpar
               </button>
             )}
-            <button
-              onClick={() => downloadCSV(filtered)}
-              disabled={filtered.length === 0}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.13] rounded-lg hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors disabled:opacity-40"
-            >
-              <Download size={13} /> CSV
-            </button>
           </div>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm data-table" style={{ minWidth: '1100px' }}>
-            <thead>
-              {table.getHeaderGroups().map(hg => (
-                <tr key={hg.id} className="border-b border-zinc-200 dark:border-white/[0.13] bg-zinc-50 dark:bg-zinc-800/60">
-                  {hg.headers.map(h => {
-                    const canSort = h.column.getCanSort();
-                    const sorted = h.column.getIsSorted();
-                    return (
-                      <th
-                        key={h.id}
-                        onClick={canSort ? h.column.getToggleSortingHandler() : undefined}
-                        className={`px-3 py-2.5 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 whitespace-nowrap ${canSort ? 'cursor-pointer select-none hover:text-zinc-900 dark:hover:text-zinc-100' : ''}`}
-                      >
-                        <div className="flex items-center gap-1">
-                          {flexRender(h.column.columnDef.header, h.getContext())}
-                          {canSort && <SortIcon dir={sorted} />}
-                        </div>
-                      </th>
-                    );
-                  })}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.map(row => (
-                <tr key={row.id} className="border-b border-zinc-100 dark:border-white/[0.04] hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors">
-                  {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="px-3 py-2">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 && (
-            <div className="p-10 text-center text-zinc-500 dark:text-zinc-400 text-sm">
-              {pecas.length === 0 ? 'Nenhuma peça em modificação' : 'Nenhum item para os filtros selecionados'}
-            </div>
-          )}
-        </div>
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full data-table" style={{ minWidth: '1100px', borderCollapse: 'collapse', fontSize: '12px' }}>
+          <thead>
+            {table.getHeaderGroups().map(hg => (
+              <tr key={hg.id} className="border-b-2 border-zinc-200 dark:border-white/[0.13] bg-zinc-50 dark:bg-zinc-800/60">
+                {hg.headers.map(h => (
+                  <th key={h.id} className="px-3.5 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.5px] text-zinc-500 dark:text-zinc-400 whitespace-nowrap border-r border-zinc-200 dark:border-white/[0.13] last:border-r-0">
+                    {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row, i) => (
+              <tr
+                key={row.id}
+                className={`hover:bg-indigo-50/50 dark:hover:bg-indigo-500/[0.05] transition-colors ${
+                  i % 2 === 1 ? 'bg-zinc-50/80 dark:bg-zinc-800/20' : ''
+                }`}
+              >
+                {row.getVisibleCells().map(cell => (
+                  <td key={cell.id} className="px-3.5 py-2.5 text-center border-b border-r border-zinc-100 dark:border-white/[0.04] last:border-r-0">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filtered.length === 0 && (
+          <div className="p-10 text-center text-zinc-500 dark:text-zinc-400 text-sm">
+            {pecas.length === 0 ? 'Nenhuma peça em modificação' : 'Nenhum item para os filtros selecionados'}
+          </div>
+        )}
       </div>
     </div>
   );
