@@ -64,7 +64,13 @@ function applyDimFilters(
     if (pedras.length       && !pedras.includes(r.tipo_pedra ?? ''))     return false;
     if (lapidacoes.length   && !lapidacoes.includes(r.lapidacao ?? ''))  return false;
     if (fabricantes.length  && !fabricantes.includes(r.fabricante ?? '')) return false;
-    if (certificadas.length && !certificadas.includes(r.certificada ?? '')) return false;
+    if (certificadas.length) {
+      const isSim = (r.certificada?.toUpperCase() ?? '') === 'SIM';
+      const wantsSim = certificadas.includes('SIM');
+      const wantsNao = certificadas.includes('NÃO');
+      if (wantsSim && !wantsNao && !isSim) return false;
+      if (wantsNao && !wantsSim && isSim) return false;
+    }
     return true;
   });
 }
@@ -137,7 +143,7 @@ export function FabEstoqueTab() {
       accessorKey: 'referencia',
       header: ({ column }) => <SortBtn column={column} label="Ref" />,
       cell: ({ getValue }) => (
-        <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+        <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400">
           {getValue<string>()}
         </span>
       ),
@@ -158,7 +164,7 @@ export function FabEstoqueTab() {
       accessorKey: 'produto',
       header: ({ column }) => <SortBtn column={column} label="Produto" />,
       cell: ({ getValue }) => (
-        <span className="text-xs text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+        <span className="text-xs text-zinc-900 dark:text-zinc-100">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
@@ -175,22 +181,17 @@ export function FabEstoqueTab() {
     {
       accessorKey: 'tipo_pedra',
       header: ({ column }) => <SortBtn column={column} label="Tipo Pedra" />,
-      cell: ({ row }) => (
-        <div className="text-center">
-          <div className="text-xs text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
-            {row.original.tipo_pedra ?? '—'}
-          </div>
-          {row.original.lapidacao && (
-            <div className="text-[10px] text-zinc-400 dark:text-zinc-500">{row.original.lapidacao}</div>
-          )}
-        </div>
+      cell: ({ getValue }) => (
+        <span className="text-xs text-zinc-900 dark:text-zinc-100">
+          {getValue<string | null | undefined>() ?? '—'}
+        </span>
       ),
     },
     {
       accessorKey: 'lapidacao',
       header: ({ column }) => <SortBtn column={column} label="Lapidação" />,
       cell: ({ getValue }) => (
-        <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
@@ -199,7 +200,7 @@ export function FabEstoqueTab() {
       accessorKey: 'destino',
       header: ({ column }) => <SortBtn column={column} label="Destino" />,
       cell: ({ getValue }) => (
-        <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
@@ -208,7 +209,7 @@ export function FabEstoqueTab() {
       accessorKey: 'fabricante',
       header: ({ column }) => <SortBtn column={column} label="Fabricante" />,
       cell: ({ getValue }) => (
-        <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
           {getValue<string | null | undefined>() ?? '—'}
         </span>
       ),
@@ -448,7 +449,7 @@ export function FabEstoqueTab() {
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full data-table" style={{ minWidth: '1300px', borderCollapse: 'collapse', fontSize: '13px' }}>
+        <table className="w-full data-table" style={{ minWidth: '1050px', borderCollapse: 'collapse', fontSize: '12px' }}>
           <thead>
             {table.getHeaderGroups().map(hg => (
               <tr key={hg.id} className="border-b-2 border-zinc-200 dark:border-white/[0.13] bg-zinc-50 dark:bg-zinc-800/60">
