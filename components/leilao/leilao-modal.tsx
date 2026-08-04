@@ -12,18 +12,18 @@ import { Label } from '@/components/ui/label';
 import type { Leilao } from '@/lib/hooks/use-leiloes';
 
 export const LEILAO_COLORS = [
-  { label: 'Petróleo',    value: '#0f766e' },
-  { label: 'Azul',        value: '#1d4ed8' },
-  { label: 'Céu',         value: '#0284c7' },
-  { label: 'Índigo',      value: '#4338ca' },
-  { label: 'Laranja',     value: '#ea580c' },
-  { label: 'Âmbar',       value: '#d97706' },
-  { label: 'Salmão',      value: '#e8745a' },
-  { label: 'Roxo',        value: '#7c3aed' },
-  { label: 'Rosa',        value: '#db2777' },
-  { label: 'Verde',       value: '#15803d' },
-  { label: 'Cinza',       value: '#52525b' },
-  { label: 'Vermelho',    value: '#b91c1c' },
+  { label: 'Petróleo',  value: '#0f766e' },
+  { label: 'Azul',      value: '#1d4ed8' },
+  { label: 'Céu',       value: '#0284c7' },
+  { label: 'Índigo',    value: '#4338ca' },
+  { label: 'Roxo',      value: '#7c3aed' },
+  { label: 'Rosa',      value: '#db2777' },
+  { label: 'Vermelho',  value: '#b91c1c' },
+  { label: 'Laranja',   value: '#ea580c' },
+  { label: 'Âmbar',     value: '#d97706' },
+  { label: 'Lima',      value: '#65a30d' },
+  { label: 'Verde',     value: '#15803d' },
+  { label: 'Cinza',     value: '#52525b' },
 ];
 
 const schema = z.object({
@@ -111,17 +111,17 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
 
           <div className="flex flex-col gap-2">
             <Label>Cor</Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-6 gap-2">
               {LEILAO_COLORS.map(c => (
                 <button
                   key={c.value}
                   type="button"
                   onClick={() => setValue('cor', c.value)}
                   title={c.label}
-                  className={`w-7 h-7 rounded-full transition-all ${
+                  className={`w-8 h-8 rounded-full transition-all ${
                     corAtual === c.value
                       ? 'ring-2 ring-offset-2 ring-zinc-900 dark:ring-zinc-100 scale-110'
-                      : 'hover:scale-105 opacity-80 hover:opacity-100'
+                      : 'hover:scale-105 opacity-75 hover:opacity-100'
                   }`}
                   style={{ background: c.value }}
                 />
