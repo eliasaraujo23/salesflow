@@ -150,7 +150,6 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
               dateRange={dateRange}
               setDateRange={setDateRange}
               onDateChange={handleDateChange}
-              singleMonth
               buttonClassName="rounded-lg border border-zinc-300 dark:border-white/[0.12] text-zinc-700 dark:text-zinc-200 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/40 w-full justify-start font-medium"
             />
             {(errors.dataInicio || errors.dataFim) && (
