@@ -3,13 +3,13 @@
 import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import { useLeilaoBase } from '@/lib/hooks/use-leilao-base';
-import { useLeiloes, type Leilao } from '@/lib/hooks/use-leiloes';
+import { useLeiloes } from '@/lib/hooks/use-leiloes';
+import { useLeilaoBasesStorage } from '@/lib/hooks/use-leilao-bases-storage';
 import { BaseSistemaTable } from '@/components/leilao/base-sistema-table';
 import {
   BaseSistemaUpload,
   type ActiveRefsMap,
   type ActivePieceInfo,
-  type UploadedFile,
 } from '@/components/leilao/base-sistema-upload';
 
 type Filtro = 'todos' | 'normal' | 'top' | 'ativo';
@@ -18,13 +18,14 @@ export default function BaseSistemaPage() {
   const { data: rows = [], isLoading, error } = useLeilaoBase();
   const { leiloes } = useLeiloes();
 
-  const [uploadedFiles,  setUploadedFiles]  = useState<UploadedFile[]>([]);
-  const [refsPerFile,    setRefsPerFile]    = useState<Map<string, string[]>>(new Map());
-  const [excludedFiles,  setExcludedFiles]  = useState<Set<string>>(new Set());
-  const [globalFilter,   setGlobalFilter]   = useState('');
-  const [filtro,         setFiltro]         = useState<Filtro>('todos');
+  const {
+    uploadedFiles, refsPerFile, excludedFiles,
+    add, remove, toggleExclude,
+  } = useLeilaoBasesStorage(leiloes);
 
-  // Build merged activeRefs — only from non-excluded files
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [filtro,       setFiltro]       = useState<Filtro>('todos');
+
   const activeRefs = useMemo<ActiveRefsMap>(() => {
     const map: ActiveRefsMap = new Map();
     for (const f of uploadedFiles) {
@@ -50,25 +51,6 @@ export default function BaseSistemaPage() {
     top:    rows.filter(r => !activeRefs.has(r.referencia.toUpperCase()) && r.recomendacao === 'TOP').length,
     ativo:  rows.filter(r => activeRefs.has(r.referencia.toUpperCase())).length,
   }), [rows, activeRefs]);
-
-  function handleAdd(file: UploadedFile, refs: string[]) {
-    setUploadedFiles(prev => prev.find(f => f.filename === file.filename) ? prev : [...prev, file]);
-    setRefsPerFile(prev => new Map(prev).set(file.filename, refs));
-  }
-
-  function handleRemove(filename: string) {
-    setUploadedFiles(prev => prev.filter(f => f.filename !== filename));
-    setRefsPerFile(prev => { const m = new Map(prev); m.delete(filename); return m; });
-    setExcludedFiles(prev => { const s = new Set(prev); s.delete(filename); return s; });
-  }
-
-  function handleToggleExclude(filename: string) {
-    setExcludedFiles(prev => {
-      const s = new Set(prev);
-      s.has(filename) ? s.delete(filename) : s.add(filename);
-      return s;
-    });
-  }
 
   const FILTROS: { key: Filtro; label: string; count: number }[] = [
     { key: 'todos',  label: 'Todos',        count: stats.total },
@@ -121,7 +103,6 @@ export default function BaseSistemaPage() {
 
       {/* ── Toolbar + bases ─────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row gap-4 shrink-0">
-        {/* Search */}
         <div className="relative shrink-0">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           <input
@@ -132,14 +113,13 @@ export default function BaseSistemaPage() {
           />
         </div>
 
-        {/* Bases upload + list */}
         <BaseSistemaUpload
           uploaded={uploadedFiles}
           excludedFiles={excludedFiles}
           leiloes={leiloes}
-          onAdd={handleAdd}
-          onRemove={handleRemove}
-          onToggleExclude={handleToggleExclude}
+          onAdd={add}
+          onRemove={remove}
+          onToggleExclude={toggleExclude}
         />
       </div>
 

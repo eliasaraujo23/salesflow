@@ -19,6 +19,9 @@ export interface UploadedFile {
   count:           number;
 }
 
+// Re-export storage type alias so page can use one import
+export type { UploadedFileStored } from '@/lib/hooks/use-leilao-bases-storage';
+
 export function extractCodigoFromFilename(filename: string): string | null {
   const m = filename.match(/(\d{4,6})/);
   return m ? m[1] : null;
