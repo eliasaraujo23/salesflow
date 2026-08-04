@@ -1,100 +1,104 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { z } from 'zod';
 import type { Leilao } from '@/lib/hooks/use-leiloes';
 
-const STORAGE_KEY = 'goldtech_leilao_bases_v1';
+const QUERY_KEY = ['leilao-bases-ativas'];
 
-interface StoredBase {
-  filename:        string;
-  codigoPlatforma: string | null;
-  count:           number;
-  refs:            string[];
-  excluded:        boolean;
-}
+const dbRowSchema = z.object({
+  id:               z.number(),
+  codigo_plataforma: z.string().nullable(),
+  filename:         z.string(),
+  count_pecas:      z.number(),
+  refs:             z.array(z.string()),
+  excluded:         z.boolean(),
+});
+
+type DbRow = z.infer<typeof dbRowSchema>;
 
 export interface UploadedFileStored {
+  id:              number;
   filename:        string;
   codigoPlatforma: string | null;
-  leilao:          Leilao | null; // derived at runtime from leiloes
+  leilao:          Leilao | null;
   count:           number;
 }
 
-function readStorage(): StoredBase[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as StoredBase[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeStorage(bases: StoredBase[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(bases));
-  } catch { /* ignore quota errors */ }
+async function fetchBases(): Promise<DbRow[]> {
+  const res = await fetch('/api/leilao/bases', { cache: 'no-store' });
+  if (!res.ok) throw new Error('Erro ao buscar bases');
+  const json = await res.json();
+  return z.object({ data: z.array(dbRowSchema) }).parse(json).data;
 }
 
 export function useLeilaoBasesStorage(leiloes: Leilao[]) {
-  const [stored, setStored] = useState<StoredBase[]>([]);
+  const qc = useQueryClient();
+  const { data: dbRows = [] } = useQuery({ queryKey: QUERY_KEY, queryFn: fetchBases });
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    setStored(readStorage());
-  }, []);
-
-  // Derive UploadedFile objects (with leilao resolved from current leiloes list)
-  const uploadedFiles: UploadedFileStored[] = stored.map(s => ({
-    filename:        s.filename,
-    codigoPlatforma: s.codigoPlatforma,
-    count:           s.count,
-    leilao:          s.codigoPlatforma
-      ? leiloes.find(l => l.codigoPlatforma === s.codigoPlatforma) ?? null
+  // Derive typed view
+  const uploadedFiles: UploadedFileStored[] = dbRows.map(r => ({
+    id:              r.id,
+    filename:        r.filename,
+    codigoPlatforma: r.codigo_plataforma,
+    count:           r.count_pecas,
+    leilao:          r.codigo_plataforma
+      ? leiloes.find(l => l.codigoPlatforma === r.codigo_plataforma) ?? null
       : null,
   }));
 
-  // Derive refsPerFile map
-  const refsPerFile = new Map<string, string[]>(
-    stored.map(s => [s.filename, s.refs])
-  );
+  const refsPerFile = new Map<string, string[]>(dbRows.map(r => [r.filename, r.refs]));
+  const excludedFiles = new Set<string>(dbRows.filter(r => r.excluded).map(r => r.filename));
 
-  // Derive excludedFiles set
-  const excludedFiles = new Set<string>(
-    stored.filter(s => s.excluded).map(s => s.filename)
-  );
+  const addMutation = useMutation({
+    mutationFn: async (payload: { codigoPlatforma: string | null; filename: string; count: number; refs: string[] }) => {
+      const res = await fetch('/api/leilao/bases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Erro ao salvar base');
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
 
-  const add = useCallback((file: UploadedFileStored, refs: string[]) => {
-    setStored(prev => {
-      if (prev.find(s => s.filename === file.filename)) return prev;
-      const next = [...prev, {
-        filename:        file.filename,
-        codigoPlatforma: file.codigoPlatforma,
-        count:           file.count,
-        refs,
-        excluded:        false,
-      }];
-      writeStorage(next);
-      return next;
+  const removeMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await fetch(`/api/leilao/bases/${id}`, { method: 'DELETE' });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, excluded }: { id: number; excluded: boolean }) => {
+      await fetch(`/api/leilao/bases/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ excluded }),
+      });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
+
+  const add = useCallback((file: { filename: string; codigoPlatforma: string | null; count: number; leilao: Leilao | null }, refs: string[]) => {
+    addMutation.mutate({
+      codigoPlatforma: file.codigoPlatforma,
+      filename:        file.filename,
+      count:           file.count,
+      refs,
     });
-  }, []);
+  }, [addMutation]);
 
   const remove = useCallback((filename: string) => {
-    setStored(prev => {
-      const next = prev.filter(s => s.filename !== filename);
-      writeStorage(next);
-      return next;
-    });
-  }, []);
+    const row = dbRows.find(r => r.filename === filename);
+    if (row) removeMutation.mutate(row.id);
+  }, [dbRows, removeMutation]);
 
   const toggleExclude = useCallback((filename: string) => {
-    setStored(prev => {
-      const next = prev.map(s =>
-        s.filename === filename ? { ...s, excluded: !s.excluded } : s
-      );
-      writeStorage(next);
-      return next;
-    });
-  }, []);
+    const row = dbRows.find(r => r.filename === filename);
+    if (row) toggleMutation.mutate({ id: row.id, excluded: !row.excluded });
+  }, [dbRows, toggleMutation]);
 
   return { uploadedFiles, refsPerFile, excludedFiles, add, remove, toggleExclude };
 }
