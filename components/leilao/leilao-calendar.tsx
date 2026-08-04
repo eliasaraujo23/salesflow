@@ -134,7 +134,7 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
             {WEEK_DAYS.map((d, i) => (
               <div
                 key={d}
-                className={`py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider border-r border-zinc-200 dark:border-white/[0.08] last:border-r-0 ${
+                className={`py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider ${
                   i === 0 || i === 6 ? 'text-rose-400' : 'text-zinc-400 dark:text-zinc-500'
                 }`}
               >
@@ -148,7 +148,15 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
             {weeks.map((week, wi) => {
               const segments = getSegments(week, leiloes);
               return (
-                <div key={wi} className="flex-1 flex flex-col min-h-[90px]">
+                <div key={wi} className="flex-1 flex flex-col min-h-[90px] relative">
+                  {/* Vertical column lines */}
+                  {[1,2,3,4,5,6].map(i => (
+                    <div
+                      key={i}
+                      className="absolute inset-y-0 border-r border-zinc-200 dark:border-white/[0.06] pointer-events-none"
+                      style={{ left: `${(i / 7) * 100}%` }}
+                    />
+                  ))}
                   {/* Day number row */}
                   <div className="grid grid-cols-7">
                     {week.map((day, di) => {
@@ -159,7 +167,7 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
                         <div
                           key={di}
                           onClick={() => onAdd(format(day, 'yyyy-MM-dd'))}
-                          className={`group py-1 px-2 cursor-pointer select-none border-r border-zinc-200 dark:border-white/[0.06] last:border-r-0 ${
+                          className={`group py-1 px-2 cursor-pointer select-none ${
                             weekend ? 'bg-rose-50/60 dark:bg-rose-950/10' : ''
                           } ${!inMonth ? 'opacity-35' : ''}`}
                         >
