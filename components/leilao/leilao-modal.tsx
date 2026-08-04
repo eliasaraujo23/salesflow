@@ -1,38 +1,41 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { format, parseISO } from 'date-fns';
+import { type DateRange } from 'react-day-picker';
 import { Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CalendarDateRangePicker } from '@/components/ui/date-range-picker';
 import type { Leilao } from '@/lib/hooks/use-leiloes';
 
-export const LEILAO_COLORS = [
-  { label: 'Petróleo',  value: '#0f766e' },
-  { label: 'Azul',      value: '#1d4ed8' },
-  { label: 'Céu',       value: '#0284c7' },
-  { label: 'Índigo',    value: '#4338ca' },
-  { label: 'Roxo',      value: '#7c3aed' },
-  { label: 'Rosa',      value: '#db2777' },
-  { label: 'Vermelho',  value: '#b91c1c' },
-  { label: 'Laranja',   value: '#ea580c' },
-  { label: 'Âmbar',     value: '#d97706' },
-  { label: 'Lima',      value: '#65a30d' },
-  { label: 'Verde',     value: '#15803d' },
-  { label: 'Cinza',     value: '#52525b' },
-];
+export const TIPOS_LEILAO = [
+  { label: 'ETERNNO',     cor: '#0d9488' },
+  { label: 'ETERNNO TOP', cor: '#2563eb' },
+  { label: 'BRUNO',       cor: '#ea580c' },
+  { label: 'BRUNO TOP',   cor: '#d97706' },
+  { label: '24K',         cor: '#7c3aed' },
+  { label: '24K TOP',     cor: '#db2777' },
+] as const;
+
+type TipoLabel = typeof TIPOS_LEILAO[number]['label'];
+
+function corDoTipo(nome: string): string {
+  return TIPOS_LEILAO.find(t => t.label === nome)?.cor ?? '#52525b';
+}
 
 const schema = z.object({
-  numero:      z.string().min(1, 'Obrigatório'),
-  nome:        z.string().min(1, 'Obrigatório'),
-  dataInicio:  z.string().min(1, 'Obrigatório'),
-  dataFim:     z.string().min(1, 'Obrigatório'),
-  cor:         z.string().min(1),
-  observacao:  z.string().optional(),
+  numero:     z.string().min(1, 'Obrigatório'),
+  nome:       z.string().min(1, 'Selecione o tipo'),
+  dataInicio: z.string().min(1, 'Selecione o período'),
+  dataFim:    z.string().min(1, 'Selecione o período'),
+  observacao: z.string().optional(),
 }).refine(d => d.dataFim >= d.dataInicio, {
   message: 'Data fim deve ser ≥ data início',
   path: ['dataFim'],
@@ -43,24 +46,22 @@ export type LeilaoFormValues = z.infer<typeof schema>;
 interface Props {
   open:      boolean;
   onClose:   () => void;
-  onSave:    (values: LeilaoFormValues) => void;
+  onSave:    (values: LeilaoFormValues & { cor: string }) => void;
   onDelete?: () => void;
   initial?:  Partial<Leilao>;
 }
 
 export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props) {
   const {
-    register, handleSubmit, setValue, watch, reset,
+    register, handleSubmit, setValue, watch, reset, control,
     formState: { errors },
   } = useForm<LeilaoFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      numero: '', nome: '', dataInicio: '', dataFim: '',
-      cor: LEILAO_COLORS[0].value, observacao: '',
-    },
+    defaultValues: { numero: '', nome: '', dataInicio: '', dataFim: '', observacao: '' },
   });
 
-  const corAtual = watch('cor');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const nomeAtual = watch('nome');
 
   useEffect(() => {
     if (open) {
@@ -69,11 +70,27 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
         nome:       initial?.nome       ?? '',
         dataInicio: initial?.dataInicio ?? '',
         dataFim:    initial?.dataFim    ?? '',
-        cor:        initial?.cor        ?? LEILAO_COLORS[0].value,
         observacao: initial?.observacao ?? '',
       });
+      setDateRange(
+        initial?.dataInicio
+          ? { from: parseISO(initial.dataInicio), to: initial.dataFim ? parseISO(initial.dataFim) : undefined }
+          : undefined,
+      );
     }
   }, [open, initial, reset]);
+
+  function handleDateChange(range: DateRange | undefined) {
+    setDateRange(range);
+    setValue('dataInicio', range?.from ? format(range.from, 'yyyy-MM-dd') : '');
+    setValue('dataFim',    range?.to   ? format(range.to,   'yyyy-MM-dd') : '');
+  }
+
+  function handleSave(values: LeilaoFormValues) {
+    onSave({ ...values, cor: corDoTipo(values.nome) });
+  }
+
+  const tipoAtual = TIPOS_LEILAO.find(t => t.label === nomeAtual);
 
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
@@ -84,53 +101,66 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSave)} className="flex flex-col gap-4 mt-1">
+        <form onSubmit={handleSubmit(handleSave)} className="flex flex-col gap-4 mt-1">
+
+          {/* Tipo + Número */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="numero" className="text-zinc-700 dark:text-zinc-200">Número do leilão</Label>
-              <Input id="numero" placeholder="ex: 61" {...register('numero')} />
-              {errors.numero && <p className="text-xs text-red-500">{errors.numero.message}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="nome" className="text-zinc-700 dark:text-zinc-200">Nome / Casa</Label>
-              <Input id="nome" placeholder="ex: ETN" {...register('nome')} />
+              <Label className="text-zinc-700 dark:text-zinc-200">Tipo de leilão</Label>
+              <Controller
+                name="nome"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecionar..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIPOS_LEILAO.map(t => (
+                        <SelectItem key={t.label} value={t.label}>
+                          <span className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: t.cor }} />
+                            {t.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
               {errors.nome && <p className="text-xs text-red-500">{errors.nome.message}</p>}
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="dataInicio" className="text-zinc-700 dark:text-zinc-200">Início do pregão</Label>
-              <Input id="dataInicio" type="date" {...register('dataInicio')} />
-              {errors.dataInicio && <p className="text-xs text-red-500">{errors.dataInicio.message}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="dataFim" className="text-zinc-700 dark:text-zinc-200">Fim do pregão</Label>
-              <Input id="dataFim" type="date" {...register('dataFim')} />
-              {errors.dataFim && <p className="text-xs text-red-500">{errors.dataFim.message}</p>}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label className="text-zinc-700 dark:text-zinc-200">Cor</Label>
-            <div className="grid grid-cols-6 gap-2">
-              {LEILAO_COLORS.map(c => (
-                <button
-                  key={c.value}
-                  type="button"
-                  onClick={() => setValue('cor', c.value)}
-                  title={c.label}
-                  className={`w-8 h-8 rounded-full transition-all ${
-                    corAtual === c.value
-                      ? 'ring-2 ring-offset-2 ring-zinc-900 dark:ring-zinc-100 scale-110'
-                      : 'hover:scale-105 opacity-75 hover:opacity-100'
-                  }`}
-                  style={{ background: c.value }}
-                />
-              ))}
+              <Label htmlFor="numero" className="text-zinc-700 dark:text-zinc-200">Número do leilão</Label>
+              <div className="flex items-center gap-2">
+                {tipoAtual && (
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{ background: tipoAtual.cor }} />
+                )}
+                <Input id="numero" placeholder="ex: 61" className="flex-1" {...register('numero')} />
+              </div>
+              {errors.numero && <p className="text-xs text-red-500">{errors.numero.message}</p>}
             </div>
           </div>
 
+          {/* Período */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-zinc-700 dark:text-zinc-200">Período do pregão</Label>
+            <CalendarDateRangePicker
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              onDateChange={handleDateChange}
+              singleMonth
+              buttonClassName="rounded-lg border border-zinc-300 dark:border-white/[0.12] text-zinc-700 dark:text-zinc-200 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/40 w-full justify-start font-medium"
+            />
+            {(errors.dataInicio || errors.dataFim) && (
+              <p className="text-xs text-red-500">
+                {errors.dataFim?.message ?? errors.dataInicio?.message}
+              </p>
+            )}
+          </div>
+
+          {/* Observação */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="observacao" className="text-zinc-700 dark:text-zinc-200">
               Observação <span className="font-normal text-zinc-400 dark:text-zinc-500">(opcional)</span>

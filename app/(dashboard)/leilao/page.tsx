@@ -30,7 +30,7 @@ export default function LeilaoPage() {
     setDefaultDate(undefined);
   }
 
-  function handleSave(values: LeilaoFormValues) {
+  function handleSave(values: LeilaoFormValues & { cor: string }) {
     if (editing) {
       update({ ...editing, ...values });
       toast.success('Leilão atualizado');
