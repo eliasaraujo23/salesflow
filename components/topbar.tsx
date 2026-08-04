@@ -246,6 +246,7 @@ export function Topbar({ title, subtitle, onMobileMenu }: TopbarProps) {
               {[
                 { label: 'Cronograma',   href: '/leilao' },
                 { label: 'Base Sistema', href: '/leilao/base-sistema' },
+                { label: 'Pendências',   href: '/leilao/pendencias' },
               ].map(tab => {
                 const isActive = tab.href === '/leilao'
                   ? pathname === '/leilao'
