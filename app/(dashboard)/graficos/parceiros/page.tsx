@@ -13,6 +13,12 @@ import { TicketMedioAreaChart } from '@/components/graficos/ticket-medio-area-ch
 
 const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
+function fmtMesLabel(mes: string, multiYear = false) {
+  const [y, m] = mes.split('-');
+  const label = MONTHS_PT[parseInt(m) - 1];
+  return multiYear ? `${label}/${y.slice(2)}` : label;
+}
+
 function defaultRange(): DateRange {
   const now = new Date();
   // Último dia do mês atual para não cortar mês em andamento
@@ -23,11 +29,6 @@ function defaultRange(): DateRange {
 
 function fmtBRL(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-}
-
-function fmtMesLabel(mes: string) {
-  const [, m] = mes.split('-');
-  return MONTHS_PT[parseInt(m) - 1];
 }
 
 export default function EvolucaoParceiroPage() {
@@ -62,11 +63,11 @@ export default function EvolucaoParceiroPage() {
     filteredData.forEach(r => {
       byMonth.set(r.mes, (byMonth.get(r.mes) ?? 0) + r.faturamento);
     });
-    return [...byMonth.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([mes, total]) => ({ mes, mesLabel: fmtMesLabel(mes), total }));
+    const entries = [...byMonth.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const years = new Set(entries.map(([mes]) => mes.split('-')[0]));
+    const multiYear = years.size > 1;
+    return entries.map(([mes, total]) => ({ mes, mesLabel: fmtMesLabel(mes, multiYear), total }));
   }, [filteredData]);
-
 
   const monthlyTicketData = useMemo(() => {
     const byMonth = new Map<string, { faturamento: number; quantidade: number }>();
@@ -74,13 +75,14 @@ export default function EvolucaoParceiroPage() {
       const cur = byMonth.get(r.mes) ?? { faturamento: 0, quantidade: 0 };
       byMonth.set(r.mes, { faturamento: cur.faturamento + r.faturamento, quantidade: cur.quantidade + r.quantidade });
     });
-    return [...byMonth.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([mes, { faturamento, quantidade }]) => ({
-        mes,
-        mesLabel: fmtMesLabel(mes),
-        ticketMedio: quantidade > 0 ? Math.round(faturamento / quantidade) : 0,
-      }));
+    const entries = [...byMonth.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const years = new Set(entries.map(([mes]) => mes.split('-')[0]));
+    const multiYear = years.size > 1;
+    return entries.map(([mes, { faturamento, quantidade }]) => ({
+      mes,
+      mesLabel: fmtMesLabel(mes, multiYear),
+      ticketMedio: quantidade > 0 ? Math.round(faturamento / quantidade) : 0,
+    }));
   }, [filteredData]);
 
   const totalFaturamento = filteredData.reduce((s, r) => s + r.faturamento, 0);
@@ -154,6 +156,14 @@ export default function EvolucaoParceiroPage() {
           <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Média Mensal</span>
           <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
             {isLoading ? '—' : fmtBRL(mediaMensal)}
+          </span>
+        </div>
+
+        {/* Peças vendidas */}
+        <div className="flex flex-col justify-center gap-0.5 px-5 py-3 border-r border-zinc-200 dark:border-white/[0.08] flex-1">
+          <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Peças Vendidas</span>
+          <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
+            {isLoading ? '—' : totalQuantidade.toLocaleString('pt-BR')}
           </span>
         </div>
 
