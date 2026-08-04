@@ -76,7 +76,7 @@ export function BaseSistemaUpload({
     <div className="flex flex-col gap-2">
       {/* List of uploaded bases */}
       {sorted.length > 0 && (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap gap-2">
           {sorted.map(f => {
             const excluded = excludedFiles.has(f.filename);
             const cor      = f.leilao?.cor ?? '#71717a';
