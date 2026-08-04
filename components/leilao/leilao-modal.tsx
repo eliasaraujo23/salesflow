@@ -35,7 +35,7 @@ const schema = z.object({
   nome:             z.string().min(1, 'Selecione o tipo'),
   dataInicio:       z.string().min(1, 'Selecione o período'),
   dataFim:          z.string().min(1, 'Selecione o período'),
-  codigoPlatforma:  z.string().optional(),
+  codigoPlatforma:  z.string().min(1, 'Obrigatório'),
   observacao:       z.string().optional(),
 }).refine(d => d.dataFim >= d.dataInicio, {
   message: 'Data fim deve ser ≥ data início',
@@ -157,6 +157,9 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
               className="text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
               {...register('codigoPlatforma')}
             />
+            {errors.codigoPlatforma && (
+              <p className="text-xs text-red-500">{errors.codigoPlatforma.message}</p>
+            )}
           </div>
 
           {/* Período */}

@@ -216,7 +216,9 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
                             }}
                           >
                             {!seg.continuesBefore && (
-                              <span className="truncate">#{seg.leilao.numero} {seg.leilao.nome}</span>
+                              <span className="truncate">
+                                N°{seg.leilao.codigoPlatforma || seg.leilao.numero} · {seg.leilao.nome}
+                              </span>
                             )}
                           </button>
                         );
@@ -262,8 +264,11 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
                         style={{ background: l.cor }}
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate">
-                          #{l.numero} {l.nome}
+                        <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">
+                          N° {l.codigoPlatforma || '—'}
+                        </p>
+                        <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+                          #{l.numero} · {l.nome}
                         </p>
                         <p className="text-[10px] text-zinc-400 mt-0.5">
                           {format(start, "dd/MM")} → {format(end, "dd/MM")}

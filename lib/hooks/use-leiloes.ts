@@ -9,7 +9,7 @@ export interface Leilao {
   dataInicio: string; // yyyy-MM-dd
   dataFim: string;    // yyyy-MM-dd
   cor: string;
-  codigoPlatforma?: string; // 5-digit leiloes.br auction number
+  codigoPlatforma: string; // 5-digit leiloes.br auction number
   observacao?: string;
 }
 
