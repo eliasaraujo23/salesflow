@@ -7,10 +7,11 @@ import {
 } from '@tanstack/react-table';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { type LeilaoBaseRow, statusLabel } from '@/lib/hooks/use-leilao-base';
+import type { ActiveRefsMap } from '@/components/leilao/base-sistema-upload';
 
 interface Props {
   rows:         LeilaoBaseRow[];
-  activeRefs:   Set<string>;
+  activeRefs:   ActiveRefsMap;
   globalFilter: string;
   tipoFiltro:   'todos' | 'normal' | 'top' | 'ativo';
 }
@@ -86,7 +87,7 @@ export function BaseSistemaTable({ rows, activeRefs, globalFilter, tipoFiltro }:
       if (tipoFiltro === 'ativo')  return inAtivo;
       if (tipoFiltro === 'normal') return !inAtivo && r.recomendacao === 'NORMAL';
       if (tipoFiltro === 'top')    return !inAtivo && r.recomendacao === 'TOP';
-      return true; // 'todos'
+      return true;
     });
   }, [rows, activeRefs, tipoFiltro]);
 
@@ -134,7 +135,8 @@ export function BaseSistemaTable({ rows, activeRefs, globalFilter, tipoFiltro }:
         </thead>
         <tbody>
           {table.getRowModel().rows.map(row => {
-            const inAtivo = activeRefs.has(row.original.referencia.toUpperCase());
+            const ativoInfo = activeRefs.get(row.original.referencia.toUpperCase());
+            const inAtivo = !!ativoInfo;
             return (
               <tr
                 key={row.id}
@@ -142,11 +144,14 @@ export function BaseSistemaTable({ rows, activeRefs, globalFilter, tipoFiltro }:
               >
                 {row.getVisibleCells().map(cell => {
                   if (cell.column.id === 'recomendacao') {
-                    if (inAtivo) {
+                    if (inAtivo && ativoInfo) {
                       return (
                         <td key={cell.id} className="px-3 py-2">
-                          <span className="px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 text-[10px] font-semibold uppercase">
-                            JÁ EM LEILÃO
+                          <span
+                            className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-white whitespace-nowrap"
+                            style={{ background: ativoInfo.cor }}
+                          >
+                            {ativoInfo.label}
                           </span>
                         </td>
                       );
