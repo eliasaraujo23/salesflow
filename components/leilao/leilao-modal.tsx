@@ -31,11 +31,12 @@ function corDoTipo(nome: string): string {
 }
 
 const schema = z.object({
-  numero:     z.string().min(1, 'Obrigatório'),
-  nome:       z.string().min(1, 'Selecione o tipo'),
-  dataInicio: z.string().min(1, 'Selecione o período'),
-  dataFim:    z.string().min(1, 'Selecione o período'),
-  observacao: z.string().optional(),
+  numero:           z.string().min(1, 'Obrigatório'),
+  nome:             z.string().min(1, 'Selecione o tipo'),
+  dataInicio:       z.string().min(1, 'Selecione o período'),
+  dataFim:          z.string().min(1, 'Selecione o período'),
+  codigoPlatforma:  z.string().optional(),
+  observacao:       z.string().optional(),
 }).refine(d => d.dataFim >= d.dataInicio, {
   message: 'Data fim deve ser ≥ data início',
   path: ['dataFim'],
@@ -66,11 +67,12 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
   useEffect(() => {
     if (open) {
       reset({
-        numero:     initial?.numero     ?? '',
-        nome:       initial?.nome       ?? '',
-        dataInicio: initial?.dataInicio ?? '',
-        dataFim:    initial?.dataFim    ?? '',
-        observacao: initial?.observacao ?? '',
+        numero:          initial?.numero          ?? '',
+        nome:            initial?.nome            ?? '',
+        dataInicio:      initial?.dataInicio      ?? '',
+        dataFim:         initial?.dataFim         ?? '',
+        codigoPlatforma: initial?.codigoPlatforma ?? '',
+        observacao:      initial?.observacao      ?? '',
       });
       setDateRange(
         initial?.dataInicio
@@ -141,6 +143,20 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
               </div>
               {errors.numero && <p className="text-xs text-red-500">{errors.numero.message}</p>}
             </div>
+          </div>
+
+          {/* Código da plataforma */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="codigoPlatforma" className="text-zinc-700 dark:text-zinc-200">
+              N° leiloes.br <span className="font-normal text-zinc-400 dark:text-zinc-500">(opcional)</span>
+            </Label>
+            <Input
+              id="codigoPlatforma"
+              placeholder="ex: 63872"
+              maxLength={5}
+              className="text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
+              {...register('codigoPlatforma')}
+            />
           </div>
 
           {/* Período */}
