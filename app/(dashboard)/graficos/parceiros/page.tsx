@@ -10,6 +10,7 @@ import { useEvolucaoParceiros } from '@/hooks/use-evolucao-parceiros';
 import { ParceirosDestinoSidebar } from '@/components/graficos/parceiros-destino-sidebar';
 import { EvolucaoParceiroAreaChart } from '@/components/graficos/evolucao-parceiros-area-chart';
 import { TicketMedioAreaChart } from '@/components/graficos/ticket-medio-area-chart';
+import { QuantidadeAreaChart } from '@/components/graficos/quantidade-area-chart';
 
 const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -83,6 +84,17 @@ export default function EvolucaoParceiroPage() {
       mesLabel: fmtMesLabel(mes, multiYear),
       ticketMedio: quantidade > 0 ? Math.round(faturamento / quantidade) : 0,
     }));
+  }, [filteredData]);
+
+  const monthlyQtdData = useMemo(() => {
+    const byMonth = new Map<string, number>();
+    filteredData.forEach(r => {
+      byMonth.set(r.mes, (byMonth.get(r.mes) ?? 0) + r.quantidade);
+    });
+    const entries = [...byMonth.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const years = new Set(entries.map(([mes]) => mes.split('-')[0]));
+    const multiYear = years.size > 1;
+    return entries.map(([mes, quantidade]) => ({ mes, mesLabel: fmtMesLabel(mes, multiYear), quantidade }));
   }, [filteredData]);
 
   const totalFaturamento = filteredData.reduce((s, r) => s + r.faturamento, 0);
@@ -263,6 +275,15 @@ export default function EvolucaoParceiroPage() {
                 {monthlyTicketData.length === 0
                   ? <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Nenhum dado para o período selecionado.</div>
                   : <TicketMedioAreaChart data={monthlyTicketData} chartType={chartType} showLabels={showLabels} />}
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 flex flex-col bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2 shrink-0">Peças Vendidas</p>
+              <div className="flex-1 min-h-0">
+                {monthlyQtdData.length === 0
+                  ? <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Nenhum dado para o período selecionado.</div>
+                  : <QuantidadeAreaChart data={monthlyQtdData} chartType={chartType} showLabels={showLabels} />}
               </div>
             </div>
 
