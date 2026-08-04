@@ -79,18 +79,20 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{initial?.id ? 'Editar Leilão' : 'Novo Leilão'}</DialogTitle>
+          <DialogTitle className="text-zinc-900 dark:text-zinc-100">
+            {initial?.id ? 'Editar Leilão' : 'Novo Leilão'}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSave)} className="flex flex-col gap-4 mt-1">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="numero">Número do leilão</Label>
+              <Label htmlFor="numero" className="text-zinc-700 dark:text-zinc-200">Número do leilão</Label>
               <Input id="numero" placeholder="ex: 61" {...register('numero')} />
               {errors.numero && <p className="text-xs text-red-500">{errors.numero.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="nome">Nome / Casa</Label>
+              <Label htmlFor="nome" className="text-zinc-700 dark:text-zinc-200">Nome / Casa</Label>
               <Input id="nome" placeholder="ex: ETN" {...register('nome')} />
               {errors.nome && <p className="text-xs text-red-500">{errors.nome.message}</p>}
             </div>
@@ -98,19 +100,19 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="dataInicio">Início do pregão</Label>
+              <Label htmlFor="dataInicio" className="text-zinc-700 dark:text-zinc-200">Início do pregão</Label>
               <Input id="dataInicio" type="date" {...register('dataInicio')} />
               {errors.dataInicio && <p className="text-xs text-red-500">{errors.dataInicio.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="dataFim">Fim do pregão</Label>
+              <Label htmlFor="dataFim" className="text-zinc-700 dark:text-zinc-200">Fim do pregão</Label>
               <Input id="dataFim" type="date" {...register('dataFim')} />
               {errors.dataFim && <p className="text-xs text-red-500">{errors.dataFim.message}</p>}
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label>Cor</Label>
+            <Label className="text-zinc-700 dark:text-zinc-200">Cor</Label>
             <div className="grid grid-cols-6 gap-2">
               {LEILAO_COLORS.map(c => (
                 <button
@@ -130,8 +132,8 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="observacao">
-              Observação <span className="font-normal text-zinc-400">(opcional)</span>
+            <Label htmlFor="observacao" className="text-zinc-700 dark:text-zinc-200">
+              Observação <span className="font-normal text-zinc-400 dark:text-zinc-500">(opcional)</span>
             </Label>
             <Input id="observacao" placeholder="Notas sobre este leilão..." {...register('observacao')} />
           </div>
@@ -148,7 +150,13 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
               </button>
             ) : <div />}
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg border border-zinc-300 dark:border-white/[0.12] text-zinc-700 dark:text-zinc-200 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors"
+              >
+                Cancelar
+              </button>
               <Button type="submit">Salvar</Button>
             </div>
           </DialogFooter>
