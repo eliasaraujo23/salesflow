@@ -3,36 +3,32 @@
 import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import { useLeilaoBase } from '@/lib/hooks/use-leilao-base';
-import { useLeiloes } from '@/lib/hooks/use-leiloes';
+import { useLeiloes, type Leilao } from '@/lib/hooks/use-leiloes';
 import { BaseSistemaTable } from '@/components/leilao/base-sistema-table';
 import {
   BaseSistemaUpload,
   type ActiveRefsMap,
   type ActivePieceInfo,
+  type UploadedFile,
 } from '@/components/leilao/base-sistema-upload';
 
 type Filtro = 'todos' | 'normal' | 'top' | 'ativo';
-
-interface UploadedFile {
-  filename:        string;
-  codigoPlatforma: string | null;
-  leilao:          import('@/lib/hooks/use-leiloes').Leilao | null;
-  count:           number;
-}
 
 export default function BaseSistemaPage() {
   const { data: rows = [], isLoading, error } = useLeilaoBase();
   const { leiloes } = useLeiloes();
 
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [refsPerFile,   setRefsPerFile]   = useState<Map<string, string[]>>(new Map());
-  const [globalFilter,  setGlobalFilter]  = useState('');
-  const [filtro,        setFiltro]        = useState<Filtro>('todos');
+  const [uploadedFiles,  setUploadedFiles]  = useState<UploadedFile[]>([]);
+  const [refsPerFile,    setRefsPerFile]    = useState<Map<string, string[]>>(new Map());
+  const [excludedFiles,  setExcludedFiles]  = useState<Set<string>>(new Set());
+  const [globalFilter,   setGlobalFilter]   = useState('');
+  const [filtro,         setFiltro]         = useState<Filtro>('todos');
 
-  // Build merged activeRefs map from all uploaded files
+  // Build merged activeRefs — only from non-excluded files
   const activeRefs = useMemo<ActiveRefsMap>(() => {
     const map: ActiveRefsMap = new Map();
     for (const f of uploadedFiles) {
+      if (excludedFiles.has(f.filename)) continue;
       const refs = refsPerFile.get(f.filename) ?? [];
       const info: ActivePieceInfo = {
         codigoPlatforma: f.codigoPlatforma ?? '',
@@ -46,7 +42,7 @@ export default function BaseSistemaPage() {
       for (const ref of refs) map.set(ref, info);
     }
     return map;
-  }, [uploadedFiles, refsPerFile]);
+  }, [uploadedFiles, refsPerFile, excludedFiles]);
 
   const stats = useMemo(() => ({
     total:  rows.length,
@@ -56,17 +52,22 @@ export default function BaseSistemaPage() {
   }), [rows, activeRefs]);
 
   function handleAdd(file: UploadedFile, refs: string[]) {
-    setUploadedFiles(prev => {
-      const exists = prev.find(f => f.filename === file.filename);
-      return exists ? prev : [...prev, file];
-    });
+    setUploadedFiles(prev => prev.find(f => f.filename === file.filename) ? prev : [...prev, file]);
     setRefsPerFile(prev => new Map(prev).set(file.filename, refs));
   }
 
-  function handleRemove(codigo: string | null, filename: string) {
+  function handleRemove(filename: string) {
     setUploadedFiles(prev => prev.filter(f => f.filename !== filename));
     setRefsPerFile(prev => { const m = new Map(prev); m.delete(filename); return m; });
-    if (filtro === 'ativo' && uploadedFiles.length <= 1) setFiltro('todos');
+    setExcludedFiles(prev => { const s = new Set(prev); s.delete(filename); return s; });
+  }
+
+  function handleToggleExclude(filename: string) {
+    setExcludedFiles(prev => {
+      const s = new Set(prev);
+      s.has(filename) ? s.delete(filename) : s.add(filename);
+      return s;
+    });
   }
 
   const FILTROS: { key: Filtro; label: string; count: number }[] = [
@@ -118,9 +119,10 @@ export default function BaseSistemaPage() {
         })}
       </div>
 
-      {/* ── Toolbar ───────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 shrink-0">
-        <div className="relative">
+      {/* ── Toolbar + bases ─────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row gap-4 shrink-0">
+        {/* Search */}
+        <div className="relative shrink-0">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           <input
             value={globalFilter}
@@ -130,11 +132,14 @@ export default function BaseSistemaPage() {
           />
         </div>
 
+        {/* Bases upload + list */}
         <BaseSistemaUpload
           uploaded={uploadedFiles}
+          excludedFiles={excludedFiles}
           leiloes={leiloes}
           onAdd={handleAdd}
           onRemove={handleRemove}
+          onToggleExclude={handleToggleExclude}
         />
       </div>
 

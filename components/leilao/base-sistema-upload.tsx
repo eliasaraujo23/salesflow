@@ -1,23 +1,30 @@
 'use client';
 
 import { useRef } from 'react';
-import { Upload, X, FileCheck } from 'lucide-react';
+import { Upload, X, Eye, EyeOff } from 'lucide-react';
 import type { Leilao } from '@/lib/hooks/use-leiloes';
 
 export type ActivePieceInfo = {
   codigoPlatforma: string;
-  label: string; // e.g. "N°63872 · ETERNNO"
+  label: string;
   cor:   string;
 };
 
-export type ActiveRefsMap = Map<string, ActivePieceInfo>; // referencia.toUpperCase() → info
+export type ActiveRefsMap = Map<string, ActivePieceInfo>;
 
-function extractCodigoFromFilename(filename: string): string | null {
+export interface UploadedFile {
+  filename:        string;
+  codigoPlatforma: string | null;
+  leilao:          Leilao | null;
+  count:           number;
+}
+
+export function extractCodigoFromFilename(filename: string): string | null {
   const m = filename.match(/(\d{4,6})/);
   return m ? m[1] : null;
 }
 
-function parseLeiloesBr(text: string): string[] {
+export function parseLeiloesBr(text: string): string[] {
   const lines = text.trim().split(/\r?\n/);
   if (lines.length < 2) return [];
   const sep = lines[0].includes('\t') ? '\t' : lines[0].includes(';') ? ';' : ',';
@@ -30,30 +37,24 @@ function parseLeiloesBr(text: string): string[] {
     .filter(Boolean);
 }
 
-interface UploadedFile {
-  filename:        string;
-  codigoPlatforma: string | null;
-  leilao:          Leilao | null;
-  count:           number;
-}
-
 interface Props {
-  uploaded: UploadedFile[];
-  leiloes:  Leilao[];
-  onAdd:    (file: UploadedFile, refs: string[]) => void;
-  onRemove: (codigo: string | null, filename: string) => void;
+  uploaded:        UploadedFile[];
+  excludedFiles:   Set<string>;
+  leiloes:         Leilao[];
+  onAdd:           (file: UploadedFile, refs: string[]) => void;
+  onRemove:        (filename: string) => void;
+  onToggleExclude: (filename: string) => void;
 }
 
-export function BaseSistemaUpload({ uploaded, leiloes, onAdd, onRemove }: Props) {
+export function BaseSistemaUpload({
+  uploaded, excludedFiles, leiloes, onAdd, onRemove, onToggleExclude,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    files.forEach(file => {
+    Array.from(e.target.files ?? []).forEach(file => {
       const codigo = extractCodigoFromFilename(file.name);
-      const leilao = codigo
-        ? leiloes.find(l => l.codigoPlatforma === codigo) ?? null
-        : null;
+      const leilao = codigo ? leiloes.find(l => l.codigoPlatforma === codigo) ?? null : null;
       const reader = new FileReader();
       reader.onload = ev => {
         const refs = parseLeiloesBr(ev.target?.result as string);
@@ -64,34 +65,85 @@ export function BaseSistemaUpload({ uploaded, leiloes, onAdd, onRemove }: Props)
     e.target.value = '';
   }
 
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      {uploaded.map(f => {
-        const label = f.leilao
-          ? `N°${f.codigoPlatforma} · ${f.leilao.nome}`
-          : f.codigoPlatforma
-          ? `N°${f.codigoPlatforma}`
-          : f.filename;
-        const cor = f.leilao?.cor ?? '#71717a';
-        return (
-          <div
-            key={f.filename}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium"
-            style={{ borderColor: cor + '60', background: cor + '15', color: cor }}
-          >
-            <FileCheck size={12} />
-            <span>{label}</span>
-            <span className="opacity-60">({f.count})</span>
-            <button
-              onClick={() => onRemove(f.codigoPlatforma, f.filename)}
-              className="opacity-60 hover:opacity-100 transition-opacity ml-0.5"
-            >
-              <X size={11} />
-            </button>
-          </div>
-        );
-      })}
+  // Sort by codigoPlatforma numerically
+  const sorted = [...uploaded].sort((a, b) => {
+    const na = Number(a.codigoPlatforma ?? 0);
+    const nb = Number(b.codigoPlatforma ?? 0);
+    return na - nb;
+  });
 
+  return (
+    <div className="flex flex-col gap-2">
+      {/* List of uploaded bases */}
+      {sorted.length > 0 && (
+        <div className="flex flex-col gap-1">
+          {sorted.map(f => {
+            const excluded = excludedFiles.has(f.filename);
+            const cor      = f.leilao?.cor ?? '#71717a';
+            const label    = f.leilao
+              ? `${f.leilao.nome}`
+              : f.codigoPlatforma
+              ? `(sem cadastro)`
+              : f.filename;
+
+            return (
+              <div
+                key={f.filename}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg border text-xs transition-all ${
+                  excluded
+                    ? 'border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/40 opacity-50'
+                    : 'border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-zinc-900'
+                }`}
+              >
+                {/* Color dot */}
+                <span
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ background: excluded ? '#a1a1aa' : cor }}
+                />
+
+                {/* N° prominent */}
+                <span className={`font-bold tabular-nums shrink-0 ${excluded ? 'text-zinc-400' : 'text-zinc-800 dark:text-zinc-100'}`}>
+                  N°{f.codigoPlatforma ?? '—'}
+                </span>
+
+                {/* Name */}
+                <span className={`flex-1 truncate ${excluded ? 'text-zinc-400' : 'text-zinc-600 dark:text-zinc-400'}`}>
+                  {label}
+                </span>
+
+                {/* Count */}
+                <span className={`shrink-0 tabular-nums ${excluded ? 'text-zinc-400' : 'text-zinc-500 dark:text-zinc-500'}`}>
+                  {f.count} peças
+                </span>
+
+                {/* Toggle exclude */}
+                <button
+                  onClick={() => onToggleExclude(f.filename)}
+                  title={excluded ? 'Incluir na cross-referência' : 'Excluir da cross-referência'}
+                  className={`shrink-0 p-1 rounded transition-colors ${
+                    excluded
+                      ? 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
+                      : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  {excluded ? <EyeOff size={13} /> : <Eye size={13} />}
+                </button>
+
+                {/* Remove */}
+                <button
+                  onClick={() => onRemove(f.filename)}
+                  title="Remover"
+                  className="shrink-0 p-1 rounded text-zinc-300 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Upload button */}
       <input
         ref={inputRef}
         type="file"
@@ -102,10 +154,10 @@ export function BaseSistemaUpload({ uploaded, leiloes, onAdd, onRemove }: Props)
       />
       <button
         onClick={() => inputRef.current?.click()}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] text-xs font-medium transition-colors"
+        className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] text-xs font-medium transition-colors"
       >
         <Upload size={12} />
-        {uploaded.length > 0 ? 'Adicionar arquivo' : 'Carregar base ativa (CSV)'}
+        {uploaded.length > 0 ? 'Adicionar mais' : 'Carregar bases ativas (CSV)'}
       </button>
     </div>
   );
