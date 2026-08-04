@@ -149,14 +149,20 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
               const segments = getSegments(week, leiloes);
               return (
                 <div key={wi} className="flex-1 flex flex-col min-h-[90px] relative">
-                  {/* Vertical column lines */}
-                  {[1,2,3,4,5,6].map(i => (
-                    <div
-                      key={i}
-                      className="absolute inset-y-0 border-r border-zinc-200 dark:border-white/[0.06] pointer-events-none"
-                      style={{ left: `${(i / 7) * 100}%` }}
-                    />
-                  ))}
+                  {/* Vertical column lines — hide dividers inside event spans */}
+                  {(() => {
+                    const hidden = new Set<number>();
+                    segments.forEach(seg => {
+                      for (let i = seg.colStart; i <= seg.colEnd - 2; i++) hidden.add(i);
+                    });
+                    return [1,2,3,4,5,6].map(i => hidden.has(i) ? null : (
+                      <div
+                        key={i}
+                        className="absolute inset-y-0 border-r border-zinc-200 dark:border-white/[0.06] pointer-events-none"
+                        style={{ left: `${(i / 7) * 100}%` }}
+                      />
+                    ));
+                  })()}
                   {/* Day number row */}
                   <div className="grid grid-cols-7">
                     {week.map((day, di) => {
