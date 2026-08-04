@@ -4,13 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 
 const rowSchema = z.object({
-  referencia:    z.string(),
+  referencia:      z.string(),
   descricao_jewel: z.string().nullable(),
-  preco_avista:  z.number().nullable(),
+  preco_avista:    z.number().nullable(),
   preco_parcelado: z.number().nullable(),
-  status_id:     z.number().nullable(),
-  destino:       z.string().nullable(),
-  produto:       z.string().nullable(),
+  status_id:       z.number().nullable(),
+  destino:         z.string().nullable(),
+  produto:         z.string().nullable(),
+  fotos:           z.number(),
 });
 
 const responseSchema = z.object({

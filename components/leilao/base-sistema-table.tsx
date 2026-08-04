@@ -57,6 +57,18 @@ const COLUMNS = [
     size: 90,
     cell: info => fmtBrl(info.getValue()),
   }),
+  col.accessor('fotos', {
+    header: 'Fotos',
+    size: 60,
+    cell: info => {
+      const n = info.getValue();
+      return (
+        <span className={`font-semibold ${n > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`}>
+          {n}
+        </span>
+      );
+    },
+  }),
   col.accessor('recomendacao', {
     header: 'Recomendação',
     size: 140,

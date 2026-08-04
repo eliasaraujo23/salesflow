@@ -35,13 +35,16 @@ export async function GET() {
          pd.preco_parcelado::float8   AS preco_parcelado,
          pd."statusProdutoId"         AS status_id,
          d.destino,
-         p.produto
+         p.produto,
+         (SELECT COUNT(*)::int FROM leilao_image li WHERE li."productDetailsId" = pd.id) AS fotos
        FROM product_details pd
        LEFT JOIN produto  p ON p.id = pd."produtoId"
        LEFT JOIN destinos d ON d.id = pd."destinoId"
        WHERE pd."statusProdutoId" IN (3, 6)
          AND pd."destinoManutencaoId" IS NULL
          AND pd."statusManutencaoId" IS NULL
+         AND pd.preco_avista IS NOT NULL AND pd.preco_avista > 0
+         AND EXISTS (SELECT 1 FROM leilao_image li WHERE li."productDetailsId" = pd.id)
          AND (p.produto IS NULL OR ${TR('p.produto')} NOT IN (${prodHolders}))
          AND (d.destino IS NULL OR ${TR('d.destino')} NOT IN (${destHolders}))
        ORDER BY pd.preco_avista ASC NULLS LAST`,
