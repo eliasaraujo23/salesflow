@@ -137,7 +137,7 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
                 {tipoAtual && (
                   <span className="w-3 h-3 rounded-full shrink-0" style={{ background: tipoAtual.cor }} />
                 )}
-                <Input id="numero" placeholder="ex: 61" className="flex-1" {...register('numero')} />
+                <Input id="numero" placeholder="ex: 61" className="flex-1 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400" {...register('numero')} />
               </div>
               {errors.numero && <p className="text-xs text-red-500">{errors.numero.message}</p>}
             </div>
@@ -164,7 +164,7 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
             <Label htmlFor="observacao" className="text-zinc-700 dark:text-zinc-200">
               Observação <span className="font-normal text-zinc-400 dark:text-zinc-500">(opcional)</span>
             </Label>
-            <Input id="observacao" placeholder="Notas sobre este leilão..." {...register('observacao')} />
+            <Input id="observacao" placeholder="Notas sobre este leilão..." className="text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400" {...register('observacao')} />
           </div>
 
           <DialogFooter className="mt-1 flex items-center justify-between gap-2">
