@@ -101,10 +101,19 @@ export function BaseSistemaUpload({
                   style={{ background: excluded ? '#a1a1aa' : cor }}
                 />
 
-                {/* N° prominent */}
+                {/* Platform N° */}
                 <span className={`font-bold tabular-nums shrink-0 ${excluded ? 'text-zinc-400' : 'text-zinc-800 dark:text-zinc-100'}`}>
                   N°{f.codigoPlatforma ?? '—'}
                 </span>
+
+                {/* Internal # + name */}
+                {f.leilao && (
+                  <span className={`shrink-0 tabular-nums text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                    excluded ? 'bg-zinc-100 dark:bg-zinc-700 text-zinc-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+                  }`}>
+                    #{f.leilao.numero}
+                  </span>
+                )}
 
                 {/* Name */}
                 <span className={`flex-1 truncate ${excluded ? 'text-zinc-400' : 'text-zinc-600 dark:text-zinc-400'}`}>

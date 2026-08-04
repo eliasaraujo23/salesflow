@@ -216,8 +216,10 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
                             }}
                           >
                             {!seg.continuesBefore && (
-                              <span className="truncate">
-                                N°{seg.leilao.codigoPlatforma || seg.leilao.numero} · {seg.leilao.nome}
+                              <span className="truncate flex items-center gap-1.5">
+                                <span className="font-bold">N°{seg.leilao.codigoPlatforma || '—'}</span>
+                                <span className="opacity-70 text-[11px]">#{seg.leilao.numero}</span>
+                                <span>{seg.leilao.nome}</span>
                               </span>
                             )}
                           </button>
