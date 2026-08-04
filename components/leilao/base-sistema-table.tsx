@@ -106,7 +106,7 @@ export function BaseSistemaTable({ rows, activeRefs, globalFilter, tipoFiltro }:
         <thead>
           <tr>
             <th
-              colSpan={7}
+              colSpan={COLUMNS.length}
               className="sticky top-0 z-20 px-4 py-2.5 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left font-semibold text-zinc-700 dark:text-zinc-200"
             >
               {table.getRowModel().rows.length} peças
