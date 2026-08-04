@@ -128,13 +128,13 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
       <div className="flex gap-4 flex-1 min-h-0">
 
         {/* ── Calendar grid ───────────────────────────────────── */}
-        <div className="flex-1 flex flex-col min-h-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
+        <div className="flex-1 flex flex-col min-h-0 border border-zinc-200 dark:border-white/[0.10] rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
           {/* Day headers */}
-          <div className="grid grid-cols-7 border-b border-zinc-200 dark:border-white/[0.08] bg-zinc-50 dark:bg-zinc-800/50 shrink-0">
+          <div className="grid grid-cols-7 border-b-2 border-zinc-200 dark:border-white/[0.10] bg-zinc-50 dark:bg-zinc-800/50 shrink-0">
             {WEEK_DAYS.map((d, i) => (
               <div
                 key={d}
-                className={`py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider ${
+                className={`py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider border-r border-zinc-200 dark:border-white/[0.08] last:border-r-0 ${
                   i === 0 || i === 6 ? 'text-rose-400' : 'text-zinc-400 dark:text-zinc-500'
                 }`}
               >
@@ -144,7 +144,7 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
           </div>
 
           {/* Weeks */}
-          <div className="flex-1 flex flex-col divide-y divide-zinc-100 dark:divide-white/[0.04] overflow-auto">
+          <div className="flex-1 flex flex-col divide-y divide-zinc-200 dark:divide-white/[0.08] overflow-auto">
             {weeks.map((week, wi) => {
               const segments = getSegments(week, leiloes);
               return (
@@ -159,8 +159,8 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
                         <div
                           key={di}
                           onClick={() => onAdd(format(day, 'yyyy-MM-dd'))}
-                          className={`group py-1 px-2 cursor-pointer select-none ${
-                            weekend ? 'bg-rose-50/40 dark:bg-rose-950/10' : ''
+                          className={`group py-1 px-2 cursor-pointer select-none border-r border-zinc-200 dark:border-white/[0.06] last:border-r-0 ${
+                            weekend ? 'bg-rose-50/60 dark:bg-rose-950/10' : ''
                           } ${!inMonth ? 'opacity-35' : ''}`}
                         >
                           <span
