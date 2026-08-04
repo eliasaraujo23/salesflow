@@ -182,19 +182,19 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
                   {/* Event bars */}
                   {segments.length > 0 && (
                     <div
-                      className="grid grid-cols-7 px-0.5 pb-1 gap-y-0.5"
-                      style={{ gridAutoRows: '21px' }}
+                      className="grid grid-cols-7 px-0.5 pb-2 gap-y-1"
+                      style={{ gridAutoRows: '30px' }}
                     >
                       {segments.map((seg, si) => {
                         const br = seg.continuesBefore && seg.continuesAfter ? '0'
-                          : seg.continuesBefore ? '0 6px 6px 0'
-                          : seg.continuesAfter  ? '6px 0 0 6px'
-                          : '6px';
+                          : seg.continuesBefore ? '0 8px 8px 0'
+                          : seg.continuesAfter  ? '8px 0 0 8px'
+                          : '8px';
                         return (
                           <button
                             key={`${seg.leilao.id}-${si}`}
                             onClick={e => { e.stopPropagation(); onEdit(seg.leilao); }}
-                            className="flex items-center px-2 text-white text-[11px] font-semibold truncate h-[19px] hover:brightness-110 transition-all"
+                            className="flex items-center px-3 text-white text-[12px] font-bold truncate h-[28px] hover:brightness-110 transition-all shadow-sm"
                             style={{
                               gridColumn:  `${seg.colStart} / ${seg.colEnd}`,
                               background:  seg.leilao.cor,
