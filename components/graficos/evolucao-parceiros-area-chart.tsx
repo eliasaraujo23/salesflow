@@ -69,8 +69,8 @@ export function EvolucaoParceiroAreaChart({ data, chartType, showLabels }: Props
 
   const DataLabel = useMemo(() => makeDataLabel(activeRef), []);
 
-  function handleMouseMove(state: { activeTooltipIndex?: number | null }) {
-    const idx = typeof state?.activeTooltipIndex === 'number' ? state.activeTooltipIndex : null;
+  function handleMouseMove(state: Record<string, unknown>) {
+    const idx = typeof state?.activeTooltipIndex === 'number' ? (state.activeTooltipIndex as number) : null;
     if (activeRef.current !== idx) {
       activeRef.current = idx;
       forceRender(n => n + 1);
@@ -86,7 +86,7 @@ export function EvolucaoParceiroAreaChart({ data, chartType, showLabels }: Props
   if (chartType === 'bar') {
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={chartData} margin={margin} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+        <BarChart data={chartData} margin={margin} onMouseMove={handleMouseMove as never} onMouseLeave={handleMouseLeave}>
           {GRID}{XAXIS}{YAXIS}{TOOLTIP}
           <Bar dataKey="total" fill="#10b981" radius={[4, 4, 0, 0]}>
             {showLabels && <LabelList dataKey="total" content={DataLabel as never} />}
@@ -99,7 +99,7 @@ export function EvolucaoParceiroAreaChart({ data, chartType, showLabels }: Props
   if (chartType === 'line') {
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={margin} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+        <LineChart data={chartData} margin={margin} onMouseMove={handleMouseMove as never} onMouseLeave={handleMouseLeave}>
           {GRID}{XAXIS}{YAXIS}{TOOLTIP}
           <Line type="monotone" dataKey="total" stroke="#10b981" strokeWidth={2}
             dot={{ r: 4, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 6 }}>
@@ -112,7 +112,7 @@ export function EvolucaoParceiroAreaChart({ data, chartType, showLabels }: Props
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={chartData} margin={margin} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+      <AreaChart data={chartData} margin={margin} onMouseMove={handleMouseMove as never} onMouseLeave={handleMouseLeave}>
         <defs>
           <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%"  stopColor="#10b981" stopOpacity={0.25} />

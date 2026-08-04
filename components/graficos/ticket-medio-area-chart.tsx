@@ -69,8 +69,8 @@ export function TicketMedioAreaChart({ data, chartType, showLabels }: Props) {
 
   const DataLabel = useMemo(() => makeDataLabel(activeRef), []);
 
-  function handleMouseMove(state: { activeTooltipIndex?: number | null }) {
-    const idx = typeof state?.activeTooltipIndex === 'number' ? state.activeTooltipIndex : null;
+  function handleMouseMove(state: Record<string, unknown>) {
+    const idx = typeof state?.activeTooltipIndex === 'number' ? (state.activeTooltipIndex as number) : null;
     if (activeRef.current !== idx) {
       activeRef.current = idx;
       forceRender(n => n + 1);
@@ -86,7 +86,7 @@ export function TicketMedioAreaChart({ data, chartType, showLabels }: Props) {
   if (chartType === 'bar') {
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={chartData} margin={margin} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+        <BarChart data={chartData} margin={margin} onMouseMove={handleMouseMove as never} onMouseLeave={handleMouseLeave}>
           {GRID}{XAXIS}{YAXIS}{TOOLTIP}
           <Bar dataKey="ticketMedio" fill="#6366f1" radius={[4, 4, 0, 0]}>
             {showLabels && <LabelList dataKey="ticketMedio" content={DataLabel as never} />}
@@ -99,7 +99,7 @@ export function TicketMedioAreaChart({ data, chartType, showLabels }: Props) {
   if (chartType === 'line') {
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={margin} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+        <LineChart data={chartData} margin={margin} onMouseMove={handleMouseMove as never} onMouseLeave={handleMouseLeave}>
           {GRID}{XAXIS}{YAXIS}{TOOLTIP}
           <Line type="monotone" dataKey="ticketMedio" stroke="#6366f1" strokeWidth={2}
             dot={{ r: 4, fill: '#6366f1', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 6 }}>
@@ -112,7 +112,7 @@ export function TicketMedioAreaChart({ data, chartType, showLabels }: Props) {
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={chartData} margin={margin} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+      <AreaChart data={chartData} margin={margin} onMouseMove={handleMouseMove as never} onMouseLeave={handleMouseLeave}>
         <defs>
           <linearGradient id="ticketGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.25} />
