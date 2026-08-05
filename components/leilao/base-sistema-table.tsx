@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import {
   useReactTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel,
   createColumnHelper, flexRender, type SortingState,
 } from '@tanstack/react-table';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { type LeilaoBaseRow, statusLabel } from '@/lib/hooks/use-leilao-base';
 import type { ActiveRefsMap } from '@/components/leilao/base-sistema-upload';
@@ -74,12 +75,15 @@ const COLUMNS = [
     header: 'Recomendação',
     size: 140,
     enableSorting: false,
-    cell: () => null, // rendered in row
+    cell: () => null,
   }),
 ];
 
+const ROW_HEIGHT = 37;
+
 export function BaseSistemaTable({ rows, activeRefs, globalFilter, tipoFiltro }: Props) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'preco_avista', desc: false }]);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
     return rows.filter(r => {
@@ -101,8 +105,25 @@ export function BaseSistemaTable({ rows, activeRefs, globalFilter, tipoFiltro }:
     getFilteredRowModel: getFilteredRowModel(),
   });
 
+  const tableRows = table.getRowModel().rows;
+
+  const rowVirtualizer = useVirtualizer({
+    count:            tableRows.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize:     () => ROW_HEIGHT,
+    overscan:         15,
+  });
+
+  const virtualItems  = rowVirtualizer.getVirtualItems();
+  const totalSize     = rowVirtualizer.getTotalSize();
+  const paddingTop    = virtualItems.length > 0 ? virtualItems[0].start : 0;
+  const paddingBottom = virtualItems.length > 0 ? totalSize - virtualItems[virtualItems.length - 1].end : 0;
+
   return (
-    <div className="flex-1 min-h-0 overflow-auto border border-zinc-200 dark:border-white/[0.10] rounded-xl bg-white dark:bg-zinc-900">
+    <div
+      ref={containerRef}
+      className="flex-1 min-h-0 overflow-auto border border-zinc-200 dark:border-white/[0.10] rounded-xl bg-white dark:bg-zinc-900"
+    >
       <table className="w-full text-xs border-separate border-spacing-0 data-table">
         <thead>
           <tr>
@@ -110,7 +131,7 @@ export function BaseSistemaTable({ rows, activeRefs, globalFilter, tipoFiltro }:
               colSpan={COLUMNS.length}
               className="sticky top-0 z-20 px-4 py-2.5 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08] text-left font-semibold text-zinc-700 dark:text-zinc-200"
             >
-              {table.getRowModel().rows.length} peças
+              {tableRows.length} peças
             </th>
           </tr>
           <tr>
@@ -134,12 +155,17 @@ export function BaseSistemaTable({ rows, activeRefs, globalFilter, tipoFiltro }:
           </tr>
         </thead>
         <tbody>
-          {table.getRowModel().rows.map(row => {
+          {paddingTop > 0 && (
+            <tr><td style={{ height: paddingTop }} colSpan={COLUMNS.length} /></tr>
+          )}
+          {virtualItems.map(virtualRow => {
+            const row       = tableRows[virtualRow.index];
             const ativoInfo = activeRefs.get(row.original.referencia.toUpperCase());
-            const inAtivo = !!ativoInfo;
+            const inAtivo   = !!ativoInfo;
             return (
               <tr
                 key={row.id}
+                style={{ height: ROW_HEIGHT }}
                 className={`border-b border-zinc-100 dark:border-white/[0.04] hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors ${inAtivo ? 'opacity-40' : ''}`}
               >
                 {row.getVisibleCells().map(cell => {
@@ -178,6 +204,9 @@ export function BaseSistemaTable({ rows, activeRefs, globalFilter, tipoFiltro }:
               </tr>
             );
           })}
+          {paddingBottom > 0 && (
+            <tr><td style={{ height: paddingBottom }} colSpan={COLUMNS.length} /></tr>
+          )}
         </tbody>
       </table>
     </div>

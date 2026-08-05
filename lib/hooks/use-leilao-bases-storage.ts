@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { z } from 'zod';
 import type { Leilao } from '@/lib/hooks/use-leiloes';
 
@@ -66,9 +67,13 @@ export function useLeilaoBasesStorage(leiloes: Leilao[]) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error('Erro ao salvar base');
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message ?? `HTTP ${res.status}`);
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+    onError:   (err: Error) => toast.error(`Erro ao salvar base: ${err.message}`),
   });
 
   const removeMutation = useMutation({

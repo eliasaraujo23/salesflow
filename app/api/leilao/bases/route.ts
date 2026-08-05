@@ -45,6 +45,9 @@ export async function GET() {
        ORDER BY codigo_plataforma ASC NULLS LAST, created_at ASC`
     );
     return NextResponse.json({ data: rows });
+  } catch (err) {
+    console.error('[leilao/bases GET]', err);
+    return NextResponse.json({ message: String(err) }, { status: 500 });
   } finally {
     client.release();
   }
@@ -82,6 +85,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ id: existing.rows[0]?.id });
     }
     return NextResponse.json({ id: rows[0].id });
+  } catch (err) {
+    console.error('[leilao/bases POST]', err);
+    return NextResponse.json({ message: String(err) }, { status: 500 });
   } finally {
     client.release();
   }
