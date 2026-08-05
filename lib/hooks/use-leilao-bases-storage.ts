@@ -13,6 +13,7 @@ const dbRowSchema = z.object({
   filename:         z.string(),
   count_pecas:      z.number(),
   refs:             z.array(z.string()),
+  refs_vendidos:    z.array(z.string()),
   excluded:         z.boolean(),
 });
 
@@ -24,6 +25,7 @@ export interface UploadedFileStored {
   codigoPlatforma: string | null;
   leilao:          Leilao | null;
   count:           number;
+  vendidos:        string[];
 }
 
 async function fetchBases(): Promise<DbRow[]> {
@@ -37,12 +39,12 @@ export function useLeilaoBasesStorage(leiloes: Leilao[]) {
   const qc = useQueryClient();
   const { data: dbRows = [] } = useQuery({ queryKey: QUERY_KEY, queryFn: fetchBases });
 
-  // Derive typed view
   const uploadedFiles: UploadedFileStored[] = dbRows.map(r => ({
     id:              r.id,
     filename:        r.filename,
     codigoPlatforma: r.codigo_plataforma,
     count:           r.count_pecas,
+    vendidos:        r.refs_vendidos,
     leilao:          r.codigo_plataforma
       ? leiloes.find(l => l.codigoPlatforma === r.codigo_plataforma) ?? null
       : null,
@@ -52,7 +54,13 @@ export function useLeilaoBasesStorage(leiloes: Leilao[]) {
   const excludedFiles = new Set<string>(dbRows.filter(r => r.excluded).map(r => r.filename));
 
   const addMutation = useMutation({
-    mutationFn: async (payload: { codigoPlatforma: string | null; filename: string; count: number; refs: string[] }) => {
+    mutationFn: async (payload: {
+      codigoPlatforma: string | null;
+      filename:        string;
+      count:           number;
+      refs:            string[];
+      refsVendidos:    string[];
+    }) => {
       const res = await fetch('/api/leilao/bases', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -81,12 +89,16 @@ export function useLeilaoBasesStorage(leiloes: Leilao[]) {
     onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
   });
 
-  const add = useCallback((file: { filename: string; codigoPlatforma: string | null; count: number; leilao: Leilao | null }, refs: string[]) => {
+  const add = useCallback((
+    file: { filename: string; codigoPlatforma: string | null; count: number; leilao: Leilao | null; vendidos?: string[] },
+    refs: string[],
+  ) => {
     addMutation.mutate({
       codigoPlatforma: file.codigoPlatforma,
       filename:        file.filename,
       count:           file.count,
       refs,
+      refsVendidos:    file.vendidos ?? [],
     });
   }, [addMutation]);
 

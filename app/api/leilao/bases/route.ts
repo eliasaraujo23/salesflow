@@ -16,9 +16,11 @@ const INIT_SQL = `
     filename          VARCHAR(500) NOT NULL,
     count_pecas       INTEGER      NOT NULL DEFAULT 0,
     refs              TEXT[]       NOT NULL DEFAULT '{}',
+    refs_vendidos     TEXT[]       NOT NULL DEFAULT '{}',
     excluded          BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-  )
+  );
+  ALTER TABLE leilao_bases_ativas ADD COLUMN IF NOT EXISTS refs_vendidos TEXT[] NOT NULL DEFAULT '{}';
 `;
 
 async function ensureTable(client: import('pg').PoolClient) {
@@ -31,7 +33,7 @@ export async function GET() {
   try {
     await ensureTable(client);
     const { rows } = await client.query(
-      `SELECT id, codigo_plataforma, filename, count_pecas, refs, excluded, created_at
+      `SELECT id, codigo_plataforma, filename, count_pecas, refs, refs_vendidos, excluded, created_at
        FROM leilao_bases_ativas
        ORDER BY codigo_plataforma ASC NULLS LAST, created_at ASC`
     );
@@ -47,6 +49,7 @@ const postSchema = z.object({
   filename:        z.string().min(1),
   count:           z.number().int().min(0),
   refs:            z.array(z.string()),
+  refsVendidos:    z.array(z.string()).default([]),
 });
 
 export async function POST(req: NextRequest) {
@@ -54,20 +57,18 @@ export async function POST(req: NextRequest) {
   const parsed = postSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ message: 'Dados inválidos' }, { status: 400 });
 
-  const { codigoPlatforma, filename, count, refs } = parsed.data;
+  const { codigoPlatforma, filename, count, refs, refsVendidos } = parsed.data;
   const client = await pool.connect();
   try {
     await ensureTable(client);
-    // Upsert by filename — re-upload replaces the old one
     const { rows } = await client.query(
-      `INSERT INTO leilao_bases_ativas (codigo_plataforma, filename, count_pecas, refs)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO leilao_bases_ativas (codigo_plataforma, filename, count_pecas, refs, refs_vendidos)
+       VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT DO NOTHING
        RETURNING id`,
-      [codigoPlatforma, filename, count, refs]
+      [codigoPlatforma, filename, count, refs, refsVendidos]
     );
     if (rows.length === 0) {
-      // already exists — just return current
       const existing = await client.query(
         `SELECT id FROM leilao_bases_ativas WHERE filename = $1`, [filename]
       );

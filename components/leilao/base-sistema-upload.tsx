@@ -17,6 +17,7 @@ export interface UploadedFile {
   codigoPlatforma: string | null;
   leilao:          Leilao | null;
   count:           number;
+  vendidos:        string[];
 }
 
 // Re-export storage type alias so page can use one import
@@ -27,17 +28,34 @@ export function extractCodigoFromFilename(filename: string): string | null {
   return m ? m[1] : null;
 }
 
-export function parseLeiloesBr(text: string): string[] {
+export function parseLeiloesBr(text: string): { refs: string[]; vendidos: string[] } {
   const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
+  if (lines.length < 2) return { refs: [], vendidos: [] };
   const sep = lines[0].includes('\t') ? '\t' : lines[0].includes(';') ? ';' : ',';
-  const headers = lines[0].split(sep).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
-  const idx = headers.findIndex(h => h.includes('mini'));
-  if (idx < 0) return [];
-  return lines
-    .slice(1)
-    .map(l => (l.split(sep)[idx] ?? '').trim().replace(/^"|"$/g, '').toUpperCase())
-    .filter(Boolean);
+  const rawHeaders = lines[0].split(sep).map(h => h.trim().replace(/^"|"$/g, ''));
+  const headers = rawHeaders.map(h => h.toLowerCase().replace(/\s+/g, '').replace(/[^a-z]/g, ''));
+
+  const idxMini  = headers.findIndex(h => h.includes('minidesc') || h.includes('mini'));
+  const idxValor = headers.findIndex(h => h === 'valorvenda' || h.includes('valorvenda'));
+
+  if (idxMini < 0) return { refs: [], vendidos: [] };
+
+  const refs: string[] = [];
+  const vendidos: string[] = [];
+
+  for (const line of lines.slice(1)) {
+    const cols = line.split(sep);
+    const ref = (cols[idxMini] ?? '').trim().replace(/^"|"$/g, '').toUpperCase();
+    if (!ref) continue;
+    refs.push(ref);
+    if (idxValor >= 0) {
+      const raw = (cols[idxValor] ?? '').trim().replace(/^"|"$/g, '').replace(',', '.');
+      const valor = parseFloat(raw) || 0;
+      if (valor > 0) vendidos.push(ref);
+    }
+  }
+
+  return { refs, vendidos };
 }
 
 interface Props {
@@ -60,15 +78,14 @@ export function BaseSistemaUpload({
       const leilao = codigo ? leiloes.find(l => l.codigoPlatforma === codigo) ?? null : null;
       const reader = new FileReader();
       reader.onload = ev => {
-        const refs = parseLeiloesBr(ev.target?.result as string);
-        onAdd({ filename: file.name, codigoPlatforma: codigo, leilao, count: refs.length }, refs);
+        const { refs, vendidos } = parseLeiloesBr(ev.target?.result as string);
+        onAdd({ filename: file.name, codigoPlatforma: codigo, leilao, count: refs.length, vendidos }, refs);
       };
       reader.readAsText(file, 'UTF-8');
     });
     e.target.value = '';
   }
 
-  // Sort by codigoPlatforma numerically
   const sorted = [...uploaded].sort((a, b) => {
     const na = Number(a.codigoPlatforma ?? 0);
     const nb = Number(b.codigoPlatforma ?? 0);
@@ -77,7 +94,6 @@ export function BaseSistemaUpload({
 
   return (
     <div className="flex flex-col gap-2">
-      {/* List of uploaded bases */}
       {sorted.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {sorted.map(f => {
@@ -98,18 +114,13 @@ export function BaseSistemaUpload({
                     : 'border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-zinc-900'
                 }`}
               >
-                {/* Color dot */}
                 <span
                   className="w-2.5 h-2.5 rounded-full shrink-0"
                   style={{ background: excluded ? '#a1a1aa' : cor }}
                 />
-
-                {/* Platform N° */}
                 <span className={`font-bold tabular-nums shrink-0 ${excluded ? 'text-zinc-400' : 'text-zinc-800 dark:text-zinc-100'}`}>
                   N°{f.codigoPlatforma ?? '—'}
                 </span>
-
-                {/* Internal # + name */}
                 {f.leilao && (
                   <span className={`shrink-0 tabular-nums text-[10px] font-semibold px-1.5 py-0.5 rounded ${
                     excluded ? 'bg-zinc-100 dark:bg-zinc-700 text-zinc-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
@@ -117,18 +128,17 @@ export function BaseSistemaUpload({
                     #{f.leilao.numero}
                   </span>
                 )}
-
-                {/* Name */}
                 <span className={`flex-1 truncate ${excluded ? 'text-zinc-400' : 'text-zinc-600 dark:text-zinc-400'}`}>
                   {label}
                 </span>
-
-                {/* Count */}
                 <span className={`shrink-0 tabular-nums ${excluded ? 'text-zinc-400' : 'text-zinc-500 dark:text-zinc-500'}`}>
                   {f.count} peças
                 </span>
-
-                {/* Toggle exclude */}
+                {f.vendidos.length > 0 && (
+                  <span className="shrink-0 text-[10px] text-emerald-600 dark:text-emerald-400 tabular-nums">
+                    {f.vendidos.length} vendidas
+                  </span>
+                )}
                 <button
                   onClick={() => onToggleExclude(f.filename)}
                   title={excluded ? 'Incluir na cross-referência' : 'Excluir da cross-referência'}
@@ -140,8 +150,6 @@ export function BaseSistemaUpload({
                 >
                   {excluded ? <EyeOff size={13} /> : <Eye size={13} />}
                 </button>
-
-                {/* Remove */}
                 <button
                   onClick={() => onRemove(f.filename)}
                   title="Remover"
@@ -155,7 +163,6 @@ export function BaseSistemaUpload({
         </div>
       )}
 
-      {/* Upload button */}
       <input
         ref={inputRef}
         type="file"
