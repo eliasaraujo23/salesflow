@@ -18,6 +18,7 @@ export interface UploadedFile {
   leilao:          Leilao | null;
   count:           number;
   vendidos:        string[];
+  pricePerRef:     Record<string, number>;
 }
 
 // Re-export storage type alias so page can use one import
@@ -28,34 +29,47 @@ export function extractCodigoFromFilename(filename: string): string | null {
   return m ? m[1] : null;
 }
 
-export function parseLeiloesBr(text: string): { refs: string[]; vendidos: string[] } {
+export function parseLeiloesBr(text: string): { refs: string[]; vendidos: string[]; pricePerRef: Record<string, number> } {
   const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return { refs: [], vendidos: [] };
+  if (lines.length < 2) return { refs: [], vendidos: [], pricePerRef: {} };
   const sep = lines[0].includes('\t') ? '\t' : lines[0].includes(';') ? ';' : ',';
   const rawHeaders = lines[0].split(sep).map(h => h.trim().replace(/^"|"$/g, ''));
   const headers = rawHeaders.map(h => h.toLowerCase().replace(/\s+/g, '').replace(/[^a-z]/g, ''));
 
   const idxMini  = headers.findIndex(h => h.includes('minidesc') || h.includes('mini'));
   const idxValor = headers.findIndex(h => h === 'valorvenda' || h.includes('valorvenda'));
+  // Try to find a price column: "precocontratado", "preco", "lanceinicial"
+  const idxPreco = headers.findIndex(h =>
+    h === 'precocontratado' || h === 'lanceinicial' ||
+    (h.includes('preco') && !h.includes('venda'))
+  );
 
-  if (idxMini < 0) return { refs: [], vendidos: [] };
+  if (idxMini < 0) return { refs: [], vendidos: [], pricePerRef: {} };
 
   const refs: string[] = [];
   const vendidos: string[] = [];
+  const pricePerRef: Record<string, number> = {};
 
   for (const line of lines.slice(1)) {
     const cols = line.split(sep);
     const ref = (cols[idxMini] ?? '').trim().replace(/^"|"$/g, '').toUpperCase();
-    if (!ref) continue;
+    // Referências válidas: 1-3 letras seguidas de dígitos (ex: T14723, M9, EA100).
+    // Rejeita linhas de pedras/diamantes como "1X 0,53, TOTAL DE: 0.96 CT | REF: E9377"
+    if (!ref || !/^[A-Z]{1,3}\d+$/.test(ref)) continue;
     refs.push(ref);
     if (idxValor >= 0) {
       const raw = (cols[idxValor] ?? '').trim().replace(/^"|"$/g, '').replace(',', '.');
       const valor = parseFloat(raw) || 0;
       if (valor > 0) vendidos.push(ref);
     }
+    if (idxPreco >= 0) {
+      const raw = (cols[idxPreco] ?? '').trim().replace(/^"|"$/g, '').replace(',', '.');
+      const preco = parseFloat(raw) || 0;
+      if (preco > 0) pricePerRef[ref] = preco;
+    }
   }
 
-  return { refs, vendidos };
+  return { refs, vendidos, pricePerRef };
 }
 
 interface Props {
@@ -78,8 +92,8 @@ export function BaseSistemaUpload({
       const leilao = codigo ? leiloes.find(l => l.codigoPlatforma === codigo) ?? null : null;
       const reader = new FileReader();
       reader.onload = ev => {
-        const { refs, vendidos } = parseLeiloesBr(ev.target?.result as string);
-        onAdd({ filename: file.name, codigoPlatforma: codigo, leilao, count: refs.length, vendidos }, refs);
+        const { refs, vendidos, pricePerRef } = parseLeiloesBr(ev.target?.result as string);
+        onAdd({ filename: file.name, codigoPlatforma: codigo, leilao, count: refs.length, vendidos, pricePerRef }, refs);
       };
       reader.readAsText(file, 'UTF-8');
     });
