@@ -2,24 +2,22 @@ import type { LeilaoBaseRow } from '@/lib/hooks/use-leilao-base';
 
 const PECA_MAX = 100;
 
-function escapeCsv(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
+// Usa ponto-e-vírgula como separador para evitar conflito com vírgulas nas descrições
+function row(...fields: (string | number)[]): string {
+  return fields.map(f => String(f ?? '')).join(';');
 }
 
 // Gera CSV para "Cadastrar Peças"
-// item,peca,lote,dia,preco_contratado,descricao,segunda_descricao
+// item;peca;lote;dia;preco_contratado;descricao;segunda_descricao
 export function generateCsvCadastrar(pieces: LeilaoBaseRow[], startLote: number): string {
-  const header = 'item,peca,lote,dia,preco_contratado,descricao,segunda_descricao';
+  const header = 'item;peca;lote;dia;preco_contratado;descricao;segunda_descricao';
   const rows = pieces.map((p, i) => {
-    const lote    = startLote + i;
-    const full    = p.descricao_jewel ?? '';
-    const peca    = escapeCsv(full.length > PECA_MAX ? full.slice(0, PECA_MAX) : full);
-    const descFull = escapeCsv(`${full} | REF: ${p.referencia}`);
-    const preco   = Math.round(p.preco_avista ?? 0);
-    return [lote, peca, lote, 1, preco, descFull, p.referencia].join(',');
+    const lote     = startLote + i;
+    const full     = p.descricao_jewel ?? '';
+    const peca     = full.length > PECA_MAX ? full.slice(0, PECA_MAX) : full;
+    const descFull = `${full} | REF: ${p.referencia}`;
+    const preco    = Math.round(p.preco_avista ?? 0);
+    return row(lote, peca, lote, 1, preco, descFull, p.referencia);
   });
   return [header, ...rows].join('\n');
 }
