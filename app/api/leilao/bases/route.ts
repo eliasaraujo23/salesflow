@@ -9,47 +9,25 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
 });
 
-async function ensureTable(client: import('pg').PoolClient) {
-  // Verifica se a tabela existe antes de tentar DDL (SELECT funciona em conexões read-only)
-  const { rows: tableExists } = await client.query(
-    `SELECT 1 FROM information_schema.tables
-     WHERE table_schema = 'public' AND table_name = 'leilao_bases_ativas'`
-  );
-
-  if (tableExists.length === 0) {
-    // Tabela não existe — tenta criar (pode falhar em réplicas read-only)
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS leilao_bases_ativas (
-        id                SERIAL PRIMARY KEY,
-        codigo_plataforma VARCHAR(20),
-        filename          VARCHAR(500) NOT NULL,
-        count_pecas       INTEGER      NOT NULL DEFAULT 0,
-        refs              TEXT[]       NOT NULL DEFAULT '{}',
-        refs_vendidos     TEXT[]       NOT NULL DEFAULT '{}',
-        excluded          BOOLEAN      NOT NULL DEFAULT FALSE,
-        created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-      )
-    `);
-    return; // coluna refs_vendidos já existe na definição acima
-  }
-
-  // Tabela existe — verifica se coluna refs_vendidos precisa ser adicionada
-  const { rows: cols } = await client.query(
-    `SELECT 1 FROM information_schema.columns
-     WHERE table_schema = 'public' AND table_name = 'leilao_bases_ativas' AND column_name = 'refs_vendidos'`
-  );
-  if (cols.length === 0) {
-    await client.query(
-      `ALTER TABLE leilao_bases_ativas ADD COLUMN refs_vendidos TEXT[] NOT NULL DEFAULT '{}'`
-    );
-  }
-}
+/*
+ * DDL removido do runtime — a tabela deve ser criada uma única vez via SQL:
+ *
+ * CREATE TABLE IF NOT EXISTS leilao_bases_ativas (
+ *   id                SERIAL PRIMARY KEY,
+ *   codigo_plataforma VARCHAR(20),
+ *   filename          VARCHAR(500) NOT NULL,
+ *   count_pecas       INTEGER      NOT NULL DEFAULT 0,
+ *   refs              TEXT[]       NOT NULL DEFAULT '{}',
+ *   refs_vendidos     TEXT[]       NOT NULL DEFAULT '{}',
+ *   excluded          BOOLEAN      NOT NULL DEFAULT FALSE,
+ *   created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+ * );
+ */
 
 // GET — list all bases
 export async function GET() {
   const client = await pool.connect();
   try {
-    await ensureTable(client);
     const { rows } = await client.query(
       `SELECT id, codigo_plataforma, filename, count_pecas, refs, refs_vendidos, excluded, created_at
        FROM leilao_bases_ativas
@@ -58,7 +36,7 @@ export async function GET() {
     return NextResponse.json({ data: rows });
   } catch (err) {
     console.error('[leilao/bases GET]', err);
-    return NextResponse.json({ message: String(err) }, { status: 500 });
+    return NextResponse.json({ data: [] });
   } finally {
     client.release();
   }
@@ -81,7 +59,6 @@ export async function POST(req: NextRequest) {
   const { codigoPlatforma, filename, count, refs, refsVendidos } = parsed.data;
   const client = await pool.connect();
   try {
-    await ensureTable(client);
     const { rows } = await client.query(
       `INSERT INTO leilao_bases_ativas (codigo_plataforma, filename, count_pecas, refs, refs_vendidos)
        VALUES ($1, $2, $3, $4, $5)
