@@ -131,9 +131,9 @@ export function BaseSistemaTable({ rows, activeRefs, globalFilter, tipoFiltro }:
               colSpan={COLUMNS.length}
               className="sticky top-0 z-20 px-4 py-2.5 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.08]"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-center gap-2">
                 <span className="text-xs font-bold text-zinc-700 dark:text-zinc-200">Peças Elegíveis</span>
-                <span className="text-xs font-semibold tabular-nums text-zinc-500 dark:text-zinc-400">{tableRows.length} peças</span>
+                <span className="text-xs font-semibold tabular-nums text-zinc-400 dark:text-zinc-500">— {tableRows.length}</span>
               </div>
             </th>
           </tr>
