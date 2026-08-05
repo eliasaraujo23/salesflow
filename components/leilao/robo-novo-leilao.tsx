@@ -1,13 +1,16 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Download, AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Download, AlertTriangle, ChevronDown, CheckCircle2, X } from 'lucide-react';
 import type { LeilaoBaseRow } from '@/lib/hooks/use-leilao-base';
 import type { UploadedFileStored } from '@/lib/hooks/use-leilao-bases-storage';
+import type { Leilao } from '@/lib/hooks/use-leiloes';
 import {
   generateCsvCadastrar,
   generateCsvTransferir,
   generateCsvTransferirComValor,
+  countExcludedFromTransfer,
+  generateCsvExcluidas,
   downloadCsv,
 } from '@/lib/leilao-csv';
 
@@ -16,17 +19,44 @@ interface Props {
   uploadedFiles: UploadedFileStored[];
   refsPerFile:   Map<string, string[]>;
   excludedFiles: Set<string>;
+  leiloes:       Leilao[];
 }
 
 type TransferMode = 'com_valor' | 'simples';
 
-export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, excludedFiles }: Props) {
-  const [selectedOld,  setSelectedOld]  = useState<string>('');
-  const [novoLeilao,   setNovoLeilao]   = useState('');
-  const [startLote,    setStartLote]    = useState(1);
-  const [transferMode, setTransferMode] = useState<TransferMode>('com_valor');
+function Stat({ value, label, color = 'zinc' }: { value: number; label: string; color?: string }) {
+  const colorMap: Record<string, string> = {
+    zinc:    'text-zinc-800 dark:text-zinc-100',
+    emerald: 'text-emerald-600 dark:text-emerald-400',
+    violet:  'text-violet-600 dark:text-violet-400',
+    indigo:  'text-indigo-600 dark:text-indigo-400',
+  };
+  return (
+    <div className="flex flex-col items-center gap-0.5 min-w-[56px]">
+      <span className={`text-2xl font-bold tabular-nums ${colorMap[color] ?? colorMap.zinc}`}>
+        {value.toLocaleString('pt-BR')}
+      </span>
+      <span className="text-[10px] text-zinc-400 text-center leading-tight">{label}</span>
+    </div>
+  );
+}
 
-  // Refs de todas as bases ativas (não excluídas)
+export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, excludedFiles, leiloes }: Props) {
+  const [selectedOld,    setSelectedOld]    = useState<string>('');
+  const [oldOpen,        setOldOpen]        = useState(false);
+  const [novoLeilao,     setNovoLeilao]     = useState('');
+  const [novoLeilaoSel,  setNovoLeilaoSel]  = useState<Leilao | null>(null);
+  const [showSuggs,      setShowSuggs]      = useState(false);
+  const [startLote,      setStartLote]      = useState(1);
+  const [transferMode,   setTransferMode]   = useState<TransferMode>('com_valor');
+  const [leilaoTipo,     setLeilaoTipo]     = useState<'NORMAL' | 'TOP'>('NORMAL');
+
+  useEffect(() => {
+    const f = uploadedFiles.find(f => f.codigoPlatforma === selectedOld);
+    const nome = f?.leilao?.nome?.toUpperCase() ?? '';
+    setLeilaoTipo(nome.includes('TOP') ? 'TOP' : 'NORMAL');
+  }, [selectedOld]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const allActiveRefs = useMemo(() => {
     const set = new Set<string>();
     for (const f of uploadedFiles) {
@@ -36,28 +66,49 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
     return set;
   }, [uploadedFiles, refsPerFile, excludedFiles]);
 
-  // Peças da Base Sistema que ainda não estão em nenhum leilão
+  const leiloesSuggs = useMemo(() => {
+    if (!novoLeilao || novoLeilaoSel) return [];
+    return leiloes.filter(l => l.codigoPlatforma.includes(novoLeilao)).slice(0, 6);
+  }, [novoLeilao, novoLeilaoSel, leiloes]);
+
+  function selectNovoLeilao(l: Leilao) {
+    setNovoLeilao(l.codigoPlatforma);
+    setNovoLeilaoSel(l);
+    setShowSuggs(false);
+  }
+
+  function clearNovoLeilao() {
+    setNovoLeilao('');
+    setNovoLeilaoSel(null);
+  }
+
+  const oldFile = uploadedFiles.find(f => f.codigoPlatforma === selectedOld);
+  const oldRefs = oldFile ? (refsPerFile.get(oldFile.filename) ?? []) : [];
+
   const newPieces = useMemo(
-    () => basePieces.filter(r => !allActiveRefs.has(r.referencia.toUpperCase())),
-    [basePieces, allActiveRefs],
+    () => basePieces.filter(r =>
+      !allActiveRefs.has(r.referencia.toUpperCase()) && r.recomendacao === leilaoTipo
+    ),
+    [basePieces, allActiveRefs, leilaoTipo],
   );
 
-  // Mapa de preços para transferência
   const priceMap = useMemo(() => {
     const map = new Map<string, LeilaoBaseRow>();
     for (const p of basePieces) map.set(p.referencia.toUpperCase(), p);
     return map;
   }, [basePieces]);
 
-  const oldFile  = uploadedFiles.find(f => f.codigoPlatforma === selectedOld);
-  const oldRefs  = oldFile ? (refsPerFile.get(oldFile.filename) ?? []) : [];
-  const hasVendidosData = (oldFile?.vendidos.length ?? 0) > 0 || oldRefs.length === 0;
-
   const unsoldRefs = useMemo(() => {
     if (!oldFile) return [];
     const vendidosSet = new Set(oldFile.vendidos);
     return oldRefs.filter(r => !vendidosSet.has(r));
   }, [oldFile, oldRefs]);
+
+  const excluded = useMemo(
+    () => oldFile ? countExcludedFromTransfer(unsoldRefs, priceMap) : { foraBase: 0, destinoExcluido: 0, total: 0 },
+    [unsoldRefs, priceMap, oldFile],
+  );
+  const eligibleCount = unsoldRefs.length - excluded.total;
 
   function handleDownloadCadastrar() {
     if (newPieces.length === 0) return;
@@ -67,181 +118,312 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
     );
   }
 
-  const canDownload2 = !!oldFile && unsoldRefs.length > 0 && !!novoLeilao;
-
   function handleDownloadTransferir() {
-    if (!oldFile || unsoldRefs.length === 0 || !novoLeilao) return;
+    if (!oldFile || eligibleCount === 0 || !novoLeilao) return;
     const csv = transferMode === 'com_valor'
       ? generateCsvTransferirComValor(unsoldRefs, priceMap, novoLeilao)
-      : generateCsvTransferir(unsoldRefs, novoLeilao);
+      : generateCsvTransferir(unsoldRefs, novoLeilao, priceMap);
     downloadCsv(csv, `transferir_N${selectedOld}_para_${novoLeilao}.csv`);
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
 
-      {/* Configuração */}
+      {/* ── Config ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          <label className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
             Leilão anterior
           </label>
           <div className="relative">
-            <select
-              value={selectedOld}
-              onChange={e => setSelectedOld(e.target.value)}
-              className="w-full appearance-none pl-3 pr-8 py-2 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors"
+            <button
+              type="button"
+              onClick={() => setOldOpen(o => !o)}
+              onBlur={() => setTimeout(() => setOldOpen(false), 150)}
+              className="w-full flex items-center gap-2 pl-3 pr-8 py-2.5 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-left focus:outline-none focus:border-indigo-400 transition-colors"
             >
-              <option value="">— Selecionar —</option>
-              {uploadedFiles.map(f => (
-                <option key={f.filename} value={f.codigoPlatforma ?? ''}>
-                  {f.codigoPlatforma ? `N°${f.codigoPlatforma}` : '(sem N°)'}
-                  {f.leilao ? ` · #${f.leilao.numero} ${f.leilao.nome}` : ''}
-                  {' '}({f.count} peças
-                  {f.vendidos.length > 0 ? `, ${f.vendidos.length} vendidas` : ''})
-                </option>
-              ))}
-            </select>
+              {oldFile ? (
+                <>
+                  {oldFile.leilao && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: oldFile.leilao.cor }} />}
+                  <span className="font-bold text-zinc-700 dark:text-zinc-200 tabular-nums shrink-0">N°{oldFile.codigoPlatforma ?? '—'}</span>
+                  {oldFile.leilao && <>
+                    <span className="text-zinc-400">·</span>
+                    <span className="font-semibold text-zinc-500 tabular-nums shrink-0">#{oldFile.leilao.numero}</span>
+                    <span className="text-zinc-400">·</span>
+                    <span className="text-zinc-600 dark:text-zinc-400 truncate">{oldFile.leilao.nome}</span>
+                  </>}
+                  <span className="ml-auto text-zinc-400 shrink-0 whitespace-nowrap">
+                    {oldFile.count} peças{oldFile.vendidos.length > 0 ? `, ${oldFile.vendidos.length} vendidas` : ''}
+                  </span>
+                </>
+              ) : (
+                <span className="text-zinc-400">— Selecionar —</span>
+              )}
+            </button>
             <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+
+            {oldOpen && (
+              <div className="absolute top-full mt-1 w-full z-30 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.10] rounded-lg shadow-lg overflow-visible">
+                <button
+                  type="button"
+                  onMouseDown={() => { setSelectedOld(''); setOldOpen(false); }}
+                  className="w-full px-3 py-2.5 text-left text-xs text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] transition-colors"
+                >
+                  — Selecionar —
+                </button>
+                {[...uploadedFiles]
+                  .sort((a, b) => Number(a.codigoPlatforma ?? 0) - Number(b.codigoPlatforma ?? 0))
+                  .map(f => (
+                    <button
+                      key={f.filename}
+                      type="button"
+                      onMouseDown={() => { setSelectedOld(f.codigoPlatforma ?? ''); setOldOpen(false); }}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-left text-xs hover:bg-violet-50 dark:hover:bg-violet-950/30 transition-colors"
+                    >
+                      {f.leilao && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: f.leilao.cor }} />}
+                      <span className="font-bold text-zinc-700 dark:text-zinc-200 tabular-nums shrink-0">N°{f.codigoPlatforma ?? '—'}</span>
+                      {f.leilao && <>
+                        <span className="text-zinc-400">·</span>
+                        <span className="font-semibold text-zinc-500 tabular-nums shrink-0">#{f.leilao.numero}</span>
+                        <span className="text-zinc-400">·</span>
+                        <span className="text-zinc-600 dark:text-zinc-400 truncate">{f.leilao.nome}</span>
+                      </>}
+                      <span className="ml-auto text-zinc-400 shrink-0 whitespace-nowrap">
+                        {f.count}{f.vendidos.length > 0 ? `, ${f.vendidos.length} vend.` : ''} peças
+                      </span>
+                    </button>
+                  ))}
+              </div>
+            )}
           </div>
-          {oldFile && !hasVendidosData && (
-            <p className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400">
-              <AlertCircle size={10} />
-              Sem dados de venda — re-faça o upload após encerrar o leilão
-            </p>
-          )}
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          <label className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
             N° do leilão novo (leiloes.br)
           </label>
-          <input
-            value={novoLeilao}
-            onChange={e => setNovoLeilao(e.target.value.replace(/\D/g, ''))}
-            placeholder="Ex: 64878"
-            maxLength={6}
-            className="pl-3 pr-3 py-2 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors"
-          />
-        </div>
-      </div>
 
-      {/* Passo 1 — Cadastrar Peças novas (Base Sistema) */}
-      <div className="rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-white/[0.06]">
-          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold shrink-0">1</span>
-          <div className="flex-1 min-w-0">
-            <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">Cadastrar Peças Novas</span>
-            <span className="ml-2 text-[10px] text-zinc-400">Base Sistema → peças que ainda não estão em nenhum leilão</span>
-          </div>
-          {newPieces.length > 0 && <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />}
-        </div>
-
-        <div className="p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="flex items-center gap-6 flex-1">
-            <div className="text-center">
-              <div className="text-2xl font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{newPieces.length}</div>
-              <div className="text-[10px] text-zinc-400 mt-0.5">peças disponíveis</div>
+          {novoLeilaoSel ? (
+            /* ── Chip: leilão selecionado ── */
+            <div className="flex items-center gap-2 pl-3 pr-2 py-2.5 rounded-lg border border-indigo-300 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/30">
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: novoLeilaoSel.cor }} />
+              <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 tabular-nums shrink-0">N°{novoLeilaoSel.codigoPlatforma}</span>
+              <span className="text-[11px] text-indigo-400">·</span>
+              <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 tabular-nums shrink-0">#{novoLeilaoSel.numero}</span>
+              <span className="text-[11px] text-indigo-400">·</span>
+              <span className="text-xs text-indigo-700 dark:text-indigo-300 flex-1 truncate">{novoLeilaoSel.nome}</span>
+              <button
+                onClick={clearNovoLeilao}
+                className="shrink-0 p-0.5 rounded text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-200 transition-colors"
+              >
+                <X size={12} />
+              </button>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Lote inicial</label>
+          ) : (
+            /* ── Input + dropdown de sugestões ── */
+            <div className="relative">
               <input
-                type="number"
-                min={1}
-                value={startLote}
-                onChange={e => setStartLote(Math.max(1, Number(e.target.value)))}
-                className="w-20 pl-2 pr-2 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-indigo-400 transition-colors"
+                value={novoLeilao}
+                onChange={e => { setNovoLeilao(e.target.value.replace(/\D/g, '')); setShowSuggs(true); }}
+                onFocus={() => setShowSuggs(true)}
+                onBlur={() => setTimeout(() => setShowSuggs(false), 150)}
+                placeholder="Ex: 63873"
+                maxLength={6}
+                className="w-full pl-3 pr-3 py-2.5 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 focus:outline-none focus:border-indigo-400 transition-colors"
               />
-              <span className="text-[10px] text-zinc-400">lotes {startLote}–{startLote + newPieces.length - 1}</span>
-            </div>
-          </div>
-          <button
-            onClick={handleDownloadCadastrar}
-            disabled={newPieces.length === 0}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 dark:disabled:text-zinc-500 text-xs font-semibold transition-colors shrink-0"
-          >
-            <Download size={13} />
-            Baixar CSV — Cadastrar Peças ({newPieces.length})
-          </button>
-        </div>
-      </div>
-
-      {/* Passo 2 — Transferir do anterior */}
-      <div className="rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-white/[0.06]">
-          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-bold shrink-0">2</span>
-          <div className="flex-1 min-w-0">
-            <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">Transferir do Leilão Anterior</span>
-            <span className="ml-2 text-[10px] text-zinc-400">
-              {oldFile
-                ? `N°${oldFile.codigoPlatforma} → N°${novoLeilao || '?'}`
-                : 'selecione o leilão anterior acima'}
-            </span>
-          </div>
-          {canDownload2 && <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />}
-        </div>
-
-        <div className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 flex-wrap">
-          {oldFile ? (
-            <div className="flex items-center gap-5 flex-wrap flex-1">
-              <div className="text-center">
-                <div className="text-xl font-bold tabular-nums text-zinc-600 dark:text-zinc-400">{oldRefs.length}</div>
-                <div className="text-[10px] text-zinc-400 mt-0.5">total</div>
-              </div>
-              {oldFile.vendidos.length > 0 && (
-                <div className="text-center">
-                  <div className="text-xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{oldFile.vendidos.length}</div>
-                  <div className="text-[10px] text-zinc-400 mt-0.5">vendidas</div>
-                </div>
-              )}
-              <div className="text-center">
-                <div className="text-xl font-bold tabular-nums text-violet-600 dark:text-violet-400">{unsoldRefs.length}</div>
-                <div className="text-[10px] text-zinc-400 mt-0.5">a transferir</div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Tipo</label>
-                <div className="flex gap-1.5">
-                  {(['com_valor', 'simples'] as TransferMode[]).map(m => (
+              {showSuggs && leiloesSuggs.length > 0 && (
+                <div className="absolute top-full mt-1 w-full z-30 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.10] rounded-lg shadow-lg overflow-visible">
+                  {leiloesSuggs.map(l => (
                     <button
-                      key={m}
-                      onClick={() => setTransferMode(m)}
-                      className={`px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-colors ${
-                        transferMode === m
-                          ? 'bg-violet-600 border-violet-600 text-white'
-                          : 'border-zinc-200 dark:border-white/[0.10] text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04]'
-                      }`}
+                      key={l.id}
+                      onMouseDown={() => selectNovoLeilao(l)}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
                     >
-                      {m === 'com_valor' ? 'c/ Atualizar Preço' : 'Só Transferir'}
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: l.cor }} />
+                      <span className="text-xs font-bold text-zinc-700 dark:text-zinc-200 tabular-nums shrink-0">N°{l.codigoPlatforma}</span>
+                      <span className="text-[11px] text-zinc-400">·</span>
+                      <span className="text-xs font-semibold text-zinc-500 tabular-nums shrink-0">#{l.numero}</span>
+                      <span className="text-[11px] text-zinc-400">·</span>
+                      <span className="text-xs text-zinc-600 dark:text-zinc-400 truncate">{l.nome}</span>
                     </button>
                   ))}
                 </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Step cards ─────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        {/* ① Cadastrar Peças Novas */}
+        <div className="flex flex-col rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
+          {/* Header */}
+          <div className="flex items-center gap-2.5 px-4 py-3 rounded-t-xl border-b border-zinc-100 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/40">
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold shrink-0">1</span>
+            <div>
+              <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-100">Cadastrar Peças Novas</p>
+              <p className="text-[10px] text-zinc-400 leading-tight">Peças da Base Sistema ainda fora dos leilões ativos</p>
+            </div>
+            {newPieces.length > 0 && <CheckCircle2 size={13} className="text-emerald-500 ml-auto shrink-0" />}
+          </div>
+
+          {/* Body */}
+          <div className="flex flex-col gap-4 p-4 flex-1">
+            {/* Tipo do leilão — auto-detectado, ajustável */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Tipo do leilão</span>
+              <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-zinc-100 dark:bg-zinc-800/60">
+                {(['NORMAL', 'TOP'] as const).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setLeilaoTipo(t)}
+                    className={`py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                      leilaoTipo === t
+                        ? 'bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                        : 'text-zinc-500 dark:text-zinc-400'
+                    }`}
+                  >
+                    {t === 'TOP' ? 'TOP (≥ R$ 5.000)' : 'Normal (< R$ 5.000)'}
+                  </button>
+                ))}
               </div>
             </div>
-          ) : (
-            <p className="text-xs text-zinc-400 flex-1">Selecione o leilão anterior</p>
-          )}
+            {/* Stat */}
+            <div className="flex items-center gap-4">
+              <Stat value={newPieces.length} label="peças disponíveis" color="indigo" />
+              <div className="w-px h-8 bg-zinc-100 dark:bg-white/[0.06]" />
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Lote inicial</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number" min={1}
+                    value={startLote}
+                    onChange={e => setStartLote(Math.max(1, Number(e.target.value)))}
+                    className="w-16 pl-2 pr-2 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-indigo-400 transition-colors"
+                  />
+                  <span className="text-[10px] text-zinc-400 whitespace-nowrap">até {startLote + newPieces.length - 1}</span>
+                </div>
+              </div>
+            </div>
 
-          <div className="flex flex-col gap-1 shrink-0">
+            {/* Download */}
             <button
-              onClick={handleDownloadTransferir}
-              disabled={!canDownload2}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 dark:disabled:text-zinc-500 text-xs font-semibold transition-colors"
+              onClick={handleDownloadCadastrar}
+              disabled={newPieces.length === 0}
+              className="mt-auto flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-zinc-100 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed text-white disabled:text-zinc-400 dark:disabled:text-zinc-500 text-xs font-semibold transition-colors"
             >
               <Download size={13} />
-              Baixar CSV — Transferir ({unsoldRefs.length})
+              Baixar CSV — Cadastrar ({newPieces.length})
+            </button>
+          </div>
+        </div>
+
+        {/* ② Transferir do Leilão Anterior */}
+        <div className="flex flex-col rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
+          {/* Header */}
+          <div className="flex items-center gap-2.5 px-4 py-3 rounded-t-xl border-b border-zinc-100 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/40">
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-bold shrink-0">2</span>
+            <div>
+              <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-100">Transferir do Leilão Anterior</p>
+              <p className="text-[10px] text-zinc-400 leading-tight">
+                {oldFile
+                  ? `N°${oldFile.codigoPlatforma} → N°${novoLeilao || '?'}`
+                  : 'Selecione o leilão anterior acima'}
+              </p>
+            </div>
+            {eligibleCount > 0 && !!novoLeilao && <CheckCircle2 size={13} className="text-emerald-500 ml-auto shrink-0" />}
+          </div>
+
+          <div className="flex flex-col gap-4 p-4 flex-1">
+            {oldFile ? (
+              <>
+                {/* Stats */}
+                <div className="flex items-center justify-around">
+                  <Stat value={oldRefs.length} label="total" />
+                  <div className="w-px h-8 bg-zinc-100 dark:bg-white/[0.06]" />
+                  <Stat value={oldFile.vendidos.length} label="vendidas" color="emerald" />
+                  <div className="w-px h-8 bg-zinc-100 dark:bg-white/[0.06]" />
+                  <Stat value={eligibleCount} label="a transferir" color="violet" />
+                </div>
+
+                {/* Transfer type */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Tipo</span>
+                  <div className="grid grid-cols-2 gap-1.5 p-1 rounded-lg bg-zinc-100 dark:bg-zinc-800/60">
+                    {(['com_valor', 'simples'] as TransferMode[]).map(m => (
+                      <button
+                        key={m}
+                        onClick={() => setTransferMode(m)}
+                        className={`py-1.5 rounded-md text-[11px] font-semibold transition-colors ${
+                          transferMode === m
+                            ? 'bg-white dark:bg-zinc-900 text-violet-600 dark:text-violet-400 shadow-sm'
+                            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                        }`}
+                      >
+                        {m === 'com_valor' ? 'c/ Atualizar Preço' : 'Só Transferir'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Exclusion warning */}
+                {excluded.total > 0 && (
+                  <div className="flex flex-col gap-2 px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle size={13} className="text-amber-500 shrink-0 mt-0.5" />
+                      <div className="flex flex-col gap-0.5 flex-1">
+                        <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                          {excluded.total} peça{excluded.total > 1 ? 's' : ''} excluída{excluded.total > 1 ? 's' : ''}
+                        </span>
+                        {excluded.foraBase > 0 && (
+                          <span className="text-[10px] text-amber-600 dark:text-amber-500">
+                            · {excluded.foraBase} fora da Base Sistema (sem foto, sem preço ou vendidas)
+                          </span>
+                        )}
+                        {excluded.destinoExcluido > 0 && (
+                          <span className="text-[10px] text-amber-600 dark:text-amber-500">
+                            · {excluded.destinoExcluido} com destino exclusivo (Gringa, Lohana, etc.)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => downloadCsv(
+                        generateCsvExcluidas(unsoldRefs, priceMap),
+                        `excluidas_N${selectedOld}.csv`,
+                      )}
+                      className="self-start flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-100 dark:bg-amber-900/40 hover:bg-amber-200 dark:hover:bg-amber-800/50 text-amber-700 dark:text-amber-400 text-[10px] font-semibold transition-colors"
+                    >
+                      <Download size={11} />
+                      Ver lista completa (CSV)
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-zinc-400 text-center py-4">Selecione o leilão anterior</p>
+            )}
+
+            {/* Download */}
+            <button
+              onClick={handleDownloadTransferir}
+              disabled={!oldFile || eligibleCount === 0 || !novoLeilao}
+              className="mt-auto flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:bg-zinc-100 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed text-white disabled:text-zinc-400 dark:disabled:text-zinc-500 text-xs font-semibold transition-colors"
+            >
+              <Download size={13} />
+              Baixar CSV — Transferir ({eligibleCount})
             </button>
             {!novoLeilao && !!oldFile && (
-              <p className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400">
-                <AlertCircle size={10} />
-                Informe o N° do leilão novo
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 text-center -mt-2">
+                Informe o N° do leilão novo acima
               </p>
             )}
           </div>
         </div>
-      </div>
 
+      </div>
     </div>
   );
-
 }
