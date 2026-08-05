@@ -130,14 +130,12 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   }, [precoFile, precoRefs, priceMap]);
 
   function handleAtualizarPreco() {
-    if (precoRefs.length === 0) return;
-    const file = precoFile;
-    const num  = file?.codigoPlatforma ?? 'base';
-    // If diffs are known and non-empty, download only those refs; otherwise download all
-    const refsToDownload = (priceDiffs && priceDiffs.length > 0)
-      ? priceDiffs.map(d => d.ref)
-      : precoRefs;
-    downloadCsv(generateCsvAtualizarPreco(refsToDownload, priceMap), `atualizar_preco_${num}.csv`);
+    if (!priceDiffs || priceDiffs.length === 0) return;
+    const num = precoFile?.codigoPlatforma ?? 'base';
+    downloadCsv(
+      generateCsvAtualizarPreco(priceDiffs.map(d => d.ref), priceMap),
+      `atualizar_preco_${num}.csv`,
+    );
   }
 
   const imgRefs = refsPerFile.get(imgBase) ?? [];
@@ -214,13 +212,13 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
 
           <button
             onClick={handleAtualizarPreco}
-            disabled={!precoBase || precoRefs.length === 0}
+            disabled={!precoBase || !priceDiffs || priceDiffs.length === 0}
             className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 dark:disabled:text-zinc-500 text-xs font-semibold transition-colors"
           >
             <Download size={13} />
             {priceDiffs && priceDiffs.length > 0
-              ? `Baixar CSV — Diffs de Preço (${priceDiffs.length})`
-              : `Baixar CSV — Atualizar Preço${precoRefs.length > 0 ? ` (${precoRefs.length})` : ''}`
+              ? `Baixar CSV — Atualizar Preço (${priceDiffs.length})`
+              : 'Baixar CSV — Atualizar Preço'
             }
           </button>
         </div>
