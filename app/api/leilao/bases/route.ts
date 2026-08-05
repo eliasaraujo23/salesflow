@@ -9,22 +9,24 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
 });
 
-const INIT_SQL = `
-  CREATE TABLE IF NOT EXISTS leilao_bases_ativas (
-    id                SERIAL PRIMARY KEY,
-    codigo_plataforma VARCHAR(20),
-    filename          VARCHAR(500) NOT NULL,
-    count_pecas       INTEGER      NOT NULL DEFAULT 0,
-    refs              TEXT[]       NOT NULL DEFAULT '{}',
-    refs_vendidos     TEXT[]       NOT NULL DEFAULT '{}',
-    excluded          BOOLEAN      NOT NULL DEFAULT FALSE,
-    created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-  );
-  ALTER TABLE leilao_bases_ativas ADD COLUMN IF NOT EXISTS refs_vendidos TEXT[] NOT NULL DEFAULT '{}';
-`;
-
 async function ensureTable(client: import('pg').PoolClient) {
-  await client.query(INIT_SQL);
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS leilao_bases_ativas (
+      id                SERIAL PRIMARY KEY,
+      codigo_plataforma VARCHAR(20),
+      filename          VARCHAR(500) NOT NULL,
+      count_pecas       INTEGER      NOT NULL DEFAULT 0,
+      refs              TEXT[]       NOT NULL DEFAULT '{}',
+      refs_vendidos     TEXT[]       NOT NULL DEFAULT '{}',
+      excluded          BOOLEAN      NOT NULL DEFAULT FALSE,
+      created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    )
+  `);
+  // Adiciona coluna em tabelas criadas antes desta versão
+  await client.query(`
+    ALTER TABLE leilao_bases_ativas
+    ADD COLUMN IF NOT EXISTS refs_vendidos TEXT[] NOT NULL DEFAULT '{}'
+  `);
 }
 
 // GET — list all bases
