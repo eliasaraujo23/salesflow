@@ -3,8 +3,8 @@
 import { useMemo, useState } from 'react';
 import {
   format, getDay, parseISO, isBefore, isAfter,
-  startOfWeek, endOfWeek, startOfMonth, endOfMonth,
-  eachDayOfInterval, isSameMonth, isToday,
+  startOfWeek, endOfWeek,
+  eachDayOfInterval, isToday,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
@@ -250,39 +250,61 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col divide-y divide-zinc-100 dark:divide-white/[0.04]">
-                {upcoming.map(l => {
-                  const start = parseISO(l.dataInicio);
-                  const end   = parseISO(l.dataFim);
-                  const days  = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
-                  return (
-                    <button
-                      key={l.id}
-                      onClick={() => onEdit(l)}
-                      className="flex items-start gap-2.5 px-3 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-white/[0.03] transition-colors"
-                    >
-                      <span
-                        className="mt-0.5 w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ background: l.cor }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">
-                          N° {l.codigoPlatforma || '—'}
-                        </p>
-                        <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
-                          #{l.numero} · {l.nome}
-                        </p>
-                        <p className="text-[10px] text-zinc-400 mt-0.5">
-                          {format(start, "dd/MM")} → {format(end, "dd/MM")}
-                          <span className="ml-1 text-zinc-300 dark:text-zinc-600">({days}d)</span>
-                        </p>
-                        {l.observacao && (
-                          <p className="text-[10px] text-zinc-400 truncate mt-0.5">{l.observacao}</p>
-                        )}
+              <div className="flex flex-col">
+                {(() => {
+                  const groups: { monthKey: string; label: string; items: typeof upcoming }[] = [];
+                  for (const l of upcoming) {
+                    const start    = parseISO(l.dataInicio);
+                    const monthKey = format(start, 'yyyy-MM');
+                    const label    = format(start, 'MMMM yyyy', { locale: ptBR });
+                    const last     = groups[groups.length - 1];
+                    if (!last || last.monthKey !== monthKey) groups.push({ monthKey, label, items: [l] });
+                    else last.items.push(l);
+                  }
+                  return groups.map(group => (
+                    <div key={group.monthKey}>
+                      <div className="px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800/60 border-y border-zinc-100 dark:border-white/[0.05]">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 capitalize">
+                          {group.label}
+                        </span>
                       </div>
-                    </button>
-                  );
-                })}
+                      <div className="flex flex-col divide-y divide-zinc-100 dark:divide-white/[0.04]">
+                        {group.items.map(l => {
+                          const start = parseISO(l.dataInicio);
+                          const end   = parseISO(l.dataFim);
+                          const days  = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
+                          return (
+                            <button
+                              key={l.id}
+                              onClick={() => onEdit(l)}
+                              className="flex items-start gap-2.5 px-3 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-white/[0.03] transition-colors"
+                            >
+                              <span
+                                className="mt-0.5 w-2.5 h-2.5 rounded-full shrink-0"
+                                style={{ background: l.cor }}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">
+                                  N° {l.codigoPlatforma || '—'}
+                                </p>
+                                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+                                  #{l.numero} · {l.nome}
+                                </p>
+                                <p className="text-[10px] text-zinc-400 mt-0.5">
+                                  {format(start, "dd/MM")} → {format(end, "dd/MM")}
+                                  <span className="ml-1 text-zinc-300 dark:text-zinc-600">({days}d)</span>
+                                </p>
+                                {l.observacao && (
+                                  <p className="text-[10px] text-zinc-400 truncate mt-0.5">{l.observacao}</p>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ));
+                })()}
               </div>
             )}
           </div>

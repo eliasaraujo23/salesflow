@@ -79,6 +79,9 @@ service cloud.firestore {
     // Brechós — mapeamento de concorrentes no Brasil.
     match /breachos/{docId}       { allow read, write: if isAuth(); }
 
+    // Leilão — bases ativas do leiloes.br (CSVs carregados pelo usuário).
+    match /leilao_bases_ativas/{docId} { allow read, write: if isAuth(); }
+
     // Deny all other collections by default.
     match /{document=**} {
       allow read, write: if false;
