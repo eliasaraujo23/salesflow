@@ -1,27 +1,19 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Search } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
 import { useLeilaoBase } from '@/lib/hooks/use-leilao-base';
 import { useLeiloes } from '@/lib/hooks/use-leiloes';
 import { useLeilaoBasesStorage } from '@/lib/hooks/use-leilao-bases-storage';
 import { BaseSistemaTable } from '@/components/leilao/base-sistema-table';
-import {
-  BaseSistemaUpload,
-  type ActiveRefsMap,
-  type ActivePieceInfo,
-} from '@/components/leilao/base-sistema-upload';
+import { type ActiveRefsMap, type ActivePieceInfo } from '@/components/leilao/base-sistema-upload';
 
 type Filtro = 'todos' | 'normal' | 'top' | 'ativo';
 
 export default function BaseSistemaPage() {
-  const { data: rows = [], isLoading, error } = useLeilaoBase();
+  const { data: rows = [], isLoading, error, refetch, isFetching } = useLeilaoBase();
   const { leiloes } = useLeiloes();
-
-  const {
-    uploadedFiles, refsPerFile, excludedFiles,
-    add, remove, toggleExclude,
-  } = useLeilaoBasesStorage(leiloes);
+  const { uploadedFiles, refsPerFile, excludedFiles } = useLeilaoBasesStorage(leiloes);
 
   const [globalFilter, setGlobalFilter] = useState('');
   const [filtro,       setFiltro]       = useState<Filtro>('todos');
@@ -101,9 +93,9 @@ export default function BaseSistemaPage() {
         })}
       </div>
 
-      {/* ── Toolbar + bases ─────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row gap-4 shrink-0">
-        <div className="relative shrink-0">
+      {/* ── Toolbar ─────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="relative">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           <input
             value={globalFilter}
@@ -113,14 +105,15 @@ export default function BaseSistemaPage() {
           />
         </div>
 
-        <BaseSistemaUpload
-          uploaded={uploadedFiles}
-          excludedFiles={excludedFiles}
-          leiloes={leiloes}
-          onAdd={add}
-          onRemove={remove}
-          onToggleExclude={toggleExclude}
-        />
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          title="Atualizar base do sistema"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-50 text-xs font-medium transition-colors"
+        >
+          <RefreshCw size={12} className={isFetching ? 'animate-spin' : ''} />
+          Atualizar
+        </button>
       </div>
 
       {/* ── Table ─────────────────────────────────────────────── */}
