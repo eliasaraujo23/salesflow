@@ -44,8 +44,6 @@ export async function GET() {
          AND pd."destinoManutencaoId" IS NULL
          AND pd."statusManutencaoId" IS NULL
          AND pd.preco_avista IS NOT NULL AND pd.preco_avista > 0
-         AND EXISTS (SELECT 1 FROM leilao_image li WHERE li."productDetailsId" = pd.id AND li.is_main = true)
-         AND EXISTS (SELECT 1 FROM leilao_image li WHERE li."productDetailsId" = pd.id AND li.is_main = false)
          AND (p.produto IS NULL OR ${TR('p.produto')} NOT IN (${prodHolders}))
          AND (d.destino IS NULL OR ${TR('d.destino')} NOT IN (${destHolders}))
        ORDER BY pd.preco_avista ASC NULLS LAST`,

@@ -85,10 +85,6 @@ export async function POST(req: Request) {
         motivo = STATUS_NOME[r.status_id] ?? `Status ${r.status_id}`;
       } else if (!r.preco_avista || r.preco_avista <= 0) {
         motivo = 'Sem Preço';
-      } else if (!r.tem_principal) {
-        motivo = 'Sem Foto Principal';
-      } else if (!r.tem_secundaria) {
-        motivo = 'Sem Foto Secundária';
       }
 
       return {
