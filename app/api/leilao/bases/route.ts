@@ -10,22 +10,33 @@ const pool = new Pool({
 });
 
 async function ensureTable(client: import('pg').PoolClient) {
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS leilao_bases_ativas (
-      id                SERIAL PRIMARY KEY,
-      codigo_plataforma VARCHAR(20),
-      filename          VARCHAR(500) NOT NULL,
-      count_pecas       INTEGER      NOT NULL DEFAULT 0,
-      refs              TEXT[]       NOT NULL DEFAULT '{}',
-      refs_vendidos     TEXT[]       NOT NULL DEFAULT '{}',
-      excluded          BOOLEAN      NOT NULL DEFAULT FALSE,
-      created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-    )
-  `);
-  // Adiciona coluna em tabelas criadas antes desta versão (compatível com todas as versões PG)
+  // Verifica se a tabela existe antes de tentar DDL (SELECT funciona em conexões read-only)
+  const { rows: tableExists } = await client.query(
+    `SELECT 1 FROM information_schema.tables
+     WHERE table_schema = 'public' AND table_name = 'leilao_bases_ativas'`
+  );
+
+  if (tableExists.length === 0) {
+    // Tabela não existe — tenta criar (pode falhar em réplicas read-only)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS leilao_bases_ativas (
+        id                SERIAL PRIMARY KEY,
+        codigo_plataforma VARCHAR(20),
+        filename          VARCHAR(500) NOT NULL,
+        count_pecas       INTEGER      NOT NULL DEFAULT 0,
+        refs              TEXT[]       NOT NULL DEFAULT '{}',
+        refs_vendidos     TEXT[]       NOT NULL DEFAULT '{}',
+        excluded          BOOLEAN      NOT NULL DEFAULT FALSE,
+        created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+      )
+    `);
+    return; // coluna refs_vendidos já existe na definição acima
+  }
+
+  // Tabela existe — verifica se coluna refs_vendidos precisa ser adicionada
   const { rows: cols } = await client.query(
     `SELECT 1 FROM information_schema.columns
-     WHERE table_name = 'leilao_bases_ativas' AND column_name = 'refs_vendidos'`
+     WHERE table_schema = 'public' AND table_name = 'leilao_bases_ativas' AND column_name = 'refs_vendidos'`
   );
   if (cols.length === 0) {
     await client.query(
