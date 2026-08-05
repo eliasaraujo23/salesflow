@@ -22,11 +22,16 @@ async function ensureTable(client: import('pg').PoolClient) {
       created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
     )
   `);
-  // Adiciona coluna em tabelas criadas antes desta versão
-  await client.query(`
-    ALTER TABLE leilao_bases_ativas
-    ADD COLUMN IF NOT EXISTS refs_vendidos TEXT[] NOT NULL DEFAULT '{}'
-  `);
+  // Adiciona coluna em tabelas criadas antes desta versão (compatível com todas as versões PG)
+  const { rows: cols } = await client.query(
+    `SELECT 1 FROM information_schema.columns
+     WHERE table_name = 'leilao_bases_ativas' AND column_name = 'refs_vendidos'`
+  );
+  if (cols.length === 0) {
+    await client.query(
+      `ALTER TABLE leilao_bases_ativas ADD COLUMN refs_vendidos TEXT[] NOT NULL DEFAULT '{}'`
+    );
+  }
 }
 
 // GET — list all bases
