@@ -12,7 +12,9 @@ import {
   countExcludedFromTransfer,
   generateCsvExcluidas,
   downloadCsv,
+  type RefDetailExtra,
 } from '@/lib/leilao-csv';
+import { fetchRefsDetail } from '@/lib/actions/fetch-refs-detail';
 
 interface Props {
   basePieces:    LeilaoBaseRow[];
@@ -42,14 +44,15 @@ function Stat({ value, label, color = 'zinc' }: { value: number; label: string; 
 }
 
 export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, excludedFiles, leiloes }: Props) {
-  const [selectedOld,    setSelectedOld]    = useState<string>('');
-  const [oldOpen,        setOldOpen]        = useState(false);
-  const [novoLeilao,     setNovoLeilao]     = useState('');
-  const [novoLeilaoSel,  setNovoLeilaoSel]  = useState<Leilao | null>(null);
-  const [showSuggs,      setShowSuggs]      = useState(false);
-  const [startLote,      setStartLote]      = useState(1);
-  const [transferMode,   setTransferMode]   = useState<TransferMode>('com_valor');
-  const [leilaoTipo,     setLeilaoTipo]     = useState<'NORMAL' | 'TOP'>('NORMAL');
+  const [selectedOld,      setSelectedOld]      = useState<string>('');
+  const [oldOpen,          setOldOpen]          = useState(false);
+  const [novoLeilao,       setNovoLeilao]       = useState('');
+  const [novoLeilaoSel,    setNovoLeilaoSel]    = useState<Leilao | null>(null);
+  const [showSuggs,        setShowSuggs]        = useState(false);
+  const [startLote,        setStartLote]        = useState(1);
+  const [transferMode,     setTransferMode]     = useState<TransferMode>('com_valor');
+  const [leilaoTipo,       setLeilaoTipo]       = useState<'NORMAL' | 'TOP'>('NORMAL');
+  const [loadingExcluidas, setLoadingExcluidas] = useState(false);
 
   useEffect(() => {
     const f = uploadedFiles.find(f => f.codigoPlatforma === selectedOld);
@@ -390,14 +393,28 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
                       </div>
                     </div>
                     <button
-                      onClick={() => downloadCsv(
-                        generateCsvExcluidas(unsoldRefs, priceMap),
-                        `excluidas_N${selectedOld}.csv`,
-                      )}
-                      className="self-start flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-100 dark:bg-amber-900/40 hover:bg-amber-200 dark:hover:bg-amber-800/50 text-amber-700 dark:text-amber-400 text-[10px] font-semibold transition-colors"
+                      disabled={loadingExcluidas}
+                      onClick={async () => {
+                        setLoadingExcluidas(true);
+                        try {
+                          // Fetch detail for refs NOT in priceMap
+                          const foraBaseRefs = unsoldRefs.filter(r => !priceMap.has(r.toUpperCase()));
+                          const details = await fetchRefsDetail(foraBaseRefs);
+                          const detailMap = new Map<string, RefDetailExtra>(
+                            details.map(d => [d.referencia.toUpperCase(), d])
+                          );
+                          downloadCsv(
+                            generateCsvExcluidas(unsoldRefs, priceMap, detailMap),
+                            `excluidas_N${selectedOld}.csv`,
+                          );
+                        } finally {
+                          setLoadingExcluidas(false);
+                        }
+                      }}
+                      className="self-start flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-100 dark:bg-amber-900/40 hover:bg-amber-200 dark:hover:bg-amber-800/50 disabled:opacity-60 disabled:cursor-wait text-amber-700 dark:text-amber-400 text-[10px] font-semibold transition-colors"
                     >
                       <Download size={11} />
-                      Ver lista completa (CSV)
+                      {loadingExcluidas ? 'Buscando...' : 'Ver lista completa (CSV)'}
                     </button>
                   </div>
                 )}

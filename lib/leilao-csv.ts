@@ -108,19 +108,35 @@ export function generateCsvTransferirComValor(
   return [header, ...rows].join('\n');
 }
 
-// Gera CSV das peças excluídas da transferência, com motivo e destino
+// Detail info para refs não encontradas no priceMap — vem do endpoint /api/leilao/refs-detail
+export interface RefDetailExtra {
+  referencia:  string;
+  motivo:      string;
+  destino:     string | null;
+  status_nome: string;
+  fotos:       number;
+}
+
+// Gera CSV das peças excluídas da transferência, com motivo e destino detalhados.
+// details: mapa ref → RefDetailExtra (opcional); quando presente, enriquece "Fora da Base".
 export function generateCsvExcluidas(
   refs:     string[],
   priceMap: Map<string, LeilaoBaseRow>,
+  details?: Map<string, RefDetailExtra>,
 ): string {
-  const header = 'referencia;motivo;destino';
+  const header = 'referencia;motivo;status;destino;fotos';
   const rows: string[] = [];
   for (const ref of refs) {
-    const piece = priceMap.get(ref.toUpperCase());
+    const piece  = priceMap.get(ref.toUpperCase());
+    const detail = details?.get(ref.toUpperCase()) ?? details?.get(ref);
     if (!piece) {
-      rows.push(`${ref};Fora da Base Sistema;`);
+      const motivo  = detail?.motivo      ?? 'Fora da Base Sistema';
+      const status  = detail?.status_nome ?? '';
+      const destino = sanitize(detail?.destino ?? '');
+      const fotos   = detail?.fotos !== undefined ? String(detail.fotos) : '';
+      rows.push(`${ref};${motivo};${status};${destino};${fotos}`);
     } else if (isDestinoExcluido(piece.destino ?? null)) {
-      rows.push(`${ref};Destino Exclusivo;${sanitize(piece.destino ?? '')}`);
+      rows.push(`${ref};Destino Exclusivo;${piece.status_id === 6 ? 'Em Comodato' : 'Sem Venda'};${sanitize(piece.destino ?? '')};`);
     }
   }
   return [header, ...rows].join('\n');
