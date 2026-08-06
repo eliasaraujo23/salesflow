@@ -31,11 +31,11 @@ function corDoTipo(nome: string): string {
 }
 
 const schema = z.object({
-  numero:           z.string().min(1, 'Obrigatório'),
+  numero:           z.string().optional(),
   nome:             z.string().min(1, 'Selecione o tipo'),
   dataInicio:       z.string().min(1, 'Selecione o período'),
   dataFim:          z.string().min(1, 'Selecione o período'),
-  codigoPlatforma:  z.string().min(1, 'Obrigatório'),
+  codigoPlatforma:  z.string().optional(),
   observacao:       z.string().optional(),
 }).refine(d => d.dataFim >= d.dataInicio, {
   message: 'Data fim deve ser ≥ data início',

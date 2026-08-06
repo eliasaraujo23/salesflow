@@ -31,11 +31,12 @@ export default function LeilaoPage() {
   }
 
   function handleSave(values: LeilaoFormValues & { cor: string }) {
+    const normalized = { ...values, numero: values.numero ?? '', codigoPlatforma: values.codigoPlatforma ?? '' };
     if (editing) {
-      update({ ...editing, ...values });
+      update({ ...editing, ...normalized });
       toast.success('Leilão atualizado');
     } else {
-      add(values);
+      add(normalized);
       toast.success('Leilão adicionado ao calendário');
     }
     handleClose();
