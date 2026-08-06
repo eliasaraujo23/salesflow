@@ -53,9 +53,7 @@ export function parseLeiloesBr(text: string): { refs: string[]; vendidos: string
   for (const line of lines.slice(1)) {
     const cols = line.split(sep);
     const ref = (cols[idxMini] ?? '').trim().replace(/^"|"$/g, '').toUpperCase();
-    // Rejeita linhas de diamantes/pedras como "1X 0,53, TOTAL DE: 0.96 CT | REF: E9377"
-    // que sempre têm espaços ou começam com dígito. Refs válidas não têm espaços.
-    if (!ref || ref.includes(' ') || /^\d/.test(ref)) continue;
+    if (!ref) continue;
     refs.push(ref);
     if (idxValor >= 0) {
       const raw = (cols[idxValor] ?? '').trim().replace(/^"|"$/g, '').replace(',', '.');
