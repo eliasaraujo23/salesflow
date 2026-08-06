@@ -152,11 +152,18 @@ export function generateCsvUploadImagens(refs: string[]): string {
 // mini_descricao,novo_valor
 export function generateCsvAtualizarPreco(refs: string[], priceMap: Map<string, LeilaoBaseRow>): string {
   const header = 'mini_descricao;novo_valor';
-  const rows = refs.map(ref => {
-    const preco = Math.round(priceMap.get(ref.toUpperCase())?.preco_avista ?? 0);
-    return `${ref};${preco}`;
-  });
+  const rows = refs
+    .filter(ref => (priceMap.get(ref.toUpperCase())?.preco_avista ?? 0) > 0)
+    .map(ref => {
+      const preco = Math.round(priceMap.get(ref.toUpperCase())!.preco_avista!);
+      return `${ref};${preco}`;
+    });
   return [header, ...rows].join('\n');
+}
+
+// Conta quantas refs têm preço válido no sistema (usado para exibir o total real no botão)
+export function countRefsWithPrice(refs: string[], priceMap: Map<string, LeilaoBaseRow>): number {
+  return refs.filter(ref => (priceMap.get(ref.toUpperCase())?.preco_avista ?? 0) > 0).length;
 }
 
 export function downloadCsv(content: string, filename: string): void {
