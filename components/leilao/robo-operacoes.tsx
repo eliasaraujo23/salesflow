@@ -9,7 +9,9 @@ import {
   generateCsvAtualizarPreco,
   countRefsWithPrice,
   downloadCsv,
+  type ImageKeysRow,
 } from '@/lib/leilao-csv';
+import { fetchImageKeys } from '@/lib/actions/fetch-image-keys';
 
 interface Props {
   basePieces:    LeilaoBaseRow[];
@@ -90,19 +92,29 @@ function BaseSelect({
 }
 
 export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props) {
-  const [imgBase,    setImgBase]    = useState('');
-  const [precoBase,  setPrecoBase]  = useState('');
+  const [imgBase,       setImgBase]       = useState('');
+  const [loadingImagem, setLoadingImagem] = useState(false);
+  const [precoBase,     setPrecoBase]     = useState('');
 
   const priceMap = new Map<string, LeilaoBaseRow>(
     basePieces.map(p => [p.referencia.toUpperCase(), p])
   );
 
-  function handleUploadImagens() {
+  async function handleUploadImagens() {
     const refs = refsPerFile.get(imgBase) ?? [];
     if (refs.length === 0) return;
-    const file = uploadedFiles.find(f => f.filename === imgBase);
-    const num  = file?.codigoPlatforma ?? 'base';
-    downloadCsv(generateCsvUploadImagens(refs), `upload_imagens_${num}.csv`);
+    setLoadingImagem(true);
+    try {
+      const file    = uploadedFiles.find(f => f.filename === imgBase);
+      const num     = file?.codigoPlatforma ?? 'base';
+      const rows    = await fetchImageKeys(refs);
+      const keyMap  = new Map<string, ImageKeysRow>(
+        rows.map(r => [r.mini_descricao.toUpperCase(), r])
+      );
+      downloadCsv(generateCsvUploadImagens(refs, keyMap), `upload_imagens_${num}.csv`);
+    } finally {
+      setLoadingImagem(false);
+    }
   }
 
   const precoFile = uploadedFiles.find(f => f.filename === precoBase);
@@ -157,11 +169,14 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
           <BaseSelect value={imgBase} onChange={setImgBase} uploadedFiles={uploadedFiles} />
           <button
             onClick={handleUploadImagens}
-            disabled={!imgBase || imgRefs.length === 0}
+            disabled={!imgBase || imgRefs.length === 0 || loadingImagem}
             className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 dark:disabled:text-zinc-500 text-xs font-semibold transition-colors"
           >
             <Download size={13} />
-            Baixar CSV — Upload Imagens{imgRefs.length > 0 ? ` (${imgRefs.length})` : ''}
+            {loadingImagem
+              ? 'Buscando imagens...'
+              : `Baixar CSV — Upload Imagens${imgRefs.length > 0 ? ` (${imgRefs.length})` : ''}`
+            }
           </button>
         </div>
       </div>

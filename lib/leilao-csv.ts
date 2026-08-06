@@ -142,10 +142,37 @@ export function generateCsvExcluidas(
   return [header, ...rows].join('\n');
 }
 
-// Gera CSV para "Upload Imagens"
-// mini_descricao
-export function generateCsvUploadImagens(refs: string[]): string {
-  return ['mini_descricao', ...refs].join('\n');
+export interface ImageKeysRow {
+  mini_descricao: string;
+  key_principal:  string | null;
+  key_extra_1:    string | null;
+  key_extra_2:    string | null;
+  key_extra_3:    string | null;
+  key_extra_4:    string | null;
+  key_extra_5:    string | null;
+}
+
+// Gera CSV para "Upload Imagens" com chaves de imagem do banco
+export function generateCsvUploadImagens(refs: string[], imageKeys?: Map<string, ImageKeysRow>): string {
+  const header = 'mini_descricao;key_principal;key_extra_1;key_extra_2;key_extra_3;key_extra_4;key_extra_5';
+  if (!imageKeys) {
+    // Fallback sem dados do banco: só a ref, demais colunas vazias
+    const rows = refs.map(r => `${r};;;;;;`);
+    return [header, ...rows].join('\n');
+  }
+  const rows = refs.map(ref => {
+    const k = imageKeys.get(ref.toUpperCase()) ?? imageKeys.get(ref);
+    return [
+      ref,
+      k?.key_principal ?? '',
+      k?.key_extra_1   ?? '',
+      k?.key_extra_2   ?? '',
+      k?.key_extra_3   ?? '',
+      k?.key_extra_4   ?? '',
+      k?.key_extra_5   ?? '',
+    ].join(';');
+  });
+  return [header, ...rows].join('\n');
 }
 
 // Gera CSV para "Atualizar Preço"
