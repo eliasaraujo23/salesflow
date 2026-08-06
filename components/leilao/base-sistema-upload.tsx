@@ -113,11 +113,29 @@ export function BaseSistemaUpload({
     return Number(a.codigoPlatforma ?? 0) - Number(b.codigoPlatforma ?? 0);
   });
 
+  // Agrupa por nome-base (sem "TOP"), mantendo ordem do sort
+  const groups = sorted.reduce<{ key: string; items: typeof sorted }[]>((acc, f) => {
+    const key = (f.leilao?.nome ?? '—').replace(/\s+TOP$/i, '').trim().toUpperCase();
+    const last = acc[acc.length - 1];
+    if (last?.key === key) last.items.push(f);
+    else acc.push({ key, items: [f] });
+    return acc;
+  }, []);
+
+  const chipClass = (excluded: boolean) =>
+    `flex items-center gap-3 px-3 py-2 rounded-lg border text-xs transition-all ${
+      excluded
+        ? 'border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/40 opacity-50'
+        : 'border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-zinc-900'
+    }`;
+
   return (
     <div className="flex flex-col gap-2">
       {sorted.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {sorted.map(f => {
+        <div className="flex flex-wrap gap-x-6 gap-y-2 items-start">
+          {groups.map(group => (
+            <div key={group.key} className="flex flex-col gap-1.5">
+              {group.items.map(f => {
             const excluded = excludedFiles.has(f.filename);
             const cor      = f.leilao?.cor ?? '#71717a';
             const label    = f.leilao
@@ -129,11 +147,7 @@ export function BaseSistemaUpload({
             return (
               <div
                 key={f.filename}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg border text-xs transition-all ${
-                  excluded
-                    ? 'border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/40 opacity-50'
-                    : 'border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-zinc-900'
-                }`}
+                className={chipClass(excluded)}
               >
                 <span
                   className="w-2.5 h-2.5 rounded-full shrink-0"
@@ -181,6 +195,8 @@ export function BaseSistemaUpload({
               </div>
             );
           })}
+            </div>
+          ))}
         </div>
       )}
 
