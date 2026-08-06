@@ -55,7 +55,7 @@ export function parseLeiloesBr(text: string): { refs: string[]; vendidos: string
     const ref = (cols[idxMini] ?? '').trim().replace(/^"|"$/g, '').toUpperCase();
     // Referências válidas: 1-3 letras seguidas de dígitos (ex: T14723, M9, EA100).
     // Rejeita linhas de pedras/diamantes como "1X 0,53, TOTAL DE: 0.96 CT | REF: E9377"
-    if (!ref || !/^[A-Z]{1,3}\d+$/.test(ref)) continue;
+    if (!ref || !/^[A-Z]{1,6}\d+$/.test(ref)) continue;
     refs.push(ref);
     if (idxValor >= 0) {
       const raw = (cols[idxValor] ?? '').trim().replace(/^"|"$/g, '').replace(',', '.');

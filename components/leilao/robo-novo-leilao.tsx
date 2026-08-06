@@ -65,7 +65,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
     for (const f of uploadedFiles) {
       if (excludedFiles.has(f.filename)) continue;
       for (const r of (refsPerFile.get(f.filename) ?? []))
-        if (/^[A-Z]{1,3}\d+$/i.test(r)) set.add(r.toUpperCase());
+        if (/^[A-Z]{1,6}\d+$/i.test(r)) set.add(r.toUpperCase());
     }
     return set;
   }, [uploadedFiles, refsPerFile, excludedFiles]);
@@ -89,7 +89,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   const oldFile = uploadedFiles.find(f => f.codigoPlatforma === selectedOld);
   // Filtra refs inválidas que possam ter chegado de uploads antigos (ex: linhas de diamantes)
   const oldRefs = oldFile
-    ? (refsPerFile.get(oldFile.filename) ?? []).filter(r => /^[A-Z]{1,3}\d+$/i.test(r))
+    ? (refsPerFile.get(oldFile.filename) ?? []).filter(r => /^[A-Z]{1,6}\d+$/i.test(r))
     : [];
 
   const newPieces = useMemo(
