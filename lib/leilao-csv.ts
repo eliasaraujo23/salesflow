@@ -94,7 +94,7 @@ export function generateCsvTransferirComValor(
   priceMap:    Map<string, LeilaoBaseRow>,
   novoLeilao:  string,
 ): string {
-  const header = 'lote;dia;minidescricao;numeroleilao;novo_valor';
+  const header = 'lote;dia;mini_descricao;numero_leilao;novo_valor';
   const rows = refs
     .filter(ref => {
       if (!isEligibleForTransfer(ref, priceMap)) return false;
