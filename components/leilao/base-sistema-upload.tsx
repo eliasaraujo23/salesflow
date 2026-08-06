@@ -53,9 +53,9 @@ export function parseLeiloesBr(text: string): { refs: string[]; vendidos: string
   for (const line of lines.slice(1)) {
     const cols = line.split(sep);
     const ref = (cols[idxMini] ?? '').trim().replace(/^"|"$/g, '').toUpperCase();
-    // Referências válidas: 1-3 letras seguidas de dígitos (ex: T14723, M9, EA100).
-    // Rejeita linhas de pedras/diamantes como "1X 0,53, TOTAL DE: 0.96 CT | REF: E9377"
-    if (!ref || !/^[A-Z]{1,6}\d+$/.test(ref)) continue;
+    // Rejeita linhas de diamantes/pedras como "1X 0,53, TOTAL DE: 0.96 CT | REF: E9377"
+    // que sempre têm espaços ou começam com dígito. Refs válidas não têm espaços.
+    if (!ref || ref.includes(' ') || /^\d/.test(ref)) continue;
     refs.push(ref);
     if (idxValor >= 0) {
       const raw = (cols[idxValor] ?? '').trim().replace(/^"|"$/g, '').replace(',', '.');
@@ -101,9 +101,16 @@ export function BaseSistemaUpload({
   }
 
   const sorted = [...uploaded].sort((a, b) => {
-    const na = Number(a.codigoPlatforma ?? 0);
-    const nb = Number(b.codigoPlatforma ?? 0);
-    return na - nb;
+    // Agrupa por nome base (sem "TOP"), descendente p/ ETERNNO antes de BRUNO
+    const baseA = (a.leilao?.nome ?? 'ZZZ').replace(/\s+TOP$/i, '').trim().toUpperCase();
+    const baseB = (b.leilao?.nome ?? 'ZZZ').replace(/\s+TOP$/i, '').trim().toUpperCase();
+    if (baseA !== baseB) return baseB.localeCompare(baseA);
+    // Dentro do grupo: normal antes de TOP
+    const topA = /TOP$/i.test(a.leilao?.nome ?? '') ? 1 : 0;
+    const topB = /TOP$/i.test(b.leilao?.nome ?? '') ? 1 : 0;
+    if (topA !== topB) return topA - topB;
+    // Por N° da leiloes.br crescente
+    return Number(a.codigoPlatforma ?? 0) - Number(b.codigoPlatforma ?? 0);
   });
 
   return (
