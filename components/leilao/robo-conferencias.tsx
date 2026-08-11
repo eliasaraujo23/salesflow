@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { CheckCircle2, AlertTriangle, Download, RefreshCw, ChevronDown } from 'lucide-react';
 import type { UploadedFileStored } from '@/lib/hooks/use-leilao-bases-storage';
-import type { ConferenciaIssue } from '@/app/api/leilao/conferencia/route';
+import type { ConferenciaIssue, ProblemaType } from '@/app/api/leilao/conferencia/route';
 import { fetchConferencia } from '@/lib/actions/fetch-conferencia';
 import { downloadCsv } from '@/lib/leilao-csv';
 
@@ -18,18 +18,44 @@ interface IntraDuplicate {
 }
 
 interface LeilaoResult {
-  file:           UploadedFileStored;
-  destinos:       ConferenciaIssue[];
-  vendas:         ConferenciaIssue[];
+  file:            UploadedFileStored;
+  issues:          ConferenciaIssue[];
   interDuplicates: InterDuplicate[];
   intraDuplicates: IntraDuplicate[];
 }
 
 interface Props {
-  uploadedFiles:   UploadedFileStored[];
-  refsPerFile:     Map<string, string[]>;
-  excludedFiles:   Set<string>;
-  activeDestinos:  string[];
+  uploadedFiles:  UploadedFileStored[];
+  refsPerFile:    Map<string, string[]>;
+  excludedFiles:  Set<string>;
+  activeDestinos: string[];
+}
+
+const ISSUE_CONFIG: Record<ProblemaType, { label: string; sectionCls: string; textCls: string }> = {
+  em_manutencao:    { label: 'Em manutenção',               sectionCls: 'bg-yellow-50 dark:bg-yellow-950/20', textCls: 'text-yellow-600 dark:text-yellow-400' },
+  produto_excluido: { label: 'Produto excluído',             sectionCls: 'bg-orange-50 dark:bg-orange-950/20', textCls: 'text-orange-600 dark:text-orange-400' },
+  destino_exclusivo:{ label: 'Destino excluído pelas Regras',sectionCls: 'bg-orange-50 dark:bg-orange-950/20', textCls: 'text-orange-600 dark:text-orange-400' },
+  status_venda:     { label: 'Com status de venda',          sectionCls: 'bg-red-50 dark:bg-red-950/20',      textCls: 'text-red-600 dark:text-red-400' },
+  status_invalido:  { label: 'Status inválido para leilão',  sectionCls: 'bg-red-50 dark:bg-red-950/20',      textCls: 'text-red-600 dark:text-red-400' },
+  sem_preco:        { label: 'Sem preço à vista',            sectionCls: 'bg-rose-50 dark:bg-rose-950/20',    textCls: 'text-rose-600 dark:text-rose-400' },
+  sem_fotos:        { label: 'Sem fotos',                    sectionCls: 'bg-rose-50 dark:bg-rose-950/20',    textCls: 'text-rose-600 dark:text-rose-400' },
+};
+
+const PROBLEMA_ORDER: ProblemaType[] = [
+  'em_manutencao', 'produto_excluido', 'destino_exclusivo',
+  'status_venda', 'status_invalido', 'sem_preco', 'sem_fotos',
+];
+
+function issueDetail(issue: ConferenciaIssue): string {
+  switch (issue.problema) {
+    case 'destino_exclusivo': return issue.destino ?? '';
+    case 'em_manutencao':     return issue.status_nome;
+    case 'produto_excluido':  return 'Produto não permitido';
+    case 'status_venda':      return issue.status_nome;
+    case 'status_invalido':   return issue.status_nome;
+    case 'sem_preco':         return 'Sem preço cadastrado';
+    case 'sem_fotos':         return 'Nenhuma foto cadastrada';
+  }
 }
 
 function LeilaoHeader({ file }: { file: UploadedFileStored }) {
@@ -71,9 +97,7 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
     [uploadedFiles, excludedFiles],
   );
 
-  // ── Duplicatas (calculado localmente, sem API) ────────────────
   const duplicatesByFile = useMemo(() => {
-    // Mapa ref → arquivos DISTINTOS (cada arquivo conta 1 vez por ref)
     const refToFiles = new Map<string, UploadedFileStored[]>();
     for (const f of activeFiles) {
       const seenInFile = new Set<string>();
@@ -102,13 +126,10 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
 
       for (const [upper, count] of refCount.entries()) {
         const origRef = (refsPerFile.get(f.filename) ?? []).find(r => r.toUpperCase() === upper) ?? upper;
-        if (count > 1) {
-          intra.push({ ref: origRef, count });
-        }
+        if (count > 1) intra.push({ ref: origRef, count });
         const allFiles = refToFiles.get(upper) ?? [];
         if (allFiles.length > 1) {
-          const others = allFiles.filter(o => o.filename !== f.filename);
-          inter.push({ ref: origRef, otherFiles: others });
+          inter.push({ ref: origRef, otherFiles: allFiles.filter(o => o.filename !== f.filename) });
         }
       }
 
@@ -123,12 +144,9 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
     setLoading(true);
     setError(null);
     try {
-      // Collect all unique refs across active files
       const allRefs = Array.from(
         new Set(
-          activeFiles.flatMap(f =>
-            (refsPerFile.get(f.filename) ?? []).filter(r => r && !/^\d/.test(r))
-          )
+          activeFiles.flatMap(f => (refsPerFile.get(f.filename) ?? []).filter(r => !!r))
         )
       );
 
@@ -138,32 +156,25 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
       );
 
       const leilaoResults: LeilaoResult[] = activeFiles.map(f => {
-        const destinos: ConferenciaIssue[] = [];
-        const vendas:   ConferenciaIssue[] = [];
-
+        const fileIssues: ConferenciaIssue[] = [];
         const seenRefs = new Set<string>();
+
         for (const ref of (refsPerFile.get(f.filename) ?? [])) {
           if (!ref) continue;
           const upper = ref.toUpperCase();
           if (seenRefs.has(upper)) continue;
           seenRefs.add(upper);
           const issue = issueMap.get(upper);
-          if (!issue) continue;
-          if (issue.problema === 'destino_exclusivo') destinos.push(issue);
-          else vendas.push(issue);
+          if (issue) fileIssues.push(issue);
         }
 
-        destinos.sort((a, b) => a.referencia.localeCompare(b.referencia));
-        vendas.sort((a, b) => a.referencia.localeCompare(b.referencia));
+        fileIssues.sort((a, b) => {
+          const po = PROBLEMA_ORDER.indexOf(a.problema) - PROBLEMA_ORDER.indexOf(b.problema);
+          return po !== 0 ? po : a.referencia.localeCompare(b.referencia);
+        });
 
         const { inter, intra } = duplicatesByFile.get(f.filename) ?? { inter: [], intra: [] };
-        return {
-          file: f,
-          destinos,
-          vendas,
-          interDuplicates: inter,
-          intraDuplicates: intra,
-        };
+        return { file: f, issues: fileIssues, interDuplicates: inter, intraDuplicates: intra };
       });
 
       leilaoResults.sort((a, b) => Number(a.file.codigoPlatforma ?? 0) - Number(b.file.codigoPlatforma ?? 0));
@@ -179,12 +190,10 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
   function exportAll() {
     if (!results) return;
     const lines = ['leilao_br;leilao_num;leilao_nome;referencia;problema;detalhe'];
-    for (const { file, destinos, vendas, interDuplicates: inter, intraDuplicates: intra } of results) {
+    for (const { file, issues, interDuplicates: inter, intraDuplicates: intra } of results) {
       const base = `N°${file.codigoPlatforma ?? '?'};#${file.leilao?.numero ?? '?'};${file.leilao?.nome ?? '?'}`;
-      for (const d of destinos)
-        lines.push(`${base};${d.referencia};Destino exclusivo;${d.destino ?? ''}`);
-      for (const v of vendas)
-        lines.push(`${base};${v.referencia};${v.status_nome};`);
+      for (const issue of issues)
+        lines.push(`${base};${issue.referencia};${ISSUE_CONFIG[issue.problema].label};${issueDetail(issue)}`);
       for (const d of intra)
         lines.push(`${base};${d.ref};Duplicata no CSV;aparece ${d.count}x no mesmo arquivo`);
       for (const d of inter) {
@@ -196,7 +205,7 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
   }
 
   const totalIssues = results
-    ? results.reduce((n, r) => n + r.destinos.length + r.vendas.length + r.interDuplicates.length + r.intraDuplicates.length, 0)
+    ? results.reduce((n, r) => n + r.issues.length + r.interDuplicates.length + r.intraDuplicates.length, 0)
     : null;
 
   return (
@@ -242,22 +251,28 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
         </div>
       )}
 
-      {/* Sem resultados ainda */}
       {!results && !loading && (
         <div className="rounded-xl border border-dashed border-zinc-200 dark:border-white/[0.08] p-6 text-center">
           <p className="text-xs text-zinc-400">Clique em <span className="font-semibold text-zinc-600 dark:text-zinc-300">Verificar</span> para consultar o banco de dados</p>
         </div>
       )}
 
-      {/* Um card por leilão */}
-      {results && results.map(({ file, destinos, vendas, interDuplicates, intraDuplicates }) => {
-        const total = destinos.length + vendas.length + interDuplicates.length + intraDuplicates.length;
+      {results && results.map(({ file, issues, interDuplicates, intraDuplicates }) => {
+        const total = issues.length + interDuplicates.length + intraDuplicates.length;
         const ok = total === 0;
         const isCollapsed = collapsed.has(file.filename);
+
+        // Group issues by problema type
+        const byProblema = new Map<ProblemaType, ConferenciaIssue[]>();
+        for (const issue of issues) {
+          const list = byProblema.get(issue.problema) ?? [];
+          list.push(issue);
+          byProblema.set(issue.problema, list);
+        }
+
         return (
           <div key={file.filename} className="rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-hidden">
 
-            {/* Header — clicável para recolher */}
             <button
               type="button"
               onClick={() => toggleCollapse(file.filename)}
@@ -279,53 +294,40 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
                     <AlertTriangle size={11} /> {total} problema{total !== 1 ? 's' : ''}
                   </span>
                 )}
-                <ChevronDown
-                  size={13}
-                  className={`text-zinc-400 transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
-                />
+                <ChevronDown size={13} className={`text-zinc-400 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} />
               </div>
             </button>
 
-            {!isCollapsed && ok ? (
+            {!isCollapsed && ok && (
               <div className="px-4 py-3">
                 <span className="text-[11px] text-emerald-600 dark:text-emerald-400">Nenhum problema encontrado.</span>
               </div>
-            ) : !isCollapsed && (
+            )}
+
+            {!isCollapsed && !ok && (
               <div className="divide-y divide-zinc-100 dark:divide-white/[0.04]">
 
-                {/* Destino exclusivo */}
-                {destinos.length > 0 && (
-                  <div>
-                    <div className="px-4 py-2 bg-orange-50 dark:bg-orange-950/20">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-600 dark:text-orange-400">
-                        Em comodato com terceiros — {destinos.length} peça{destinos.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    {destinos.map(d => (
-                      <div key={d.referencia} className="flex items-center gap-3 px-4 py-2 hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
-                        <span className="text-xs font-bold text-zinc-800 dark:text-zinc-100 tabular-nums w-20 shrink-0">{d.referencia}</span>
-                        <span className="text-[11px] text-orange-600 dark:text-orange-400 flex-1">{d.destino}</span>
+                {/* Issues agrupados por tipo */}
+                {PROBLEMA_ORDER.map(tipo => {
+                  const grupo = byProblema.get(tipo);
+                  if (!grupo || grupo.length === 0) return null;
+                  const cfg = ISSUE_CONFIG[tipo];
+                  return (
+                    <div key={tipo}>
+                      <div className={`px-4 py-2 ${cfg.sectionCls}`}>
+                        <span className={`text-[10px] font-semibold uppercase tracking-wide ${cfg.textCls}`}>
+                          {cfg.label} — {grupo.length} peça{grupo.length !== 1 ? 's' : ''}
+                        </span>
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Status de venda */}
-                {vendas.length > 0 && (
-                  <div>
-                    <div className="px-4 py-2 bg-red-50 dark:bg-red-950/20">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">
-                        Com status de venda — {vendas.length} peça{vendas.length !== 1 ? 's' : ''}
-                      </span>
+                      {grupo.map(issue => (
+                        <div key={issue.referencia} className="flex items-center gap-3 px-4 py-2 hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
+                          <span className="text-xs font-bold text-zinc-800 dark:text-zinc-100 tabular-nums w-20 shrink-0">{issue.referencia}</span>
+                          <span className={`text-[11px] font-semibold ${cfg.textCls} flex-1`}>{issueDetail(issue)}</span>
+                        </div>
+                      ))}
                     </div>
-                    {vendas.map(v => (
-                      <div key={v.referencia} className="flex items-center gap-3 px-4 py-2 hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
-                        <span className="text-xs font-bold text-zinc-800 dark:text-zinc-100 tabular-nums w-20 shrink-0">{v.referencia}</span>
-                        <span className="text-[11px] font-semibold text-red-600 dark:text-red-400 flex-1">{v.status_nome}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                  );
+                })}
 
                 {/* Duplicatas no mesmo leilão */}
                 {intraDuplicates.length > 0 && (

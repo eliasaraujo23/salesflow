@@ -82,6 +82,9 @@ service cloud.firestore {
     // Leilão — bases ativas do leiloes.br (CSVs carregados pelo usuário).
     match /leilao_bases_ativas/{docId}    { allow read, write: if isAuth(); }
 
+    // Leilão — cadastro de leilões compartilhado entre todos os usuários.
+    match /leilao_leiloes/{docId}        { allow read: if isAuth(); allow write: if isAdmin(); }
+
     // Leilão — regras de destinos excluídos (gerenciado pelo admin).
     match /leilao_regras_destino/{docId} { allow read: if isAuth(); allow write: if isAdmin(); }
 
