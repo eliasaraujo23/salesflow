@@ -41,6 +41,8 @@ const ISSUE_CONFIG: Record<ProblemaType, { label: string; sectionCls: string; te
   sem_fotos:        { label: 'Sem fotos',                    sectionCls: 'bg-rose-50 dark:bg-rose-950/20',    textCls: 'text-rose-600 dark:text-rose-400' },
 };
 
+const SESSION_KEY = 'leilao_conferencias_results';
+
 const PROBLEMA_ORDER: ProblemaType[] = [
   'em_manutencao', 'produto_excluido', 'destino_exclusivo',
   'status_venda', 'status_invalido', 'sem_preco', 'sem_fotos',
@@ -78,7 +80,12 @@ function LeilaoHeader({ file }: { file: UploadedFileStored }) {
 }
 
 export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, activeDestinos }: Props) {
-  const [results,   setResults]   = useState<LeilaoResult[] | null>(null);
+  const [results,   setResults]   = useState<LeilaoResult[] | null>(() => {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      return raw ? (JSON.parse(raw) as LeilaoResult[]) : null;
+    } catch { return null; }
+  });
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -178,6 +185,7 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
       });
 
       leilaoResults.sort((a, b) => Number(a.file.codigoPlatforma ?? 0) - Number(b.file.codigoPlatforma ?? 0));
+      try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(leilaoResults)); } catch { /* ignore */ }
       setResults(leilaoResults);
       setCollapsed(new Set(leilaoResults.map(r => r.file.filename)));
     } catch (err) {
