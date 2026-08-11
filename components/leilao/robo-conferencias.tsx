@@ -52,7 +52,7 @@ function issueDetail(issue: ConferenciaIssue): string {
     case 'em_manutencao':     return issue.status_nome;
     case 'produto_excluido':  return 'Produto não permitido';
     case 'status_venda':      return issue.status_nome;
-    case 'status_invalido':   return issue.status_nome;
+    case 'status_invalido':   return `${issue.status_nome}${issue.destino ? ` · Destino: ${issue.destino}` : ''}`;
     case 'sem_preco':         return 'Sem preço cadastrado';
     case 'sem_fotos':         return 'Nenhuma foto cadastrada';
   }
