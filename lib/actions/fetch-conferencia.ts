@@ -7,8 +7,8 @@ const issueSchema = z.object({
   status_id:    z.number().nullable(),
   status_nome:  z.string(),
   destino:      z.string().nullable(),
-  preco_avista: z.number().nullable(),
-  fotos:        z.number(),
+  preco_avista: z.coerce.number().nullable(),
+  fotos:        z.coerce.number(),
 });
 
 const responseSchema = z.object({ data: z.array(issueSchema) });

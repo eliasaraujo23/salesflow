@@ -180,7 +180,8 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
       leilaoResults.sort((a, b) => Number(a.file.codigoPlatforma ?? 0) - Number(b.file.codigoPlatforma ?? 0));
       setResults(leilaoResults);
       setCollapsed(new Set(leilaoResults.map(r => r.file.filename)));
-    } catch {
+    } catch (err) {
+      console.error('[conferencias] erro:', err);
       setError('Erro ao verificar. Tente novamente.');
     } finally {
       setLoading(false);

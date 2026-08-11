@@ -74,7 +74,7 @@ export async function POST(req: Request) {
               pd."statusProdutoId"     AS status_id,
               pd."destinoManutencaoId" AS dest_manut,
               pd."statusManutencaoId"  AS status_manut,
-              pd.preco_avista,
+              pd.preco_avista::float8 AS preco_avista,
               d.destino,
               p.produto,
               (SELECT COUNT(*)::int FROM leilao_image li WHERE li."productDetailsId" = pd.id) AS fotos
