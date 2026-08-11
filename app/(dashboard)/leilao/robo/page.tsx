@@ -5,6 +5,7 @@ import { useLeiloes } from '@/lib/hooks/use-leiloes';
 import { useLeilaoBasesStorage } from '@/lib/hooks/use-leilao-bases-storage';
 import { useLeilaoRegras } from '@/lib/hooks/use-leilao-regras';
 import { BaseSistemaUpload } from '@/components/leilao/base-sistema-upload';
+import { BasesSyncButton } from '@/components/leilao/bases-sync-button';
 import { RoboNovoLeilao } from '@/components/leilao/robo-novo-leilao';
 import { RoboOperacoes } from '@/components/leilao/robo-operacoes';
 
@@ -26,9 +27,12 @@ export default function RoboPage() {
 
       {/* ── Bases do Leilão ──────────────────────────────────── */}
       <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-0.5">
-          <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Bases do Leilão</h2>
-          <p className="text-[11px] text-zinc-400">CSVs exportados da leiloes.br — um arquivo por leilão ativo</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Bases do Leilão</h2>
+            <p className="text-[11px] text-zinc-400">Sincronize automaticamente ou importe CSVs da leiloes.br</p>
+          </div>
+          <BasesSyncButton leiloes={leiloes} />
         </div>
         <BaseSistemaUpload
           uploaded={uploadedFiles}
