@@ -39,6 +39,7 @@ interface CalendarDateRangePickerProps {
   dateRange: DateRange | undefined;
   setDateRange: Dispatch<React.SetStateAction<DateRange | undefined>>;
   onDateChange?: (dateRange: DateRange | undefined) => void;
+  singleMonth?: boolean;
 }
 
 export function CalendarDateRangePicker({
@@ -47,6 +48,7 @@ export function CalendarDateRangePicker({
   dateRange,
   setDateRange,
   onDateChange,
+  singleMonth = false,
 }: CalendarDateRangePickerProps) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [pendingRange, setPendingRange] = useState<DateRange | undefined>(dateRange);
@@ -168,7 +170,8 @@ export function CalendarDateRangePicker({
 
           {/* Calendar */}
           {(() => {
-            const numMonths = typeof window !== 'undefined' && window.innerWidth < 640 ? 1 : 2;
+            const numMonths = singleMonth ? 1 : (typeof window !== 'undefined' && window.innerWidth < 640 ? 1 : 2);
+            const btnCls = 'h-8 w-8 flex items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/[0.06] hover:text-zinc-800 dark:hover:text-zinc-100 transition-colors shrink-0 pointer-events-auto';
             return (
               <DayPicker
                 mode="range"
@@ -180,13 +183,13 @@ export function CalendarDateRangePicker({
                 locale={pt}
                 className="drp-calendar"
                 classNames={{
-                  months:          'flex gap-6 p-4',
+                  months:          'relative flex gap-6 p-4',
                   month:           'space-y-2',
-                  month_caption:   'flex justify-between items-center h-10 px-1',
-                  caption_label:   'text-sm font-semibold text-zinc-900 dark:text-zinc-100 capitalize mx-auto',
-                  nav:             'contents',
-                  button_previous: 'h-8 w-8 flex items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/[0.06] hover:text-zinc-800 dark:hover:text-zinc-100 transition-colors shrink-0',
-                  button_next:     'h-8 w-8 flex items-center justify-center rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/[0.06] hover:text-zinc-800 dark:hover:text-zinc-100 transition-colors shrink-0',
+                  month_caption:   'flex justify-center items-center h-10 px-1',
+                  caption_label:   'text-sm font-semibold text-zinc-900 dark:text-zinc-100 capitalize',
+                  nav:             'absolute top-4 left-4 right-4 flex justify-between items-center h-10 pointer-events-none',
+                  button_previous: btnCls,
+                  button_next:     btnCls,
                   month_grid:      'w-full border-collapse',
                   weekdays:        'flex',
                   weekday:         'w-9 text-[11px] font-medium text-zinc-400 dark:text-zinc-500 text-center pb-1',
