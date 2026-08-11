@@ -96,8 +96,9 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   const [loadingImagem, setLoadingImagem] = useState(false);
   const [precoBase,     setPrecoBase]     = useState('');
 
-  const priceMap = new Map<string, LeilaoBaseRow>(
-    basePieces.map(p => [p.referencia.toUpperCase(), p])
+  const priceMap = useMemo(
+    () => new Map<string, LeilaoBaseRow>(basePieces.map(p => [p.referencia.toUpperCase(), p])),
+    [basePieces],
   );
 
   async function handleUploadImagens() {
@@ -127,9 +128,11 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
     if (!precoFile) return null;
     const ppr = precoFile.pricePerRef;
     if (Object.keys(ppr).length === 0) return null;
+    const vendidosSet = new Set(precoFile.vendidos.map(v => v.toUpperCase()));
     const diffs: Array<{ ref: string; leilaoPrice: number; sistemaPrice: number }> = [];
     for (const ref of precoRefs) {
       const refUpper    = ref.toUpperCase();
+      if (vendidosSet.has(refUpper)) continue;
       const systemRow   = priceMap.get(refUpper);
       const leilaoPrice = ppr[refUpper] ?? ppr[ref];
       if (systemRow && leilaoPrice !== undefined) {
@@ -203,28 +206,11 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
                 <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">Todos os preços estão atualizados</span>
               </div>
             ) : (
-              <div className="flex flex-col gap-1.5 px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle size={13} className="text-amber-500 shrink-0" />
-                  <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
-                    {priceDiffs.length} peça{priceDiffs.length > 1 ? 's' : ''} com preço diferente
-                  </span>
-                </div>
-                <div className="flex flex-col gap-0.5 mt-0.5">
-                  {priceDiffs.slice(0, 5).map(d => (
-                    <div key={d.ref} className="flex items-center gap-2 text-[10px] text-amber-600 dark:text-amber-500 tabular-nums">
-                      <span className="font-semibold">{d.ref}</span>
-                      <span className="text-amber-400 dark:text-amber-600">R$ {Math.round(d.leilaoPrice).toLocaleString('pt-BR')}</span>
-                      <span className="text-amber-400">→</span>
-                      <span>R$ {Math.round(d.sistemaPrice).toLocaleString('pt-BR')}</span>
-                    </div>
-                  ))}
-                  {priceDiffs.length > 5 && (
-                    <span className="text-[10px] text-amber-500 dark:text-amber-600 mt-0.5">
-                      + {priceDiffs.length - 5} mais…
-                    </span>
-                  )}
-                </div>
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40">
+                <AlertTriangle size={13} className="text-amber-500 shrink-0 mt-0.5" />
+                <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                  {priceDiffs.length} peça{priceDiffs.length > 1 ? 's' : ''} com preço diferente
+                </span>
               </div>
             )
           )}

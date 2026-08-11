@@ -23,14 +23,15 @@ function normalizeStr(s: string): string {
 }
 
 const STATUS_NOME: Record<number, string> = {
-  1: 'Ativo',
-  2: 'Inativo',
-  3: 'Sem Venda Efetivada',
-  4: 'Reservado',
-  5: 'Manutenção',
-  6: 'Em Comodato',
-  7: 'Vendido',
-  8: 'Consignado',
+  1:  'Ativo',
+  2:  'Aguardando Pagamento',
+  3:  'Sem Venda Efetivada',
+  4:  'Vendido Parcelado',
+  5:  'Manutenção',
+  6:  'Em Comodato',
+  7:  'Vendido',
+  8:  'Consignado',
+  13: 'Vendido Pago',
 };
 
 export interface RefDetail {

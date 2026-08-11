@@ -33,18 +33,23 @@ export function statusLabel(id: number | null): string {
   return 'DISPONÍVEL';
 }
 
-async function fetchBase(): Promise<LeilaoBaseRow[]> {
-  const res = await fetch('/api/leilao/base', { cache: 'no-store' });
+async function fetchBase(destinos: string[]): Promise<LeilaoBaseRow[]> {
+  const res = await fetch('/api/leilao/base', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ destinos }),
+    cache: 'no-store',
+  });
   if (!res.ok) throw new Error('Erro ao buscar base');
   const json = await res.json();
   const { data } = responseSchema.parse(json);
   return data.map(r => ({ ...r, recomendacao: deriveRecomendacao(r.preco_avista) }));
 }
 
-export function useLeilaoBase() {
+export function useLeilaoBase(activeDestinos: string[]) {
   return useQuery<LeilaoBaseRow[]>({
-    queryKey: ['leilao-base'],
-    queryFn:  fetchBase,
+    queryKey:  ['leilao-base', activeDestinos],
+    queryFn:   () => fetchBase(activeDestinos),
     staleTime: 5 * 60 * 1000,
   });
 }

@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Search, Download } from 'lucide-react';
+import { Search, Download, RefreshCw } from 'lucide-react';
 import { useLeilaoPendencias, type Pendencia, PENDENCIA_LABELS, PENDENCIA_COLOR } from '@/lib/hooks/use-leilao-pendencias';
+import { useLeilaoRegras } from '@/lib/hooks/use-leilao-regras';
 import { PendenciasTable } from '@/components/leilao/pendencias-table';
 import { downloadCsv } from '@/lib/leilao-csv';
 
 type Filtro = Pendencia | 'todos';
 
 export default function PendenciasPage() {
-  const { data: rows = [], isLoading, error } = useLeilaoPendencias();
+  const { activeDestinos } = useLeilaoRegras();
+  const { data: rows = [], isLoading, isFetching, error, refetch } = useLeilaoPendencias(activeDestinos);
   const [globalFilter, setGlobalFilter] = useState('');
   const [filtro, setFiltro] = useState<Filtro>('todos');
 
@@ -108,14 +110,24 @@ export default function PendenciasPage() {
             </button>
           );
         })}
-        <button
-          onClick={handleExportCsv}
-          disabled={filteredRows.length === 0}
-          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          <Download size={13} />
-          Exportar CSV ({filteredRows.length})
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
+            Atualizar
+          </button>
+          <button
+            onClick={handleExportCsv}
+            disabled={filteredRows.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <Download size={13} />
+            Exportar CSV ({filteredRows.length})
+          </button>
+        </div>
       </div>
 
       {/* ── Busca ───────────────────────────────────────────────── */}

@@ -80,7 +80,10 @@ service cloud.firestore {
     match /breachos/{docId}       { allow read, write: if isAuth(); }
 
     // Leilão — bases ativas do leiloes.br (CSVs carregados pelo usuário).
-    match /leilao_bases_ativas/{docId} { allow read, write: if isAuth(); }
+    match /leilao_bases_ativas/{docId}    { allow read, write: if isAuth(); }
+
+    // Leilão — regras de destinos excluídos (gerenciado pelo admin).
+    match /leilao_regras_destino/{docId} { allow read: if isAuth(); allow write: if isAdmin(); }
 
     // Deny all other collections by default.
     match /{document=**} {

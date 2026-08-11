@@ -244,10 +244,12 @@ export function Topbar({ title, subtitle, onMobileMenu }: TopbarProps) {
             <div className="flex items-center gap-1 ml-1">
               <ChevronRight size={14} className="text-zinc-400 shrink-0" />
               {[
-                { label: 'Cronograma',   href: '/leilao' },
-                { label: 'Base Sistema', href: '/leilao/base-sistema' },
-                { label: 'Pendências',   href: '/leilao/pendencias' },
-                { label: 'Robô',         href: '/leilao/robo' },
+                { label: 'Cronograma',    href: '/leilao' },
+                { label: 'Base Sistema',  href: '/leilao/base-sistema' },
+                { label: 'Pendências',    href: '/leilao/pendencias' },
+                { label: 'Robô',          href: '/leilao/robo' },
+                { label: 'Conferências',  href: '/leilao/conferencias' },
+                { label: 'Regras',        href: '/leilao/regras' },
               ].map(tab => {
                 const isActive = tab.href === '/leilao'
                   ? pathname === '/leilao'

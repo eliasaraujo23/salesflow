@@ -52,18 +52,23 @@ function derivePendencias(r: z.infer<typeof rowSchema>): Pendencia[] {
   return p;
 }
 
-async function fetchPendencias(): Promise<PendenciaRow[]> {
-  const res = await fetch('/api/leilao/pendencias', { cache: 'no-store' });
+async function fetchPendencias(destinos: string[]): Promise<PendenciaRow[]> {
+  const res = await fetch('/api/leilao/pendencias', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ destinos }),
+    cache: 'no-store',
+  });
   if (!res.ok) throw new Error('Erro ao buscar pendências');
   const json = await res.json();
   const rows = z.object({ data: z.array(rowSchema) }).parse(json).data;
   return rows.map(r => ({ ...r, pendencias: derivePendencias(r) }));
 }
 
-export function useLeilaoPendencias() {
+export function useLeilaoPendencias(activeDestinos: string[]) {
   return useQuery<PendenciaRow[]>({
-    queryKey: ['leilao-pendencias'],
-    queryFn:  fetchPendencias,
+    queryKey:  ['leilao-pendencias', activeDestinos],
+    queryFn:   () => fetchPendencias(activeDestinos),
     staleTime: 5 * 60 * 1000,
   });
 }

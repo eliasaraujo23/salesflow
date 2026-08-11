@@ -5,13 +5,15 @@ import { Search, RefreshCw } from 'lucide-react';
 import { useLeilaoBase } from '@/lib/hooks/use-leilao-base';
 import { useLeiloes } from '@/lib/hooks/use-leiloes';
 import { useLeilaoBasesStorage } from '@/lib/hooks/use-leilao-bases-storage';
+import { useLeilaoRegras } from '@/lib/hooks/use-leilao-regras';
 import { BaseSistemaTable } from '@/components/leilao/base-sistema-table';
 import { type ActiveRefsMap, type ActivePieceInfo } from '@/components/leilao/base-sistema-upload';
 
 type Filtro = 'todos' | 'normal' | 'top' | 'ativo';
 
 export default function BaseSistemaPage() {
-  const { data: rows = [], isLoading, error, refetch, isFetching } = useLeilaoBase();
+  const { activeDestinos } = useLeilaoRegras();
+  const { data: rows = [], isLoading, error, refetch, isFetching } = useLeilaoBase(activeDestinos);
   const { leiloes } = useLeiloes();
   const { uploadedFiles, refsPerFile, excludedFiles } = useLeilaoBasesStorage(leiloes);
 

@@ -2,26 +2,6 @@ import type { LeilaoBaseRow } from '@/lib/hooks/use-leilao-base';
 
 const PECA_MAX = 100;
 
-// Destinos que indicam peça fora do circuito da loja (consignada a terceiros, etc.)
-const DESTINOS_EXCL = new Set([
-  'GRINGA', 'ETIQUETA UNICA', 'ACHADOS PERDIDOS', 'BRILHO VINTAGE',
-  'LOHANA COELHO', 'LOUCA POR JOIAS', 'LUCIMARY', 'HELTON', 'EDUARDO',
-  'THAIS', 'AGOSTO', 'AUGUSTO', 'PAMELA FERRARI', 'CADASTRO PENDENTE',
-  'RETORNO SCRAP', 'EMERSON TIJUCA',
-]);
-
-function normalizeStr(s: string): string {
-  return s.toUpperCase().trim()
-    .replace(/[ÁÀÂÃ]/g, 'A').replace(/[ÉÈÊ]/g, 'E')
-    .replace(/[ÍÌÎ]/g, 'I').replace(/[ÓÒÔÕ]/g, 'O')
-    .replace(/[ÚÙÛ]/g, 'U').replace(/Ç/g, 'C');
-}
-
-function isDestinoExcluido(destino: string | null): boolean {
-  if (!destino) return false;
-  return DESTINOS_EXCL.has(normalizeStr(destino));
-}
-
 // Remove quebras de linha e substitui ponto-e-vírgula (que é o delimitador do CSV)
 function sanitize(s: string): string {
   return s.replace(/[\r\n]+/g, ' ').replace(/;/g, ',').trim();
@@ -47,31 +27,22 @@ export function generateCsvCadastrar(pieces: LeilaoBaseRow[], startLote: number)
   return [header, ...rows].join('\n');
 }
 
-// Peça elegível para transferência: existe no sistema e destino não está na lista de exclusão.
-// Comodato com destino permitido é elegível — a exclusão de comodato geral foi removida.
-// Peças com destino em DESTINOS_EXCL nunca chegam ao priceMap (filtradas pela API), mas
-// verificamos aqui como segunda camada de defesa.
+// Peça elegível para transferência: existe na Base Sistema (já filtrada pela API com as regras ativas).
 function isEligibleForTransfer(ref: string, priceMap: Map<string, LeilaoBaseRow>): boolean {
-  const piece = priceMap.get(ref.toUpperCase());
-  if (!piece) return false;
-  if (isDestinoExcluido(piece.destino ?? null)) return false;
-  return true;
+  return priceMap.has(ref.toUpperCase());
 }
 
-// Retorna contagem de refs excluídas da transferência e o motivo:
-// "foraBase": não aparece na Base Sistema (vendida, sem fotos, destino exclusivo, etc.)
-// "destinoExcluido": está na base mas com destino na lista de exclusão (Lohana, Gringa, etc.)
+// Retorna contagem de refs excluídas da transferência.
+// Peças com destino excluído já são removidas pela API antes de chegar ao priceMap.
 export function countExcludedFromTransfer(
   refs:     string[],
   priceMap: Map<string, LeilaoBaseRow>,
 ): { foraBase: number; destinoExcluido: number; total: number } {
-  let foraBase = 0, destinoExcluido = 0;
+  let foraBase = 0;
   for (const ref of refs) {
-    const piece = priceMap.get(ref.toUpperCase());
-    if (!piece) foraBase++;
-    else if (isDestinoExcluido(piece.destino ?? null)) destinoExcluido++;
+    if (!priceMap.has(ref.toUpperCase())) foraBase++;
   }
-  return { foraBase, destinoExcluido, total: foraBase + destinoExcluido };
+  return { foraBase, destinoExcluido: 0, total: foraBase };
 }
 
 // Gera CSV para "Transferir Leilão" (sem atualizar preço)
@@ -135,8 +106,6 @@ export function generateCsvExcluidas(
       const destino = sanitize(detail?.destino ?? '');
       const fotos   = detail?.fotos !== undefined ? String(detail.fotos) : '';
       rows.push(`${ref};${motivo};${status};${destino};${fotos}`);
-    } else if (isDestinoExcluido(piece.destino ?? null)) {
-      rows.push(`${ref};Destino Exclusivo;${piece.status_id === 6 ? 'Em Comodato' : 'Sem Venda'};${sanitize(piece.destino ?? '')};`);
     }
   }
   return [header, ...rows].join('\n');

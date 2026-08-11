@@ -3,12 +3,14 @@
 import { useLeilaoBase } from '@/lib/hooks/use-leilao-base';
 import { useLeiloes } from '@/lib/hooks/use-leiloes';
 import { useLeilaoBasesStorage } from '@/lib/hooks/use-leilao-bases-storage';
+import { useLeilaoRegras } from '@/lib/hooks/use-leilao-regras';
 import { BaseSistemaUpload } from '@/components/leilao/base-sistema-upload';
 import { RoboNovoLeilao } from '@/components/leilao/robo-novo-leilao';
 import { RoboOperacoes } from '@/components/leilao/robo-operacoes';
 
 export default function RoboPage() {
-  const { data: basePieces = [], isLoading, error } = useLeilaoBase();
+  const { activeDestinos } = useLeilaoRegras();
+  const { data: basePieces = [], isLoading, error } = useLeilaoBase(activeDestinos);
   const { leiloes } = useLeiloes();
   const { uploadedFiles, refsPerFile, excludedFiles, add, remove, toggleExclude } = useLeilaoBasesStorage(leiloes);
 
@@ -20,15 +22,13 @@ export default function RoboPage() {
   );
 
   return (
-    <div className="h-full overflow-y-auto p-4 sm:p-6 flex flex-col gap-8">
+    <div className="h-full overflow-y-auto p-4 sm:p-6 flex flex-col gap-6">
 
       {/* ── Bases do Leilão ──────────────────────────────────── */}
       <section className="flex flex-col gap-3">
-        <div>
+        <div className="flex flex-col gap-0.5">
           <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Bases do Leilão</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            CSVs exportados da leiloes.br — um arquivo por leilão ativo
-          </p>
+          <p className="text-[11px] text-zinc-400">CSVs exportados da leiloes.br — um arquivo por leilão ativo</p>
         </div>
         <BaseSistemaUpload
           uploaded={uploadedFiles}
@@ -40,15 +40,11 @@ export default function RoboPage() {
         />
       </section>
 
-      <hr className="border-zinc-100 dark:border-white/[0.06]" />
-
       {/* ── Criar Novo Leilão ─────────────────────────────────── */}
       <section className="flex flex-col gap-3">
-        <div>
+        <div className="flex flex-col gap-0.5">
           <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Criar Novo Leilão</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            Gera os CSVs para o robô: peças novas da Base Sistema + transferência do leilão anterior
-          </p>
+          <p className="text-[11px] text-zinc-400">Gera os CSVs para o robô: peças novas + transferência do leilão anterior</p>
         </div>
         {uploadedFiles.length === 0 ? (
           <div className="rounded-xl border border-dashed border-zinc-200 dark:border-white/[0.08] p-6 text-center">
@@ -60,19 +56,16 @@ export default function RoboPage() {
             uploadedFiles={uploadedFiles}
             refsPerFile={refsPerFile}
             excludedFiles={excludedFiles}
+            leiloes={leiloes}
           />
         )}
       </section>
 
-      <hr className="border-zinc-100 dark:border-white/[0.06]" />
-
       {/* ── Operações Avulsas ─────────────────────────────────── */}
       <section className="flex flex-col gap-3">
-        <div>
+        <div className="flex flex-col gap-0.5">
           <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Operações Avulsas</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            Upload de imagens ou atualização de preço para uma base específica
-          </p>
+          <p className="text-[11px] text-zinc-400">Upload de imagens ou atualização de preço para uma base específica</p>
         </div>
         {uploadedFiles.length === 0 ? (
           <div className="rounded-xl border border-dashed border-zinc-200 dark:border-white/[0.08] p-6 text-center">

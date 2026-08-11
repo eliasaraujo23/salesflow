@@ -29,20 +29,38 @@ export function extractCodigoFromFilename(filename: string): string | null {
   return m ? m[1] : null;
 }
 
+function splitCsvLine(line: string, sep: string): string[] {
+  const cols: string[] = [];
+  let cur = '';
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === sep && !inQ) { cols.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  cols.push(cur);
+  return cols;
+}
+
 export function parseLeiloesBr(text: string): { refs: string[]; vendidos: string[]; pricePerRef: Record<string, number> } {
   const lines = text.trim().split(/\r?\n/);
   if (lines.length < 2) return { refs: [], vendidos: [], pricePerRef: {} };
   const sep = lines[0].includes('\t') ? '\t' : lines[0].includes(';') ? ';' : ',';
-  const rawHeaders = lines[0].split(sep).map(h => h.trim().replace(/^"|"$/g, ''));
+  const rawHeaders = splitCsvLine(lines[0], sep).map(h => h.trim().replace(/^"|"$/g, ''));
   const headers = rawHeaders.map(h => h.toLowerCase().replace(/\s+/g, '').replace(/[^a-z]/g, ''));
 
   const idxMini  = headers.findIndex(h => h.includes('minidesc') || h.includes('mini'));
-  const idxValor = headers.findIndex(h => h === 'valorvenda' || h.includes('valorvenda'));
-  // Try to find a price column: "precocontratado", "preco", "lanceinicial"
-  const idxPreco = headers.findIndex(h =>
-    h === 'precocontratado' || h === 'lanceinicial' ||
-    (h.includes('preco') && !h.includes('venda'))
-  );
+  const idxValor = headers.findIndex(h => h.includes('valorvend'));
+  // Coluna "Base" do leiloes.br = preço base cadastrado (é o que deve bater com preco_avista)
+  // Fallbacks para outros formatos possíveis
+  const idxPreco = (() => {
+    for (const h of ['base', 'precobase', 'valorbase', 'precocontratado', 'lanceinicial']) {
+      const i = headers.indexOf(h);
+      if (i >= 0) return i;
+    }
+    return headers.findIndex(h => h.includes('preco') && !h.includes('venda'));
+  })();
 
   if (idxMini < 0) return { refs: [], vendidos: [], pricePerRef: {} };
 
@@ -51,7 +69,7 @@ export function parseLeiloesBr(text: string): { refs: string[]; vendidos: string
   const pricePerRef: Record<string, number> = {};
 
   for (const line of lines.slice(1)) {
-    const cols = line.split(sep);
+    const cols = splitCsvLine(line, sep);
     const ref = (cols[idxMini] ?? '').trim().replace(/^"|"$/g, '').toUpperCase();
     if (!ref) continue;
     refs.push(ref);
@@ -98,7 +116,12 @@ export function BaseSistemaUpload({
     e.target.value = '';
   }
 
-  const sorted = [...uploaded].sort((a, b) => {
+  const seen = new Set<string>();
+  const sorted = [...uploaded].filter(f => {
+    if (seen.has(f.filename)) return false;
+    seen.add(f.filename);
+    return true;
+  }).sort((a, b) => {
     // Agrupa por nome base (sem "TOP"), descendente p/ ETERNNO antes de BRUNO
     const baseA = (a.leilao?.nome ?? 'ZZZ').replace(/\s+TOP$/i, '').trim().toUpperCase();
     const baseB = (b.leilao?.nome ?? 'ZZZ').replace(/\s+TOP$/i, '').trim().toUpperCase();
@@ -129,8 +152,9 @@ export function BaseSistemaUpload({
 
   return (
     <div className="flex flex-col gap-2">
-      {sorted.length > 0 && (
-        <div className="flex flex-wrap gap-x-6 gap-y-2 items-start">
+      <div className="flex items-start justify-between gap-3">
+        {sorted.length > 0 ? (
+        <div className="flex flex-wrap gap-x-6 gap-y-2 items-start flex-1">
           {groups.map(group => (
             <div key={group.key} className="flex flex-col gap-1.5">
               {group.items.map(f => {
@@ -196,23 +220,24 @@ export function BaseSistemaUpload({
             </div>
           ))}
         </div>
-      )}
+        ) : <div className="flex-1" />}
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept=".csv,.txt,.tsv"
-        multiple
-        className="hidden"
-        onChange={handleFiles}
-      />
-      <button
-        onClick={() => inputRef.current?.click()}
-        className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] text-xs font-medium transition-colors"
-      >
-        <Upload size={12} />
-        {uploaded.length > 0 ? 'Adicionar mais' : 'Carregar bases ativas (CSV)'}
-      </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".csv,.txt,.tsv"
+          multiple
+          className="hidden"
+          onChange={handleFiles}
+        />
+        <button
+          onClick={() => inputRef.current?.click()}
+          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] text-xs font-medium transition-colors"
+        >
+          <Upload size={12} />
+          {uploaded.length > 0 ? 'Adicionar mais' : 'Carregar bases ativas (CSV)'}
+        </button>
+      </div>
     </div>
   );
 }

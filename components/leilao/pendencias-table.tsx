@@ -19,7 +19,7 @@ interface Props {
 }
 
 function fmtBrl(v: number | null): string {
-  if (!v) return '—';
+  if (v == null) return '—';
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 }
 

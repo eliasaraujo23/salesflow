@@ -8,25 +8,35 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
 });
 
-const DESTINOS_EXCL = [
-  'GRINGA', 'ETIQUETA UNICA', 'ACHADOS PERDIDOS', 'BRILHO VINTAGE',
-  'LOHANA COELHO', 'LOUCA POR JOIAS', 'LUCIMARY', 'HELTON', 'EDUARDO',
-  'THAIS', 'AGOSTO', 'AUGUSTO', 'PAMELA FERRARI', 'CADASTRO PENDENTE', 'RETORNO SCRAP',
-  'EMERSON TIJUCA',
-];
-
 const PRODUTOS_EXCL = ['TARRACHA', 'COMPLEMENTO'];
 
 const TR = (col: string) =>
   `translate(UPPER(${col}), 'ÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ', 'AAAAEEEIIIOOOOUUUC')`;
 
-export async function GET() {
-  const n = DESTINOS_EXCL.length;
-  const destHolders = DESTINOS_EXCL.map((_, i) => `$${i + 1}`).join(', ');
-  const prodHolders = PRODUTOS_EXCL.map((_, i) => `$${n + i + 1}`).join(', ');
+function normalizeDest(s: string): string {
+  return s.toUpperCase().trim()
+    .replace(/[ÁÀÂÃ]/g, 'A').replace(/[ÉÈÊ]/g, 'E')
+    .replace(/[ÍÌÎ]/g, 'I').replace(/[ÓÒÔÕ]/g, 'O')
+    .replace(/[ÚÙÛ]/g, 'U').replace(/Ç/g, 'C');
+}
+
+export async function POST(req: Request) {
+  const body     = await req.json() as { destinos?: unknown };
+  const destinos = Array.isArray(body.destinos) ? (body.destinos as string[]) : [];
 
   const client = await pool.connect();
   try {
+    const params: string[] = [...PRODUTOS_EXCL];
+    const prodHolders = PRODUTOS_EXCL.map((_, i) => `$${i + 1}`).join(', ');
+
+    let destinoClause = '';
+    if (destinos.length > 0) {
+      const offset = params.length;
+      params.push(...destinos.map(normalizeDest));
+      const destHolders = destinos.map((_, i) => `$${offset + i + 1}`).join(', ');
+      destinoClause = `AND (d.destino IS NULL OR ${TR('d.destino')} NOT IN (${destHolders}))`;
+    }
+
     const { rows } = await client.query(
       `SELECT
          pd.referencia,
@@ -45,7 +55,7 @@ export async function GET() {
          AND pd."destinoManutencaoId" IS NULL
          AND pd."statusManutencaoId" IS NULL
          AND (p.produto IS NULL OR ${TR('p.produto')} NOT IN (${prodHolders}))
-         AND (d.destino IS NULL OR ${TR('d.destino')} NOT IN (${destHolders}))
+         ${destinoClause}
          AND (
            pd.preco_avista IS NULL OR pd.preco_avista = 0
            OR (SELECT COUNT(*) FROM leilao_image li WHERE li."productDetailsId" = pd.id) < 6
@@ -53,7 +63,7 @@ export async function GET() {
            OR NOT EXISTS (SELECT 1 FROM leilao_image li WHERE li."productDetailsId" = pd.id AND li.is_main = false)
          )
        ORDER BY pd.preco_avista ASC NULLS FIRST`,
-      [...DESTINOS_EXCL, ...PRODUTOS_EXCL],
+      params,
     );
 
     return NextResponse.json({ data: rows });

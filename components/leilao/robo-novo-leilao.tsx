@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Download, AlertTriangle, ChevronDown, CheckCircle2, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { Download, AlertTriangle, ChevronDown, CheckCircle2 } from 'lucide-react';
 import type { LeilaoBaseRow } from '@/lib/hooks/use-leilao-base';
 import type { UploadedFileStored } from '@/lib/hooks/use-leilao-bases-storage';
 import type { Leilao } from '@/lib/hooks/use-leiloes';
@@ -48,7 +49,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   const [oldOpen,          setOldOpen]          = useState(false);
   const [novoLeilao,       setNovoLeilao]       = useState('');
   const [novoLeilaoSel,    setNovoLeilaoSel]    = useState<Leilao | null>(null);
-  const [showSuggs,        setShowSuggs]        = useState(false);
+  const [novoOpen,         setNovoOpen]         = useState(false);
   const [startLote,        setStartLote]        = useState(1);
   const [transferMode,     setTransferMode]     = useState<TransferMode>('com_valor');
   const [leilaoTipo,       setLeilaoTipo]       = useState<'NORMAL' | 'TOP'>('NORMAL');
@@ -58,7 +59,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
     const f = uploadedFiles.find(f => f.codigoPlatforma === selectedOld);
     const nome = f?.leilao?.nome?.toUpperCase() ?? '';
     setLeilaoTipo(nome.includes('TOP') ? 'TOP' : 'NORMAL');
-  }, [selectedOld]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedOld, uploadedFiles]);
 
   const allActiveRefs = useMemo(() => {
     const set = new Set<string>();
@@ -70,15 +71,10 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
     return set;
   }, [uploadedFiles, refsPerFile, excludedFiles]);
 
-  const leiloesSuggs = useMemo(() => {
-    if (!novoLeilao || novoLeilaoSel) return [];
-    return leiloes.filter(l => l.codigoPlatforma.includes(novoLeilao)).slice(0, 6);
-  }, [novoLeilao, novoLeilaoSel, leiloes]);
-
   function selectNovoLeilao(l: Leilao) {
     setNovoLeilao(l.codigoPlatforma);
     setNovoLeilaoSel(l);
-    setShowSuggs(false);
+    setNovoOpen(false);
   }
 
   function clearNovoLeilao() {
@@ -210,54 +206,58 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
             N° do leilão novo (leiloes.br)
           </label>
 
-          {novoLeilaoSel ? (
-            /* ── Chip: leilão selecionado ── */
-            <div className="flex items-center gap-2 pl-3 pr-2 py-2.5 rounded-lg border border-indigo-300 dark:border-indigo-700/60 bg-indigo-50 dark:bg-indigo-950/30">
-              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: novoLeilaoSel.cor }} />
-              <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 tabular-nums shrink-0">N°{novoLeilaoSel.codigoPlatforma}</span>
-              <span className="text-[11px] text-indigo-400">·</span>
-              <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 tabular-nums shrink-0">#{novoLeilaoSel.numero}</span>
-              <span className="text-[11px] text-indigo-400">·</span>
-              <span className="text-xs text-indigo-700 dark:text-indigo-300 flex-1 truncate">{novoLeilaoSel.nome}</span>
-              <button
-                onClick={clearNovoLeilao}
-                className="shrink-0 p-0.5 rounded text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-200 transition-colors"
-              >
-                <X size={12} />
-              </button>
-            </div>
-          ) : (
-            /* ── Input + dropdown de sugestões ── */
-            <div className="relative">
-              <input
-                value={novoLeilao}
-                onChange={e => { setNovoLeilao(e.target.value.replace(/\D/g, '')); setShowSuggs(true); }}
-                onFocus={() => setShowSuggs(true)}
-                onBlur={() => setTimeout(() => setShowSuggs(false), 150)}
-                placeholder="Ex: 63873"
-                maxLength={6}
-                className="w-full pl-3 pr-3 py-2.5 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 focus:outline-none focus:border-indigo-400 transition-colors"
-              />
-              {showSuggs && leiloesSuggs.length > 0 && (
-                <div className="absolute top-full mt-1 w-full z-30 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.10] rounded-lg shadow-lg overflow-visible">
-                  {leiloesSuggs.map(l => (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setNovoOpen(o => !o)}
+              onBlur={() => setTimeout(() => setNovoOpen(false), 150)}
+              className="w-full flex items-center gap-2 pl-3 pr-8 py-2.5 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-left focus:outline-none focus:border-indigo-400 transition-colors"
+            >
+              {novoLeilaoSel ? (
+                <>
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: novoLeilaoSel.cor }} />
+                  <span className="font-bold text-zinc-700 dark:text-zinc-200 tabular-nums shrink-0">N°{novoLeilaoSel.codigoPlatforma}</span>
+                  <span className="text-zinc-400">·</span>
+                  <span className="font-semibold text-zinc-500 tabular-nums shrink-0">#{novoLeilaoSel.numero}</span>
+                  <span className="text-zinc-400">·</span>
+                  <span className="text-zinc-600 dark:text-zinc-400 truncate">{novoLeilaoSel.nome}</span>
+                </>
+              ) : (
+                <span className="text-zinc-400">— Selecionar —</span>
+              )}
+            </button>
+            <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+
+            {novoOpen && (
+              <div className="absolute top-full mt-1 w-full z-30 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.10] rounded-lg shadow-lg overflow-visible">
+                <button
+                  type="button"
+                  onMouseDown={() => { clearNovoLeilao(); setNovoOpen(false); }}
+                  className="w-full px-3 py-2.5 text-left text-xs text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] transition-colors"
+                >
+                  — Selecionar —
+                </button>
+                {[...leiloes]
+                  .filter(l => l.codigoPlatforma)
+                  .sort((a, b) => Number(a.codigoPlatforma) - Number(b.codigoPlatforma))
+                  .map(l => (
                     <button
                       key={l.id}
+                      type="button"
                       onMouseDown={() => selectNovoLeilao(l)}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-left text-xs hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
                     >
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: l.cor }} />
-                      <span className="text-xs font-bold text-zinc-700 dark:text-zinc-200 tabular-nums shrink-0">N°{l.codigoPlatforma}</span>
-                      <span className="text-[11px] text-zinc-400">·</span>
-                      <span className="text-xs font-semibold text-zinc-500 tabular-nums shrink-0">#{l.numero}</span>
-                      <span className="text-[11px] text-zinc-400">·</span>
-                      <span className="text-xs text-zinc-600 dark:text-zinc-400 truncate">{l.nome}</span>
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: l.cor }} />
+                      <span className="font-bold text-zinc-700 dark:text-zinc-200 tabular-nums shrink-0">N°{l.codigoPlatforma}</span>
+                      <span className="text-zinc-400">·</span>
+                      <span className="font-semibold text-zinc-500 tabular-nums shrink-0">#{l.numero}</span>
+                      <span className="text-zinc-400">·</span>
+                      <span className="text-zinc-600 dark:text-zinc-400 truncate">{l.nome}</span>
                     </button>
                   ))}
-                </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -411,6 +411,8 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
                             generateCsvExcluidas(unsoldRefs, priceMap, detailMap),
                             `excluidas_N${selectedOld}.csv`,
                           );
+                        } catch {
+                          toast.error('Erro ao gerar lista. Verifique a conexão.');
                         } finally {
                           setLoadingExcluidas(false);
                         }

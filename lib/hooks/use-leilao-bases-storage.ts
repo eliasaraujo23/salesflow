@@ -20,6 +20,7 @@ export interface UploadedFileStored {
   leilao:          Leilao | null;
   count:           number;
   vendidos:        string[];
+  pricePerRef:     Record<string, number>;
 }
 
 interface FirestoreDoc {
@@ -30,6 +31,7 @@ interface FirestoreDoc {
   refs:              string[];
   refs_vendidos:     string[];
   excluded:          boolean;
+  price_per_ref:     Record<string, number>;
 }
 
 async function fetchBases(): Promise<FirestoreDoc[]> {
@@ -43,6 +45,7 @@ async function fetchBases(): Promise<FirestoreDoc[]> {
     refs:              d.data().refs ?? [],
     refs_vendidos:     d.data().refs_vendidos ?? [],
     excluded:          d.data().excluded ?? false,
+    price_per_ref:     (d.data().price_per_ref ?? {}) as Record<string, number>,
   }));
 }
 
@@ -56,6 +59,7 @@ export function useLeilaoBasesStorage(leiloes: Leilao[]) {
     codigoPlatforma: r.codigo_plataforma,
     count:           r.count_pecas,
     vendidos:        r.refs_vendidos,
+    pricePerRef:     r.price_per_ref,
     leilao:          r.codigo_plataforma
       ? leiloes.find(l => l.codigoPlatforma === r.codigo_plataforma) ?? null
       : null,
@@ -71,6 +75,7 @@ export function useLeilaoBasesStorage(leiloes: Leilao[]) {
       count:           number;
       refs:            string[];
       refsVendidos:    string[];
+      pricePerRef:     Record<string, number>;
     }) => {
       await addDoc(collection(db, COLLECTION), {
         codigo_plataforma: payload.codigoPlatforma,
@@ -78,6 +83,7 @@ export function useLeilaoBasesStorage(leiloes: Leilao[]) {
         count_pecas:       payload.count,
         refs:              payload.refs,
         refs_vendidos:     payload.refsVendidos,
+        price_per_ref:     payload.pricePerRef,
         excluded:          false,
         createdAt:         serverTimestamp(),
       });
@@ -101,7 +107,7 @@ export function useLeilaoBasesStorage(leiloes: Leilao[]) {
   });
 
   const add = useCallback((
-    file: { filename: string; codigoPlatforma: string | null; count: number; leilao: Leilao | null; vendidos?: string[] },
+    file: { filename: string; codigoPlatforma: string | null; count: number; leilao: Leilao | null; vendidos?: string[]; pricePerRef?: Record<string, number> },
     refs: string[],
   ) => {
     addMutation.mutate({
@@ -110,6 +116,7 @@ export function useLeilaoBasesStorage(leiloes: Leilao[]) {
       count:           file.count,
       refs,
       refsVendidos:    file.vendidos ?? [],
+      pricePerRef:     file.pricePerRef ?? {},
     });
   }, [addMutation]);
 
