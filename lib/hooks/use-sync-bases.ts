@@ -19,7 +19,8 @@ export function useSyncBases(leiloes: Leilao[]) {
   const qc = useQueryClient();
 
   const sync = useCallback(async () => {
-    const eligible = leiloes.filter(l => l.codigoPlatforma?.trim());
+    const today    = new Date().toISOString().slice(0, 10); // yyyy-MM-dd
+    const eligible = leiloes.filter(l => l.codigoPlatforma?.trim() && l.dataFim >= today);
     if (eligible.length === 0) {
       toast.error('Nenhum leilão tem N° leiloes.br cadastrado');
       return;
