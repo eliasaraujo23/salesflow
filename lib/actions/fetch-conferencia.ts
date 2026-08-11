@@ -2,11 +2,13 @@ import { z } from 'zod';
 import type { ConferenciaIssue } from '@/app/api/leilao/conferencia/route';
 
 const issueSchema = z.object({
-  referencia:  z.string(),
-  problema:    z.enum(['destino_exclusivo', 'status_venda']),
-  status_id:   z.number(),
-  status_nome: z.string(),
-  destino:     z.string().nullable(),
+  referencia:   z.string(),
+  problema:     z.enum(['em_manutencao', 'produto_excluido', 'destino_exclusivo', 'status_venda', 'status_invalido', 'sem_preco', 'sem_fotos']),
+  status_id:    z.number().nullable(),
+  status_nome:  z.string(),
+  destino:      z.string().nullable(),
+  preco_avista: z.number().nullable(),
+  fotos:        z.number(),
 });
 
 const responseSchema = z.object({ data: z.array(issueSchema) });
