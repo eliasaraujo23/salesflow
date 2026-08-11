@@ -88,7 +88,16 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
   });
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      if (raw) {
+        const stored = JSON.parse(raw) as LeilaoResult[];
+        return new Set(stored.map(r => r.file.filename));
+      }
+    } catch { /* ignore */ }
+    return new Set();
+  });
 
   function toggleCollapse(filename: string) {
     setCollapsed(prev => {
