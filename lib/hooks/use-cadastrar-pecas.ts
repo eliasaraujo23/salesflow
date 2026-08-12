@@ -27,6 +27,7 @@ export interface PecaProgress {
   error?:       string;
   photoMain?:   'ok' | 'error' | 'none';
   photoExtras?: number;
+  siteOk?:      boolean;
 }
 
 export interface CadastrarPecasState {
@@ -112,8 +113,8 @@ export function useCadastrarPecas() {
     let cumulativeSuccess = 0;
     let cumulativeErrors  = 0;
 
-    // lote → referencia for pieces successfully created
-    const successMap = new Map<number, string>();
+    // lote → full peca for pieces successfully created
+    const successMap = new Map<number, PecaParaCadastrar>();
 
     // ── Phase 1: create pieces ─────────────────────────────────────────────────
     for (let ci = 0; ci < chunks.length; ci++) {
@@ -175,7 +176,7 @@ export function useCadastrarPecas() {
               chunkDone++;
               if (success) {
                 const src = chunk.find(p => p.lote === lote);
-                if (src) successMap.set(lote, src.referencia);
+                if (src) successMap.set(lote, src);
               }
 
               setState(s => ({
@@ -217,8 +218,16 @@ export function useCadastrarPecas() {
       }
     }
 
-    // ── Phase 2: upload photos ─────────────────────────────────────────────────
-    const pecasParaFoto = Array.from(successMap.entries()).map(([lote, referencia]) => ({ lote, referencia }));
+    // ── Phase 2: upload photos + activate Site ─────────────────────────────────
+    const pecasParaFoto = Array.from(successMap.values()).map(p => ({
+      lote:              p.lote,
+      referencia:        p.referencia,
+      peca:              p.peca,
+      dia:               p.dia,
+      preco_contratado:  p.preco_contratado,
+      descricao:         p.descricao,
+      segunda_descricao: p.segunda_descricao,
+    }));
 
     if (pecasParaFoto.length > 0 && !ctrl.signal.aborted) {
       setState(s => ({
@@ -274,6 +283,14 @@ export function useCadastrarPecas() {
                     }
                     return { ...p, photoExtras: count ?? 0 };
                   }),
+                }));
+
+              } else if (type === 'siteProgress') {
+                const lote    = event.lote    as number;
+                const success = event.success as boolean;
+                setState(s => ({
+                  ...s,
+                  pecas: s.pecas.map(p => p.lote === lote ? { ...p, siteOk: success } : p),
                 }));
 
               } else if (type === 'error') {

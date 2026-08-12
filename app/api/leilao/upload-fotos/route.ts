@@ -3,8 +3,14 @@ export const maxDuration = 300;
 import { Pool }           from 'pg';
 import { getPresignedUrl } from '@/lib/r2';
 
-const BASE = 'https://leiloesbr.com.br/painel_lbr';
-const UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+const BASE           = 'https://leiloesbr.com.br/painel_lbr';
+const UA             = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+const IDC            = '257103';
+const ID_TIPO_JOIAS  = '18';
+
+function formatBRPrice(price: number): string {
+  return Math.round(price).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
 
 const pool = new Pool({
   connectionString: process.env.PG_CONNECTION_STRING,
@@ -195,11 +201,72 @@ async function triggerS3(cookie: string, pieceId: string, slot: number): Promise
   if (!res.ok) throw new Error(`s3 HTTP ${res.status}`);
 }
 
+// ─── Activate Site ────────────────────────────────────────────────────────────
+
+async function activateSite(
+  cookie:          string,
+  pieceId:         string,
+  peca:            PecaForPhotos,
+  codigoPlatforma: string,
+): Promise<void> {
+  const res = await fetch(`${BASE}/cad_peca.asp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type':     'application/x-www-form-urlencoded',
+      'Cookie':           cookie,
+      'User-Agent':       UA,
+      'Referer':          `${BASE}/cad_peca.asp`,
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: new URLSearchParams({
+      ID:               pieceId,
+      ID_Peca:          '',
+      ID_Cliente:       IDC,
+      ID_Leilao:        codigoPlatforma,
+      NumLeilao:        codigoPlatforma,
+      ID_Tipo:          ID_TIPO_JOIAS,
+      ID_Artista:       '',
+      Item:             String(peca.lote),
+      Item_O:           String(peca.lote),
+      Peca:             peca.peca,
+      Lote:             String(peca.lote),
+      Extra:            '',
+      Dia:              String(peca.dia),
+      oldcartela:       '',
+      Cartela:          '',
+      Nota:             '',
+      Carteado:         '0',
+      Valor_Contratado: formatBRPrice(peca.preco_contratado),
+      Valor_Venda:      '0',
+      Taxa:             '25',
+      Taxa_Leiloeiro:   '5',
+      Descricao:        peca.descricao,
+      Descricao_2:      peca.segunda_descricao,
+      Incremento:       '',
+      Dt_Nota:          '',
+      Dt_Acerto:        '',
+      Site:             '1',
+      Destaque:         '',
+      dtVenda:          '',
+      oldCartela:       '',
+      Botao:            'Gravar',
+    }).toString(),
+    redirect: 'follow',
+  });
+  const text = await res.text();
+  if (!text.startsWith('1|')) throw new Error(text.replace(/<[^>]+>/g, '').trim().slice(0, 120));
+}
+
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 interface PecaForPhotos {
-  lote:       number;
-  referencia: string;
+  lote:              number;
+  referencia:        string;
+  peca:              string;
+  dia:               number;
+  preco_contratado:  number;
+  descricao:         string;
+  segunda_descricao: string;
 }
 
 export async function POST(req: Request) {
@@ -284,6 +351,14 @@ export async function POST(req: Request) {
         if (extraImgs.length > 0) {
           await send({ type: 'photoProgress', lote: peca.lote, slot: 'extra', success: extrasOk > 0, count: extrasOk });
         }
+
+        // Ativar Site após foto(s)
+        let siteOk = false;
+        try {
+          await activateSite(cookie, pieceId, peca, codigoPlatforma);
+          siteOk = true;
+        } catch { /* siteOk stays false */ }
+        await send({ type: 'siteProgress', lote: peca.lote, success: siteOk });
       }
 
       await send({ type: 'done' });

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import {
   X, CheckCircle2, XCircle, Loader2, AlertTriangle,
-  FileDown, PlusCircle, Camera,
+  FileDown, PlusCircle, Camera, Globe,
 } from 'lucide-react';
 import type { PecaParaCadastrar, CadastrarPecasState } from '@/lib/hooks/use-cadastrar-pecas';
 
@@ -110,10 +110,11 @@ export function CadastrarPecasModal({
     const prog = state.pecas.find(x => x.lote === p.lote);
     return {
       ...p,
-      status:       prog?.status ?? 'pending',
-      error:        prog?.error,
-      photoMain:    prog?.photoMain,
-      photoExtras:  prog?.photoExtras,
+      status:      prog?.status ?? 'pending',
+      error:       prog?.error,
+      photoMain:   prog?.photoMain,
+      photoExtras: prog?.photoExtras,
+      siteOk:      prog?.siteOk,
     };
   });
 
@@ -250,6 +251,18 @@ export function CadastrarPecasModal({
                           <span className="flex items-center gap-1 text-[10px] text-zinc-300 dark:text-zinc-600">
                             <Loader2 size={9} className="animate-spin" />
                             <span>foto...</span>
+                          </span>
+                        )}
+
+                        {/* Site status */}
+                        {r.siteOk !== undefined && (
+                          <span className={`flex items-center gap-1 text-[10px] leading-tight ${
+                            r.siteOk
+                              ? 'text-emerald-500 dark:text-emerald-400'
+                              : 'text-zinc-400 dark:text-zinc-500'
+                          }`}>
+                            <Globe size={9} />
+                            {r.siteOk ? 'Site ativo' : 'Site inativo'}
                           </span>
                         )}
                       </div>
