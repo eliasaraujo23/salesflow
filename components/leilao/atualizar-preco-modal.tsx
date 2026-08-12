@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { X, CheckCircle2, XCircle, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { useEffect, useRef, useCallback } from 'react';
+import { X, CheckCircle2, XCircle, Loader2, AlertTriangle, RefreshCw, FileDown } from 'lucide-react';
 import type { PecaDiff } from '@/lib/hooks/use-atualizar-preco';
 import type { AtualizarPrecoState } from '@/lib/hooks/use-atualizar-preco';
 
@@ -20,10 +20,46 @@ function fmtPreco(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
+function downloadRelatorio(
+  pecas:    PecaDiff[],
+  progList: AtualizarPrecoState['pecas'],
+  leilaoNome: string | undefined,
+  codigoPlatforma: string | undefined,
+) {
+  const now = new Date().toLocaleString('pt-BR');
+  const header = ['REF', 'Preço Anterior (R$)', 'Novo Preço (R$)', 'Status', 'Erro'];
+  const rows = pecas.map(p => {
+    const prog   = progList.find(x => x.ref === p.ref);
+    const status = prog?.status === 'ok' ? 'Atualizado' : prog?.status === 'error' ? 'Erro' : 'Não processado';
+    const erro   = prog?.error ?? '';
+    return [p.ref, Math.round(p.leilaoPrice), Math.round(p.sistemaPrice), status, erro];
+  });
+
+  const csv = [
+    `# Relatório de Atualização de Preço`,
+    `# Leilão: ${leilaoNome ?? ''} · N°${codigoPlatforma ?? ''}`,
+    `# Gerado em: ${now}`,
+    '',
+    header.join(';'),
+    ...rows.map(r => r.join(';')),
+  ].join('\r\n');
+
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `atualizar_preco_${codigoPlatforma ?? 'leilao'}_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function AtualizarPrecoModal({
   open, state, pecas, leilaoNome, codigoPlatforma, onClose, onExecute, isRunning,
 }: Props) {
-  const tbodyRef = useRef<HTMLDivElement>(null);
+  const tbodyRef    = useRef<HTMLDivElement>(null);
+  const handleDownload = useCallback(() => {
+    downloadRelatorio(pecas, state.pecas, leilaoNome, codigoPlatforma);
+  }, [pecas, state.pecas, leilaoNome, codigoPlatforma]);
 
   // Scroll para manter a peça em processamento visível
   useEffect(() => {
@@ -189,6 +225,16 @@ export function AtualizarPrecoModal({
             >
               {isDone || isError ? 'Fechar' : 'Cancelar'}
             </button>
+
+            {(isDone || isError) && state.pecas.length > 0 && (
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg border border-zinc-300 dark:border-white/[0.12] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/[0.06] font-medium transition-colors"
+              >
+                <FileDown size={12} />
+                Baixar Relatório
+              </button>
+            )}
 
             {state.phase === 'idle' && (
               <button
