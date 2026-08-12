@@ -184,12 +184,13 @@ async function updatePiece(cookie: string, id: string, novoPreco: number, numLei
     redirect: 'follow',
   });
 
-  // 3. Save with new price
+  // 3. Save with new price — ID explícito para garantir update (não create)
   const saveRes = await fetch(`${BASE}/cad_peca.asp`, {
     method: 'POST',
     headers: hdrs(`${BASE}/cad_peca.asp`),
     body: new URLSearchParams({
       ...fields,
+      ID:               id,
       Valor_Contratado: formatBRPrice(novoPreco),
       Botao: 'Gravar',
       tipo:  '3',
