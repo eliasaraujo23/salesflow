@@ -201,34 +201,34 @@ async function uploadPrincipal(
   console.log(`[upload-fotos] principal s3: ${(await s3Res.text()).slice(0, 80)}`);
 }
 
-// Upload de TODAS as extras em um único POST via img_pecas_extras.php.
-// O robô da VM acumula todos os arquivos no input e clica upload uma vez (fileinput.js batch).
+// Upload extras uma por uma via img_pecas_extras.php.
+// PHP espera $_FILES['Foto'] (sem brackets) — cada chamada adiciona uma extra nova.
 // PHP gerencia S3 internamente — sem s3enviaimagem.asp.
-// Usa Foto[] para PHP receber $_FILES['Foto'] como array.
 async function uploadExtras(
   cookie:    string,
   pieceId:   string,
   numLeilao: string,
   buffers:   ArrayBuffer[],
 ): Promise<number> {
-  const fd = new FormData();
-  fd.append('IdPeca',    pieceId);
-  fd.append('NumLeilao', numLeilao);
-  fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
+  let ok = 0;
   for (let i = 0; i < buffers.length; i++) {
-    fd.append('Foto[]', new Blob([buffers[i]], { type: 'image/jpeg' }), `photo_${i}.jpg`);
-  }
+    const fd = new FormData();
+    fd.append('IdPeca',    pieceId);
+    fd.append('NumLeilao', numLeilao);
+    fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
+    fd.append('Foto', new Blob([buffers[i]], { type: 'image/jpeg' }), `photo_${i}.jpg`);
 
-  const res = await fetch(`${BASE}/img_pecas_extras.php`, {
-    method: 'POST',
-    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
-    body: fd,
-    redirect: 'follow',
-  });
-  const text = await res.text();
-  console.log(`[upload-fotos] extras batch status=${res.status} resp: ${text.slice(0, 400)}`);
-  if (!res.ok) throw new Error(`extras HTTP ${res.status}`);
-  return buffers.length;
+    const res = await fetch(`${BASE}/img_pecas_extras.php`, {
+      method: 'POST',
+      headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
+      body: fd,
+      redirect: 'follow',
+    });
+    const text = await res.text();
+    console.log(`[upload-fotos] extra[${i}] status=${res.status} resp: ${text.slice(0, 200)}`);
+    if (res.ok && !text.includes('"error"')) ok++;
+  }
+  return ok;
 }
 
 // ─── Activate Site ────────────────────────────────────────────────────────────
