@@ -208,6 +208,7 @@ async function triggerS3Principal(cookie: string, pieceId: string): Promise<stri
 
 // Upload de TODAS as extras de uma vez via img_pecas_extras.php
 // (o robô antigo mandava todos os arquivos em um único POST multipart)
+// Usa Foto[] para PHP reconhecer como array de múltiplos arquivos
 async function uploadExtras(
   cookie:    string,
   pieceId:   string,
@@ -219,7 +220,7 @@ async function uploadExtras(
   fd.append('NumLeilao', numLeilao);
   fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
   for (const buf of buffers) {
-    fd.append('Foto', new Blob([buf], { type: 'image/jpeg' }), 'photo.jpg');
+    fd.append('Foto[]', new Blob([buf], { type: 'image/jpeg' }), 'photo.jpg');
   }
 
   const res = await fetch(`${BASE}/img_pecas_extras.php`, {
@@ -377,14 +378,18 @@ export async function POST(req: Request) {
         // Upload de TODAS as extras de uma vez via img_pecas_extras.php
         let extrasOk = 0;
         if (extraImgs.length > 0) {
+          console.log(`[upload-fotos] Lote ${peca.lote}: ${extraImgs.length} extras no banco → ${extraImgs.map(i => i.key).join(', ')}`);
           try {
             const bufs = await Promise.all(extraImgs.map(img => downloadImage(img.key)));
-            await uploadExtras(cookie, pieceId, codigoPlatforma, bufs);
+            const resp = await uploadExtras(cookie, pieceId, codigoPlatforma, bufs);
+            console.log(`[upload-fotos] Lote ${peca.lote} extras resp: ${resp.slice(0, 120)}`);
             extrasOk = extraImgs.length;
           } catch (e) {
-            await send({ type: 'status', message: `Lote ${peca.lote} extras ERRO: ${e instanceof Error ? e.message : 'erro'}` });
+            console.error(`[upload-fotos] Lote ${peca.lote} extras ERRO:`, e instanceof Error ? e.message : e);
           }
           await send({ type: 'photoProgress', lote: peca.lote, slot: 'extra', success: extrasOk > 0, count: extrasOk });
+        } else {
+          console.log(`[upload-fotos] Lote ${peca.lote}: sem extras no banco`);
         }
 
         // Ativar Site após foto(s)
