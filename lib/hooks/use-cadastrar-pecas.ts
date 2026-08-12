@@ -26,8 +26,10 @@ export interface PecaProgress {
   status:       PecaStatus;
   error?:       string;
   photoMain?:   'ok' | 'error' | 'none';
+  photoError?:  string;
   photoExtras?: number;
   siteOk?:      boolean;
+  siteError?:   string;
 }
 
 export interface CadastrarPecasState {
@@ -41,6 +43,7 @@ export interface CadastrarPecasState {
   chunkInfo:    string;
   photoTotal:   number;
   photoDone:    number;
+  statusMsg:    string;
 }
 
 const INITIAL: CadastrarPecasState = {
@@ -54,6 +57,7 @@ const INITIAL: CadastrarPecasState = {
   chunkInfo:    '',
   photoTotal:   0,
   photoDone:    0,
+  statusMsg:    '',
 };
 
 const CHUNK_SIZE = 30;
@@ -272,6 +276,7 @@ export function useCadastrarPecas() {
                 const slot    = event.slot    as 'main' | 'extra';
                 const success = event.success as boolean;
                 const count   = event.count   as number | undefined;
+                const errMsg  = event.error   as string | undefined;
 
                 setState(s => ({
                   ...s,
@@ -279,7 +284,7 @@ export function useCadastrarPecas() {
                   pecas: s.pecas.map(p => {
                     if (p.lote !== lote) return p;
                     if (slot === 'main') {
-                      return { ...p, photoMain: success ? 'ok' : 'none' };
+                      return { ...p, photoMain: success ? 'ok' : 'none', photoError: errMsg };
                     }
                     return { ...p, photoExtras: count ?? 0 };
                   }),
@@ -288,12 +293,19 @@ export function useCadastrarPecas() {
               } else if (type === 'siteProgress') {
                 const lote    = event.lote    as number;
                 const success = event.success as boolean;
+                const errMsg  = event.error   as string | undefined;
                 setState(s => ({
                   ...s,
-                  pecas: s.pecas.map(p => p.lote === lote ? { ...p, siteOk: success } : p),
+                  pecas: s.pecas.map(p => p.lote === lote
+                    ? { ...p, siteOk: success, siteError: errMsg }
+                    : p),
                 }));
 
+              } else if (type === 'status') {
+                setState(s => ({ ...s, statusMsg: (event.message as string) ?? '' }));
+
               } else if (type === 'error') {
+                setState(s => ({ ...s, statusMsg: (event.message as string) ?? 'Erro ao enviar fotos' }));
                 break outer;
               }
             }

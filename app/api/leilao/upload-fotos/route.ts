@@ -151,10 +151,23 @@ async function downloadImage(key: string): Promise<ArrayBuffer> {
   throw new Error(`Imagem não encontrada: ${key}`);
 }
 
+// Carrega a página de edição da peça — obrigatório antes de qualquer upload de foto
+// (o servidor ASP só libera subir_pecas.asp após a página de edição ser carregada)
+async function loadEditPage(cookie: string, pieceId: string): Promise<void> {
+  await fetch(`${BASE}/cad_peca.asp?tipo=3&ID=${pieceId}&fID=${IDC}`, {
+    headers: {
+      'Cookie':   cookie,
+      'User-Agent': UA,
+      'Referer':  `${BASE}/listar_pecas.asp`,
+    },
+    redirect: 'follow',
+  });
+}
+
 // Inicializa o slot no servidor ASP antes do upload (necessário para session state)
 async function initSlot(cookie: string, pieceId: string, slot: number): Promise<void> {
   await fetch(`${BASE}/subir_pecas.asp?Id=${pieceId}&Img=${slot}`, {
-    headers: { 'Cookie': cookie, 'User-Agent': UA },
+    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
     redirect: 'follow',
   });
 }
@@ -195,10 +208,12 @@ async function triggerS3(cookie: string, pieceId: string, slot: number): Promise
       'Referer':          `${BASE}/subir_pecas.asp?Id=${pieceId}&Img=${slot}`,
       'X-Requested-With': 'XMLHttpRequest',
     },
-    body: new URLSearchParams({ idpeca: pieceId, index: '0', tipo: '0' }).toString(),
+    // index = slot (0=principal, 1-5=extras); tipo: '0'=principal, '1'=extra
+    body: new URLSearchParams({ idpeca: pieceId, index: String(slot), tipo: slot === 0 ? '0' : '1' }).toString(),
     redirect: 'follow',
   });
-  if (!res.ok) throw new Error(`s3 HTTP ${res.status}`);
+  const text = await res.text();
+  if (!res.ok) throw new Error(`s3 HTTP ${res.status}: ${text.slice(0, 80)}`);
 }
 
 // ─── Activate Site ────────────────────────────────────────────────────────────
@@ -323,8 +338,13 @@ export async function POST(req: Request) {
         const mainImg   = images.find(i => i.isMain) ?? images[0];
         const extraImgs = images.filter(i => i !== mainImg).slice(0, 5);
 
+        // Carregar página de edição antes do upload — necessário para liberar
+        // o upload de fotos no ASP (equivalente ao "Alterar" do robô antigo)
+        try { await loadEditPage(cookie, pieceId); } catch { /* non-fatal */ }
+
         // Upload principal (slot 0)
         let mainOk = false;
+        let mainErr = '';
         if (mainImg) {
           try {
             await initSlot(cookie, pieceId, 0);
@@ -332,9 +352,11 @@ export async function POST(req: Request) {
             await uploadPhoto(cookie, pieceId, codigoPlatforma, buf, 0);
             await triggerS3(cookie, pieceId, 0);
             mainOk = true;
-          } catch { /* mainOk stays false */ }
+          } catch (e) { mainErr = e instanceof Error ? e.message : 'Erro foto'; }
+        } else {
+          mainErr = `Sem imagem no banco: ${peca.referencia}`;
         }
-        await send({ type: 'photoProgress', lote: peca.lote, slot: 'main', success: mainOk });
+        await send({ type: 'photoProgress', lote: peca.lote, slot: 'main', success: mainOk, error: mainErr || undefined });
 
         // Upload extras (slots 1-5)
         let extrasOk = 0;
@@ -354,11 +376,12 @@ export async function POST(req: Request) {
 
         // Ativar Site após foto(s)
         let siteOk = false;
+        let siteErr = '';
         try {
           await activateSite(cookie, pieceId, peca, codigoPlatforma);
           siteOk = true;
-        } catch { /* siteOk stays false */ }
-        await send({ type: 'siteProgress', lote: peca.lote, success: siteOk });
+        } catch (e) { siteErr = e instanceof Error ? e.message : 'Erro site'; }
+        await send({ type: 'siteProgress', lote: peca.lote, success: siteOk, error: siteErr || undefined });
       }
 
       await send({ type: 'done' });

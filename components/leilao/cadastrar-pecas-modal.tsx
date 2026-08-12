@@ -113,8 +113,10 @@ export function CadastrarPecasModal({
       status:      prog?.status ?? 'pending',
       error:       prog?.error,
       photoMain:   prog?.photoMain,
+      photoError:  prog?.photoError,
       photoExtras: prog?.photoExtras,
       siteOk:      prog?.siteOk,
+      siteError:   prog?.siteError,
     };
   });
 
@@ -233,17 +235,20 @@ export function CadastrarPecasModal({
 
                         {/* Foto status — aparece durante/após fase de fotos */}
                         {r.photoMain !== undefined && (
-                          <span className={`flex items-center gap-1 text-[10px] leading-tight ${
-                            r.photoMain === 'ok'
-                              ? 'text-sky-500 dark:text-sky-400'
-                              : 'text-zinc-400 dark:text-zinc-500'
-                          }`}>
+                          <span
+                            title={r.photoMain !== 'ok' && r.photoError ? r.photoError : undefined}
+                            className={`flex items-center gap-1 text-[10px] leading-tight cursor-default ${
+                              r.photoMain === 'ok'
+                                ? 'text-sky-500 dark:text-sky-400'
+                                : 'text-zinc-400 dark:text-zinc-500'
+                            }`}
+                          >
                             <Camera size={9} />
                             {r.photoMain === 'ok'
                               ? (r.photoExtras !== undefined && r.photoExtras > 0
                                   ? `principal · ${r.photoExtras} extra${r.photoExtras !== 1 ? 's' : ''}`
                                   : 'principal')
-                              : 'sem foto'}
+                              : (r.photoError ? 'sem foto ⚠' : 'sem foto')}
                           </span>
                         )}
                         {/* Spinner enquanto foto está carregando (status ok mas photoMain ainda undefined) */}
@@ -256,11 +261,14 @@ export function CadastrarPecasModal({
 
                         {/* Site status */}
                         {r.siteOk !== undefined && (
-                          <span className={`flex items-center gap-1 text-[10px] leading-tight ${
-                            r.siteOk
-                              ? 'text-emerald-500 dark:text-emerald-400'
-                              : 'text-zinc-400 dark:text-zinc-500'
-                          }`}>
+                          <span
+                            title={!r.siteOk && r.siteError ? r.siteError : undefined}
+                            className={`flex items-center gap-1 text-[10px] leading-tight cursor-default ${
+                              r.siteOk
+                                ? 'text-emerald-500 dark:text-emerald-400'
+                                : 'text-zinc-400 dark:text-zinc-500'
+                            }`}
+                          >
                             <Globe size={9} />
                             {r.siteOk ? 'Site ativo' : 'Site inativo'}
                           </span>
@@ -302,7 +310,7 @@ export function CadastrarPecasModal({
               <div className="flex items-center justify-between text-[11px] text-zinc-500">
                 <span className="flex items-center gap-1.5">
                   <Camera size={10} className="text-sky-500" />
-                  {`Enviando fotos: ${state.photoDone} de ${state.photoTotal} peças`}
+                  {state.statusMsg || `Enviando fotos: ${state.photoDone} de ${state.photoTotal} peças`}
                 </span>
                 <span className="tabular-nums font-semibold">{photoPct}%</span>
               </div>
@@ -312,6 +320,13 @@ export function CadastrarPecasModal({
                   style={{ width: `${photoPct}%` }}
                 />
               </div>
+            </div>
+          )}
+          {/* Erro na fase de fotos (não-fatal, mas visível) */}
+          {state.phase === 'done' && state.statusMsg && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400">
+              <AlertTriangle size={11} className="shrink-0" />
+              <span className="truncate">{state.statusMsg}</span>
             </div>
           )}
 
