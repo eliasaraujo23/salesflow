@@ -182,9 +182,12 @@ async function loadEditPage(cookie: string, pieceId: string): Promise<string> {
   });
   const updatedCookie = mergeCookies(cookie, res);
   const html = await res.text();
-  const idx = html.indexOf('img_pecas_extras');
-  if (idx >= 0) {
-    console.log('[upload-fotos] extras-html:', html.slice(Math.max(0, idx - 300), idx + 600));
+  for (const needle of ['img_pecas_extras', 'Adicionar Imagens', 'extras', 'tipo=5', 'tipo=4']) {
+    const idx = html.indexOf(needle);
+    if (idx >= 0) {
+      console.log(`[upload-fotos] page-html[${needle}]:`, html.slice(Math.max(0, idx - 200), idx + 400));
+      break;
+    }
   }
   return updatedCookie;
 }
