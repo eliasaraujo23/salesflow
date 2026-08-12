@@ -180,7 +180,13 @@ async function loadEditPage(cookie: string, pieceId: string): Promise<string> {
     headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_pecas.asp` },
     redirect: 'follow',
   });
-  return mergeCookies(cookie, res);
+  const updatedCookie = mergeCookies(cookie, res);
+  const html = await res.text();
+  const idx = html.indexOf('img_pecas_extras');
+  if (idx >= 0) {
+    console.log('[upload-fotos] extras-html:', html.slice(Math.max(0, idx - 300), idx + 600));
+  }
+  return updatedCookie;
 }
 
 // Upload da imagem principal via img_pecas.php + s3enviaimagem.asp
