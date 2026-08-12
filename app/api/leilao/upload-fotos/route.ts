@@ -201,9 +201,9 @@ async function uploadPrincipal(
   console.log(`[upload-fotos] principal s3: ${(await s3Res.text()).slice(0, 80)}`);
 }
 
-// Upload extras uma por uma via img_pecas_extras.php.
-// PHP espera $_FILES['Foto'] (sem brackets) — cada chamada adiciona uma extra nova.
-// PHP gerencia S3 internamente — sem s3enviaimagem.asp.
+// Upload extras: img_pecas_extras.php (Foto único) + s3enviaimagem por slot (tipo=1,2,3...)
+// O PHP usa sempre o mesmo nome de arquivo, então s3enviaimagem com tipo=slot é
+// o que diferencia cada extra no S3 (tipo=0=principal, tipo=1=extra1, tipo=2=extra2...).
 async function uploadExtras(
   cookie:    string,
   pieceId:   string,
@@ -212,6 +212,9 @@ async function uploadExtras(
 ): Promise<number> {
   let ok = 0;
   for (let i = 0; i < buffers.length; i++) {
+    const slot = i + 1; // slots de extras: 1, 2, 3, 4, 5
+
+    // 1. Upload do arquivo para temp via img_pecas_extras.php
     const fd = new FormData();
     fd.append('IdPeca',    pieceId);
     fd.append('NumLeilao', numLeilao);
@@ -225,8 +228,25 @@ async function uploadExtras(
       redirect: 'follow',
     });
     const text = await res.text();
-    console.log(`[upload-fotos] extra[${i}] status=${res.status} resp: ${text.slice(0, 200)}`);
-    if (res.ok && !text.includes('"error"')) ok++;
+    console.log(`[upload-fotos] extra[${i}] php status=${res.status} resp: ${text.slice(0, 120)}`);
+    if (!res.ok || text.includes('"error"')) continue;
+
+    // 2. Commit para S3 via s3enviaimagem com tipo=slot (1,2,3,4,5)
+    const s3Res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type':     'application/x-www-form-urlencoded',
+        'Cookie':           cookie,
+        'User-Agent':       UA,
+        'Referer':          `${BASE}/cad_peca.asp`,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: new URLSearchParams({ idpeca: pieceId, index: '0', tipo: String(slot) }).toString(),
+      redirect: 'follow',
+    });
+    const s3Text = await s3Res.text();
+    console.log(`[upload-fotos] extra[${i}] s3(tipo=${slot}): ${s3Text.slice(0, 80)}`);
+    ok++;
   }
   return ok;
 }
