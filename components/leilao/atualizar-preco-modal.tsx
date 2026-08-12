@@ -1,19 +1,18 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { X, CheckCircle2, XCircle, Loader2, AlertTriangle, RefreshCw, FileDown } from 'lucide-react';
-import type { PecaDiff } from '@/lib/hooks/use-atualizar-preco';
-import type { AtualizarPrecoState } from '@/lib/hooks/use-atualizar-preco';
+import type { PecaDiff, AtualizarPrecoState } from '@/lib/hooks/use-atualizar-preco';
 
 interface Props {
-  open:        boolean;
-  state:       AtualizarPrecoState;
-  pecas:       PecaDiff[];
-  leilaoNome?: string;
+  open:             boolean;
+  state:            AtualizarPrecoState;
+  pecas:            PecaDiff[];
+  leilaoNome?:      string;
   codigoPlatforma?: string;
-  onClose:     () => void;
-  onExecute:   () => void;
-  isRunning:   boolean;
+  onClose:          () => void;
+  onExecute:        (selected: PecaDiff[]) => void;
+  isRunning:        boolean;
 }
 
 function fmtPreco(v: number) {
@@ -21,18 +20,17 @@ function fmtPreco(v: number) {
 }
 
 function downloadRelatorio(
-  pecas:    PecaDiff[],
-  progList: AtualizarPrecoState['pecas'],
-  leilaoNome: string | undefined,
+  pecas:           PecaDiff[],
+  progList:        AtualizarPrecoState['pecas'],
+  leilaoNome:      string | undefined,
   codigoPlatforma: string | undefined,
 ) {
-  const now = new Date().toLocaleString('pt-BR');
+  const now    = new Date().toLocaleString('pt-BR');
   const header = ['REF', 'Preço Anterior (R$)', 'Novo Preço (R$)', 'Status', 'Erro'];
-  const rows = pecas.map(p => {
+  const rows   = pecas.map(p => {
     const prog   = progList.find(x => x.ref === p.ref);
     const status = prog?.status === 'ok' ? 'Atualizado' : prog?.status === 'error' ? 'Erro' : 'Não processado';
-    const erro   = prog?.error ?? '';
-    return [p.ref, Math.round(p.leilaoPrice), Math.round(p.sistemaPrice), status, erro];
+    return [p.ref, Math.round(p.leilaoPrice), Math.round(p.sistemaPrice), status, prog?.error ?? ''];
   });
 
   const csv = [
@@ -56,7 +54,16 @@ function downloadRelatorio(
 export function AtualizarPrecoModal({
   open, state, pecas, leilaoNome, codigoPlatforma, onClose, onExecute, isRunning,
 }: Props) {
-  const tbodyRef    = useRef<HTMLDivElement>(null);
+  const tbodyRef = useRef<HTMLDivElement>(null);
+
+  // Seleção — inicializa com todos selecionados quando o modal abre
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(pecas.map(p => p.ref)));
+
+  // Reinicia seleção quando a lista de peças muda (novo modal)
+  useEffect(() => {
+    setSelected(new Set(pecas.map(p => p.ref)));
+  }, [pecas]);
+
   const handleDownload = useCallback(() => {
     downloadRelatorio(pecas, state.pecas, leilaoNome, codigoPlatforma);
   }, [pecas, state.pecas, leilaoNome, codigoPlatforma]);
@@ -70,9 +77,25 @@ export function AtualizarPrecoModal({
 
   if (!open) return null;
 
-  const pct = state.total > 0 ? Math.round((state.done / state.total) * 100) : 0;
-  const isDone    = state.phase === 'done';
-  const isError   = state.phase === 'error';
+  const canSelect   = state.phase === 'idle';
+  const allSelected = selected.size === pecas.length;
+  const noneSelected = selected.size === 0;
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(pecas.map(p => p.ref)));
+  }
+
+  function toggleOne(ref: string) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(ref) ? next.delete(ref) : next.add(ref);
+      return next;
+    });
+  }
+
+  const pct     = state.total > 0 ? Math.round((state.done / state.total) * 100) : 0;
+  const isDone  = state.phase === 'done';
+  const isError = state.phase === 'error';
   const isMapping = state.phase === 'mapping';
 
   // Mescla diffs com status atual
@@ -80,6 +103,8 @@ export function AtualizarPrecoModal({
     const prog = state.pecas.find(x => x.ref === p.ref);
     return { ...p, status: prog?.status ?? 'pending', error: prog?.error };
   });
+
+  const selectedPecas = pecas.filter(p => selected.has(p.ref));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -116,6 +141,18 @@ export function AtualizarPrecoModal({
           <table className="w-full text-xs border-separate border-spacing-0 data-table">
             <thead>
               <tr>
+                {/* Checkbox select-all */}
+                <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] w-8">
+                  {canSelect && (
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={el => { if (el) el.indeterminate = !allSelected && !noneSelected; }}
+                      onChange={toggleAll}
+                      className="w-3.5 h-3.5 rounded accent-indigo-500 cursor-pointer"
+                    />
+                  )}
+                </th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-8">#</th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500">REF</th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500">Preço Atual</th>
@@ -125,18 +162,37 @@ export function AtualizarPrecoModal({
             </thead>
             <tbody>
               {rows.map((r, i) => {
-                const isRunningSelf = state.phase === 'running' && state.done === i && r.status === 'pending';
+                const isChecked     = selected.has(r.ref);
+                const isRunningSelf = state.phase === 'running' && r.status === 'pending' &&
+                  state.pecas.filter(p => p.status === 'running').some(p => p.ref === r.ref);
                 const effectiveStatus = isRunningSelf ? 'running' : r.status;
+                const isSkipped = !isChecked && canSelect;
+
                 return (
                   <tr
                     key={r.ref}
                     data-status={effectiveStatus}
-                    className={
+                    onClick={canSelect ? () => toggleOne(r.ref) : undefined}
+                    className={[
+                      canSelect ? 'cursor-pointer select-none' : '',
+                      isSkipped            ? 'opacity-40' :
                       effectiveStatus === 'running' ? 'bg-indigo-50 dark:bg-indigo-950/30' :
                       effectiveStatus === 'ok'      ? 'bg-emerald-50/40 dark:bg-emerald-950/10' :
-                      effectiveStatus === 'error'   ? 'bg-red-50/40 dark:bg-red-950/10' : ''
-                    }
+                      effectiveStatus === 'error'   ? 'bg-red-50/40 dark:bg-red-950/10' :
+                      canSelect && isChecked ? 'hover:bg-zinc-50 dark:hover:bg-white/[0.03]' : '',
+                    ].filter(Boolean).join(' ')}
                   >
+                    <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04]">
+                      {canSelect && (
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleOne(r.ref)}
+                          onClick={e => e.stopPropagation()}
+                          className="w-3.5 h-3.5 rounded accent-indigo-500 cursor-pointer"
+                        />
+                      )}
+                    </td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] text-zinc-400 tabular-nums">{i + 1}</td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] font-mono font-semibold text-zinc-700 dark:text-zinc-200">{r.ref}</td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] tabular-nums text-zinc-500 line-through">{fmtPreco(r.leilaoPrice)}</td>
@@ -172,7 +228,18 @@ export function AtualizarPrecoModal({
         {/* Footer */}
         <div className="shrink-0 px-5 py-4 border-t border-zinc-200 dark:border-white/[0.08] flex flex-col gap-3">
 
-          {/* Progress bar (durante execução) */}
+          {/* Contagem de selecionados (apenas no idle) */}
+          {canSelect && (
+            <p className="text-[11px] text-zinc-400">
+              {selected.size === pecas.length
+                ? `Todas as ${pecas.length} peças selecionadas`
+                : selected.size === 0
+                  ? 'Nenhuma peça selecionada'
+                  : `${selected.size} de ${pecas.length} peças selecionadas`}
+            </p>
+          )}
+
+          {/* Progress bar */}
           {(isMapping || state.phase === 'running') && (
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-[11px] text-zinc-500">
@@ -200,9 +267,7 @@ export function AtualizarPrecoModal({
                 ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
                 : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400'
             }`}>
-              {state.errorCount === 0
-                ? <CheckCircle2 size={13} />
-                : <AlertTriangle size={13} />}
+              {state.errorCount === 0 ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
               <span>
                 {state.successCount} atualizada{state.successCount !== 1 ? 's' : ''}
                 {state.errorCount > 0 && ` · ${state.errorCount} com erro`}
@@ -240,11 +305,12 @@ export function AtualizarPrecoModal({
 
             {state.phase === 'idle' && (
               <button
-                onClick={onExecute}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors"
+                onClick={() => onExecute(selectedPecas)}
+                disabled={noneSelected}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 font-semibold transition-colors"
               >
                 <RefreshCw size={12} />
-                Executar {pecas.length} atualização{pecas.length !== 1 ? 'ões' : ''}
+                Executar {selected.size} atualização{selected.size !== 1 ? 'ões' : ''}
               </button>
             )}
           </div>

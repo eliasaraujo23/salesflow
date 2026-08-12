@@ -251,12 +251,12 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
             codigoPlatforma={precoFile?.codigoPlatforma ?? undefined}
             onClose={closeModal}
             isRunning={isRunning}
-            onExecute={() => {
-              if (!precoFile?.codigoPlatforma || !precoFile?.leilao?.nome || !priceDiffs) return;
+            onExecute={(selected) => {
+              if (!precoFile?.codigoPlatforma || !precoFile?.leilao?.nome || !selected.length) return;
               execute({
                 codigoPlatforma: precoFile.codigoPlatforma,
                 nome:            precoFile.leilao.nome,
-                pecas:           priceDiffs,
+                pecas:           selected,
               });
             }}
           />
