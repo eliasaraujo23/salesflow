@@ -206,22 +206,19 @@ async function triggerS3Principal(cookie: string, pieceId: string): Promise<stri
   return text;
 }
 
-// Upload de TODAS as extras de uma vez via img_pecas_extras.php
-// (o robô antigo mandava todos os arquivos em um único POST multipart)
-// Usa Foto[] para PHP reconhecer como array de múltiplos arquivos
-async function uploadExtras(
+// Upload de uma extra via img_pecas_extras.php + s3enviaimagem.asp
+async function uploadOneExtra(
   cookie:    string,
   pieceId:   string,
   numLeilao: string,
-  buffers:   ArrayBuffer[],
-): Promise<string> {
+  buf:       ArrayBuffer,
+  idx:       number,
+): Promise<void> {
   const fd = new FormData();
   fd.append('IdPeca',    pieceId);
   fd.append('NumLeilao', numLeilao);
   fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
-  for (const buf of buffers) {
-    fd.append('Foto[]', new Blob([buf], { type: 'image/jpeg' }), 'photo.jpg');
-  }
+  fd.append('Foto', new Blob([buf], { type: 'image/jpeg' }), 'photo.jpg');
 
   const res = await fetch(`${BASE}/img_pecas_extras.php`, {
     method: 'POST',
@@ -230,8 +227,23 @@ async function uploadExtras(
     redirect: 'follow',
   });
   const text = await res.text();
-  if (!res.ok) throw new Error(`extras HTTP ${res.status}: ${text.slice(0, 100)}`);
-  return text;
+  if (!res.ok) throw new Error(`extra[${idx}] HTTP ${res.status}: ${text.slice(0, 100)}`);
+
+  // Triggar S3 para cada extra (tipo=1, index=0 pois cada upload usa posição 0 do buffer)
+  const s3Res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type':     'application/x-www-form-urlencoded',
+      'Cookie':           cookie,
+      'User-Agent':       UA,
+      'Referer':          `${BASE}/cad_peca.asp`,
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: new URLSearchParams({ idpeca: pieceId, index: '0', tipo: '1' }).toString(),
+    redirect: 'follow',
+  });
+  const s3Text = await s3Res.text();
+  console.log(`[upload-fotos] extra[${idx}] s3 resp: ${s3Text.slice(0, 80)}`);
 }
 
 // ─── Activate Site ────────────────────────────────────────────────────────────
@@ -375,21 +387,20 @@ export async function POST(req: Request) {
         }
         await send({ type: 'photoProgress', lote: peca.lote, slot: 'main', success: mainOk, error: mainErr || undefined });
 
-        // Upload de TODAS as extras de uma vez via img_pecas_extras.php
+        // Upload extras uma por uma via img_pecas_extras.php + s3enviaimagem.asp
         let extrasOk = 0;
         if (extraImgs.length > 0) {
-          console.log(`[upload-fotos] Lote ${peca.lote}: ${extraImgs.length} extras no banco → ${extraImgs.map(i => i.key).join(', ')}`);
-          try {
-            const bufs = await Promise.all(extraImgs.map(img => downloadImage(img.key)));
-            const resp = await uploadExtras(cookie, pieceId, codigoPlatforma, bufs);
-            console.log(`[upload-fotos] Lote ${peca.lote} extras resp: ${resp.slice(0, 120)}`);
-            extrasOk = extraImgs.length;
-          } catch (e) {
-            console.error(`[upload-fotos] Lote ${peca.lote} extras ERRO:`, e instanceof Error ? e.message : e);
+          console.log(`[upload-fotos] Lote ${peca.lote}: ${extraImgs.length} extras`);
+          for (let i = 0; i < extraImgs.length; i++) {
+            try {
+              const buf = await downloadImage(extraImgs[i].key);
+              await uploadOneExtra(cookie, pieceId, codigoPlatforma, buf, i);
+              extrasOk++;
+            } catch (e) {
+              console.error(`[upload-fotos] Lote ${peca.lote} extra[${i}] ERRO:`, e instanceof Error ? e.message : e);
+            }
           }
           await send({ type: 'photoProgress', lote: peca.lote, slot: 'extra', success: extrasOk > 0, count: extrasOk });
-        } else {
-          console.log(`[upload-fotos] Lote ${peca.lote}: sem extras no banco`);
         }
 
         // Ativar Site após foto(s)
