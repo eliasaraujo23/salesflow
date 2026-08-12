@@ -1,0 +1,220 @@
+'use client';
+
+import { useState, useCallback, useRef } from 'react';
+import type { LeilaoBaseRow } from '@/lib/hooks/use-leilao-base';
+
+const PECA_MAX = 100;
+
+function sanitize(s: string): string {
+  return s.replace(/[\r\n]+/g, ' ').replace(/;/g, ',').trim();
+}
+
+export interface PecaParaCadastrar {
+  referencia:        string;
+  lote:              number;
+  peca:              string;
+  dia:               number;
+  preco_contratado:  number;
+  descricao:         string;
+  segunda_descricao: string;
+}
+
+export type PecaStatus = 'pending' | 'running' | 'ok' | 'error';
+
+export interface PecaProgress {
+  lote:   number;
+  status: PecaStatus;
+  error?: string;
+}
+
+export interface CadastrarPecasState {
+  phase:        'idle' | 'running' | 'done' | 'error';
+  pecas:        PecaProgress[];
+  done:         number;
+  total:        number;
+  successCount: number;
+  errorCount:   number;
+  fatalError:   string;
+  chunkInfo:    string;
+}
+
+const INITIAL: CadastrarPecasState = {
+  phase:        'idle',
+  pecas:        [],
+  done:         0,
+  total:        0,
+  successCount: 0,
+  errorCount:   0,
+  fatalError:   '',
+  chunkInfo:    '',
+};
+
+const CHUNK_SIZE = 30;
+
+export function buildPecasParaCadastrar(
+  pieces:    LeilaoBaseRow[],
+  startLote: number,
+): PecaParaCadastrar[] {
+  return pieces.map((p, i) => {
+    const lote     = startLote + i;
+    const full     = sanitize(p.descricao_jewel ?? '');
+    const peca     = full.slice(0, PECA_MAX);
+    const descricao = `${full} | REF: ${p.referencia}`;
+    return {
+      referencia:        p.referencia,
+      lote,
+      peca,
+      dia:               1,
+      preco_contratado:  Math.round(p.preco_avista ?? 0),
+      descricao,
+      segunda_descricao: p.referencia,
+    };
+  });
+}
+
+interface ExecuteParams {
+  codigoPlatforma: string;
+  nome:            string;
+  pecas:           PecaParaCadastrar[];
+}
+
+export function useCadastrarPecas() {
+  const [open,  setOpen]  = useState(false);
+  const [state, setState] = useState<CadastrarPecasState>(INITIAL);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const execute = useCallback(async ({ codigoPlatforma, nome, pecas }: ExecuteParams) => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
+    const total = pecas.length;
+
+    setState({
+      ...INITIAL,
+      phase: 'running',
+      pecas: pecas.map(p => ({ lote: p.lote, status: 'pending' })),
+      total,
+    });
+
+    const chunks: PecaParaCadastrar[][] = [];
+    for (let i = 0; i < pecas.length; i += CHUNK_SIZE) {
+      chunks.push(pecas.slice(i, i + CHUNK_SIZE));
+    }
+
+    let cumulativeDone    = 0;
+    let cumulativeSuccess = 0;
+    let cumulativeErrors  = 0;
+
+    for (let ci = 0; ci < chunks.length; ci++) {
+      if (ctrl.signal.aborted) break;
+      const chunk = chunks[ci];
+      const chunkLabel = chunks.length > 1
+        ? `Lote ${ci + 1} de ${chunks.length} (${chunk.length} peças)`
+        : '';
+
+      try {
+        const res = await fetch('/api/leilao/cadastrar-pecas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            codigoPlatforma,
+            nome,
+            pecas:       chunk,
+            doneOffset:  cumulativeDone,
+            totalGlobal: total,
+          }),
+          signal: ctrl.signal,
+        });
+
+        if (!res.ok || !res.body) {
+          setState(s => ({ ...s, phase: 'error', fatalError: `HTTP ${res.status}` }));
+          return;
+        }
+
+        const reader  = res.body.getReader();
+        const decoder = new TextDecoder();
+        let   buffer  = '';
+        let   chunkDone = 0;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop() ?? '';
+
+          for (const part of parts) {
+            const line = part.trim();
+            if (!line.startsWith('data: ')) continue;
+            let event: Record<string, unknown>;
+            try { event = JSON.parse(line.slice(6)); } catch { continue; }
+
+            const type = event.type as string;
+
+            if (type === 'start') {
+              setState(s => ({ ...s, phase: 'running', chunkInfo: chunkLabel }));
+
+            } else if (type === 'progress') {
+              const lote    = event.lote as number;
+              const success = event.success as boolean;
+              const errMsg  = event.error as string | undefined;
+              const doneVal = event.done as number;
+
+              chunkDone++;
+              setState(s => ({
+                ...s,
+                done:         doneVal,
+                successCount: s.successCount + (success ? 1 : 0),
+                errorCount:   s.errorCount   + (success ? 0 : 1),
+                pecas: s.pecas.map(p =>
+                  p.lote === lote
+                    ? { ...p, status: success ? 'ok' : 'error', error: errMsg }
+                    : p,
+                ),
+              }));
+
+            } else if (type === 'done') {
+              cumulativeDone    += chunkDone;
+              cumulativeSuccess += (event.success as number) ?? 0;
+              cumulativeErrors  += (event.errors  as number) ?? 0;
+
+            } else if (type === 'error') {
+              setState(s => ({ ...s, phase: 'error', fatalError: (event.message as string) ?? 'Erro desconhecido' }));
+              return;
+            }
+          }
+        }
+
+      } catch (err) {
+        if ((err as Error)?.name === 'AbortError') return;
+        setState(s => ({ ...s, phase: 'error', fatalError: err instanceof Error ? err.message : 'Erro de rede' }));
+        return;
+      }
+    }
+
+    setState(s => ({
+      ...s,
+      phase:        'done',
+      done:         total,
+      successCount: cumulativeSuccess,
+      errorCount:   cumulativeErrors,
+      chunkInfo:    '',
+    }));
+  }, []);
+
+  const openModal = useCallback(() => {
+    setState(INITIAL);
+    setOpen(true);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    abortRef.current?.abort();
+    setOpen(false);
+  }, []);
+
+  const isRunning = state.phase === 'running';
+
+  return { open, openModal, closeModal, state, execute, isRunning };
+}

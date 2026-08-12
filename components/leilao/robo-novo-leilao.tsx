@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Download, AlertTriangle, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Download, AlertTriangle, ChevronDown, CheckCircle2, Zap } from 'lucide-react';
 import type { LeilaoBaseRow } from '@/lib/hooks/use-leilao-base';
 import type { UploadedFileStored } from '@/lib/hooks/use-leilao-bases-storage';
 import type { Leilao } from '@/lib/hooks/use-leiloes';
@@ -16,6 +16,8 @@ import {
   type RefDetailExtra,
 } from '@/lib/leilao-csv';
 import { fetchRefsDetail } from '@/lib/actions/fetch-refs-detail';
+import { useCadastrarPecas, buildPecasParaCadastrar } from '@/lib/hooks/use-cadastrar-pecas';
+import { CadastrarPecasModal } from '@/components/leilao/cadastrar-pecas-modal';
 
 interface Props {
   basePieces:    LeilaoBaseRow[];
@@ -54,6 +56,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   const [transferMode,     setTransferMode]     = useState<TransferMode>('com_valor');
   const [leilaoTipo,       setLeilaoTipo]       = useState<'NORMAL' | 'TOP'>('NORMAL');
   const [loadingExcluidas, setLoadingExcluidas] = useState(false);
+  const { open: cadastrarOpen, openModal: openCadastrar, closeModal: closeCadastrar, state: cadastrarState, execute: executeCadastrar, isRunning: cadastrarRunning } = useCadastrarPecas();
 
   useEffect(() => {
     const f = uploadedFiles.find(f => f.codigoPlatforma === selectedOld);
@@ -315,17 +318,50 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
               </div>
             </div>
 
-            {/* Download */}
-            <button
-              onClick={handleDownloadCadastrar}
-              disabled={newPieces.length === 0}
-              className="mt-auto flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-zinc-100 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed text-white disabled:text-zinc-400 dark:disabled:text-zinc-500 text-xs font-semibold transition-colors"
-            >
-              <Download size={13} />
-              Baixar CSV — Cadastrar ({newPieces.length})
-            </button>
+            {/* Botões CSV + Executar */}
+            <div className="mt-auto flex gap-2">
+              <button
+                onClick={handleDownloadCadastrar}
+                disabled={newPieces.length === 0}
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium transition-colors"
+              >
+                <Download size={12} />
+                CSV
+              </button>
+              <button
+                onClick={openCadastrar}
+                disabled={newPieces.length === 0 || !novoLeilao || !novoLeilaoSel}
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 dark:disabled:text-zinc-500 text-xs font-semibold transition-colors"
+              >
+                <Zap size={12} />
+                {newPieces.length > 0 ? `Executar (${newPieces.length})` : 'Executar'}
+              </button>
+            </div>
+            {!novoLeilao && newPieces.length > 0 && (
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 text-center -mt-1">
+                Selecione o leilão novo para executar
+              </p>
+            )}
           </div>
         </div>
+
+        <CadastrarPecasModal
+          open={cadastrarOpen}
+          state={cadastrarState}
+          pecas={buildPecasParaCadastrar(newPieces, startLote)}
+          leilaoNome={novoLeilaoSel?.nome}
+          codigoPlatforma={novoLeilao || undefined}
+          onClose={closeCadastrar}
+          isRunning={cadastrarRunning}
+          onExecute={() => {
+            if (!novoLeilao || !novoLeilaoSel || newPieces.length === 0) return;
+            executeCadastrar({
+              codigoPlatforma: novoLeilao,
+              nome:            novoLeilaoSel.nome,
+              pecas:           buildPecasParaCadastrar(newPieces, startLote),
+            });
+          }}
+        />
 
         {/* ② Transferir do Leilão Anterior */}
         <div className="flex flex-col rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
