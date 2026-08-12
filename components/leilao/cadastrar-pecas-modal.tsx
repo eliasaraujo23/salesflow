@@ -172,8 +172,11 @@ export function CadastrarPecasModal({
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-10">Lote</th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500">REF</th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500">Peça</th>
-                <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-24">Preço</th>
-                <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-32">Status</th>
+                <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-20">Preço</th>
+                <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-16">Cad.</th>
+                <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-20">Principal</th>
+                <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-16">Extras</th>
+                <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-16">Site</th>
               </tr>
             </thead>
             <tbody>
@@ -209,71 +212,73 @@ export function CadastrarPecasModal({
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] font-mono font-semibold text-zinc-700 dark:text-zinc-200">{r.referencia}</td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] text-zinc-600 dark:text-zinc-400 max-w-[200px] truncate" title={r.peca}>{r.peca}</td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] tabular-nums font-semibold text-indigo-600 dark:text-indigo-400">{fmtPreco(r.preco_contratado)}</td>
+
+                    {/* Cad. */}
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04]">
-                      <div className="flex flex-col gap-0.5">
+                      {r.status === 'pending' && <span className="text-zinc-300 dark:text-zinc-600">—</span>}
+                      {r.status === 'running' && <Loader2 size={11} className="animate-spin text-indigo-500 mx-auto" />}
+                      {r.status === 'ok' && (
+                        <span className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 size={11} /><span>OK</span>
+                        </span>
+                      )}
+                      {r.status === 'error' && (
+                        <span className="flex items-center justify-center gap-1 text-red-500" title={r.error ?? ''}>
+                          <XCircle size={11} /><span className="truncate max-w-[60px]">{r.error ?? 'Erro'}</span>
+                        </span>
+                      )}
+                    </td>
 
-                        {/* Cadastro status */}
-                        {r.status === 'pending' && <span className="text-zinc-300 dark:text-zinc-600">—</span>}
-                        {r.status === 'running' && (
-                          <span className="flex items-center gap-1 text-indigo-500">
-                            <Loader2 size={11} className="animate-spin" />
-                            <span>Cadastrando</span>
-                          </span>
-                        )}
-                        {r.status === 'ok' && (
-                          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 size={11} />
-                            <span>OK</span>
-                          </span>
-                        )}
-                        {r.status === 'error' && (
-                          <span className="flex items-center gap-1 text-red-500" title={r.error ?? ''}>
-                            <XCircle size={11} />
-                            <span className="truncate max-w-[90px]">{r.error ?? 'Erro'}</span>
-                          </span>
-                        )}
+                    {/* Principal */}
+                    <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04]">
+                      {r.status === 'ok' && r.photoMain === undefined && isPhotos && (
+                        <Loader2 size={10} className="animate-spin text-zinc-300 mx-auto" />
+                      )}
+                      {r.photoMain === 'ok' && (
+                        <span className="flex items-center justify-center gap-1 text-sky-500 dark:text-sky-400">
+                          <Camera size={10} /><span>OK</span>
+                        </span>
+                      )}
+                      {r.photoMain === 'none' && (
+                        <span
+                          title={r.photoError}
+                          className="flex items-center justify-center gap-1 text-zinc-400 dark:text-zinc-500 cursor-default"
+                        >
+                          <Camera size={10} /><span>{r.photoError ? '⚠' : '—'}</span>
+                        </span>
+                      )}
+                      {r.photoMain === undefined && !isPhotos && <span className="text-zinc-300 dark:text-zinc-600">—</span>}
+                    </td>
 
-                        {/* Foto status — aparece durante/após fase de fotos */}
-                        {r.photoMain !== undefined && (
-                          <span
-                            title={r.photoMain !== 'ok' && r.photoError ? r.photoError : undefined}
-                            className={`flex items-center gap-1 text-[10px] leading-tight cursor-default ${
-                              r.photoMain === 'ok'
-                                ? 'text-sky-500 dark:text-sky-400'
-                                : 'text-zinc-400 dark:text-zinc-500'
-                            }`}
-                          >
-                            <Camera size={9} />
-                            {r.photoMain === 'ok'
-                              ? (r.photoExtras !== undefined && r.photoExtras > 0
-                                  ? `principal · ${r.photoExtras} extra${r.photoExtras !== 1 ? 's' : ''}`
-                                  : 'principal')
-                              : (r.photoError ? 'sem foto ⚠' : 'sem foto')}
-                          </span>
-                        )}
-                        {/* Spinner enquanto foto está carregando (status ok mas photoMain ainda undefined) */}
-                        {r.status === 'ok' && r.photoMain === undefined && isPhotos && (
-                          <span className="flex items-center gap-1 text-[10px] text-zinc-300 dark:text-zinc-600">
-                            <Loader2 size={9} className="animate-spin" />
-                            <span>foto...</span>
-                          </span>
-                        )}
+                    {/* Extras */}
+                    <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04]">
+                      {r.photoExtras !== undefined && r.photoExtras > 0 && (
+                        <span className="flex items-center justify-center gap-1 text-sky-500 dark:text-sky-400">
+                          <Camera size={10} /><span>{r.photoExtras}</span>
+                        </span>
+                      )}
+                      {r.photoMain !== undefined && (r.photoExtras === undefined || r.photoExtras === 0) && (
+                        <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                      )}
+                      {r.photoMain === undefined && <span className="text-zinc-300 dark:text-zinc-600">—</span>}
+                    </td>
 
-                        {/* Site status */}
-                        {r.siteOk !== undefined && (
-                          <span
-                            title={!r.siteOk && r.siteError ? r.siteError : undefined}
-                            className={`flex items-center gap-1 text-[10px] leading-tight cursor-default ${
-                              r.siteOk
-                                ? 'text-emerald-500 dark:text-emerald-400'
-                                : 'text-zinc-400 dark:text-zinc-500'
-                            }`}
-                          >
-                            <Globe size={9} />
-                            {r.siteOk ? 'Site ativo' : 'Site inativo'}
-                          </span>
-                        )}
-                      </div>
+                    {/* Site */}
+                    <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04]">
+                      {r.siteOk === true && (
+                        <span className="flex items-center justify-center gap-1 text-emerald-500 dark:text-emerald-400">
+                          <Globe size={10} /><span>OK</span>
+                        </span>
+                      )}
+                      {r.siteOk === false && (
+                        <span
+                          title={r.siteError}
+                          className="flex items-center justify-center gap-1 text-zinc-400 cursor-default"
+                        >
+                          <Globe size={10} /><span>—</span>
+                        </span>
+                      )}
+                      {r.siteOk === undefined && <span className="text-zinc-300 dark:text-zinc-600">—</span>}
                     </td>
                   </tr>
                 );
