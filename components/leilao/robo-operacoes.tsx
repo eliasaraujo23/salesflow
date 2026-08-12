@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Download, ChevronDown, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { Download, ChevronDown, AlertTriangle, CheckCircle2, Info, Zap } from 'lucide-react';
 import type { LeilaoBaseRow } from '@/lib/hooks/use-leilao-base';
 import type { UploadedFileStored } from '@/lib/hooks/use-leilao-bases-storage';
 import {
@@ -12,6 +12,8 @@ import {
   type ImageKeysRow,
 } from '@/lib/leilao-csv';
 import { fetchImageKeys } from '@/lib/actions/fetch-image-keys';
+import { useAtualizarPreco } from '@/lib/hooks/use-atualizar-preco';
+import { AtualizarPrecoModal } from '@/components/leilao/atualizar-preco-modal';
 
 interface Props {
   basePieces:    LeilaoBaseRow[];
@@ -95,6 +97,7 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   const [imgBase,       setImgBase]       = useState('');
   const [loadingImagem, setLoadingImagem] = useState(false);
   const [precoBase,     setPrecoBase]     = useState('');
+  const { open, openModal, closeModal, state, execute, isRunning } = useAtualizarPreco();
 
   const priceMap = useMemo(
     () => new Map<string, LeilaoBaseRow>(basePieces.map(p => [p.referencia.toUpperCase(), p])),
@@ -215,17 +218,48 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
             )
           )}
 
-          <button
-            onClick={handleAtualizarPreco}
-            disabled={!precoBase || precoWithPrice === 0 || priceDiffs?.length === 0}
-            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 dark:disabled:text-zinc-500 text-xs font-semibold transition-colors"
-          >
-            <Download size={13} />
-            {priceDiffs && priceDiffs.length > 0
-              ? `Baixar CSV — Atualizar Preço (${priceDiffs.length} diffs)`
-              : `Baixar CSV — Atualizar Preço${precoWithPrice > 0 ? ` (${precoWithPrice})` : ''}`
-            }
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleAtualizarPreco}
+              disabled={!precoBase || precoWithPrice === 0 || priceDiffs?.length === 0}
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium transition-colors"
+            >
+              <Download size={12} />
+              CSV
+            </button>
+            <button
+              onClick={() => {
+                if (priceDiffs && priceDiffs.length > 0) {
+                  openModal();
+                }
+              }}
+              disabled={!precoBase || !priceDiffs || priceDiffs.length === 0 || !precoFile?.codigoPlatforma}
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 dark:disabled:text-zinc-500 text-xs font-semibold transition-colors"
+            >
+              <Zap size={12} />
+              {priceDiffs && priceDiffs.length > 0
+                ? `Executar (${priceDiffs.length})`
+                : 'Executar'}
+            </button>
+          </div>
+
+          <AtualizarPrecoModal
+            open={open}
+            state={state}
+            pecas={priceDiffs ?? []}
+            leilaoNome={precoFile?.leilao?.nome}
+            codigoPlatforma={precoFile?.codigoPlatforma ?? undefined}
+            onClose={closeModal}
+            isRunning={isRunning}
+            onExecute={() => {
+              if (!precoFile?.codigoPlatforma || !precoFile?.leilao?.nome || !priceDiffs) return;
+              execute({
+                codigoPlatforma: precoFile.codigoPlatforma,
+                nome:            precoFile.leilao.nome,
+                pecas:           priceDiffs,
+              });
+            }}
+          />
         </div>
       </div>
 
