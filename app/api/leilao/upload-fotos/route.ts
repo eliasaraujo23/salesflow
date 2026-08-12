@@ -62,17 +62,22 @@ async function loginLeiloesbr(user: string, pass: string, numLeilao: string): Pr
 
 // ─── Listing scrape: lote → internal piece ID ─────────────────────────────────
 
+function cleanCell(raw: string): string {
+  return raw.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, '').replace(/&amp;/g, '&').trim();
+}
+
 function parseLoteId(html: string): Map<number, string> {
   const map  = new Map<number, string>();
-  const rows = html.match(/<tr[\s\S]*?<\/tr>/gi) ?? [];
+  const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
+    .filter(m => m[1].includes('<td'));
   for (const row of rows) {
-    const cells = (row.match(/<td[^>]*>[\s\S]*?<\/td>/gi) ?? [])
-      .map(c => c.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').trim());
-    if (cells.length < 3) continue;
-    const id  = cells[0];
-    const lot = cells[2];
-    if (/^\d+$/.test(id) && /^\d+$/.test(lot)) {
-      map.set(Number(lot), id);
+    const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+    const id  = cells[0]?.trim();
+    const lot = cells[2]?.trim();
+    // Only id needs digit check — lote may have non-breaking spaces or punctuation
+    if (id && lot && /^\d+$/.test(id)) {
+      const loteNum = Number(lot.replace(/\D/g, ''));
+      if (loteNum > 0) map.set(loteNum, id);
     }
   }
   return map;
