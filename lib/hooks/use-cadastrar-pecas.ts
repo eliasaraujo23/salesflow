@@ -302,7 +302,8 @@ export function useCadastrarPecas() {
                 }));
 
               } else if (type === 'status') {
-                setState(s => ({ ...s, statusMsg: (event.message as string) ?? '' }));
+                // status events são apenas debug — não persistir no done
+                console.debug('[upload-fotos]', event.message);
 
               } else if (type === 'error') {
                 setState(s => ({ ...s, statusMsg: (event.message as string) ?? 'Erro ao enviar fotos' }));

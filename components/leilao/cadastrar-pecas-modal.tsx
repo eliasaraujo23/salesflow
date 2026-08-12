@@ -322,8 +322,8 @@ export function CadastrarPecasModal({
               </div>
             </div>
           )}
-          {/* Erro na fase de fotos (não-fatal, mas visível) */}
-          {state.phase === 'done' && state.statusMsg && (
+          {/* Erro na fase de fotos — só mostra quando não há siteProgress e houve statusMsg de erro */}
+          {state.phase === 'done' && state.statusMsg && state.photoDone === 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400">
               <AlertTriangle size={11} className="shrink-0" />
               <span className="truncate">{state.statusMsg}</span>

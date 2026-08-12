@@ -183,10 +183,11 @@ async function uploadPhoto(
   numLeilao:   string,
   imageBuffer: ArrayBuffer,
   slot:        number,
-): Promise<void> {
+): Promise<string> {
   const fd = new FormData();
   fd.append('IdPeca',    pieceId);
   fd.append('NumLeilao', numLeilao);
+  fd.append('Img',       String(slot));   // slot 0=principal, 1-5=extra
   fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
   fd.append('Foto', new Blob([imageBuffer], { type: 'image/jpeg' }), 'photo.jpg');
 
@@ -200,10 +201,12 @@ async function uploadPhoto(
     body: fd,
     redirect: 'follow',
   });
-  if (!res.ok) throw new Error(`upload HTTP ${res.status}`);
+  const text = await res.text();
+  if (!res.ok) throw new Error(`upload HTTP ${res.status}: ${text.slice(0, 100)}`);
+  return text;
 }
 
-async function triggerS3(cookie: string, pieceId: string, slot: number): Promise<void> {
+async function triggerS3(cookie: string, pieceId: string, slot: number): Promise<string> {
   const res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
     method: 'POST',
     headers: {
@@ -213,12 +216,12 @@ async function triggerS3(cookie: string, pieceId: string, slot: number): Promise
       'Referer':          `${BASE}/subir_pecas.asp?Id=${pieceId}&Img=${slot}`,
       'X-Requested-With': 'XMLHttpRequest',
     },
-    // index = slot (0=principal, 1-5=extras); tipo: '0'=principal, '1'=extra
     body: new URLSearchParams({ idpeca: pieceId, index: String(slot), tipo: slot === 0 ? '0' : '1' }).toString(),
     redirect: 'follow',
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`s3 HTTP ${res.status}: ${text.slice(0, 80)}`);
+  return text;
 }
 
 // ─── Activate Site ────────────────────────────────────────────────────────────
@@ -354,8 +357,9 @@ export async function POST(req: Request) {
           try {
             await initSlot(cookie, pieceId, 0);
             const buf = await downloadImage(mainImg.key);
-            await uploadPhoto(cookie, pieceId, codigoPlatforma, buf, 0);
-            await triggerS3(cookie, pieceId, 0);
+            const uploadResp  = await uploadPhoto(cookie, pieceId, codigoPlatforma, buf, 0);
+            const triggerResp = await triggerS3(cookie, pieceId, 0);
+            await send({ type: 'status', message: `Lote ${peca.lote} principal: upload="${uploadResp.slice(0,60)}" s3="${triggerResp.slice(0,60)}"` });
             mainOk = true;
           } catch (e) { mainErr = e instanceof Error ? e.message : 'Erro foto'; }
         } else {
@@ -370,10 +374,13 @@ export async function POST(req: Request) {
             const slot = ei + 1;
             await initSlot(cookie, pieceId, slot);
             const buf = await downloadImage(extraImgs[ei].key);
-            await uploadPhoto(cookie, pieceId, codigoPlatforma, buf, slot);
-            await triggerS3(cookie, pieceId, slot);
+            const uploadResp  = await uploadPhoto(cookie, pieceId, codigoPlatforma, buf, slot);
+            const triggerResp = await triggerS3(cookie, pieceId, slot);
+            await send({ type: 'status', message: `Lote ${peca.lote} extra${slot}: upload="${uploadResp.slice(0,60)}" s3="${triggerResp.slice(0,60)}"` });
             extrasOk++;
-          } catch { /* continue to next extra */ }
+          } catch (e) {
+            await send({ type: 'status', message: `Lote ${peca.lote} extra${ei+1} ERRO: ${e instanceof Error ? e.message : 'erro'}` });
+          }
         }
         if (extraImgs.length > 0) {
           await send({ type: 'photoProgress', lote: peca.lote, slot: 'extra', success: extrasOk > 0, count: extrasOk });
