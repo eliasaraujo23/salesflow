@@ -1,3 +1,5 @@
+export const maxDuration = 300; // 300s no Pro, 60s no Hobby (Vercel aplica o limite do plano)
+
 const BASE = 'https://leiloesbr.com.br/painel_lbr';
 const UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 
@@ -257,34 +259,45 @@ export async function POST(req: Request) {
         if (id) refToId.set(ref.toUpperCase(), id);
       }
 
-      const total = pecas.length;
-      await send({ type: 'start', total });
+      const total      = pecas.length;
+      const doneOffset = (body as { doneOffset?: number }).doneOffset ?? 0; // suporte a chunking do cliente
+      await send({ type: 'start', total, doneOffset });
 
-      let done = 0;
+      let localDone = 0;
       let successCount = 0;
       let errorCount   = 0;
 
-      for (const peca of pecas) {
-        const id = refToId.get(peca.ref.toUpperCase());
-        if (!id) {
-          done++;
-          errorCount++;
-          await send({ type: 'progress', ref: peca.ref, done, total, success: false, error: 'Não encontrada no catálogo' });
-          continue;
-        }
+      // Processa 3 peças em paralelo para acelerar (~3× mais rápido)
+      const CONCURRENCY = 3;
+      const queue = [...pecas];
 
-        try {
-          await updatePiece(cookie, id, peca.novoPreco, codigoPlatforma);
-          done++;
-          successCount++;
-          await send({ type: 'progress', ref: peca.ref, done, total, success: true });
-        } catch (err) {
-          done++;
-          errorCount++;
-          await send({ type: 'progress', ref: peca.ref, done, total, success: false, error: err instanceof Error ? err.message : 'Erro' });
+      async function worker() {
+        while (true) {
+          const peca = queue.shift();
+          if (!peca) break;
+
+          const id = refToId.get(peca.ref.toUpperCase());
+          if (!id) {
+            localDone++;
+            errorCount++;
+            await send({ type: 'progress', ref: peca.ref, done: doneOffset + localDone, total, success: false, error: 'Não encontrada no catálogo' });
+            continue;
+          }
+
+          try {
+            await updatePiece(cookie, id, peca.novoPreco, codigoPlatforma);
+            localDone++;
+            successCount++;
+            await send({ type: 'progress', ref: peca.ref, done: doneOffset + localDone, total, success: true });
+          } catch (err) {
+            localDone++;
+            errorCount++;
+            await send({ type: 'progress', ref: peca.ref, done: doneOffset + localDone, total, success: false, error: err instanceof Error ? err.message : 'Erro' });
+          }
         }
       }
 
+      await Promise.all(Array.from({ length: CONCURRENCY }, worker));
       await send({ type: 'done', success: successCount, errors: errorCount });
     } catch (err) {
       await send({ type: 'error', message: err instanceof Error ? err.message : 'Erro interno' });

@@ -178,7 +178,9 @@ export function AtualizarPrecoModal({
               <div className="flex items-center justify-between text-[11px] text-zinc-500">
                 <span className="flex items-center gap-1.5">
                   <Loader2 size={10} className="animate-spin" />
-                  {isMapping ? state.mappingMsg : `${state.done} de ${state.total} peças`}
+                  {isMapping
+                    ? state.mappingMsg
+                    : `${state.done} de ${state.total} peças${state.chunkInfo ? ` · ${state.chunkInfo}` : ''}`}
                 </span>
                 {!isMapping && <span className="tabular-nums font-semibold">{pct}%</span>}
               </div>
