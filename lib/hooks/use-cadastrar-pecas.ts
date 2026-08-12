@@ -22,13 +22,15 @@ export interface PecaParaCadastrar {
 export type PecaStatus = 'pending' | 'running' | 'ok' | 'error';
 
 export interface PecaProgress {
-  lote:   number;
-  status: PecaStatus;
-  error?: string;
+  lote:         number;
+  status:       PecaStatus;
+  error?:       string;
+  photoMain?:   'ok' | 'error' | 'none';
+  photoExtras?: number;
 }
 
 export interface CadastrarPecasState {
-  phase:        'idle' | 'running' | 'done' | 'error';
+  phase:        'idle' | 'running' | 'photos' | 'done' | 'error';
   pecas:        PecaProgress[];
   done:         number;
   total:        number;
@@ -36,6 +38,8 @@ export interface CadastrarPecasState {
   errorCount:   number;
   fatalError:   string;
   chunkInfo:    string;
+  photoTotal:   number;
+  photoDone:    number;
 }
 
 const INITIAL: CadastrarPecasState = {
@@ -47,6 +51,8 @@ const INITIAL: CadastrarPecasState = {
   errorCount:   0,
   fatalError:   '',
   chunkInfo:    '',
+  photoTotal:   0,
+  photoDone:    0,
 };
 
 const CHUNK_SIZE = 30;
@@ -56,9 +62,9 @@ export function buildPecasParaCadastrar(
   startLote: number,
 ): PecaParaCadastrar[] {
   return pieces.map((p, i) => {
-    const lote     = startLote + i;
-    const full     = sanitize(p.descricao_jewel ?? '');
-    const peca     = full.slice(0, PECA_MAX);
+    const lote      = startLote + i;
+    const full      = sanitize(p.descricao_jewel ?? '');
+    const peca      = full.slice(0, PECA_MAX);
     const descricao = `${full} | REF: ${p.referencia}`;
     return {
       referencia:        p.referencia,
@@ -106,6 +112,10 @@ export function useCadastrarPecas() {
     let cumulativeSuccess = 0;
     let cumulativeErrors  = 0;
 
+    // lote → referencia for pieces successfully created
+    const successMap = new Map<number, string>();
+
+    // ── Phase 1: create pieces ─────────────────────────────────────────────────
     for (let ci = 0; ci < chunks.length; ci++) {
       if (ctrl.signal.aborted) break;
       const chunk = chunks[ci];
@@ -115,7 +125,7 @@ export function useCadastrarPecas() {
 
       try {
         const res = await fetch('/api/leilao/cadastrar-pecas', {
-          method: 'POST',
+          method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             codigoPlatforma,
@@ -157,12 +167,17 @@ export function useCadastrarPecas() {
               setState(s => ({ ...s, phase: 'running', chunkInfo: chunkLabel }));
 
             } else if (type === 'progress') {
-              const lote    = event.lote as number;
+              const lote    = event.lote    as number;
               const success = event.success as boolean;
-              const errMsg  = event.error as string | undefined;
-              const doneVal = event.done as number;
+              const errMsg  = event.error   as string | undefined;
+              const doneVal = event.done    as number;
 
               chunkDone++;
+              if (success) {
+                const src = chunk.find(p => p.lote === lote);
+                if (src) successMap.set(lote, src.referencia);
+              }
+
               setState(s => ({
                 ...s,
                 done:         doneVal,
@@ -181,7 +196,11 @@ export function useCadastrarPecas() {
               cumulativeErrors  += (event.errors  as number) ?? 0;
 
             } else if (type === 'error') {
-              setState(s => ({ ...s, phase: 'error', fatalError: (event.message as string) ?? 'Erro desconhecido' }));
+              setState(s => ({
+                ...s,
+                phase:      'error',
+                fatalError: (event.message as string) ?? 'Erro desconhecido',
+              }));
               return;
             }
           }
@@ -189,8 +208,83 @@ export function useCadastrarPecas() {
 
       } catch (err) {
         if ((err as Error)?.name === 'AbortError') return;
-        setState(s => ({ ...s, phase: 'error', fatalError: err instanceof Error ? err.message : 'Erro de rede' }));
+        setState(s => ({
+          ...s,
+          phase:      'error',
+          fatalError: err instanceof Error ? err.message : 'Erro de rede',
+        }));
         return;
+      }
+    }
+
+    // ── Phase 2: upload photos ─────────────────────────────────────────────────
+    const pecasParaFoto = Array.from(successMap.entries()).map(([lote, referencia]) => ({ lote, referencia }));
+
+    if (pecasParaFoto.length > 0 && !ctrl.signal.aborted) {
+      setState(s => ({
+        ...s,
+        phase:      'photos',
+        chunkInfo:  '',
+        photoTotal: pecasParaFoto.length,
+        photoDone:  0,
+      }));
+
+      try {
+        const res = await fetch('/api/leilao/upload-fotos', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ codigoPlatforma, nome, pecas: pecasParaFoto }),
+          signal:  ctrl.signal,
+        });
+
+        if (res.ok && res.body) {
+          const reader  = res.body.getReader();
+          const decoder = new TextDecoder();
+          let   buffer  = '';
+
+          outer: while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const parts = buffer.split('\n\n');
+            buffer = parts.pop() ?? '';
+
+            for (const part of parts) {
+              const line = part.trim();
+              if (!line.startsWith('data: ')) continue;
+              let event: Record<string, unknown>;
+              try { event = JSON.parse(line.slice(6)); } catch { continue; }
+
+              const type = event.type as string;
+
+              if (type === 'photoProgress') {
+                const lote    = event.lote    as number;
+                const slot    = event.slot    as 'main' | 'extra';
+                const success = event.success as boolean;
+                const count   = event.count   as number | undefined;
+
+                setState(s => ({
+                  ...s,
+                  photoDone: slot === 'main' ? s.photoDone + 1 : s.photoDone,
+                  pecas: s.pecas.map(p => {
+                    if (p.lote !== lote) return p;
+                    if (slot === 'main') {
+                      return { ...p, photoMain: success ? 'ok' : 'none' };
+                    }
+                    return { ...p, photoExtras: count ?? 0 };
+                  }),
+                }));
+
+              } else if (type === 'error') {
+                break outer;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        if ((err as Error)?.name === 'AbortError') return;
+        // Photo upload errors are non-fatal — fall through to done
       }
     }
 
@@ -214,7 +308,7 @@ export function useCadastrarPecas() {
     setOpen(false);
   }, []);
 
-  const isRunning = state.phase === 'running';
+  const isRunning = state.phase === 'running' || state.phase === 'photos';
 
   return { open, openModal, closeModal, state, execute, isRunning };
 }

@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { X, CheckCircle2, XCircle, Loader2, AlertTriangle, FileDown, PlusCircle } from 'lucide-react';
+import {
+  X, CheckCircle2, XCircle, Loader2, AlertTriangle,
+  FileDown, PlusCircle, Camera,
+} from 'lucide-react';
 import type { PecaParaCadastrar, CadastrarPecasState } from '@/lib/hooks/use-cadastrar-pecas';
 
 interface Props {
@@ -26,11 +29,17 @@ function downloadRelatorio(
   codigoPlatforma: string | undefined,
 ) {
   const now    = new Date().toLocaleString('pt-BR');
-  const header = ['Lote', 'REF', 'Peça', 'Preço (R$)', 'Status', 'Erro'];
+  const header = ['Lote', 'REF', 'Peça', 'Preço (R$)', 'Status', 'Foto Principal', 'Fotos Extras', 'Erro'];
   const rows   = pecas.map(p => {
-    const prog   = progList.find(x => x.lote === p.lote);
-    const status = prog?.status === 'ok' ? 'Cadastrado' : prog?.status === 'error' ? 'Erro' : 'Não processado';
-    return [p.lote, p.referencia, p.peca, Math.round(p.preco_contratado), status, prog?.error ?? ''];
+    const prog    = progList.find(x => x.lote === p.lote);
+    const status  = prog?.status === 'ok'    ? 'Cadastrado'
+                  : prog?.status === 'error' ? 'Erro'
+                  : 'Não processado';
+    const foto    = prog?.photoMain === 'ok'   ? 'Sim'
+                  : prog?.photoMain === 'none' ? 'Não'
+                  : '—';
+    const extras  = prog?.photoExtras !== undefined ? String(prog.photoExtras) : '—';
+    return [p.lote, p.referencia, p.peca, Math.round(p.preco_contratado), status, foto, extras, prog?.error ?? ''];
   });
 
   const csv = [
@@ -56,7 +65,6 @@ export function CadastrarPecasModal({
 }: Props) {
   const tbodyRef = useRef<HTMLDivElement>(null);
 
-  // Seleção — inicializa com todos selecionados quando o modal abre
   const [selected, setSelected] = useState<Set<number>>(() => new Set(pecas.map(p => p.lote)));
 
   useEffect(() => {
@@ -75,8 +83,8 @@ export function CadastrarPecasModal({
 
   if (!open) return null;
 
-  const canSelect   = state.phase === 'idle';
-  const allSelected = selected.size === pecas.length;
+  const canSelect    = state.phase === 'idle';
+  const allSelected  = selected.size === pecas.length;
   const noneSelected = selected.size === 0;
 
   function toggleAll() {
@@ -91,17 +99,28 @@ export function CadastrarPecasModal({
     });
   }
 
-  const pct     = state.total > 0 ? Math.round((state.done / state.total) * 100) : 0;
-  const isDone  = state.phase === 'done';
-  const isError = state.phase === 'error';
-  const isIdle  = state.phase === 'idle';
+  const pct      = state.total > 0 ? Math.round((state.done / state.total) * 100) : 0;
+  const photoPct = state.photoTotal > 0 ? Math.round((state.photoDone / state.photoTotal) * 100) : 0;
+  const isDone   = state.phase === 'done';
+  const isError  = state.phase === 'error';
+  const isPhotos = state.phase === 'photos';
+  const isIdle   = state.phase === 'idle';
 
   const rows = pecas.map(p => {
     const prog = state.pecas.find(x => x.lote === p.lote);
-    return { ...p, status: prog?.status ?? 'pending', error: prog?.error };
+    return {
+      ...p,
+      status:       prog?.status ?? 'pending',
+      error:        prog?.error,
+      photoMain:    prog?.photoMain,
+      photoExtras:  prog?.photoExtras,
+    };
   });
 
   const selectedPecas = pecas.filter(p => selected.has(p.lote));
+
+  // Summary counts for done banner
+  const photoOkCount = state.pecas.filter(p => p.photoMain === 'ok').length;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -151,25 +170,24 @@ export function CadastrarPecasModal({
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500">REF</th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500">Peça</th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-24">Preço</th>
-                <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-28">Status</th>
+                <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-32">Status</th>
               </tr>
             </thead>
             <tbody>
               {rows.map(r => {
-                const effectiveStatus = r.status;
                 const isChecked = selected.has(r.lote);
                 const isSkipped = !isChecked && canSelect;
                 return (
                   <tr
                     key={r.lote}
-                    data-status={effectiveStatus}
+                    data-status={r.status}
                     onClick={canSelect ? () => toggleOne(r.lote) : undefined}
                     className={[
                       canSelect ? 'cursor-pointer select-none' : '',
-                      isSkipped            ? 'opacity-40' :
-                      effectiveStatus === 'running' ? 'bg-indigo-50 dark:bg-indigo-950/30' :
-                      effectiveStatus === 'ok'      ? 'bg-emerald-50/40 dark:bg-emerald-950/10' :
-                      effectiveStatus === 'error'   ? 'bg-red-50/40 dark:bg-red-950/10' :
+                      isSkipped         ? 'opacity-40' :
+                      r.status === 'running' ? 'bg-indigo-50 dark:bg-indigo-950/30' :
+                      r.status === 'ok'      ? 'bg-emerald-50/40 dark:bg-emerald-950/10' :
+                      r.status === 'error'   ? 'bg-red-50/40 dark:bg-red-950/10' :
                       canSelect && isChecked ? 'hover:bg-zinc-50 dark:hover:bg-white/[0.03]' : '',
                     ].filter(Boolean).join(' ')}
                   >
@@ -189,25 +207,52 @@ export function CadastrarPecasModal({
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] text-zinc-600 dark:text-zinc-400 max-w-[200px] truncate" title={r.peca}>{r.peca}</td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] tabular-nums font-semibold text-indigo-600 dark:text-indigo-400">{fmtPreco(r.preco_contratado)}</td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04]">
-                      {effectiveStatus === 'pending' && <span className="text-zinc-300 dark:text-zinc-600">—</span>}
-                      {effectiveStatus === 'running' && (
-                        <span className="flex items-center gap-1 text-indigo-500">
-                          <Loader2 size={11} className="animate-spin" />
-                          <span>Cadastrando</span>
-                        </span>
-                      )}
-                      {effectiveStatus === 'ok' && (
-                        <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                          <CheckCircle2 size={11} />
-                          <span>OK</span>
-                        </span>
-                      )}
-                      {effectiveStatus === 'error' && (
-                        <span className="flex items-center gap-1 text-red-500" title={r.error ?? ''}>
-                          <XCircle size={11} />
-                          <span className="truncate max-w-[80px]">{r.error ?? 'Erro'}</span>
-                        </span>
-                      )}
+                      <div className="flex flex-col gap-0.5">
+
+                        {/* Cadastro status */}
+                        {r.status === 'pending' && <span className="text-zinc-300 dark:text-zinc-600">—</span>}
+                        {r.status === 'running' && (
+                          <span className="flex items-center gap-1 text-indigo-500">
+                            <Loader2 size={11} className="animate-spin" />
+                            <span>Cadastrando</span>
+                          </span>
+                        )}
+                        {r.status === 'ok' && (
+                          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 size={11} />
+                            <span>OK</span>
+                          </span>
+                        )}
+                        {r.status === 'error' && (
+                          <span className="flex items-center gap-1 text-red-500" title={r.error ?? ''}>
+                            <XCircle size={11} />
+                            <span className="truncate max-w-[90px]">{r.error ?? 'Erro'}</span>
+                          </span>
+                        )}
+
+                        {/* Foto status — aparece durante/após fase de fotos */}
+                        {r.photoMain !== undefined && (
+                          <span className={`flex items-center gap-1 text-[10px] leading-tight ${
+                            r.photoMain === 'ok'
+                              ? 'text-sky-500 dark:text-sky-400'
+                              : 'text-zinc-400 dark:text-zinc-500'
+                          }`}>
+                            <Camera size={9} />
+                            {r.photoMain === 'ok'
+                              ? (r.photoExtras !== undefined && r.photoExtras > 0
+                                  ? `principal · ${r.photoExtras} extra${r.photoExtras !== 1 ? 's' : ''}`
+                                  : 'principal')
+                              : 'sem foto'}
+                          </span>
+                        )}
+                        {/* Spinner enquanto foto está carregando (status ok mas photoMain ainda undefined) */}
+                        {r.status === 'ok' && r.photoMain === undefined && isPhotos && (
+                          <span className="flex items-center gap-1 text-[10px] text-zinc-300 dark:text-zinc-600">
+                            <Loader2 size={9} className="animate-spin" />
+                            <span>foto...</span>
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -219,7 +264,7 @@ export function CadastrarPecasModal({
         {/* Footer */}
         <div className="shrink-0 px-5 py-4 border-t border-zinc-200 dark:border-white/[0.08] flex flex-col gap-3">
 
-          {/* Progress bar */}
+          {/* Progress: criação */}
           {state.phase === 'running' && (
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between text-[11px] text-zinc-500">
@@ -238,17 +283,44 @@ export function CadastrarPecasModal({
             </div>
           )}
 
+          {/* Progress: upload de fotos */}
+          {isPhotos && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                <span className="flex items-center gap-1.5">
+                  <Camera size={10} className="text-sky-500" />
+                  {`Enviando fotos: ${state.photoDone} de ${state.photoTotal} peças`}
+                </span>
+                <span className="tabular-nums font-semibold">{photoPct}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-sky-500 transition-all duration-300"
+                  style={{ width: `${photoPct}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Resultado final */}
           {isDone && (
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
+            <div className={`flex items-start gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
               state.errorCount === 0
                 ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
                 : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400'
             }`}>
-              {state.errorCount === 0 ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
-              <span>
-                {state.successCount} cadastrada{state.successCount !== 1 ? 's' : ''}
-                {state.errorCount > 0 && ` · ${state.errorCount} com erro`}
+              {state.errorCount === 0 ? <CheckCircle2 size={13} className="mt-px shrink-0" /> : <AlertTriangle size={13} className="mt-px shrink-0" />}
+              <span className="flex flex-col gap-0.5">
+                <span>
+                  {state.successCount} cadastrada{state.successCount !== 1 ? 's' : ''}
+                  {state.errorCount > 0 && ` · ${state.errorCount} com erro`}
+                </span>
+                {photoOkCount > 0 && (
+                  <span className="text-sky-600 dark:text-sky-400 font-medium">
+                    <Camera size={10} className="inline mr-1" />
+                    {photoOkCount} com foto{photoOkCount !== 1 ? 's' : ''}
+                  </span>
+                )}
               </span>
             </div>
           )}
@@ -261,7 +333,7 @@ export function CadastrarPecasModal({
             </div>
           )}
 
-          {/* Contagem de selecionados (apenas no idle) */}
+          {/* Contagem de selecionados */}
           {canSelect && (
             <p className="text-[11px] text-zinc-400">
               {selected.size === pecas.length
