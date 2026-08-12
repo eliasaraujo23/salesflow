@@ -201,8 +201,9 @@ async function uploadPrincipal(
   console.log(`[upload-fotos] principal s3: ${(await s3Res.text()).slice(0, 80)}`);
 }
 
-// Upload de todas as extras em um único POST para img_pecas_extras.php,
-// depois chama s3enviaimagem.asp uma vez por extra com index=i (posição no buffer)
+// Upload de todas as extras em um único POST para img_pecas_extras.php.
+// Usa field name "Foto" repetido (igual ao browser com <input name="Foto" multiple>).
+// O PHP no img_pecas_extras.php faz o upload para S3 internamente — sem s3enviaimagem.asp.
 async function uploadExtras(
   cookie:    string,
   pieceId:   string,
@@ -214,7 +215,8 @@ async function uploadExtras(
   fd.append('NumLeilao', numLeilao);
   fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
   for (let i = 0; i < buffers.length; i++) {
-    fd.append('Foto[]', new Blob([buffers[i]], { type: 'image/jpeg' }), `photo_${i}.jpg`);
+    // "Foto" sem brackets — PHP lê via $_FILES['Foto'] como array (mesmo comportamento do browser)
+    fd.append('Foto', new Blob([buffers[i]], { type: 'image/jpeg' }), `photo_${i}.jpg`);
   }
 
   const res = await fetch(`${BASE}/img_pecas_extras.php`, {
@@ -224,32 +226,9 @@ async function uploadExtras(
     redirect: 'follow',
   });
   const text = await res.text();
-  console.log(`[upload-fotos] extras batch resp: ${text.slice(0, 120)}`);
+  console.log(`[upload-fotos] extras resp (${res.status}): ${text.slice(0, 200)}`);
   if (!res.ok) throw new Error(`extras HTTP ${res.status}`);
-
-  // Chamar s3enviaimagem para cada extra com seu índice no buffer
-  let ok = 0;
-  for (let i = 0; i < buffers.length; i++) {
-    try {
-      const s3Res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Cookie': cookie, 'User-Agent': UA,
-          'Referer': `${BASE}/cad_peca.asp`,
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        body: new URLSearchParams({ idpeca: pieceId, index: String(i), tipo: '1' }).toString(),
-        redirect: 'follow',
-      });
-      const s3Text = await s3Res.text();
-      console.log(`[upload-fotos] extras s3[${i}]: ${s3Text.slice(0, 80)}`);
-      ok++;
-    } catch (e) {
-      console.error(`[upload-fotos] extras s3[${i}] ERRO:`, e);
-    }
-  }
-  return ok;
+  return buffers.length;
 }
 
 // ─── Activate Site ────────────────────────────────────────────────────────────
