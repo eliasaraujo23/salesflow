@@ -156,21 +156,30 @@ async function downloadImage(key: string): Promise<ArrayBuffer> {
   throw new Error(`Imagem não encontrada: ${key}`);
 }
 
-// Carrega a página de edição da peça — necessário para estabelecer contexto de sessão
-async function loadEditPage(cookie: string, pieceId: string): Promise<void> {
-  await fetch(`${BASE}/cad_peca.asp?tipo=3&ID=${pieceId}&fID=${IDC}`, {
-    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_pecas.asp` },
+// Inicializa o slot no ASP — necessário para o servidor saber em qual posição gravar
+// slot 0 = principal, 1-5 = extras
+async function initSlot(cookie: string, pieceId: string, slot: number): Promise<void> {
+  await fetch(`${BASE}/subir_pecas.asp?Id=${pieceId}&Img=${slot}`, {
+    headers: {
+      'Cookie':   cookie,
+      'User-Agent': UA,
+      'Referer':  `${BASE}/cad_peca.asp?tipo=3&ID=${pieceId}&fID=${IDC}`,
+    },
     redirect: 'follow',
   });
 }
 
-// Upload da imagem principal via img_pecas.php
-async function uploadPrincipal(
+// Upload de uma foto em um slot via img_pecas.php + s3enviaimagem.asp
+// (principal usa slot 0, extras usam slots 1-5 — mesmo endpoint para tudo)
+async function uploadToSlot(
   cookie:    string,
   pieceId:   string,
   numLeilao: string,
   buf:       ArrayBuffer,
-): Promise<string> {
+  slot:      number,
+): Promise<void> {
+  const slotUrl = `${BASE}/subir_pecas.asp?Id=${pieceId}&Img=${slot}`;
+
   const fd = new FormData();
   fd.append('IdPeca',    pieceId);
   fd.append('NumLeilao', numLeilao);
@@ -179,71 +188,30 @@ async function uploadPrincipal(
 
   const res = await fetch(`${BASE}/img_pecas.php`, {
     method: 'POST',
-    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
+    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': slotUrl },
     body: fd,
     redirect: 'follow',
   });
   const text = await res.text();
-  if (!res.ok) throw new Error(`principal HTTP ${res.status}: ${text.slice(0, 100)}`);
-  return text;
-}
+  if (!res.ok) throw new Error(`slot ${slot} HTTP ${res.status}: ${text.slice(0, 100)}`);
+  console.log(`[upload-fotos] slot ${slot} resp: ${text.slice(0, 80)}`);
 
-async function triggerS3Principal(cookie: string, pieceId: string): Promise<string> {
-  const res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
-    method: 'POST',
-    headers: {
-      'Content-Type':     'application/x-www-form-urlencoded',
-      'Cookie':           cookie,
-      'User-Agent':       UA,
-      'Referer':          `${BASE}/cad_peca.asp`,
-      'X-Requested-With': 'XMLHttpRequest',
-    },
-    body: new URLSearchParams({ idpeca: pieceId, index: '0', tipo: '0' }).toString(),
-    redirect: 'follow',
-  });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`s3 HTTP ${res.status}: ${text.slice(0, 80)}`);
-  return text;
-}
-
-// Upload de uma extra via img_pecas_extras.php + s3enviaimagem.asp
-async function uploadOneExtra(
-  cookie:    string,
-  pieceId:   string,
-  numLeilao: string,
-  buf:       ArrayBuffer,
-  idx:       number,
-): Promise<void> {
-  const fd = new FormData();
-  fd.append('IdPeca',    pieceId);
-  fd.append('NumLeilao', numLeilao);
-  fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
-  fd.append('Foto', new Blob([buf], { type: 'image/jpeg' }), 'photo.jpg');
-
-  const res = await fetch(`${BASE}/img_pecas_extras.php`, {
-    method: 'POST',
-    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
-    body: fd,
-    redirect: 'follow',
-  });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`extra[${idx}] HTTP ${res.status}: ${text.slice(0, 100)}`);
-
-  // Triggar S3 para cada extra (tipo=1, index=0 pois cada upload usa posição 0 do buffer)
+  // Trigger S3 — index sempre '0' (posição no buffer temp), tipo '0'=principal '1'=extra
+  const tipo = slot === 0 ? '0' : '1';
   const s3Res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
     method: 'POST',
     headers: {
       'Content-Type':     'application/x-www-form-urlencoded',
       'Cookie':           cookie,
       'User-Agent':       UA,
-      'Referer':          `${BASE}/cad_peca.asp`,
+      'Referer':          slotUrl,
       'X-Requested-With': 'XMLHttpRequest',
     },
-    body: new URLSearchParams({ idpeca: pieceId, index: '0', tipo: '1' }).toString(),
+    body: new URLSearchParams({ idpeca: pieceId, index: '0', tipo }).toString(),
     redirect: 'follow',
   });
   const s3Text = await s3Res.text();
-  console.log(`[upload-fotos] extra[${idx}] s3 resp: ${s3Text.slice(0, 80)}`);
+  console.log(`[upload-fotos] slot ${slot} s3 resp: ${s3Text.slice(0, 80)}`);
 }
 
 // ─── Activate Site ────────────────────────────────────────────────────────────
@@ -368,18 +336,14 @@ export async function POST(req: Request) {
         const mainImg   = images.find(i => i.isMain) ?? images[0];
         const extraImgs = images.filter(i => i !== mainImg).slice(0, 5);
 
-        // Carregar página de edição — necessário para sessão ASP (equivalente ao
-        // clique em "Alterar" no robô antigo antes de subir fotos)
-        try { await loadEditPage(cookie, pieceId); } catch { /* non-fatal */ }
-
-        // Upload principal via img_pecas.php + s3enviaimagem.asp
+        // Upload principal: init slot 0 → img_pecas.php → s3
         let mainOk = false;
         let mainErr = '';
         if (mainImg) {
           try {
+            await initSlot(cookie, pieceId, 0);
             const buf = await downloadImage(mainImg.key);
-            await uploadPrincipal(cookie, pieceId, codigoPlatforma, buf);
-            await triggerS3Principal(cookie, pieceId);
+            await uploadToSlot(cookie, pieceId, codigoPlatforma, buf, 0);
             mainOk = true;
           } catch (e) { mainErr = e instanceof Error ? e.message : 'Erro foto'; }
         } else {
@@ -387,17 +351,19 @@ export async function POST(req: Request) {
         }
         await send({ type: 'photoProgress', lote: peca.lote, slot: 'main', success: mainOk, error: mainErr || undefined });
 
-        // Upload extras uma por uma via img_pecas_extras.php + s3enviaimagem.asp
+        // Upload extras: cada uma em seu slot (1-5) via mesmo pipeline
         let extrasOk = 0;
         if (extraImgs.length > 0) {
           console.log(`[upload-fotos] Lote ${peca.lote}: ${extraImgs.length} extras`);
           for (let i = 0; i < extraImgs.length; i++) {
+            const slot = i + 1;
             try {
+              await initSlot(cookie, pieceId, slot);
               const buf = await downloadImage(extraImgs[i].key);
-              await uploadOneExtra(cookie, pieceId, codigoPlatforma, buf, i);
+              await uploadToSlot(cookie, pieceId, codigoPlatforma, buf, slot);
               extrasOk++;
             } catch (e) {
-              console.error(`[upload-fotos] Lote ${peca.lote} extra[${i}] ERRO:`, e instanceof Error ? e.message : e);
+              console.error(`[upload-fotos] Lote ${peca.lote} extra slot ${slot} ERRO:`, e instanceof Error ? e.message : e);
             }
           }
           await send({ type: 'photoProgress', lote: peca.lote, slot: 'extra', success: extrasOk > 0, count: extrasOk });
