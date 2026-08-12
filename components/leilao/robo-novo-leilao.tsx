@@ -353,12 +353,12 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
           codigoPlatforma={novoLeilao || undefined}
           onClose={closeCadastrar}
           isRunning={cadastrarRunning}
-          onExecute={() => {
-            if (!novoLeilao || !novoLeilaoSel || newPieces.length === 0) return;
+          onExecute={(selected) => {
+            if (!novoLeilao || !novoLeilaoSel || selected.length === 0) return;
             executeCadastrar({
               codigoPlatforma: novoLeilao,
               nome:            novoLeilaoSel.nome,
-              pecas:           buildPecasParaCadastrar(newPieces, startLote),
+              pecas:           selected,
             });
           }}
         />

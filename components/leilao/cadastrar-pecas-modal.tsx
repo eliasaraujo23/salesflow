@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { X, CheckCircle2, XCircle, Loader2, AlertTriangle, FileDown, PlusCircle } from 'lucide-react';
 import type { PecaParaCadastrar, CadastrarPecasState } from '@/lib/hooks/use-cadastrar-pecas';
 
@@ -11,7 +11,7 @@ interface Props {
   leilaoNome?:      string;
   codigoPlatforma?: string;
   onClose:          () => void;
-  onExecute:        () => void;
+  onExecute:        (selected: PecaParaCadastrar[]) => void;
   isRunning:        boolean;
 }
 
@@ -56,6 +56,13 @@ export function CadastrarPecasModal({
 }: Props) {
   const tbodyRef = useRef<HTMLDivElement>(null);
 
+  // Seleção — inicializa com todos selecionados quando o modal abre
+  const [selected, setSelected] = useState<Set<number>>(() => new Set(pecas.map(p => p.lote)));
+
+  useEffect(() => {
+    setSelected(new Set(pecas.map(p => p.lote)));
+  }, [pecas]);
+
   const handleDownload = useCallback(() => {
     downloadRelatorio(pecas, state.pecas, leilaoNome, codigoPlatforma);
   }, [pecas, state.pecas, leilaoNome, codigoPlatforma]);
@@ -68,6 +75,22 @@ export function CadastrarPecasModal({
 
   if (!open) return null;
 
+  const canSelect   = state.phase === 'idle';
+  const allSelected = selected.size === pecas.length;
+  const noneSelected = selected.size === 0;
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(pecas.map(p => p.lote)));
+  }
+
+  function toggleOne(lote: number) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(lote) ? next.delete(lote) : next.add(lote);
+      return next;
+    });
+  }
+
   const pct     = state.total > 0 ? Math.round((state.done / state.total) * 100) : 0;
   const isDone  = state.phase === 'done';
   const isError = state.phase === 'error';
@@ -77,6 +100,8 @@ export function CadastrarPecasModal({
     const prog = state.pecas.find(x => x.lote === p.lote);
     return { ...p, status: prog?.status ?? 'pending', error: prog?.error };
   });
+
+  const selectedPecas = pecas.filter(p => selected.has(p.lote));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -111,6 +136,17 @@ export function CadastrarPecasModal({
           <table className="w-full text-xs border-separate border-spacing-0 data-table">
             <thead>
               <tr>
+                <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] w-8">
+                  {canSelect && (
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={el => { if (el) el.indeterminate = !allSelected && !noneSelected; }}
+                      onChange={toggleAll}
+                      className="w-3.5 h-3.5 rounded accent-indigo-500 cursor-pointer"
+                    />
+                  )}
+                </th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-10">Lote</th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500">REF</th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500">Peça</th>
@@ -121,16 +157,33 @@ export function CadastrarPecasModal({
             <tbody>
               {rows.map(r => {
                 const effectiveStatus = r.status;
+                const isChecked = selected.has(r.lote);
+                const isSkipped = !isChecked && canSelect;
                 return (
                   <tr
                     key={r.lote}
                     data-status={effectiveStatus}
-                    className={
+                    onClick={canSelect ? () => toggleOne(r.lote) : undefined}
+                    className={[
+                      canSelect ? 'cursor-pointer select-none' : '',
+                      isSkipped            ? 'opacity-40' :
                       effectiveStatus === 'running' ? 'bg-indigo-50 dark:bg-indigo-950/30' :
                       effectiveStatus === 'ok'      ? 'bg-emerald-50/40 dark:bg-emerald-950/10' :
-                      effectiveStatus === 'error'   ? 'bg-red-50/40 dark:bg-red-950/10' : ''
-                    }
+                      effectiveStatus === 'error'   ? 'bg-red-50/40 dark:bg-red-950/10' :
+                      canSelect && isChecked ? 'hover:bg-zinc-50 dark:hover:bg-white/[0.03]' : '',
+                    ].filter(Boolean).join(' ')}
                   >
+                    <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04]">
+                      {canSelect && (
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleOne(r.lote)}
+                          onClick={e => e.stopPropagation()}
+                          className="w-3.5 h-3.5 rounded accent-indigo-500 cursor-pointer"
+                        />
+                      )}
+                    </td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] tabular-nums font-semibold text-zinc-500">{r.lote}</td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] font-mono font-semibold text-zinc-700 dark:text-zinc-200">{r.referencia}</td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] text-zinc-600 dark:text-zinc-400 max-w-[200px] truncate" title={r.peca}>{r.peca}</td>
@@ -208,6 +261,17 @@ export function CadastrarPecasModal({
             </div>
           )}
 
+          {/* Contagem de selecionados (apenas no idle) */}
+          {canSelect && (
+            <p className="text-[11px] text-zinc-400">
+              {selected.size === pecas.length
+                ? `Todas as ${pecas.length} peças selecionadas`
+                : selected.size === 0
+                  ? 'Nenhuma peça selecionada'
+                  : `${selected.size} de ${pecas.length} peças selecionadas`}
+            </p>
+          )}
+
           {/* Botões */}
           <div className="flex items-center justify-end gap-2">
             <button
@@ -230,12 +294,12 @@ export function CadastrarPecasModal({
 
             {isIdle && (
               <button
-                onClick={onExecute}
-                disabled={pecas.length === 0}
+                onClick={() => onExecute(selectedPecas)}
+                disabled={noneSelected}
                 className="flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 font-semibold transition-colors"
               >
                 <PlusCircle size={12} />
-                Cadastrar {pecas.length} peça{pecas.length !== 1 ? 's' : ''}
+                Cadastrar {selected.size} peça{selected.size !== 1 ? 's' : ''}
               </button>
             )}
           </div>
