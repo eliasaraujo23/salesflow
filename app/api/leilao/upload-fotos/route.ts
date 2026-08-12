@@ -92,7 +92,7 @@ async function scrapeListing(cookie: string, numLeilao: string): Promise<Map<num
 
 // ─── DB: image keys ───────────────────────────────────────────────────────────
 
-interface ImageRow { key: string; bucket: string; isMain: boolean; }
+interface ImageRow { key: string; isMain: boolean; }
 
 async function queryImageKeys(refs: string[]): Promise<Map<string, ImageRow[]>> {
   const client = await pool.connect();
@@ -100,14 +100,12 @@ async function queryImageKeys(refs: string[]): Promise<Map<string, ImageRow[]>> 
     const { rows } = await client.query<{
       referencia:   string;
       key:          string;
-      bucket:       string;
       is_main:      boolean;
       is_secondary: boolean;
     }>(
       `SELECT
          pd.referencia,
          li.key,
-         COALESCE(li.bucket, 'leilao') AS bucket,
          li.is_main,
          li.is_secondary
        FROM product_details pd
@@ -124,7 +122,7 @@ async function queryImageKeys(refs: string[]): Promise<Map<string, ImageRow[]>> 
     const map = new Map<string, ImageRow[]>();
     for (const r of rows) {
       const arr = map.get(r.referencia) ?? [];
-      arr.push({ key: r.key, bucket: r.bucket, isMain: r.is_main });
+      arr.push({ key: r.key, isMain: r.is_main });
       map.set(r.referencia, arr);
     }
     return map;
@@ -135,11 +133,24 @@ async function queryImageKeys(refs: string[]): Promise<Map<string, ImageRow[]>> 
 
 // ─── Photo upload ─────────────────────────────────────────────────────────────
 
-async function downloadFromR2(bucket: string, key: string): Promise<ArrayBuffer> {
-  const url = await getPresignedUrl(bucket, key);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`R2 ${res.status}`);
-  return res.arrayBuffer();
+// Tenta white-images (comprimidas) primeiro, cai para leilao se não existir
+async function downloadImage(key: string): Promise<ArrayBuffer> {
+  for (const bucket of ['white-images', 'leilao']) {
+    try {
+      const url = await getPresignedUrl(bucket, key);
+      const res = await fetch(url);
+      if (res.ok) return res.arrayBuffer();
+    } catch { /* try next bucket */ }
+  }
+  throw new Error(`Imagem não encontrada: ${key}`);
+}
+
+// Inicializa o slot no servidor ASP antes do upload (necessário para session state)
+async function initSlot(cookie: string, pieceId: string, slot: number): Promise<void> {
+  await fetch(`${BASE}/subir_pecas.asp?Id=${pieceId}&Img=${slot}`, {
+    headers: { 'Cookie': cookie, 'User-Agent': UA },
+    redirect: 'follow',
+  });
 }
 
 async function uploadPhoto(
@@ -147,36 +158,39 @@ async function uploadPhoto(
   pieceId:     string,
   numLeilao:   string,
   imageBuffer: ArrayBuffer,
+  slot:        number,
 ): Promise<void> {
   const fd = new FormData();
-  fd.append('IdPeca',   pieceId);
+  fd.append('IdPeca',    pieceId);
   fd.append('NumLeilao', numLeilao);
-  fd.append('Siteurl',  'https://www.leiloesbr.com.br/');
+  fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
   fd.append('Foto', new Blob([imageBuffer], { type: 'image/jpeg' }), 'photo.jpg');
 
   const res = await fetch(`${BASE}/img_pecas.php`, {
     method: 'POST',
     headers: {
-      'Cookie':   cookie,
+      'Cookie':     cookie,
       'User-Agent': UA,
-      'Referer':  `${BASE}/subir_pecas.asp?Id=${pieceId}&Img=0`,
+      'Referer':    `${BASE}/subir_pecas.asp?Id=${pieceId}&Img=${slot}`,
     },
     body: fd,
+    redirect: 'follow',
   });
   if (!res.ok) throw new Error(`upload HTTP ${res.status}`);
 }
 
-async function triggerS3(cookie: string, pieceId: string): Promise<void> {
+async function triggerS3(cookie: string, pieceId: string, slot: number): Promise<void> {
   const res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
     method: 'POST',
     headers: {
-      'Content-Type':      'application/x-www-form-urlencoded',
-      'Cookie':            cookie,
-      'User-Agent':        UA,
-      'Referer':           `${BASE}/subir_pecas.asp?Id=${pieceId}&Img=0`,
-      'X-Requested-With':  'XMLHttpRequest',
+      'Content-Type':     'application/x-www-form-urlencoded',
+      'Cookie':           cookie,
+      'User-Agent':       UA,
+      'Referer':          `${BASE}/subir_pecas.asp?Id=${pieceId}&Img=${slot}`,
+      'X-Requested-With': 'XMLHttpRequest',
     },
     body: new URLSearchParams({ idpeca: pieceId, index: '0', tipo: '0' }).toString(),
+    redirect: 'follow',
   });
   if (!res.ok) throw new Error(`s3 HTTP ${res.status}`);
 }
@@ -242,25 +256,28 @@ export async function POST(req: Request) {
         const mainImg   = images.find(i => i.isMain) ?? images[0];
         const extraImgs = images.filter(i => i !== mainImg).slice(0, 5);
 
-        // Upload principal
+        // Upload principal (slot 0)
         let mainOk = false;
         if (mainImg) {
           try {
-            const buf = await downloadFromR2(mainImg.bucket, mainImg.key);
-            await uploadPhoto(cookie, pieceId, codigoPlatforma, buf);
-            await triggerS3(cookie, pieceId);
+            await initSlot(cookie, pieceId, 0);
+            const buf = await downloadImage(mainImg.key);
+            await uploadPhoto(cookie, pieceId, codigoPlatforma, buf, 0);
+            await triggerS3(cookie, pieceId, 0);
             mainOk = true;
           } catch { /* mainOk stays false */ }
         }
         await send({ type: 'photoProgress', lote: peca.lote, slot: 'main', success: mainOk });
 
-        // Upload extras
+        // Upload extras (slots 1-5)
         let extrasOk = 0;
-        for (const extra of extraImgs) {
+        for (let ei = 0; ei < extraImgs.length; ei++) {
           try {
-            const buf = await downloadFromR2(extra.bucket, extra.key);
-            await uploadPhoto(cookie, pieceId, codigoPlatforma, buf);
-            await triggerS3(cookie, pieceId);
+            const slot = ei + 1;
+            await initSlot(cookie, pieceId, slot);
+            const buf = await downloadImage(extraImgs[ei].key);
+            await uploadPhoto(cookie, pieceId, codigoPlatforma, buf, slot);
+            await triggerS3(cookie, pieceId, slot);
             extrasOk++;
           } catch { /* continue to next extra */ }
         }
