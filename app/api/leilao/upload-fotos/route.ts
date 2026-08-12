@@ -201,9 +201,10 @@ async function uploadPrincipal(
   console.log(`[upload-fotos] principal s3: ${(await s3Res.text()).slice(0, 80)}`);
 }
 
-// Upload de todas as extras em um único POST para img_pecas_extras.php.
-// Usa field name "Foto" repetido (igual ao browser com <input name="Foto" multiple>).
-// O PHP no img_pecas_extras.php faz o upload para S3 internamente — sem s3enviaimagem.asp.
+// Upload de TODAS as extras em um único POST via img_pecas_extras.php.
+// O robô da VM acumula todos os arquivos no input e clica upload uma vez (fileinput.js batch).
+// PHP gerencia S3 internamente — sem s3enviaimagem.asp.
+// Usa Foto[] para PHP receber $_FILES['Foto'] como array.
 async function uploadExtras(
   cookie:    string,
   pieceId:   string,
@@ -215,8 +216,7 @@ async function uploadExtras(
   fd.append('NumLeilao', numLeilao);
   fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
   for (let i = 0; i < buffers.length; i++) {
-    // "Foto" sem brackets — PHP lê via $_FILES['Foto'] como array (mesmo comportamento do browser)
-    fd.append('Foto', new Blob([buffers[i]], { type: 'image/jpeg' }), `photo_${i}.jpg`);
+    fd.append('Foto[]', new Blob([buffers[i]], { type: 'image/jpeg' }), `photo_${i}.jpg`);
   }
 
   const res = await fetch(`${BASE}/img_pecas_extras.php`, {
@@ -226,7 +226,7 @@ async function uploadExtras(
     redirect: 'follow',
   });
   const text = await res.text();
-  console.log(`[upload-fotos] extras resp (${res.status}): ${text.slice(0, 200)}`);
+  console.log(`[upload-fotos] extras batch status=${res.status} resp: ${text.slice(0, 400)}`);
   if (!res.ok) throw new Error(`extras HTTP ${res.status}`);
   return buffers.length;
 }
