@@ -156,21 +156,41 @@ async function downloadImage(key: string): Promise<ArrayBuffer> {
   throw new Error(`Imagem não encontrada: ${key}`);
 }
 
-// Carrega a página de edição — necessário para contexto de sessão ASP
-async function loadEditPage(cookie: string, pieceId: string): Promise<void> {
-  await fetch(`${BASE}/cad_peca.asp?tipo=3&ID=${pieceId}&fID=${IDC}`, {
+// Mescla Set-Cookie da resposta ao cookie ativo (mantém PHPSESSID entre chamadas PHP)
+function mergeCookies(existing: string, res: Response): string {
+  const raw = res.headers.get('set-cookie');
+  if (!raw) return existing;
+  const map = new Map<string, string>();
+  for (const pair of existing.split(';')) {
+    const idx = pair.indexOf('=');
+    if (idx > 0) map.set(pair.slice(0, idx).trim(), pair.slice(idx + 1).trim());
+  }
+  // Set-Cookie pode conter vírgula no valor; separamos por padrão "nome=valor;"
+  for (const part of raw.split(/,(?=\s*\w+=)/)) {
+    const kv = part.trim().split(';')[0];
+    const idx = kv.indexOf('=');
+    if (idx > 0) map.set(kv.slice(0, idx).trim(), kv.slice(idx + 1).trim());
+  }
+  return Array.from(map.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
+}
+
+// Carrega a página de edição — estabelece sessão PHP além do contexto ASP
+async function loadEditPage(cookie: string, pieceId: string): Promise<string> {
+  const res = await fetch(`${BASE}/cad_peca.asp?tipo=3&ID=${pieceId}&fID=${IDC}`, {
     headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_pecas.asp` },
     redirect: 'follow',
   });
+  return mergeCookies(cookie, res);
 }
 
 // Upload da imagem principal via img_pecas.php + s3enviaimagem.asp
+// Retorna cookie atualizado (incluindo PHPSESSID do servidor PHP)
 async function uploadPrincipal(
   cookie:    string,
   pieceId:   string,
   numLeilao: string,
   buf:       ArrayBuffer,
-): Promise<void> {
+): Promise<string> {
   const fd = new FormData();
   fd.append('IdPeca',    pieceId);
   fd.append('NumLeilao', numLeilao);
@@ -183,6 +203,9 @@ async function uploadPrincipal(
     body: fd,
     redirect: 'follow',
   });
+  // Captura PHPSESSID que img_pecas.php pode estabelecer
+  const updatedCookie = mergeCookies(cookie, res);
+
   const text = await res.text();
   if (!res.ok) throw new Error(`principal HTTP ${res.status}: ${text.slice(0, 100)}`);
   console.log(`[upload-fotos] principal resp: ${text.slice(0, 80)}`);
@@ -191,30 +214,31 @@ async function uploadPrincipal(
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'Cookie': cookie, 'User-Agent': UA,
+      'Cookie': updatedCookie, 'User-Agent': UA,
       'Referer': `${BASE}/cad_peca.asp`,
       'X-Requested-With': 'XMLHttpRequest',
     },
     body: new URLSearchParams({ idpeca: pieceId, index: '0', tipo: '0' }).toString(),
     redirect: 'follow',
   });
+  const s3Cookie = mergeCookies(updatedCookie, s3Res);
   console.log(`[upload-fotos] principal s3: ${(await s3Res.text()).slice(0, 80)}`);
+  return s3Cookie;
 }
 
-// Upload extras: img_pecas_extras.php (Foto único) + s3enviaimagem por slot (tipo=1,2,3...)
-// O PHP usa sempre o mesmo nome de arquivo, então s3enviaimagem com tipo=slot é
-// o que diferencia cada extra no S3 (tipo=0=principal, tipo=1=extra1, tipo=2=extra2...).
+// Upload extras: cada arquivo é enviado separadamente via img_pecas_extras.php.
+// O PHP gerencia S3 internamente e usa sessão PHP para gerar nomes únicos por arquivo.
+// CRÍTICO: o cookie com PHPSESSID deve ser mantido entre as chamadas para que o PHP
+// incremente o contador de extras e gere nomes distintos (32103960_.jpg, 32103960_1.jpg…).
 async function uploadExtras(
   cookie:    string,
   pieceId:   string,
   numLeilao: string,
   buffers:   ArrayBuffer[],
 ): Promise<number> {
+  let activeCookie = cookie;
   let ok = 0;
   for (let i = 0; i < buffers.length; i++) {
-    const slot = i + 1; // slots de extras: 1, 2, 3, 4, 5
-
-    // 1. Upload do arquivo para temp via img_pecas_extras.php
     const fd = new FormData();
     fd.append('IdPeca',    pieceId);
     fd.append('NumLeilao', numLeilao);
@@ -223,30 +247,16 @@ async function uploadExtras(
 
     const res = await fetch(`${BASE}/img_pecas_extras.php`, {
       method: 'POST',
-      headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
+      headers: { 'Cookie': activeCookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
       body: fd,
       redirect: 'follow',
     });
-    const text = await res.text();
-    console.log(`[upload-fotos] extra[${i}] php status=${res.status} resp: ${text.slice(0, 120)}`);
-    if (!res.ok || text.includes('"error"')) continue;
+    // Propaga PHPSESSID para a próxima chamada
+    activeCookie = mergeCookies(activeCookie, res);
 
-    // 2. Commit para S3 via s3enviaimagem com tipo=slot (1,2,3,4,5)
-    const s3Res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
-      method: 'POST',
-      headers: {
-        'Content-Type':     'application/x-www-form-urlencoded',
-        'Cookie':           cookie,
-        'User-Agent':       UA,
-        'Referer':          `${BASE}/cad_peca.asp`,
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      body: new URLSearchParams({ idpeca: pieceId, index: '0', tipo: String(slot) }).toString(),
-      redirect: 'follow',
-    });
-    const s3Text = await s3Res.text();
-    console.log(`[upload-fotos] extra[${i}] s3(tipo=${slot}): ${s3Text.slice(0, 80)}`);
-    ok++;
+    const text = await res.text();
+    console.log(`[upload-fotos] extra[${i}] status=${res.status} resp: ${text.slice(0, 120)}`);
+    if (res.ok && !text.includes('"error"')) ok++;
   }
   return ok;
 }
@@ -373,16 +383,18 @@ export async function POST(req: Request) {
         const mainImg   = images.find(i => i.isMain) ?? images[0];
         const extraImgs = images.filter(i => i !== mainImg).slice(0, 5);
 
-        // Carregar página de edição — estabelece contexto de sessão ASP
-        try { await loadEditPage(cookie, pieceId); } catch { /* non-fatal */ }
+        // Carregar página de edição — captura PHPSESSID junto com ASPSESSIONID
+        let pieceCookie = cookie;
+        try { pieceCookie = await loadEditPage(cookie, pieceId); } catch { /* non-fatal */ }
 
         // Upload principal (foto marcada is_main no sistema) → img_pecas.php
+        // uploadPrincipal retorna cookie atualizado com PHPSESSID para usar nas extras
         let mainOk = false;
         let mainErr = '';
         if (mainImg) {
           try {
             const buf = await downloadImage(mainImg.key);
-            await uploadPrincipal(cookie, pieceId, codigoPlatforma, buf);
+            pieceCookie = await uploadPrincipal(pieceCookie, pieceId, codigoPlatforma, buf);
             mainOk = true;
           } catch (e) { mainErr = e instanceof Error ? e.message : 'Erro foto'; }
         } else {
@@ -390,13 +402,14 @@ export async function POST(req: Request) {
         }
         await send({ type: 'photoProgress', lote: peca.lote, slot: 'main', success: mainOk, error: mainErr || undefined });
 
-        // Upload extras (demais fotos armazenadas) → img_pecas_extras.php em batch
+        // Upload extras — usa o mesmo PHPSESSID capturado acima para que PHP incremente
+        // o contador e gere nomes únicos por extra (32103960_.jpg, 32103960_1.jpg…)
         let extrasOk = 0;
         if (extraImgs.length > 0) {
           console.log(`[upload-fotos] Lote ${peca.lote}: ${extraImgs.length} extras`);
           try {
             const bufs = await Promise.all(extraImgs.map(img => downloadImage(img.key)));
-            extrasOk = await uploadExtras(cookie, pieceId, codigoPlatforma, bufs);
+            extrasOk = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs);
           } catch (e) {
             console.error(`[upload-fotos] Lote ${peca.lote} extras ERRO:`, e instanceof Error ? e.message : e);
           }
@@ -407,7 +420,7 @@ export async function POST(req: Request) {
         let siteOk = false;
         let siteErr = '';
         try {
-          await activateSite(cookie, pieceId, peca, codigoPlatforma);
+          await activateSite(pieceCookie, pieceId, peca, codigoPlatforma);
           siteOk = true;
         } catch (e) { siteErr = e instanceof Error ? e.message : 'Erro site'; }
         await send({ type: 'siteProgress', lote: peca.lote, success: siteOk, error: siteErr || undefined });
