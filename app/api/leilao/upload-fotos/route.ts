@@ -67,46 +67,16 @@ function cleanCell(raw: string): string {
   return raw.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, '').replace(/&amp;/g, '&').trim();
 }
 
-// Estrutura da tabela: ID | Comitente | Lote | Peça | Valor | ...
-// Extrai pares (lote → pieceId) varrendo todas as <td> sequencialmente por grupo de colunas.
+// Colunas: 0=ID(6-9 dígitos), 1=Comitente, 2=Lote(≤9999), 3=Peça, 4=Valor, ...
 function parseLoteId(html: string): Map<number, string> {
-  const map = new Map<number, string>();
-
-  // Estratégia 1: procura padrões data-func="exportapeca(ID)" próximos ao número de lote
-  const exportMatches = [...html.matchAll(/data-func=["']exportapeca\((\d+)/gi)];
-  if (exportMatches.length > 0) {
-    // Para cada exportapeca, acha o <td> de Lote dentro do mesmo bloco de ~500 chars antes
-    for (const m of exportMatches) {
-      const pieceId = m[1];
-      const pos     = m.index ?? 0;
-      // Pega os ~800 chars ao redor para encontrar o lote no mesmo contexto
-      const ctx = html.slice(Math.max(0, pos - 800), pos + 200);
-      // Todas as células do contexto — o lote é a 3ª coluna (índice 2) da linha de dados
-      const tds = [...ctx.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m2 => cleanCell(m2[1]).replace(/\D/g, ''));
-      // Procura o primeiro número > 0 que não seja o próprio pieceId
-      for (const val of tds) {
-        const n = Number(val);
-        if (n > 0 && val !== pieceId) { map.set(n, pieceId); break; }
-      }
-    }
-    console.log(`[upload-fotos] parseLoteId exportapeca strategy: found=${map.size} entries=${[...map.entries()].slice(0,5).map(([l,id])=>`${l}→${id}`).join(',')}`);
-    if (map.size > 0) return map;
-  }
-
-  // Estratégia 2: varrer todos os <td> em sequência, agrupando por N_COLS colunas
-  // Colunas confirmadas pelo log: 0=ID(8 dígitos), 1=Comitente, 2=Lote(pequeno), 3=Peça, 4=Valor, 5=Site, 6=Visitas, 7+=ações
-  // Estratégia 2: varrer TODOS os <td> procurando pieceId (6-9 dígitos) seguido 2 posições adiante pelo lote
-  const allTds = [...html.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m2 => cleanCell(m2[1]));
-  console.log(`[upload-fotos] parseLoteId fallback allTds=${allTds.length}: ${JSON.stringify(allTds.slice(0, 16))}`);
+  const map    = new Map<number, string>();
+  const allTds = [...html.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
   for (let i = 0; i + 2 < allTds.length; i++) {
     const rawId  = allTds[i]?.trim();
     const rawLot = allTds[i + 2]?.replace(/\s/g, '').replace(/\D/g, '');
     if (rawId && /^\d{6,9}$/.test(rawId)) {
       const loteNum = Number(rawLot);
-      if (loteNum > 0 && loteNum <= 9999) {
-        map.set(loteNum, rawId);
-        console.log(`[upload-fotos] parseLoteId matched i=${i} pieceId=${rawId} lote=${loteNum}`);
-      }
+      if (loteNum > 0 && loteNum <= 9999) map.set(loteNum, rawId);
     }
   }
   return map;
@@ -142,8 +112,6 @@ async function scrapeListing(cookie: string, numLeilao: string): Promise<Map<num
     redirect: 'follow',
   });
   const html = await res.text();
-  const tdCount = (html.match(/<td/gi) ?? []).length;
-  console.log(`[upload-fotos] scrapeListing leilao=${numLeilao} len=${html.length} tds=${tdCount}`);
   return parseLoteId(html);
 }
 
@@ -457,20 +425,14 @@ export async function POST(req: Request) {
       const loteIdMap = await scrapeListing(cookie, codigoPlatforma);
 
       const withId = pecas.filter(p => loteIdMap.has(p.lote));
-      console.log(`[upload-fotos] loteIdMap size=${loteIdMap.size} keys=[${[...loteIdMap.keys()].join(',')}] pecas lotes=[${pecas.map(p=>p.lote).join(',')}] withId=${withId.length}`);
       if (withId.length === 0) {
         await send({ type: 'error', message: 'IDs das peças não encontrados no leilão.' });
         return;
       }
 
       await send({ type: 'status', message: 'Carregando imagens do banco...' });
-      const refs = [...new Set(withId.map(p => p.referencia))];
-      console.log(`[upload-fotos] queryImageKeys refs=${JSON.stringify(refs)}`);
+      const refs     = [...new Set(withId.map(p => p.referencia))];
       const imageMap = await queryImageKeys(refs);
-      console.log(`[upload-fotos] queryImageKeys done size=${imageMap.size} keys=${JSON.stringify([...imageMap.keys()])}`);
-      for (const [ref, keys] of imageMap) {
-        console.log(`[upload-fotos] imageMap ${ref}: principal=${keys.principal} extras=${keys.extras.filter(Boolean).length}`);
-      }
 
       await send({ type: 'start', total: withId.length });
 
@@ -526,8 +488,6 @@ export async function POST(req: Request) {
 
       await send({ type: 'done' });
     } catch (err) {
-      const msg = err instanceof Error ? `${err.message}\n${err.stack?.slice(0, 300)}` : String(err);
-      console.error(`[upload-fotos] FATAL:`, msg);
       await send({ type: 'error', message: err instanceof Error ? err.message : 'Erro interno' });
     } finally {
       await writer.close();
