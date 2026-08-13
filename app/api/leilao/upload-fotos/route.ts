@@ -283,7 +283,7 @@ async function uploadExtras(
   fd.append('NumLeilao', numLeilao);
   fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
   for (let i = 0; i < buffers.length; i++) {
-    fd.append('Foto[]', new Blob([buffers[i] as unknown as BlobPart], { type: 'image/jpeg' }), `extra_${i}.jpg`);
+    fd.append('Foto', new Blob([buffers[i] as unknown as BlobPart], { type: 'image/jpeg' }), `extra_${i}.jpg`);
   }
 
   const res = await fetch(`${BASE}/img_pecas_extras.php`, {
