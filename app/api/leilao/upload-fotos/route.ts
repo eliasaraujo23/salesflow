@@ -211,7 +211,7 @@ async function uploadPrincipal(
   fd.append('IdPeca',    pieceId);
   fd.append('NumLeilao', numLeilao);
   fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
-  fd.append('Foto', new Blob([buf as unknown as Uint8Array], { type: 'image/jpeg' }), 'photo.jpg');
+  fd.append('Foto', new Blob([buf as unknown as BlobPart], { type: 'image/jpeg' }), 'photo.jpg');
 
   const res = await fetch(`${BASE}/img_pecas.php`, {
     method: 'POST',
@@ -261,7 +261,7 @@ async function uploadExtras(
       fd.append('IdPeca',    pieceId);
       fd.append('NumLeilao', numLeilao);
       fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
-      fd.append('Foto', new Blob([buffers[i] as unknown as Uint8Array], { type: 'image/jpeg' }), `extra_${i}.jpg`);
+      fd.append('Foto', new Blob([buffers[i] as unknown as BlobPart], { type: 'image/jpeg' }), `extra_${i}.jpg`);
 
       const phpRes = await fetch(`${BASE}/img_pecas_extras.php`, {
         method:  'POST',
