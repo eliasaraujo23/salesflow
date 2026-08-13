@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import {
   X, CheckCircle2, XCircle, Loader2, AlertTriangle,
-  FileDown, PlusCircle, Camera, Globe,
+  FileDown, PlusCircle, Globe,
 } from 'lucide-react';
 import type { PecaParaCadastrar, CadastrarPecasState } from '@/lib/hooks/use-cadastrar-pecas';
 
