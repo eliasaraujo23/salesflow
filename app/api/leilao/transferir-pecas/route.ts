@@ -51,28 +51,10 @@ function cleanCell(html: string): string {
   return html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').trim();
 }
 
-function firstPieceId(html: string): string | null {
-  // Strategy 1: extract piece ID from any href like cad_peca.asp?...ID=12345 or subir_pecas.asp?Id=12345
-  const linkMatch = html.match(/href="[^"]*(?:cad_peca|subir_pecas)\.asp[^"]*[?&]I[Dd]=(\d+)/i);
-  if (linkMatch) return linkMatch[1];
-
-  // Strategy 2: any query-string ?ID= or &ID= with 6+ digits (piece ID range, excludes short leilão numbers)
-  const queryMatch = html.match(/[?&]ID=(\d{6,})/i);
-  if (queryMatch) return queryMatch[1];
-
-  // Strategy 3: first <tr> with <td> where first cell is 6+ digit pure number
-  const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
-    .filter(m => m[1].includes('<td'));
-  for (const row of rows) {
-    const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
-    const id = cells[0]?.trim();
-    if (id && /^\d{6,}$/.test(id)) return id;
-  }
-  return null;
-}
-
-// Busca o pieceId de uma peça pelo campo Descricao (que contém "| REF: {ref}" no texto completo)
-async function findPieceByRef(cookie: string, leilaoOrigem: string, ref: string): Promise<string | null> {
+// Busca todas as peças do leilão antigo de uma vez (sem filtro) e constrói ref→pieceId.
+// Não usa busca por Descricao porque o browser faz via AJAX — o POST direto devolve só o
+// shell JS da página sem <td>. O POST sem filtro devolve o HTML server-side renderizado.
+async function scrapeRefMap(cookie: string, leilaoOrigem: string, refs: string[]): Promise<Map<string, string>> {
   const res = await fetch(`${BASE}/listar_pecas.asp`, {
     method: 'POST',
     headers: {
@@ -82,19 +64,51 @@ async function findPieceByRef(cookie: string, leilaoOrigem: string, ref: string)
       'Referer': `${BASE}/listar_pecas.asp`,
     },
     body: new URLSearchParams({
-      Listar:    'on',
-      Leilao:    leilaoOrigem,
-      Descricao: ref,
-      Botao:     'Pesquisar',
+      Listar: 'on',
+      Leilao: leilaoOrigem,
+      Botao:  'Pesquisar',
     }).toString(),
     redirect: 'follow',
   });
-  const html   = await res.text();
-  const id     = firstPieceId(html);
-  const tdIdx  = html.indexOf('<td');
-  const snippet = tdIdx >= 0 ? html.slice(tdIdx, tdIdx + 600) : html.slice(0, 300);
-  console.log(`[transferir] ref=${ref} leilao=${leilaoOrigem} status=${res.status} len=${html.length} found=${id ?? 'NULL'} snippet=${snippet.replace(/\s+/g, ' ')}`);
-  return id;
+
+  const html    = await res.text();
+  const tdCount = (html.match(/<td/gi) ?? []).length;
+  const tdIdx   = html.indexOf('<td');
+  const snippet = tdIdx >= 0 ? html.slice(tdIdx, tdIdx + 400) : html.slice(0, 200);
+  console.log(`[transferir] scrapeRefMap leilao=${leilaoOrigem} status=${res.status} len=${html.length} tds=${tdCount} snippet=${snippet.replace(/\s+/g, ' ')}`);
+
+  const map     = new Map<string, string>();
+  const refSet  = new Set(refs.map(r => r.toUpperCase()));
+
+  // Cada <tr> que tem <td> é uma linha de peça.
+  // O pieceId fica em cells[0] (número puro 6+ dígitos).
+  // Procuramos o REF em QUALQUER célula — incluindo Descricao_2 (que armazena apenas o REF)
+  // e nas células de descrição (que têm "| REF: XXXX" quando a descrição não está truncada).
+  const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
+    .filter(m => m[1].includes('<td'));
+
+  for (const row of rows) {
+    const rowHtml = row[1];
+    const cells   = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+    const id      = cells[0]?.trim();
+    if (!id || !/^\d{6,}$/.test(id)) continue;
+
+    // Busca o REF em todo o texto da linha (cells + atributos HTML)
+    const rowUpper = (cells.slice(1).join(' ') + ' ' + rowHtml).toUpperCase();
+
+    for (const ref of refSet) {
+      if (rowUpper.includes(ref)) {
+        map.set(ref, id);
+        refSet.delete(ref);
+        break;
+      }
+    }
+
+    if (refSet.size === 0) break; // todos encontrados
+  }
+
+  console.log(`[transferir] scrapeRefMap found=${map.size}/${refs.length} missing=${[...refSet].slice(0, 5).join(',')}`);
+  return map;
 }
 
 // ─── Transfer single piece ────────────────────────────────────────────────────
@@ -189,26 +203,9 @@ export async function POST(req: Request) {
       let success = 0;
       let errors  = 0;
 
-      // ── Fase 1: descobrir pieceId de cada peça (concorrência 5) ──────────────
-      await send({ type: 'status', message: `Localizando ${total} peças no leilão N°${leilaoOrigem}...` });
-
-      const CONCURRENCY = 5;
-      const refIdMap = new Map<string, string>(); // ref.upper → pieceId
-
-      const lookupQueue = pecas.map((p, i) => ({ ref: p.ref, index: i }));
-      const lookupWorkers: Promise<void>[] = [];
-
-      async function lookupWorker() {
-        while (lookupQueue.length > 0) {
-          const item = lookupQueue.shift();
-          if (!item) break;
-          const id = await findPieceByRef(cookie, leilaoOrigem, item.ref);
-          if (id) refIdMap.set(item.ref.toUpperCase(), id);
-        }
-      }
-
-      for (let w = 0; w < CONCURRENCY; w++) lookupWorkers.push(lookupWorker());
-      await Promise.all(lookupWorkers);
+      // ── Fase 1: scraping único da listagem do leilão antigo → ref→pieceId ──────
+      await send({ type: 'status', message: `Carregando listagem do leilão N°${leilaoOrigem}...` });
+      const refIdMap = await scrapeRefMap(cookie, leilaoOrigem, pecas.map(p => p.ref));
 
       // ── Fase 2: transferir sequencialmente ───────────────────────────────────
       for (let i = 0; i < pecas.length; i++) {
