@@ -157,7 +157,6 @@ async function queryImageKeys(refs: string[]): Promise<Map<string, ImageKeys>> {
       const principal = main?.key ?? images[0]?.key ?? null;
       // Todas as demais fotos como extras (sem duplicar a principal), máx 5
       const extras  = images.map(i => i.key).filter(k => k !== principal).slice(0, 5);
-      console.log(`[upload-fotos] ref=${ref} total=${images.length} principal=${principal} extras=${extras.length}: ${JSON.stringify(extras)}`);
       map.set(ref, { principal, extras });
     }
     return map;
@@ -269,46 +268,34 @@ async function uploadPrincipal(
   return s3Cookie;
 }
 
-// Upload extras via img_pecas_extras.php (endpoint dedicado do leiloesbr para extras).
-// Chamadas sequenciais com delay entre cada uma para o servidor processar cada slot.
+// Upload extras via img_pecas_extras.php — envia TODAS as fotos de uma vez no mesmo FormData
+// (comportamento de <input type="file" multiple>, igual ao browser). Máx 5 arquivos.
 async function uploadExtras(
   cookie:    string,
   pieceId:   string,
   numLeilao: string,
   buffers:   Buffer[],
 ): Promise<number> {
-  let activeCookie = cookie;
-  let ok = 0;
+  if (buffers.length === 0) return 0;
+
+  const fd = new FormData();
+  fd.append('IdPeca',    pieceId);
+  fd.append('NumLeilao', numLeilao);
+  fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
   for (let i = 0; i < buffers.length; i++) {
-    let uploaded = false;
-    for (let attempt = 0; attempt < 2 && !uploaded; attempt++) {
-      if (attempt > 0) await new Promise(r => setTimeout(r, 1500));
-
-      const fd = new FormData();
-      fd.append('IdPeca',    pieceId);
-      fd.append('NumLeilao', numLeilao);
-      fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
-      fd.append('Foto', new Blob([buffers[i] as unknown as BlobPart], { type: 'image/jpeg' }), `extra_${i}.jpg`);
-
-      const phpRes = await fetch(`${BASE}/img_pecas_extras.php`, {
-        method:  'POST',
-        headers: { 'Cookie': activeCookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
-        body:    fd,
-        redirect: 'follow',
-        signal: AbortSignal.timeout(60_000),
-      });
-      activeCookie = mergeCookies(activeCookie, phpRes);
-      const phpText = await phpRes.text();
-      console.log(`[upload-fotos] extra[${i}] attempt=${attempt} status=${phpRes.status}: ${phpText.slice(0, 120)}`);
-      if (phpRes.ok && !phpText.includes('"error"')) uploaded = true;
-    }
-    if (uploaded) {
-      ok++;
-      // Delay entre extras para o servidor processar cada slot antes do próximo
-      if (i < buffers.length - 1) await new Promise(r => setTimeout(r, 800));
-    }
+    fd.append('Foto[]', new Blob([buffers[i] as unknown as BlobPart], { type: 'image/jpeg' }), `extra_${i}.jpg`);
   }
-  return ok;
+
+  const res = await fetch(`${BASE}/img_pecas_extras.php`, {
+    method:  'POST',
+    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
+    body:    fd,
+    redirect: 'follow',
+    signal:  AbortSignal.timeout(60_000),
+  });
+  const text = await res.text();
+  console.log(`[upload-fotos] extras status=${res.status} count=${buffers.length}: ${text.slice(0, 120)}`);
+  return res.ok && !text.includes('"error"') ? buffers.length : 0;
 }
 
 // ─── Activate Site ────────────────────────────────────────────────────────────
