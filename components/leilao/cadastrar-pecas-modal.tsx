@@ -292,19 +292,26 @@ export function CadastrarPecasModal({
 
           {/* Status atual — spinner + descrição do que está acontecendo agora */}
           {state.phase === 'running' && (
-            <div className="flex items-center gap-2 text-[11px] text-zinc-500">
-              <Loader2 size={11} className="animate-spin shrink-0 text-indigo-500" />
-              <span>
-                Cadastrando peças: {state.done} de {state.total}
-                {state.chunkInfo ? ` · ${state.chunkInfo}` : ''}
-              </span>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+                <Loader2 size={11} className="animate-spin shrink-0 text-indigo-500" />
+                <span>
+                  Cadastrando peças: {state.done} de {state.total}
+                  {state.chunkInfo ? ` · ${state.chunkInfo}` : ''}
+                </span>
+              </div>
             </div>
           )}
 
           {isPhotos && (
-            <div className="flex items-center gap-2 text-[11px] text-zinc-500">
-              <Loader2 size={11} className="animate-spin shrink-0 text-emerald-500" />
-              <span>Enviando fotos: {state.photoDone} de {state.photoTotal} peças</span>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+                <Loader2 size={11} className="animate-spin shrink-0 text-emerald-500" />
+                <span>Enviando fotos: {state.photoDone} de {state.photoTotal} peças</span>
+              </div>
+              {state.statusMsg && (
+                <p className="text-[10px] text-zinc-400 pl-5">{state.statusMsg}</p>
+              )}
             </div>
           )}
 

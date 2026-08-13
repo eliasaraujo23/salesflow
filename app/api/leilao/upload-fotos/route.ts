@@ -411,8 +411,10 @@ export async function POST(req: Request) {
         let mainOk = false;
         let mainErr = '';
         if (mainKey) {
+          await send({ type: 'status', message: `Lote ${peca.lote}: comprimindo foto principal...` });
           try {
             const buf = await downloadImage(mainKey);
+            await send({ type: 'status', message: `Lote ${peca.lote}: enviando foto principal...` });
             pieceCookie = await uploadPrincipal(pieceCookie, pieceId, codigoPlatforma, buf);
             mainOk = true;
           } catch (e) { mainErr = e instanceof Error ? e.message : 'Erro foto'; }
@@ -424,7 +426,7 @@ export async function POST(req: Request) {
         // Upload extras usando key_extra_1..5 do banco
         let extrasOk = 0;
         if (extraKeys.length > 0) {
-          console.log(`[upload-fotos] Lote ${peca.lote}: ${extraKeys.length} extras`);
+          await send({ type: 'status', message: `Lote ${peca.lote}: enviando ${extraKeys.length} foto(s) extra...` });
           try {
             const bufs = await Promise.all(extraKeys.map(k => downloadImage(k)));
             extrasOk = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs);
@@ -435,6 +437,7 @@ export async function POST(req: Request) {
         }
 
         // Ativar Site após foto(s)
+        await send({ type: 'status', message: `Lote ${peca.lote}: ativando Site...` });
         let siteOk = false;
         let siteErr = '';
         try {
