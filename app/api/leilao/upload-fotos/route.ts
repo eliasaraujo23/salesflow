@@ -323,7 +323,9 @@ async function uploadExtras(
         const json = JSON.parse(text) as Record<string, unknown>;
         // O servidor retorna algo como {"file_id": 3, ...} — usamos para o próximo
         const ipc = json['initialPreviewConfig'];
-        const ipcFileId = Array.isArray(ipc) ? (ipc[0] as Record<string, unknown>)?.['extra']?.['file_id'] : undefined;
+        const ipc0 = Array.isArray(ipc) ? (ipc[0] as Record<string, unknown> | undefined) : undefined;
+        const ipc0extra = ipc0?.['extra'] as Record<string, unknown> | undefined;
+        const ipcFileId = ipc0extra?.['file_id'];
         const returned = json['file_id'] ?? json['fileId'] ?? ipcFileId;
         if (typeof returned === 'number') nextFileId = returned + 1;
         else nextFileId += 1; // fallback sequencial
