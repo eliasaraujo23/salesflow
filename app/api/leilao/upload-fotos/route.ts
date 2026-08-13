@@ -503,6 +503,8 @@ export async function POST(req: Request) {
 
       await send({ type: 'done' });
     } catch (err) {
+      const msg = err instanceof Error ? `${err.message}\n${err.stack?.slice(0, 300)}` : String(err);
+      console.error(`[upload-fotos] FATAL:`, msg);
       await send({ type: 'error', message: err instanceof Error ? err.message : 'Erro interno' });
     } finally {
       await writer.close();
