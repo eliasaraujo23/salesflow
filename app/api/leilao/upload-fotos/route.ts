@@ -67,23 +67,44 @@ function cleanCell(raw: string): string {
   return raw.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, '').replace(/&amp;/g, '&').trim();
 }
 
+// Estrutura da tabela: ID | Comitente | Lote | Peça | Valor | ...
+// Extrai pares (lote → pieceId) varrendo todas as <td> sequencialmente por grupo de colunas.
 function parseLoteId(html: string): Map<number, string> {
-  const map  = new Map<number, string>();
-  const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
-    .filter(m => m[1].includes('<td'));
-  for (const row of rows) {
-    const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
-    const id  = cells[0]?.trim();
-    const lot = cells[2]?.trim();
-    if (id && lot && /^\d+$/.test(id)) {
-      const loteNum = Number(lot.replace(/\D/g, ''));
+  const map = new Map<number, string>();
+
+  // Estratégia 1: procura padrões data-func="exportapeca(ID)" próximos ao número de lote
+  const exportMatches = [...html.matchAll(/data-func=["']exportapeca\((\d+)/gi)];
+  if (exportMatches.length > 0) {
+    // Para cada exportapeca, acha o <td> de Lote dentro do mesmo bloco de ~500 chars antes
+    for (const m of exportMatches) {
+      const pieceId = m[1];
+      const pos     = m.index ?? 0;
+      // Pega os ~800 chars ao redor para encontrar o lote no mesmo contexto
+      const ctx = html.slice(Math.max(0, pos - 800), pos + 200);
+      // Todas as células do contexto — o lote é a 3ª coluna (índice 2) da linha de dados
+      const tds = [...ctx.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m2 => cleanCell(m2[1]).replace(/\D/g, ''));
+      // Procura o primeiro número > 0 que não seja o próprio pieceId
+      for (const val of tds) {
+        const n = Number(val);
+        if (n > 0 && val !== pieceId) { map.set(n, pieceId); break; }
+      }
+    }
+    console.log(`[upload-fotos] parseLoteId exportapeca strategy: found=${map.size} entries=${[...map.entries()].slice(0,5).map(([l,id])=>`${l}→${id}`).join(',')}`);
+    if (map.size > 0) return map;
+  }
+
+  // Estratégia 2: varrer todos os <td> em sequência, agrupando por N_COLS colunas
+  // Colunas: 0=ID, 1=Comitente, 2=Lote, 3=Peça, 4=Valor, 5=Site, 6=Visitas, 7=ações...
+  const N_COLS = 8;
+  const allTds = [...html.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m2 => cleanCell(m2[1]));
+  console.log(`[upload-fotos] parseLoteId fallback allTds=${allTds.length}: ${JSON.stringify(allTds.slice(0, 16))}`);
+  for (let i = 0; i + 2 < allTds.length; i += N_COLS) {
+    const id  = allTds[i]?.replace(/\D/g, '');
+    const lot = allTds[i + 2]?.replace(/\D/g, '');
+    if (id && lot && /^\d{5,}$/.test(id)) {
+      const loteNum = Number(lot);
       if (loteNum > 0) map.set(loteNum, id);
     }
-  }
-  if (rows.length > 0 && map.size === 0) {
-    // Colunas inesperadas — log primeira linha para diagnóstico
-    const firstCells = [...rows[0][1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
-    console.log(`[upload-fotos] parseLoteId sem mapa — cols: ${JSON.stringify(firstCells.slice(0, 5))}`);
   }
   return map;
 }
@@ -120,8 +141,6 @@ async function scrapeListing(cookie: string, numLeilao: string): Promise<Map<num
   const html = await res.text();
   const tdCount = (html.match(/<td/gi) ?? []).length;
   console.log(`[upload-fotos] scrapeListing leilao=${numLeilao} len=${html.length} tds=${tdCount}`);
-  // Log estendido para ver a estrutura completa com IDs e lotes
-  console.log(`[upload-fotos] scrapeListing HTML full: ${html.replace(/\s+/g, ' ').slice(0, 2000)}`);
   return parseLoteId(html);
 }
 
