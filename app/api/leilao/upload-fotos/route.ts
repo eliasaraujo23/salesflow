@@ -75,31 +75,52 @@ function parseLoteId(html: string): Map<number, string> {
     const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
     const id  = cells[0]?.trim();
     const lot = cells[2]?.trim();
-    // Only id needs digit check — lote may have non-breaking spaces or punctuation
     if (id && lot && /^\d+$/.test(id)) {
       const loteNum = Number(lot.replace(/\D/g, ''));
       if (loteNum > 0) map.set(loteNum, id);
     }
   }
+  if (rows.length > 0 && map.size === 0) {
+    // Colunas inesperadas — log primeira linha para diagnóstico
+    const firstCells = [...rows[0][1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+    console.log(`[upload-fotos] parseLoteId sem mapa — cols: ${JSON.stringify(firstCells.slice(0, 5))}`);
+  }
   return map;
 }
 
+// listar_pecas.asp retorna o shell SPA (66KB, 0 tds) com body incompleto.
+// Precisa de TODOS os campos do form + Tipo=1 + X-Requested-With para retornar a tabela real (~3KB).
 async function scrapeListing(cookie: string, numLeilao: string): Promise<Map<number, string>> {
-  const res = await fetch(`${BASE}/listar_pecas.asp`, {
+  const res = await fetch('https://www.leiloesbr.com.br/painel_lbr/listar_pecas.asp', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Cookie': cookie,
-      'User-Agent': UA,
-      'Referer': `${BASE}/listar_pecas.asp`,
+      'Content-Type':     'application/x-www-form-urlencoded; charset=UTF-8',
+      'Cookie':           cookie,
+      'User-Agent':       UA,
+      'Origin':           'https://www.leiloesbr.com.br',
+      'Referer':          `https://www.leiloesbr.com.br/painel_lbr/listar_pecas.asp?Listar=on&Leilao=${numLeilao}`,
+      'Accept':           'text/html, */*; q=0.01',
+      'X-Requested-With': 'XMLHttpRequest',
     },
     body: new URLSearchParams({
-      Listar: 'on',
-      Leilao: numLeilao,
-      Botao:  'Pesquisar',
+      Listar: 'on', Leilao: numLeilao,
+      Peca: '', Lotel: '', LoteF: '', Cartela: '', Cart: '',
+      Descricao: '',
+      Dia: '', Item: '', IdT: '', Nota: '',
+      DtNI: '', DtNF: '', DtSI: '', DtSF: '', DtAI: '', DtAF: '',
+      ID_Clil: '', ID_ClIF: '', Extra: '', TaxaL: '',
+      Site: '', Ft: '', Gbl: '', Dv: '', DESTAQUE_O: '',
+      PVendal: '', PVendaF: '', Avall: '', AvalF: '',
+      saida: '', order: '',
+      Botao: 'Pesquisar',
+      Tipo: '1',
     }).toString(),
+    redirect: 'follow',
   });
-  return parseLoteId(await res.text());
+  const html = await res.text();
+  const tdCount = (html.match(/<td/gi) ?? []).length;
+  console.log(`[upload-fotos] scrapeListing leilao=${numLeilao} len=${html.length} tds=${tdCount}`);
+  return parseLoteId(html);
 }
 
 // ─── DB: image keys ───────────────────────────────────────────────────────────
