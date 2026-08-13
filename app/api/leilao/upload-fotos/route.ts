@@ -268,34 +268,39 @@ async function uploadPrincipal(
   return s3Cookie;
 }
 
-// Upload extras via img_pecas_extras.php — envia TODAS as fotos de uma vez no mesmo FormData
-// (comportamento de <input type="file" multiple>, igual ao browser). Máx 5 arquivos.
+// Upload extras via img_pecas_extras.php — um POST por foto com file_id=índice e compl=1
+// (comportamento exato do browser: cada arquivo do <input multiple> gera um request separado)
 async function uploadExtras(
   cookie:    string,
   pieceId:   string,
   numLeilao: string,
   buffers:   Buffer[],
 ): Promise<number> {
-  if (buffers.length === 0) return 0;
-
-  const fd = new FormData();
-  fd.append('IdPeca',    pieceId);
-  fd.append('NumLeilao', numLeilao);
-  fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
+  let activeCookie = cookie;
+  let ok = 0;
   for (let i = 0; i < buffers.length; i++) {
-    fd.append('Foto', new Blob([buffers[i] as unknown as BlobPart], { type: 'image/jpeg' }), `extra_${i}.jpg`);
-  }
+    const fd = new FormData();
+    fd.append('Foto',      new Blob([buffers[i] as unknown as BlobPart], { type: 'image/jpeg' }), `extra_${i}.jpg`);
+    fd.append('file_id',   String(i));
+    fd.append('compl',     '1');
+    fd.append('IdPeca',    pieceId);
+    fd.append('NumLeilao', numLeilao);
+    fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
 
-  const res = await fetch(`${BASE}/img_pecas_extras.php`, {
-    method:  'POST',
-    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
-    body:    fd,
-    redirect: 'follow',
-    signal:  AbortSignal.timeout(60_000),
-  });
-  const text = await res.text();
-  console.log(`[upload-fotos] extras status=${res.status} count=${buffers.length}: ${text.slice(0, 120)}`);
-  return res.ok && !text.includes('"error"') ? buffers.length : 0;
+    const res = await fetch(`${BASE}/img_pecas_extras.php`, {
+      method:  'POST',
+      headers: { 'Cookie': activeCookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
+      body:    fd,
+      redirect: 'follow',
+      signal:  AbortSignal.timeout(60_000),
+    });
+    activeCookie = mergeCookies(activeCookie, res);
+    const text = await res.text();
+    console.log(`[upload-fotos] extra[${i}] status=${res.status}: ${text.slice(0, 80)}`);
+    if (res.ok && !text.includes('"error"')) ok++;
+    if (i < buffers.length - 1) await new Promise(r => setTimeout(r, 500));
+  }
+  return ok;
 }
 
 // ─── Activate Site ────────────────────────────────────────────────────────────
