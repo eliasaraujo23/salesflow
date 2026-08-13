@@ -221,27 +221,6 @@ async function loadUploadPage(cookie: string, pieceId: string): Promise<string> 
   return mergeCookies(cookie, res);
 }
 
-// Carrega gerenciar_imagens.asp e retorna cookie atualizado + nº de extras já cadastradas
-// O file_id do próximo upload deve começar em extrasExistentes
-async function loadGerenciarImagens(cookie: string, pieceId: string): Promise<{ cookie: string; existingCount: number }> {
-  const res = await fetch(`${BASE}/gerenciar_imagens.asp`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Cookie': cookie, 'User-Agent': UA,
-      'Referer': `${BASE}/listar_pecas.asp`,
-    },
-    body: new URLSearchParams({ ID: pieceId }).toString(),
-    redirect: 'follow',
-  });
-  const updatedCookie = mergeCookies(cookie, res);
-  const html = await res.text();
-  // Conta itens de extras já cadastrados (cada extra tem um elemento com data-key ou similar)
-  // Bootstrap FileInput renderiza cada extra como um div.file-preview-frame
-  const existingCount = (html.match(/file-preview-frame/g) ?? []).length;
-  console.log(`[upload-fotos] gerenciar_imagens existingCount=${existingCount}`);
-  return { cookie: updatedCookie, existingCount };
-}
 
 // Upload da imagem principal via img_pecas.php + s3enviaimagem.asp
 // Retorna cookie atualizado (incluindo PHPSESSID do servidor PHP)
@@ -475,15 +454,8 @@ export async function POST(req: Request) {
         if (extraKeys.length > 0) {
           await send({ type: 'status', message: `Lote ${peca.lote}: enviando ${extraKeys.length} foto(s) extra...` });
           try {
-            // Carrega página de extras — inicializa sessão PHP e conta slots já existentes
-            let existingExtras = 0;
-            try {
-              const gm = await loadGerenciarImagens(pieceCookie, pieceId);
-              pieceCookie = gm.cookie;
-              existingExtras = gm.existingCount;
-            } catch { /* non-fatal */ }
             const bufs = await Promise.all(extraKeys.map(k => downloadImage(k)));
-            extrasOk = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs, existingExtras);
+            extrasOk = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs);
           } catch (e) {
             console.error(`[upload-fotos] Lote ${peca.lote} extras ERRO:`, e instanceof Error ? e.message : e);
           }
