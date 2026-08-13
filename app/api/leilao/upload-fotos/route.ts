@@ -229,10 +229,11 @@ async function uploadPrincipal(
   return s3Cookie;
 }
 
-// Upload extras: cada arquivo é enviado separadamente via img_pecas_extras.php.
-// O PHP gerencia S3 internamente e usa sessão PHP para gerar nomes únicos por arquivo.
-// CRÍTICO: o cookie com PHPSESSID deve ser mantido entre as chamadas para que o PHP
-// incremente o contador de extras e gere nomes distintos (32103960_.jpg, 32103960_1.jpg…).
+// Upload extras: img_pecas.php salva no temp (imagens/temp/{pieceId}),
+// depois s3enviaimagem(index=i, tipo=1) commita do temp para o slot de extra i.
+// img_pecas_extras.php escreve direto no S3 com chave fixa ({id}_.jpg) → sempre sobrescreve.
+// Usando img_pecas.php cada extra vai para o mesmo temp, mas s3enviaimagem com index crescente
+// salva em slots distintos: extra_0, extra_1, extra_2…
 async function uploadExtras(
   cookie:    string,
   pieceId:   string,
@@ -242,24 +243,41 @@ async function uploadExtras(
   let activeCookie = cookie;
   let ok = 0;
   for (let i = 0; i < buffers.length; i++) {
+    // 1. Carrega extra no slot temp via img_pecas.php
     const fd = new FormData();
     fd.append('IdPeca',    pieceId);
     fd.append('NumLeilao', numLeilao);
     fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
-    fd.append('Foto', new Blob([buffers[i]], { type: 'image/jpeg' }), `photo_${i}.jpg`);
+    fd.append('Foto', new Blob([buffers[i]], { type: 'image/jpeg' }), `extra_${i}.jpg`);
 
-    const res = await fetch(`${BASE}/img_pecas_extras.php`, {
+    const phpRes = await fetch(`${BASE}/img_pecas.php`, {
       method: 'POST',
       headers: { 'Cookie': activeCookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
       body: fd,
       redirect: 'follow',
     });
-    // Propaga PHPSESSID para a próxima chamada
-    activeCookie = mergeCookies(activeCookie, res);
+    activeCookie = mergeCookies(activeCookie, phpRes);
+    const phpText = await phpRes.text();
+    console.log(`[upload-fotos] extra[${i}] php: ${phpText.slice(0, 80)}`);
+    if (!phpRes.ok || phpText.includes('"error"')) continue;
 
-    const text = await res.text();
-    console.log(`[upload-fotos] extra[${i}] status=${res.status} resp: ${text.slice(0, 120)}`);
-    if (res.ok && !text.includes('"error"')) ok++;
+    // 2. Commita temp → slot de extra i (index=i, tipo=1 = "é extra")
+    const s3Res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type':     'application/x-www-form-urlencoded',
+        'Cookie':           activeCookie,
+        'User-Agent':       UA,
+        'Referer':          `${BASE}/cad_peca.asp`,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: new URLSearchParams({ idpeca: pieceId, index: String(i), tipo: '1' }).toString(),
+      redirect: 'follow',
+    });
+    activeCookie = mergeCookies(activeCookie, s3Res);
+    const s3Text = await s3Res.text();
+    console.log(`[upload-fotos] extra[${i}] s3(index=${i},tipo=1): ${s3Text.slice(0, 80)}`);
+    ok++;
   }
   return ok;
 }
@@ -405,8 +423,7 @@ export async function POST(req: Request) {
         }
         await send({ type: 'photoProgress', lote: peca.lote, slot: 'main', success: mainOk, error: mainErr || undefined });
 
-        // Upload extras — usa o mesmo PHPSESSID capturado acima para que PHP incremente
-        // o contador e gere nomes únicos por extra (32103960_.jpg, 32103960_1.jpg…)
+                // Upload extras: img_pecas.php → temp → s3enviaimagem(index=i, tipo=1)
         let extrasOk = 0;
         if (extraImgs.length > 0) {
           console.log(`[upload-fotos] Lote ${peca.lote}: ${extraImgs.length} extras`);
