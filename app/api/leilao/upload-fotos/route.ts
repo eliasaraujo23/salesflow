@@ -222,6 +222,22 @@ async function loadUploadPage(cookie: string, pieceId: string): Promise<string> 
   return mergeCookies(cookie, res);
 }
 
+// Carrega gerenciar_imagens.asp antes dos extras — inicializa o contador de slots na sessão PHP
+async function loadGerenciarImagens(cookie: string, pieceId: string): Promise<string> {
+  const body = new URLSearchParams({ ID: pieceId }).toString();
+  const res = await fetch(`${BASE}/gerenciar_imagens.asp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookie, 'User-Agent': UA,
+      'Referer': `${BASE}/listar_pecas.asp`,
+    },
+    body,
+    redirect: 'follow',
+  });
+  return mergeCookies(cookie, res);
+}
+
 // Upload da imagem principal via img_pecas.php + s3enviaimagem.asp
 // Retorna cookie atualizado (incluindo PHPSESSID do servidor PHP)
 async function uploadPrincipal(
@@ -450,6 +466,8 @@ export async function POST(req: Request) {
         if (extraKeys.length > 0) {
           await send({ type: 'status', message: `Lote ${peca.lote}: enviando ${extraKeys.length} foto(s) extra...` });
           try {
+            // Inicializa contador de slots na sessão PHP (igual ao browser antes de subir extras)
+            try { pieceCookie = await loadGerenciarImagens(pieceCookie, pieceId); } catch { /* non-fatal */ }
             const bufs = await Promise.all(extraKeys.map(k => downloadImage(k)));
             extrasOk = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs);
           } catch (e) {
