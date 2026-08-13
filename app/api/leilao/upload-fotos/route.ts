@@ -120,6 +120,8 @@ async function scrapeListing(cookie: string, numLeilao: string): Promise<Map<num
   const html = await res.text();
   const tdCount = (html.match(/<td/gi) ?? []).length;
   console.log(`[upload-fotos] scrapeListing leilao=${numLeilao} len=${html.length} tds=${tdCount}`);
+  // Log do HTML bruto para diagnóstico da estrutura da tabela
+  console.log(`[upload-fotos] scrapeListing HTML snippet: ${html.replace(/\s+/g, ' ').slice(0, 600)}`);
   return parseLoteId(html);
 }
 
