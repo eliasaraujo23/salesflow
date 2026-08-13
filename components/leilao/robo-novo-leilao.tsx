@@ -18,6 +18,8 @@ import {
 import { fetchRefsDetail } from '@/lib/actions/fetch-refs-detail';
 import { useCadastrarPecas, buildPecasParaCadastrar } from '@/lib/hooks/use-cadastrar-pecas';
 import { CadastrarPecasModal } from '@/components/leilao/cadastrar-pecas-modal';
+import { useTransferirPecas } from '@/lib/hooks/use-transferir-pecas';
+import { TransferirPecasModal } from '@/components/leilao/transferir-pecas-modal';
 
 interface Props {
   basePieces:    LeilaoBaseRow[];
@@ -57,6 +59,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   const [leilaoTipo,       setLeilaoTipo]       = useState<'NORMAL' | 'TOP'>('NORMAL');
   const [loadingExcluidas, setLoadingExcluidas] = useState(false);
   const { open: cadastrarOpen, openModal: openCadastrar, closeModal: closeCadastrar, state: cadastrarState, execute: executeCadastrar, isRunning: cadastrarRunning } = useCadastrarPecas();
+  const { open: transferirOpen, openModal: openTransferir, closeModal: closeTransferir, state: transferirState, execute: executeTransferir, isRunning: transferirRunning } = useTransferirPecas();
 
   useEffect(() => {
     const f = uploadedFiles.find(f => f.codigoPlatforma === selectedOld);
@@ -115,6 +118,25 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
     [unsoldRefs, priceMap, oldFile],
   );
   const eligibleCount = unsoldRefs.length - excluded.total;
+
+  // Lote inicial da transferência = logo após as peças novas
+  const transferStartLote = startLote + newPieces.length;
+
+  // Peças elegíveis para transferência com valor atualizado do sistema
+  const pecasParaTransferir = useMemo(() => {
+    if (!oldFile) return [];
+    const vendidosSet = new Set(oldFile.vendidos);
+    return unsoldRefs
+      .filter(r => !vendidosSet.has(r))
+      .filter(r => {
+        const row = priceMap.get(r.toUpperCase());
+        return row && (row.preco_avista ?? 0) > 0;
+      })
+      .map(r => ({
+        ref:   r,
+        valor: Math.round(priceMap.get(r.toUpperCase())?.preco_avista ?? 0),
+      }));
+  }, [oldFile, unsoldRefs, priceMap]);
 
   function handleDownloadCadastrar() {
     if (newPieces.length === 0) return;
@@ -465,17 +487,27 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
               <p className="text-xs text-zinc-400 text-center py-4">Selecione o leilão anterior</p>
             )}
 
-            {/* Download */}
-            <button
-              onClick={handleDownloadTransferir}
-              disabled={!oldFile || eligibleCount === 0 || !novoLeilao}
-              className="mt-auto flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:bg-zinc-100 dark:disabled:bg-zinc-800 disabled:cursor-not-allowed text-white disabled:text-zinc-400 dark:disabled:text-zinc-500 text-xs font-semibold transition-colors"
-            >
-              <Download size={13} />
-              Baixar CSV — Transferir ({eligibleCount})
-            </button>
+            {/* Botões CSV + Executar */}
+            <div className="mt-auto flex gap-2">
+              <button
+                onClick={handleDownloadTransferir}
+                disabled={!oldFile || eligibleCount === 0 || !novoLeilao}
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium transition-colors"
+              >
+                <Download size={12} />
+                CSV
+              </button>
+              <button
+                onClick={openTransferir}
+                disabled={!oldFile || pecasParaTransferir.length === 0 || !novoLeilao || !selectedOld}
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 dark:disabled:text-zinc-500 text-xs font-semibold transition-colors"
+              >
+                <Zap size={12} />
+                {pecasParaTransferir.length > 0 ? `Executar (${pecasParaTransferir.length})` : 'Executar'}
+              </button>
+            </div>
             {!novoLeilao && !!oldFile && (
-              <p className="text-[10px] text-amber-600 dark:text-amber-400 text-center -mt-2">
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 text-center -mt-1">
                 Informe o N° do leilão novo acima
               </p>
             )}
@@ -483,6 +515,28 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
         </div>
 
       </div>
+
+      <TransferirPecasModal
+        open={transferirOpen}
+        state={transferirState}
+        pecas={pecasParaTransferir}
+        startLote={transferStartLote}
+        leilaoOrigem={selectedOld || undefined}
+        leilaoDestino={novoLeilao || undefined}
+        onClose={closeTransferir}
+        isRunning={transferirRunning}
+        onExecute={() => {
+          if (!novoLeilao || !novoLeilaoSel || !selectedOld || pecasParaTransferir.length === 0) return;
+          executeTransferir({
+            nome:          novoLeilaoSel.nome,
+            leilaoOrigem:  selectedOld,
+            leilaoDestino: novoLeilao,
+            startLote:     transferStartLote,
+            pecas:         pecasParaTransferir,
+          });
+        }}
+      />
+
     </div>
   );
 }
