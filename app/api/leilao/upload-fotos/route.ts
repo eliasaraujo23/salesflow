@@ -103,38 +103,35 @@ async function scrapeListing(cookie: string, numLeilao: string): Promise<Map<num
 
 // ─── DB: image keys ───────────────────────────────────────────────────────────
 
-interface ImageRow { key: string; isMain: boolean; }
+interface ImageKeys {
+  principal: string | null;
+  extras:    (string | null)[];
+}
 
-async function queryImageKeys(refs: string[]): Promise<Map<string, ImageRow[]>> {
+async function queryImageKeys(refs: string[]): Promise<Map<string, ImageKeys>> {
   const client = await pool.connect();
   try {
     const { rows } = await client.query<{
-      referencia:   string;
-      key:          string;
-      is_main:      boolean;
-      is_secondary: boolean;
+      referencia:  string;
+      key_principal: string | null;
+      key_extra_1:   string | null;
+      key_extra_2:   string | null;
+      key_extra_3:   string | null;
+      key_extra_4:   string | null;
+      key_extra_5:   string | null;
     }>(
-      `SELECT
-         pd.referencia,
-         li.key,
-         li.is_main,
-         li.is_secondary
-       FROM product_details pd
-       JOIN leilao_image li ON li."productDetailsId" = pd.id
-       WHERE pd.referencia = ANY($1::text[])
-         AND li.key !~* '\\.(mov|mp4|avi|webm)$'
-       ORDER BY pd.referencia,
-                li.is_main DESC,
-                li.is_secondary DESC,
-                li."createdAt" ASC`,
+      `SELECT referencia, key_principal, key_extra_1, key_extra_2, key_extra_3, key_extra_4, key_extra_5
+       FROM product_details
+       WHERE referencia = ANY($1::text[])`,
       [refs],
     );
 
-    const map = new Map<string, ImageRow[]>();
+    const map = new Map<string, ImageKeys>();
     for (const r of rows) {
-      const arr = map.get(r.referencia) ?? [];
-      arr.push({ key: r.key, isMain: r.is_main });
-      map.set(r.referencia, arr);
+      map.set(r.referencia, {
+        principal: r.key_principal,
+        extras:    [r.key_extra_1, r.key_extra_2, r.key_extra_3, r.key_extra_4, r.key_extra_5],
+      });
     }
     return map;
   } finally {
@@ -229,11 +226,8 @@ async function uploadPrincipal(
   return s3Cookie;
 }
 
-// Upload extras: img_pecas.php salva no temp (imagens/temp/{pieceId}),
-// depois s3enviaimagem(index=i, tipo=1) commita do temp para o slot de extra i.
-// img_pecas_extras.php escreve direto no S3 com chave fixa ({id}_.jpg) → sempre sobrescreve.
-// Usando img_pecas.php cada extra vai para o mesmo temp, mas s3enviaimagem com index crescente
-// salva em slots distintos: extra_0, extra_1, extra_2…
+// Upload extras via img_pecas_extras.php (endpoint dedicado do leiloesbr para extras).
+// Chamadas sequenciais com delay entre cada uma para o servidor processar cada slot.
 async function uploadExtras(
   cookie:    string,
   pieceId:   string,
@@ -243,41 +237,32 @@ async function uploadExtras(
   let activeCookie = cookie;
   let ok = 0;
   for (let i = 0; i < buffers.length; i++) {
-    // 1. Carrega extra no slot temp via img_pecas.php
-    const fd = new FormData();
-    fd.append('IdPeca',    pieceId);
-    fd.append('NumLeilao', numLeilao);
-    fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
-    fd.append('Foto', new Blob([buffers[i]], { type: 'image/jpeg' }), `extra_${i}.jpg`);
+    let uploaded = false;
+    for (let attempt = 0; attempt < 2 && !uploaded; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, 1500));
 
-    const phpRes = await fetch(`${BASE}/img_pecas.php`, {
-      method: 'POST',
-      headers: { 'Cookie': activeCookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
-      body: fd,
-      redirect: 'follow',
-    });
-    activeCookie = mergeCookies(activeCookie, phpRes);
-    const phpText = await phpRes.text();
-    console.log(`[upload-fotos] extra[${i}] php: ${phpText.slice(0, 80)}`);
-    if (!phpRes.ok || phpText.includes('"error"')) continue;
+      const fd = new FormData();
+      fd.append('IdPeca',    pieceId);
+      fd.append('NumLeilao', numLeilao);
+      fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
+      fd.append('Foto', new Blob([buffers[i]], { type: 'image/jpeg' }), `extra_${i}.jpg`);
 
-    // 2. Commita temp → slot de extra i (index=i, tipo=1 = "é extra")
-    const s3Res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
-      method: 'POST',
-      headers: {
-        'Content-Type':     'application/x-www-form-urlencoded',
-        'Cookie':           activeCookie,
-        'User-Agent':       UA,
-        'Referer':          `${BASE}/cad_peca.asp`,
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      body: new URLSearchParams({ idpeca: pieceId, index: String(i), tipo: '1' }).toString(),
-      redirect: 'follow',
-    });
-    activeCookie = mergeCookies(activeCookie, s3Res);
-    const s3Text = await s3Res.text();
-    console.log(`[upload-fotos] extra[${i}] s3(index=${i},tipo=1): ${s3Text.slice(0, 80)}`);
-    ok++;
+      const phpRes = await fetch(`${BASE}/img_pecas_extras.php`, {
+        method:  'POST',
+        headers: { 'Cookie': activeCookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
+        body:    fd,
+        redirect: 'follow',
+      });
+      activeCookie = mergeCookies(activeCookie, phpRes);
+      const phpText = await phpRes.text();
+      console.log(`[upload-fotos] extra[${i}] attempt=${attempt} status=${phpRes.status}: ${phpText.slice(0, 120)}`);
+      if (phpRes.ok && !phpText.includes('"error"')) uploaded = true;
+    }
+    if (uploaded) {
+      ok++;
+      // Delay entre extras para o servidor processar cada slot antes do próximo
+      if (i < buffers.length - 1) await new Promise(r => setTimeout(r, 800));
+    }
   }
   return ok;
 }
@@ -397,38 +382,35 @@ export async function POST(req: Request) {
       await send({ type: 'start', total: withId.length });
 
       for (const peca of withId) {
-        const pieceId = loteIdMap.get(peca.lote)!;
-        const images  = imageMap.get(peca.referencia) ?? [];
-
-        // First image marked is_main; fallback to first available
-        const mainImg   = images.find(i => i.isMain) ?? images[0];
-        const extraImgs = images.filter(i => i !== mainImg).slice(0, 5);
+        const pieceId  = loteIdMap.get(peca.lote)!;
+        const imgKeys  = imageMap.get(peca.referencia);
+        const mainKey  = imgKeys?.principal ?? null;
+        const extraKeys = (imgKeys?.extras ?? []).filter((k): k is string => k !== null && k !== '');
 
         // Carregar página de edição — captura PHPSESSID junto com ASPSESSIONID
         let pieceCookie = cookie;
         try { pieceCookie = await loadEditPage(cookie, pieceId); } catch { /* non-fatal */ }
 
-        // Upload principal (foto marcada is_main no sistema) → img_pecas.php
-        // uploadPrincipal retorna cookie atualizado com PHPSESSID para usar nas extras
+        // Upload principal usando key_principal do banco
         let mainOk = false;
         let mainErr = '';
-        if (mainImg) {
+        if (mainKey) {
           try {
-            const buf = await downloadImage(mainImg.key);
+            const buf = await downloadImage(mainKey);
             pieceCookie = await uploadPrincipal(pieceCookie, pieceId, codigoPlatforma, buf);
             mainOk = true;
           } catch (e) { mainErr = e instanceof Error ? e.message : 'Erro foto'; }
         } else {
-          mainErr = `Sem imagem no banco: ${peca.referencia}`;
+          mainErr = `key_principal ausente: ${peca.referencia}`;
         }
         await send({ type: 'photoProgress', lote: peca.lote, slot: 'main', success: mainOk, error: mainErr || undefined });
 
-                // Upload extras: img_pecas.php → temp → s3enviaimagem(index=i, tipo=1)
+        // Upload extras usando key_extra_1..5 do banco
         let extrasOk = 0;
-        if (extraImgs.length > 0) {
-          console.log(`[upload-fotos] Lote ${peca.lote}: ${extraImgs.length} extras`);
+        if (extraKeys.length > 0) {
+          console.log(`[upload-fotos] Lote ${peca.lote}: ${extraKeys.length} extras`);
           try {
-            const bufs = await Promise.all(extraImgs.map(img => downloadImage(img.key)));
+            const bufs = await Promise.all(extraKeys.map(k => downloadImage(k)));
             extrasOk = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs);
           } catch (e) {
             console.error(`[upload-fotos] Lote ${peca.lote} extras ERRO:`, e instanceof Error ? e.message : e);
