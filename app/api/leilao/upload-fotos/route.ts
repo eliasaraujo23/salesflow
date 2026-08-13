@@ -283,9 +283,8 @@ async function uploadPrincipal(
   return s3Cookie;
 }
 
-// Upload extras via img_pecas_extras.php — um POST por foto.
-// O servidor retorna um contador global no JSON (campo "file_id" ou similar).
-// O browser usa esse contador como file_id do próximo upload; compl = file_id + 1.
+// Upload extras via img_pecas_extras.php — um POST por foto, file_id sequencial a partir de 0.
+// compl = total de arquivos do lote (fixo). Replica o Bootstrap FileInput quando não há extras.
 async function uploadExtras(
   cookie:    string,
   pieceId:   string,
@@ -294,13 +293,13 @@ async function uploadExtras(
 ): Promise<number> {
   let activeCookie = cookie;
   let ok = 0;
-  let nextFileId = 0; // começa em 0; atualiza pelo response do servidor
+  const total = buffers.length;
 
-  for (let i = 0; i < buffers.length; i++) {
+  for (let i = 0; i < total; i++) {
     const fd = new FormData();
     fd.append('Foto',      new Blob([buffers[i] as unknown as BlobPart], { type: 'image/jpeg' }), `extra_${i}.jpg`);
-    fd.append('file_id',   String(nextFileId));
-    fd.append('compl',     String(nextFileId + 1));
+    fd.append('file_id',   String(i));
+    fd.append('compl',     String(total));
     fd.append('IdPeca',    pieceId);
     fd.append('NumLeilao', numLeilao);
     fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
@@ -314,24 +313,9 @@ async function uploadExtras(
     });
     activeCookie = mergeCookies(activeCookie, res);
     const text = await res.text();
-    console.log(`[upload-fotos] extra[${i}] file_id=${nextFileId} status=${res.status}: ${text.slice(0, 120)}`);
-
-    if (res.ok && !text.includes('"error"')) {
-      ok++;
-      // Extrai o próximo file_id do response JSON (campo que o browser usa para o próximo upload)
-      try {
-        const json = JSON.parse(text) as Record<string, unknown>;
-        // O servidor retorna algo como {"file_id": 3, ...} — usamos para o próximo
-        const ipc = json['initialPreviewConfig'];
-        const ipc0 = Array.isArray(ipc) ? (ipc[0] as Record<string, unknown> | undefined) : undefined;
-        const ipc0extra = ipc0?.['extra'] as Record<string, unknown> | undefined;
-        const ipcFileId = ipc0extra?.['file_id'];
-        const returned = json['file_id'] ?? json['fileId'] ?? ipcFileId;
-        if (typeof returned === 'number') nextFileId = returned + 1;
-        else nextFileId += 1; // fallback sequencial
-      } catch { nextFileId += 1; }
-    }
-    if (i < buffers.length - 1) await new Promise(r => setTimeout(r, 500));
+    console.log(`[upload-fotos] extra[${i}/${total}] status=${res.status}: ${text.slice(0, 80)}`);
+    if (res.ok && !text.includes('"error"')) ok++;
+    if (i < total - 1) await new Promise(r => setTimeout(r, 500));
   }
   return ok;
 }
