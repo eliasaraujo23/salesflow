@@ -157,6 +157,7 @@ async function queryImageKeys(refs: string[]): Promise<Map<string, ImageKeys>> {
       const principal = main?.key ?? images[0]?.key ?? null;
       // Todas as demais fotos como extras (sem duplicar a principal), máx 5
       const extras  = images.map(i => i.key).filter(k => k !== principal).slice(0, 5);
+      console.log(`[qik] ref=${ref} total=${images.length} principal=${principal} extras=${JSON.stringify(extras)}`);
       map.set(ref, { principal, extras });
     }
     return map;
