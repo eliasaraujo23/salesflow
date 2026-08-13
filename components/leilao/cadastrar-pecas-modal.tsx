@@ -235,8 +235,8 @@ export function CadastrarPecasModal({
                         <Loader2 size={10} className="animate-spin text-zinc-300 mx-auto" />
                       )}
                       {r.photoMain === 'ok' && (
-                        <span className="flex items-center justify-center gap-1 text-sky-500 dark:text-sky-400">
-                          <Camera size={10} /><span>OK</span>
+                        <span className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 size={11} /><span>OK</span>
                         </span>
                       )}
                       {r.photoMain === 'none' && (
@@ -244,7 +244,7 @@ export function CadastrarPecasModal({
                           title={r.photoError}
                           className="flex items-center justify-center gap-1 text-zinc-400 dark:text-zinc-500 cursor-default"
                         >
-                          <Camera size={10} /><span>{r.photoError ? '⚠' : '—'}</span>
+                          <span>{r.photoError ? '⚠' : '—'}</span>
                         </span>
                       )}
                       {r.photoMain === undefined && !isPhotos && <span className="text-zinc-300 dark:text-zinc-600">—</span>}
@@ -253,8 +253,8 @@ export function CadastrarPecasModal({
                     {/* Extras */}
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04]">
                       {r.photoExtras !== undefined && r.photoExtras > 0 && (
-                        <span className="flex items-center justify-center gap-1 text-sky-500 dark:text-sky-400">
-                          <Camera size={10} /><span>{r.photoExtras}</span>
+                        <span className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 size={11} /><span>OK</span>
                         </span>
                       )}
                       {r.photoMain !== undefined && (r.photoExtras === undefined || r.photoExtras === 0) && (
@@ -290,48 +290,21 @@ export function CadastrarPecasModal({
         {/* Footer */}
         <div className="shrink-0 px-5 py-4 border-t border-zinc-200 dark:border-white/[0.08] flex flex-col gap-3">
 
-          {/* Progress: criação */}
+          {/* Status atual — spinner + descrição do que está acontecendo agora */}
           {state.phase === 'running' && (
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between text-[11px] text-zinc-500">
-                <span className="flex items-center gap-1.5">
-                  <Loader2 size={10} className="animate-spin" />
-                  {`${state.done} de ${state.total} peças${state.chunkInfo ? ` · ${state.chunkInfo}` : ''}`}
-                </span>
-                <span className="tabular-nums font-semibold">{pct}%</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-indigo-500 transition-all duration-300"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
+            <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+              <Loader2 size={11} className="animate-spin shrink-0 text-indigo-500" />
+              <span>
+                Cadastrando peças: {state.done} de {state.total}
+                {state.chunkInfo ? ` · ${state.chunkInfo}` : ''}
+              </span>
             </div>
           )}
 
-          {/* Progress: upload de fotos */}
           {isPhotos && (
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between text-[11px] text-zinc-500">
-                <span className="flex items-center gap-1.5">
-                  <Camera size={10} className="text-sky-500" />
-                  {state.statusMsg || `Enviando fotos: ${state.photoDone} de ${state.photoTotal} peças`}
-                </span>
-                <span className="tabular-nums font-semibold">{photoPct}%</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-sky-500 transition-all duration-300"
-                  style={{ width: `${photoPct}%` }}
-                />
-              </div>
-            </div>
-          )}
-          {/* Erro na fase de fotos — só mostra quando não há siteProgress e houve statusMsg de erro */}
-          {state.phase === 'done' && state.statusMsg && state.photoDone === 0 && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400">
-              <AlertTriangle size={11} className="shrink-0" />
-              <span className="truncate">{state.statusMsg}</span>
+            <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+              <Loader2 size={11} className="animate-spin shrink-0 text-emerald-500" />
+              <span>Enviando fotos: {state.photoDone} de {state.photoTotal} peças</span>
             </div>
           )}
 
@@ -349,8 +322,7 @@ export function CadastrarPecasModal({
                   {state.errorCount > 0 && ` · ${state.errorCount} com erro`}
                 </span>
                 {photoOkCount > 0 && (
-                  <span className="text-sky-600 dark:text-sky-400 font-medium">
-                    <Camera size={10} className="inline mr-1" />
+                  <span className="font-medium">
                     {photoOkCount} com foto{photoOkCount !== 1 ? 's' : ''}
                   </span>
                 )}
