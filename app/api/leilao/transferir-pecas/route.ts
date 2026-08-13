@@ -51,39 +51,56 @@ function cleanCell(html: string): string {
   return html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').trim();
 }
 
-// Busca todas as peças do leilão antigo de uma vez (sem filtro) e constrói ref→pieceId.
-// Não usa busca por Descricao porque o browser faz via AJAX — o POST direto devolve só o
-// shell JS da página sem <td>. O POST sem filtro devolve o HTML server-side renderizado.
+// Tenta obter HTML com <td> de listagem de peças do leilão.
+// listar_pecas.asp é 100% SPA — dados chegam via AJAX.
+// Candidatos para o endpoint AJAX real, em ordem de probabilidade:
+async function fetchListingHtml(cookie: string, leilaoOrigem: string, descricao?: string): Promise<string> {
+  const body = new URLSearchParams({ Listar: 'on', Leilao: leilaoOrigem, Botao: 'Pesquisar' });
+  if (descricao) body.set('Descricao', descricao);
+  const bodyStr = body.toString();
+
+  const candidates = [
+    `${BASE}/ajax/listar_pecas.asp`,
+    `${BASE}/ajax/pesquisar_pecas.asp`,
+    `${BASE}/ajax/pesquisa_peca.asp`,
+    `${BASE}/listar_pecas.asp`,
+  ];
+
+  for (const url of candidates) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie':             cookie,
+        'User-Agent':         UA,
+        'Referer':            `${BASE}/listar_pecas.asp`,
+        'X-Requested-With':   'XMLHttpRequest',
+      },
+      body: bodyStr,
+      redirect: 'follow',
+    });
+    const html    = await res.text();
+    const tdCount = (html.match(/<td/gi) ?? []).length;
+    const snippet = html.slice(0, 120).replace(/\s+/g, ' ');
+    console.log(`[transferir] fetchListing url=${url.split('/').pop()} desc=${descricao ?? ''} status=${res.status} len=${html.length} tds=${tdCount} snip=${snippet}`);
+    if (tdCount > 0) return html;
+  }
+  return '';
+}
+
+// Constrói ref→pieceId fazendo uma única chamada de listagem e varrendo as rows.
 async function scrapeRefMap(cookie: string, leilaoOrigem: string, refs: string[]): Promise<Map<string, string>> {
-  const res = await fetch(`${BASE}/listar_pecas.asp`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Cookie': cookie,
-      'User-Agent': UA,
-      'Referer': `${BASE}/listar_pecas.asp`,
-    },
-    body: new URLSearchParams({
-      Listar: 'on',
-      Leilao: leilaoOrigem,
-      Botao:  'Pesquisar',
-    }).toString(),
-    redirect: 'follow',
-  });
+  // Tenta sem filtro (retorna todas as peças do leilão)
+  let html = await fetchListingHtml(cookie, leilaoOrigem);
 
-  const html    = await res.text();
-  const tdCount = (html.match(/<td/gi) ?? []).length;
-  const tdIdx   = html.indexOf('<td');
-  const snippet = tdIdx >= 0 ? html.slice(tdIdx, tdIdx + 400) : html.slice(0, 200);
-  console.log(`[transferir] scrapeRefMap leilao=${leilaoOrigem} status=${res.status} len=${html.length} tds=${tdCount} snippet=${snippet.replace(/\s+/g, ' ')}`);
+  // Se não trouxe dados e temos refs, tenta com o primeiro REF como Descricao
+  if (!(html.match(/<td/gi) ?? []).length && refs.length > 0) {
+    html = await fetchListingHtml(cookie, leilaoOrigem, refs[0]);
+  }
 
-  const map     = new Map<string, string>();
-  const refSet  = new Set(refs.map(r => r.toUpperCase()));
+  const map    = new Map<string, string>();
+  const refSet = new Set(refs.map(r => r.toUpperCase()));
 
-  // Cada <tr> que tem <td> é uma linha de peça.
-  // O pieceId fica em cells[0] (número puro 6+ dígitos).
-  // Procuramos o REF em QUALQUER célula — incluindo Descricao_2 (que armazena apenas o REF)
-  // e nas células de descrição (que têm "| REF: XXXX" quando a descrição não está truncada).
   const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
     .filter(m => m[1].includes('<td'));
 
@@ -93,7 +110,6 @@ async function scrapeRefMap(cookie: string, leilaoOrigem: string, refs: string[]
     const id      = cells[0]?.trim();
     if (!id || !/^\d{6,}$/.test(id)) continue;
 
-    // Busca o REF em todo o texto da linha (cells + atributos HTML)
     const rowUpper = (cells.slice(1).join(' ') + ' ' + rowHtml).toUpperCase();
 
     for (const ref of refSet) {
@@ -104,7 +120,7 @@ async function scrapeRefMap(cookie: string, leilaoOrigem: string, refs: string[]
       }
     }
 
-    if (refSet.size === 0) break; // todos encontrados
+    if (refSet.size === 0) break;
   }
 
   console.log(`[transferir] scrapeRefMap found=${map.size}/${refs.length} missing=${[...refSet].slice(0, 5).join(',')}`);
