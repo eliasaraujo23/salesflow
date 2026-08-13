@@ -51,8 +51,19 @@ function cleanCell(html: string): string {
   return html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').trim();
 }
 
-// Returns map of ref (uppercase) → pieceId (leiloesbr internal ID)
-async function scrapeListingRefs(cookie: string, leilaoOrigem: string): Promise<Map<string, string>> {
+function firstPieceId(html: string): string | null {
+  const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
+    .filter(m => m[1].includes('<td'));
+  for (const row of rows) {
+    const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+    const id = cells[0]?.trim();
+    if (id && /^\d+$/.test(id)) return id;
+  }
+  return null;
+}
+
+// Busca o pieceId de uma peça pelo campo Descricao (que contém "| REF: {ref}" no texto completo)
+async function findPieceByRef(cookie: string, leilaoOrigem: string, ref: string): Promise<string | null> {
   const res = await fetch(`${BASE}/listar_pecas.asp`, {
     method: 'POST',
     headers: {
@@ -62,33 +73,14 @@ async function scrapeListingRefs(cookie: string, leilaoOrigem: string): Promise<
       'Referer': `${BASE}/listar_pecas.asp`,
     },
     body: new URLSearchParams({
-      Listar: 'on',
-      Leilao: leilaoOrigem,
-      Botao: 'Pesquisar',
-      Tipo: '1',
+      Listar:    'on',
+      Leilao:    leilaoOrigem,
+      Descricao: ref,
+      Botao:     'Pesquisar',
     }).toString(),
     redirect: 'follow',
   });
-
-  const html = await res.text();
-  const map  = new Map<string, string>();
-
-  const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
-    .filter(m => m[1].includes('<td'));
-
-  for (const row of rows) {
-    const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
-    const id    = cells[0]?.trim();
-    const desc  = cells[3]?.trim() ?? '';
-    if (!id || !/^\d+$/.test(id)) continue;
-    // Description format: "ANEL ... | REF: I15004"
-    const refMatch = desc.match(/REF:\s*([A-Z0-9\-_]+)/i);
-    if (refMatch) {
-      map.set(refMatch[1].toUpperCase(), id);
-    }
-  }
-
-  return map;
+  return firstPieceId(await res.text());
 }
 
 // ─── Transfer single piece ────────────────────────────────────────────────────
@@ -176,9 +168,6 @@ export async function POST(req: Request) {
       await send({ type: 'status', message: 'Autenticando...' });
       const cookie = await loginLeiloesbr(creds.user, creds.pass, leilaoOrigem);
 
-      await send({ type: 'status', message: `Buscando peças do leilão N°${leilaoOrigem}...` });
-      const refMap = await scrapeListingRefs(cookie, leilaoOrigem);
-
       const total = pecas.length;
       await send({ type: 'start', total });
 
@@ -186,11 +175,33 @@ export async function POST(req: Request) {
       let success = 0;
       let errors  = 0;
 
+      // ── Fase 1: descobrir pieceId de cada peça (concorrência 5) ──────────────
+      await send({ type: 'status', message: `Localizando ${total} peças no leilão N°${leilaoOrigem}...` });
+
+      const CONCURRENCY = 5;
+      const refIdMap = new Map<string, string>(); // ref.upper → pieceId
+
+      const lookupQueue = pecas.map((p, i) => ({ ref: p.ref, index: i }));
+      const lookupWorkers: Promise<void>[] = [];
+
+      async function lookupWorker() {
+        while (lookupQueue.length > 0) {
+          const item = lookupQueue.shift();
+          if (!item) break;
+          const id = await findPieceByRef(cookie, leilaoOrigem, item.ref);
+          if (id) refIdMap.set(item.ref.toUpperCase(), id);
+        }
+      }
+
+      for (let w = 0; w < CONCURRENCY; w++) lookupWorkers.push(lookupWorker());
+      await Promise.all(lookupWorkers);
+
+      // ── Fase 2: transferir sequencialmente ───────────────────────────────────
       for (let i = 0; i < pecas.length; i++) {
         const peca     = pecas[i];
         const novoLote = startLote + i;
         const dia      = novoLote <= 200 ? 1 : 2;
-        const idpeca   = refMap.get(peca.ref.toUpperCase());
+        const idpeca   = refIdMap.get(peca.ref.toUpperCase());
 
         if (!idpeca) {
           done++;
@@ -227,7 +238,6 @@ export async function POST(req: Request) {
           });
         }
 
-        // Small delay to avoid overwhelming the server
         if (i < pecas.length - 1) await new Promise(r => setTimeout(r, 300));
       }
 

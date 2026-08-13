@@ -91,12 +91,12 @@ async function scrapeListing(cookie: string, numLeilao: string): Promise<Map<num
       'Content-Type': 'application/x-www-form-urlencoded',
       'Cookie': cookie,
       'User-Agent': UA,
+      'Referer': `${BASE}/listar_pecas.asp`,
     },
     body: new URLSearchParams({
       Listar: 'on',
       Leilao: numLeilao,
       Botao:  'Pesquisar',
-      Tipo:   '1',
     }).toString(),
   });
   return parseLoteId(await res.text());
@@ -187,16 +187,13 @@ function mergeCookies(existing: string, res: Response): string {
   return Array.from(map.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
 }
 
-// Carrega a página de edição — estabelece sessão PHP além do contexto ASP
-async function loadEditPage(cookie: string, pieceId: string): Promise<string> {
-  const res = await fetch(`${BASE}/cad_peca.asp?tipo=3&ID=${pieceId}&fID=${IDC}`, {
+// Carrega a página de upload de fotos — estabelece sessão PHP (subir_pecas.asp, igual ao browser)
+async function loadUploadPage(cookie: string, pieceId: string): Promise<string> {
+  const res = await fetch(`${BASE}/subir_pecas.asp?Id=${pieceId}`, {
     headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_pecas.asp` },
     redirect: 'follow',
   });
-  const updatedCookie = mergeCookies(cookie, res);
-  const html = await res.text();
-  console.log('[upload-fotos] edit-url:', res.url, '| html[0:200]:', html.slice(0, 200).replace(/\s+/g, ' '));
-  return updatedCookie;
+  return mergeCookies(cookie, res);
 }
 
 // Upload da imagem principal via img_pecas.php + s3enviaimagem.asp
@@ -405,7 +402,7 @@ export async function POST(req: Request) {
 
         // Carregar página de edição — captura PHPSESSID junto com ASPSESSIONID
         let pieceCookie = cookie;
-        try { pieceCookie = await loadEditPage(cookie, pieceId); } catch { /* non-fatal */ }
+        try { pieceCookie = await loadUploadPage(cookie, pieceId); } catch { /* non-fatal */ }
 
         // Upload principal usando key_principal do banco
         let mainOk = false;
