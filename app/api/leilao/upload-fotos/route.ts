@@ -94,16 +94,17 @@ function parseLoteId(html: string): Map<number, string> {
   }
 
   // Estratégia 2: varrer todos os <td> em sequência, agrupando por N_COLS colunas
-  // Colunas: 0=ID, 1=Comitente, 2=Lote, 3=Peça, 4=Valor, 5=Site, 6=Visitas, 7=ações...
-  const N_COLS = 8;
+  // Colunas confirmadas pelo log: 0=ID(8 dígitos), 1=Comitente, 2=Lote(pequeno), 3=Peça, 4=Valor, 5=Site, 6=Visitas, 7+=ações
+  const N_COLS = 11; // total de tds por linha (confirmado: tds=11 para 1 peça)
   const allTds = [...html.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m2 => cleanCell(m2[1]));
   console.log(`[upload-fotos] parseLoteId fallback allTds=${allTds.length}: ${JSON.stringify(allTds.slice(0, 16))}`);
   for (let i = 0; i + 2 < allTds.length; i += N_COLS) {
-    const id  = allTds[i]?.replace(/\D/g, '');
-    const lot = allTds[i + 2]?.replace(/\D/g, '');
-    if (id && lot && /^\d{5,}$/.test(id)) {
-      const loteNum = Number(lot);
-      if (loteNum > 0) map.set(loteNum, id);
+    const rawId  = allTds[i]?.trim();
+    const rawLot = allTds[i + 2]?.replace(/\s/g, '').replace(/\D/g, '');
+    // pieceId = somente dígitos, 6–9 chars; lote = número pequeno ≤ 9999
+    if (rawId && /^\d{6,9}$/.test(rawId)) {
+      const loteNum = Number(rawLot);
+      if (loteNum > 0 && loteNum <= 9999) map.set(loteNum, rawId);
     }
   }
   return map;
