@@ -122,47 +122,31 @@ interface ImageKeys {
   extras:    string[];
 }
 
-function isVideo(key: string | null): boolean {
-  return !!key && /\.(mov|mp4|avi|webm)$/i.test(key);
-}
-
 async function queryImageKeys(refs: string[]): Promise<Map<string, ImageKeys>> {
   const client = await pool.connect();
   try {
-    // product_details não tem colunas key_* — imagens vêm via JOIN com leilao_image
     const { rows } = await client.query<{
-      referencia:   string;
-      key:          string;
-      is_main:      boolean;
-      is_secondary: boolean;
+      referencia:    string;
+      key_principal: string | null;
+      key_extra_1:   string | null;
+      key_extra_2:   string | null;
+      key_extra_3:   string | null;
+      key_extra_4:   string | null;
+      key_extra_5:   string | null;
     }>(
-      `SELECT pd.referencia, li.key, li.is_main, li.is_secondary
-       FROM product_details pd
-       JOIN leilao_image li ON li."productDetailsId" = pd.id
-       WHERE pd.referencia = ANY($1::text[])
-       ORDER BY pd.referencia, li.is_main DESC, li.is_secondary DESC, li."createdAt" ASC`,
+      `SELECT referencia, key_principal, key_extra_1, key_extra_2, key_extra_3, key_extra_4, key_extra_5
+       FROM product_details
+       WHERE referencia = ANY($1::text[])`,
       [refs],
     );
 
-    // Agrupa por referência
-    const grouped = new Map<string, typeof rows>();
-    for (const r of rows) {
-      const arr = grouped.get(r.referencia) ?? [];
-      arr.push(r);
-      grouped.set(r.referencia, arr);
-    }
-
     const map = new Map<string, ImageKeys>();
-    for (const ref of refs) {
-      const images = grouped.get(ref) ?? [];
-      // Todas as fotos sem vídeo, ordenadas: is_main desc → is_secondary desc → createdAt asc
-      const photos = images.filter(i => !isVideo(i.key)).map(i => i.key);
-      // Principal = primeira foto marcada como main; se não houver, a primeira do array
-      const mainIdx = images.findIndex(i => i.is_main && !isVideo(i.key));
-      const principal = photos[mainIdx >= 0 ? mainIdx : 0] ?? null;
-      // Extras = todas as outras fotos (sem a principal, sem duplicatas), máx 5
-      const extras = photos.filter(k => k !== principal).slice(0, 5);
-      map.set(ref, { principal, extras });
+    for (const r of rows) {
+      map.set(r.referencia, {
+        principal: r.key_principal,
+        extras: [r.key_extra_1, r.key_extra_2, r.key_extra_3, r.key_extra_4, r.key_extra_5]
+          .filter((k): k is string => !!k),
+      });
     }
     return map;
   } finally {
@@ -434,7 +418,7 @@ export async function POST(req: Request) {
         const pieceId  = loteIdMap.get(peca.lote)!;
         const imgKeys  = imageMap.get(peca.referencia);
         const mainKey  = imgKeys?.principal ?? null;
-        const extraKeys = imgKeys?.extras ?? [];
+        const extraKeys = imgKeys?.extras ?? []; // já filtrado no queryImageKeys
 
         // Carregar página de edição — captura PHPSESSID junto com ASPSESSIONID
         let pieceCookie = cookie;
