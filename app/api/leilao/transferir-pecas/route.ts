@@ -52,12 +52,21 @@ function cleanCell(html: string): string {
 }
 
 function firstPieceId(html: string): string | null {
+  // Strategy 1: extract piece ID from any href like cad_peca.asp?...ID=12345 or subir_pecas.asp?Id=12345
+  const linkMatch = html.match(/href="[^"]*(?:cad_peca|subir_pecas)\.asp[^"]*[?&]I[Dd]=(\d+)/i);
+  if (linkMatch) return linkMatch[1];
+
+  // Strategy 2: any query-string ?ID= or &ID= with 6+ digits (piece ID range, excludes short leilão numbers)
+  const queryMatch = html.match(/[?&]ID=(\d{6,})/i);
+  if (queryMatch) return queryMatch[1];
+
+  // Strategy 3: first <tr> with <td> where first cell is 6+ digit pure number
   const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
     .filter(m => m[1].includes('<td'));
   for (const row of rows) {
     const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
     const id = cells[0]?.trim();
-    if (id && /^\d+$/.test(id)) return id;
+    if (id && /^\d{6,}$/.test(id)) return id;
   }
   return null;
 }
@@ -80,7 +89,10 @@ async function findPieceByRef(cookie: string, leilaoOrigem: string, ref: string)
     }).toString(),
     redirect: 'follow',
   });
-  return firstPieceId(await res.text());
+  const html = await res.text();
+  const id   = firstPieceId(html);
+  console.log(`[transferir] findPieceByRef ref=${ref} leilao=${leilaoOrigem} status=${res.status} found=${id ?? 'NULL'} html_snippet=${html.slice(0, 300).replace(/\s+/g, ' ')}`);
+  return id;
 }
 
 // ─── Transfer single piece ────────────────────────────────────────────────────
