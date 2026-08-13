@@ -154,29 +154,52 @@ interface ImageKeys {
   extras:    (string | null)[];
 }
 
+function isVideo(key: string | null): boolean {
+  return !!key && /\.(mov|mp4|avi|webm)$/i.test(key);
+}
+
 async function queryImageKeys(refs: string[]): Promise<Map<string, ImageKeys>> {
   const client = await pool.connect();
   try {
+    // product_details não tem colunas key_* — imagens vêm via JOIN com leilao_image
     const { rows } = await client.query<{
-      referencia:  string;
-      key_principal: string | null;
-      key_extra_1:   string | null;
-      key_extra_2:   string | null;
-      key_extra_3:   string | null;
-      key_extra_4:   string | null;
-      key_extra_5:   string | null;
+      referencia:   string;
+      key:          string;
+      is_main:      boolean;
+      is_secondary: boolean;
     }>(
-      `SELECT referencia, key_principal, key_extra_1, key_extra_2, key_extra_3, key_extra_4, key_extra_5
-       FROM product_details
-       WHERE referencia = ANY($1::text[])`,
+      `SELECT pd.referencia, li.key, li.is_main, li.is_secondary
+       FROM product_details pd
+       JOIN leilao_image li ON li."productDetailsId" = pd.id
+       WHERE pd.referencia = ANY($1::text[])
+       ORDER BY pd.referencia, li.is_main DESC, li.is_secondary DESC, li."createdAt" ASC`,
       [refs],
     );
 
-    const map = new Map<string, ImageKeys>();
+    // Agrupa por referência
+    const grouped = new Map<string, typeof rows>();
     for (const r of rows) {
-      map.set(r.referencia, {
-        principal: r.key_principal,
-        extras:    [r.key_extra_1, r.key_extra_2, r.key_extra_3, r.key_extra_4, r.key_extra_5],
+      const arr = grouped.get(r.referencia) ?? [];
+      arr.push(r);
+      grouped.set(r.referencia, arr);
+    }
+
+    const map = new Map<string, ImageKeys>();
+    for (const ref of refs) {
+      const images = grouped.get(ref) ?? [];
+      const mains       = images.filter(i => i.is_main      && !isVideo(i.key)).map(i => i.key);
+      const secondaries = images.filter(i => i.is_secondary && !isVideo(i.key)).map(i => i.key);
+      const extras      = images.filter(i => !i.is_main && !i.is_secondary && !isVideo(i.key)).map(i => i.key);
+      const allPhotos   = [...mains, ...secondaries, ...extras];
+      const used        = new Set<string>();
+      function pick(candidates: string[]): string | null {
+        for (const k of candidates) { if (!used.has(k)) { used.add(k); return k; } }
+        for (const k of allPhotos)  { if (!used.has(k)) { used.add(k); return k; } }
+        return null;
+      }
+      map.set(ref, {
+        principal: pick(mains),
+        extras: [pick(secondaries), pick(extras), pick(extras), pick(extras), pick(extras)],
       });
     }
     return map;
