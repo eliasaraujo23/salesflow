@@ -89,9 +89,11 @@ async function findPieceByRef(cookie: string, leilaoOrigem: string, ref: string)
     }).toString(),
     redirect: 'follow',
   });
-  const html = await res.text();
-  const id   = firstPieceId(html);
-  console.log(`[transferir] findPieceByRef ref=${ref} leilao=${leilaoOrigem} status=${res.status} found=${id ?? 'NULL'} html_snippet=${html.slice(0, 300).replace(/\s+/g, ' ')}`);
+  const html   = await res.text();
+  const id     = firstPieceId(html);
+  const tdIdx  = html.indexOf('<td');
+  const snippet = tdIdx >= 0 ? html.slice(tdIdx, tdIdx + 600) : html.slice(0, 300);
+  console.log(`[transferir] ref=${ref} leilao=${leilaoOrigem} status=${res.status} len=${html.length} found=${id ?? 'NULL'} snippet=${snippet.replace(/\s+/g, ' ')}`);
   return id;
 }
 
