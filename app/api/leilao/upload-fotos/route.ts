@@ -434,6 +434,7 @@ export async function POST(req: Request) {
       const loteIdMap = await scrapeListing(cookie, codigoPlatforma);
 
       const withId = pecas.filter(p => loteIdMap.has(p.lote));
+      console.log(`[upload-fotos] loteIdMap size=${loteIdMap.size} keys=[${[...loteIdMap.keys()].join(',')}] pecas lotes=[${pecas.map(p=>p.lote).join(',')}] withId=${withId.length}`);
       if (withId.length === 0) {
         await send({ type: 'error', message: 'IDs das peças não encontrados no leilão.' });
         return;
