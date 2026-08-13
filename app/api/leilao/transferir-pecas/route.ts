@@ -51,99 +51,96 @@ function cleanCell(html: string): string {
   return html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').trim();
 }
 
-// Inspeciona o JS do listar_pecas.asp para encontrar a URL AJAX real de pesquisapeca().
-async function findAjaxSearchUrl(cookie: string, leilaoOrigem: string): Promise<string | null> {
-  // GET a página SPA para extrair os scripts
-  const pageRes = await fetch(`${BASE}/listar_pecas.asp`, {
-    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/default.asp` },
+// O listar_pecas.asp retorna o shell SPA (66KB, 0 tds) com body incompleto.
+// Quando o body tem TODOS os campos do form (conforme DevTools), o servidor detecta
+// que é uma requisição AJAX e devolve só a tabela (~3KB com os dados reais).
+function buildListingBody(leilaoOrigem: string, descricao = ''): string {
+  return new URLSearchParams({
+    Listar: 'on', Leilao: leilaoOrigem,
+    Peca: '', Lotel: '', LoteF: '', Cartela: '', Cart: '',
+    Descricao: descricao,
+    Dia: '', Item: '', IdT: '', Nota: '',
+    DtNI: '', DtNF: '', DtSI: '', DtSF: '', DtAI: '', DtAF: '',
+    ID_Clil: '', ID_ClIF: '', Extra: '', TaxaL: '',
+    Site: '', Ft: '', Gbl: '', Dv: '', DESTAQUE_O: '',
+    PVendal: '', PVendaF: '', Avall: '', AvalF: '',
+    saida: '', order: '',
+    Botao: 'Pesquisar',
+    Tipo: '1',
+  }).toString();
+}
+
+async function ajaxListar(cookie: string, leilaoOrigem: string, descricao = ''): Promise<string> {
+  const res = await fetch('https://www.leiloesbr.com.br/painel_lbr/listar_pecas.asp', {
+    method: 'POST',
+    headers: {
+      'Content-Type':     'application/x-www-form-urlencoded; charset=UTF-8',
+      'Cookie':           cookie,
+      'User-Agent':       UA,
+      'Origin':           'https://www.leiloesbr.com.br',
+      'Referer':          `https://www.leiloesbr.com.br/painel_lbr/listar_pecas.asp?Listar=on&Leilao=${leilaoOrigem}`,
+      'Accept':           'text/html, */*; q=0.01',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: buildListingBody(leilaoOrigem, descricao),
     redirect: 'follow',
   });
-  const pageHtml = await pageRes.text();
+  return res.text();
+}
 
-  // 1. Procura definição de pesquisapeca() em scripts inline
-  const inlineMatches = [...pageHtml.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)];
-  for (const m of inlineMatches) {
-    const js = m[1];
-    if (!js.includes('pesquisapeca') && !js.includes('listar_peca') && !js.includes('PesquisarPec')) continue;
-    // Extrai URL mais próxima de "pesquisapeca" ou de um $.ajax / fetch / $.post
-    const urlMatch = js.match(/pesquisapeca[\s\S]{0,200}?["']((?:ajax\/|\.asp)[^"']+)/i)
-                  || js.match(/(?:url|href)\s*:\s*["']([^"']*\.asp[^"']*)/gi)?.[0]?.match(/["']([^"']+)/);
-    if (urlMatch) {
-      console.log(`[transferir] findAjaxUrl inline found: ${urlMatch[1]}`);
-      return urlMatch[1];
-    }
-    // Log dos primeiros 400 chars do script relevante para diagnóstico
-    console.log(`[transferir] findAjaxUrl inline script: ${js.slice(0, 400).replace(/\s+/g, ' ')}`);
+function extractPieceId(html: string): string | null {
+  const exportMatch = html.match(/data-func=["']exportapeca\((\d+)/i);
+  if (exportMatch) return exportMatch[1];
+  const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'));
+  for (const row of rows) {
+    const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+    const id = cells[0]?.trim();
+    if (id && /^\d{6,}$/.test(id)) return id;
   }
-
-  // 2. Procura em scripts externos
-  const scriptSrcs = [...pageHtml.matchAll(/src=["']([^"']*\.js[^"']*)/gi)].map(m => m[1]);
-  for (const src of scriptSrcs) {
-    const url  = src.startsWith('http') ? src : `https://leiloesbr.com.br/${src.replace(/^\//, '')}`;
-    const sRes = await fetch(url, { headers: { 'User-Agent': UA }, redirect: 'follow' });
-    const js   = await sRes.text();
-    if (!js.includes('pesquisapeca') && !js.includes('PesquisarPec')) continue;
-    const urlMatch = js.match(/pesquisapeca[\s\S]{0,300}?["']((?:ajax\/|painel_lbr\/)[^"']+)/i);
-    if (urlMatch) {
-      console.log(`[transferir] findAjaxUrl external (${src}) found: ${urlMatch[1]}`);
-      return urlMatch[1];
-    }
-    console.log(`[transferir] findAjaxUrl external (${src}) pesquisapeca_ctx: ${(js.match(/[\s\S]{0,100}pesquisapeca[\s\S]{0,200}/)?.[0] ?? '').replace(/\s+/g, ' ')}`);
-  }
-
   return null;
 }
 
-// Constrói ref→pieceId usando o endpoint AJAX real do listar_pecas.asp.
+// Fase 1: busca todos os IDs em uma chamada (sem Descricao = todas as peças do leilão).
+// Se algum ref ficar faltando, faz buscas individuais por Descricao.
 async function scrapeRefMap(cookie: string, leilaoOrigem: string, refs: string[]): Promise<Map<string, string>> {
-  const ajaxUrl = await findAjaxSearchUrl(cookie, leilaoOrigem);
-  console.log(`[transferir] ajaxUrl=${ajaxUrl ?? 'NOT_FOUND'}`);
-
-  const map = new Map<string, string>();
-  if (!ajaxUrl) return map;
-
-  const fullUrl = ajaxUrl.startsWith('http') ? ajaxUrl : `https://leiloesbr.com.br/painel_lbr/${ajaxUrl.replace(/^\//, '')}`;
-
-  // Tenta buscar todas as peças (sem Descricao) pelo endpoint real
-  const res = await fetch(fullUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type':     'application/x-www-form-urlencoded',
-      'Cookie':           cookie,
-      'User-Agent':       UA,
-      'Referer':          `${BASE}/listar_pecas.asp`,
-      'X-Requested-With': 'XMLHttpRequest',
-    },
-    body: new URLSearchParams({ Listar: 'on', Leilao: leilaoOrigem, Botao: 'Pesquisar' }).toString(),
-    redirect: 'follow',
-  });
-
-  const html    = await res.text();
-  const tdCount = (html.match(/<td/gi) ?? []).length;
-  const snippet = html.slice(0, 200).replace(/\s+/g, ' ');
-  console.log(`[transferir] ajaxFetch status=${res.status} len=${html.length} tds=${tdCount} snip=${snippet}`);
-
+  const map    = new Map<string, string>();
   const refSet = new Set(refs.map(r => r.toUpperCase()));
-  const rows   = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
-    .filter(m => m[1].includes('<td'));
 
+  // Tentativa 1: todas as peças de uma vez
+  const allHtml = await ajaxListar(cookie, leilaoOrigem);
+  const tdCount = (allHtml.match(/<td/gi) ?? []).length;
+  console.log(`[transferir] scrapeAll leilao=${leilaoOrigem} len=${allHtml.length} tds=${tdCount} snip=${allHtml.slice(0, 100).replace(/\s+/g, ' ')}`);
+
+  const rows = [...allHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'));
   for (const row of rows) {
-    const rowHtml = row[1];
-    const cells   = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
-    const id      = cells[0]?.trim();
+    const rowHtml  = row[1];
+    const cells    = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+    const id       = cells[0]?.trim();
     if (!id || !/^\d{6,}$/.test(id)) continue;
     const rowUpper = (cells.slice(1).join(' ') + ' ' + rowHtml).toUpperCase();
     for (const ref of refSet) {
-      if (rowUpper.includes(ref)) {
-        map.set(ref, id);
-        refSet.delete(ref);
-        break;
-      }
+      if (rowUpper.includes(ref)) { map.set(ref, id); refSet.delete(ref); break; }
     }
     if (refSet.size === 0) break;
   }
 
-  console.log(`[transferir] scrapeRefMap found=${map.size}/${refs.length} missing=${[...refSet].slice(0, 5).join(',')}`);
+  // Tentativa 2: refs ainda faltando → busca individual por Descricao
+  if (refSet.size > 0) {
+    console.log(`[transferir] individual lookup for ${refSet.size} missing: ${[...refSet].slice(0,5).join(',')}`);
+    const queue   = [...refSet];
+    const workers = Array.from({ length: 5 }, async () => {
+      while (queue.length > 0) {
+        const ref = queue.shift()!;
+        const html = await ajaxListar(cookie, leilaoOrigem, ref);
+        const id   = extractPieceId(html);
+        console.log(`[transferir] individual ref=${ref} tds=${(html.match(/<td/gi)??[]).length} found=${id??'NULL'}`);
+        if (id) map.set(ref, id);
+      }
+    });
+    await Promise.all(workers);
+  }
+
+  console.log(`[transferir] scrapeRefMap final found=${map.size}/${refs.length}`);
   return map;
 }
 
