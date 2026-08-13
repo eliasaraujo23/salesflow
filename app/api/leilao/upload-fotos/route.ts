@@ -1,6 +1,7 @@
 export const maxDuration = 300;
 
-import { Pool }           from 'pg';
+import sharp               from 'sharp';
+import { Pool }            from 'pg';
 import { getPresignedUrl } from '@/lib/r2';
 
 const BASE           = 'https://leiloesbr.com.br/painel_lbr';
@@ -141,13 +142,28 @@ async function queryImageKeys(refs: string[]): Promise<Map<string, ImageKeys>> {
 
 // ─── Photo upload ─────────────────────────────────────────────────────────────
 
-// Tenta white-images (comprimidas) primeiro, cai para leilao se não existir
-async function downloadImage(key: string): Promise<ArrayBuffer> {
+async function processImage(buf: ArrayBuffer): Promise<Buffer> {
+  const maxBytes = 1.8 * 1024 * 1024;
+  const pipeline = sharp(Buffer.from(buf)).rotate().resize({
+    width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true,
+  });
+  let quality = 90;
+  let out: Buffer;
+  do {
+    if (quality < 20) throw new Error('Não foi possível comprimir a imagem para o tamanho desejado.');
+    out = await pipeline.clone().jpeg({ quality, progressive: true, mozjpeg: true }).toBuffer();
+    quality -= 10;
+  } while (out.byteLength > maxBytes);
+  return out;
+}
+
+// Tenta white-images primeiro, cai para leilao se não existir
+async function downloadImage(key: string): Promise<Buffer> {
   for (const bucket of ['white-images', 'leilao']) {
     try {
       const url = await getPresignedUrl(bucket, key);
       const res = await fetch(url);
-      if (res.ok) return res.arrayBuffer();
+      if (res.ok) return processImage(await res.arrayBuffer());
     } catch { /* try next bucket */ }
   }
   throw new Error(`Imagem não encontrada: ${key}`);
@@ -189,13 +205,13 @@ async function uploadPrincipal(
   cookie:    string,
   pieceId:   string,
   numLeilao: string,
-  buf:       ArrayBuffer,
+  buf:       Buffer,
 ): Promise<string> {
   const fd = new FormData();
   fd.append('IdPeca',    pieceId);
   fd.append('NumLeilao', numLeilao);
   fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
-  fd.append('Foto', new Blob([buf], { type: 'image/jpeg' }), 'photo.jpg');
+  fd.append('Foto', new Blob([new Uint8Array(buf)], { type: 'image/jpeg' }), 'photo.jpg');
 
   const res = await fetch(`${BASE}/img_pecas.php`, {
     method: 'POST',
@@ -232,7 +248,7 @@ async function uploadExtras(
   cookie:    string,
   pieceId:   string,
   numLeilao: string,
-  buffers:   ArrayBuffer[],
+  buffers:   Buffer[],
 ): Promise<number> {
   let activeCookie = cookie;
   let ok = 0;
@@ -245,7 +261,7 @@ async function uploadExtras(
       fd.append('IdPeca',    pieceId);
       fd.append('NumLeilao', numLeilao);
       fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
-      fd.append('Foto', new Blob([buffers[i]], { type: 'image/jpeg' }), `extra_${i}.jpg`);
+      fd.append('Foto', new Blob([new Uint8Array(buffers[i])], { type: 'image/jpeg' }), `extra_${i}.jpg`);
 
       const phpRes = await fetch(`${BASE}/img_pecas_extras.php`, {
         method:  'POST',
