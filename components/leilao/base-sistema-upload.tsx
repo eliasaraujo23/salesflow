@@ -120,6 +120,8 @@ export function BaseSistemaUpload({
   const sorted = [...uploaded].filter(f => {
     if (seen.has(f.filename)) return false;
     seen.add(f.filename);
+    // oculta leilões finalizados
+    if (f.leilao?.status === 'finalizado') return false;
     return true;
   }).sort((a, b) => {
     // Agrupa por nome base (sem "TOP"), descendente p/ ETERNNO antes de BRUNO

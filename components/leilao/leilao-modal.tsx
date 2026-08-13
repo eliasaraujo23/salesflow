@@ -13,7 +13,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarDateRangePicker } from '@/components/ui/date-range-picker';
-import type { Leilao } from '@/lib/hooks/use-leiloes';
+import type { Leilao, LeilaoStatus } from '@/lib/hooks/use-leiloes';
+
+export const STATUS_LEILAO: { value: LeilaoStatus; label: string }[] = [
+  { value: 'captando',         label: 'Captando' },
+  { value: 'convite',          label: 'Convite' },
+  { value: 'convite_catalogo', label: 'Convite e Catálogo' },
+  { value: 'venda_pos_leilao', label: 'Venda pós leilão' },
+  { value: 'finalizado',       label: 'Finalizado' },
+];
 
 export const TIPOS_LEILAO = [
   { label: 'ETERNNO',     cor: '#0d9488' },
@@ -37,6 +45,7 @@ const schema = z.object({
   dataFim:          z.string().min(1, 'Selecione o período'),
   codigoPlatforma:  z.string().optional(),
   observacao:       z.string().optional(),
+  status:           z.enum(['captando','convite','convite_catalogo','venda_pos_leilao','finalizado']).optional(),
 }).refine(d => d.dataFim >= d.dataInicio, {
   message: 'Data fim deve ser ≥ data início',
   path: ['dataFim'],
@@ -58,7 +67,7 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
     formState: { errors },
   } = useForm<LeilaoFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { numero: '', nome: '', dataInicio: '', dataFim: '', observacao: '' },
+    defaultValues: { numero: '', nome: '', dataInicio: '', dataFim: '', observacao: '', status: undefined },
   });
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -73,6 +82,7 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
         dataFim:         initial?.dataFim         ?? '',
         codigoPlatforma: initial?.codigoPlatforma ?? '',
         observacao:      initial?.observacao      ?? '',
+        status:          initial?.status          ?? undefined,
       });
       setDateRange(
         initial?.dataInicio
@@ -184,6 +194,29 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
               Observação <span className="font-normal text-zinc-400 dark:text-zinc-500">(opcional)</span>
             </Label>
             <Input id="observacao" placeholder="Notas sobre este leilão..." className="text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400" {...register('observacao')} />
+          </div>
+
+          {/* Status de publicação */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-zinc-700 dark:text-zinc-200">
+              Status de publicação <span className="font-normal text-zinc-400 dark:text-zinc-500">(opcional)</span>
+            </Label>
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value ?? ''} onValueChange={v => field.onChange(v || undefined)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Não definido" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_LEILAO.map(s => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           <DialogFooter className="mt-1 flex items-center justify-between gap-2">

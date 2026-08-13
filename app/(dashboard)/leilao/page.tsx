@@ -31,7 +31,13 @@ export default function LeilaoPage() {
   }
 
   function handleSave(values: LeilaoFormValues & { cor: string }) {
-    const normalized = { ...values, numero: values.numero ?? '', codigoPlatforma: values.codigoPlatforma ?? '' };
+    const { status, ...rest } = values;
+    const normalized = {
+      ...rest,
+      numero:          values.numero          ?? '',
+      codigoPlatforma: values.codigoPlatforma ?? '',
+      ...(status ? { status } : {}),
+    };
     if (editing) {
       update({ ...editing, ...normalized });
       toast.success('Leilão atualizado');

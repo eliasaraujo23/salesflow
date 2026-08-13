@@ -8,6 +8,13 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
+export type LeilaoStatus =
+  | 'captando'
+  | 'convite'
+  | 'convite_catalogo'
+  | 'venda_pos_leilao'
+  | 'finalizado';
+
 export interface Leilao {
   id: string;
   numero: string;
@@ -17,6 +24,7 @@ export interface Leilao {
   cor: string;
   codigoPlatforma: string;
   observacao?: string;
+  status?: LeilaoStatus;
 }
 
 const COLLECTION  = 'leilao_leiloes';
