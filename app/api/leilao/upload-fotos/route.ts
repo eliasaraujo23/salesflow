@@ -454,6 +454,8 @@ export async function POST(req: Request) {
         if (extraKeys.length > 0) {
           await send({ type: 'status', message: `Lote ${peca.lote}: enviando ${extraKeys.length} foto(s) extra...` });
           try {
+            // Recarrega a página da peça para obter PHPSESSID limpo antes dos extras
+            try { pieceCookie = await loadUploadPage(cookie, pieceId); } catch { /* non-fatal */ }
             const bufs = await Promise.all(extraKeys.map(k => downloadImage(k)));
             extrasOk = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs);
           } catch (e) {
