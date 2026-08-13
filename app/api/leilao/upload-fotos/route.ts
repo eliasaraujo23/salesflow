@@ -157,7 +157,6 @@ async function queryImageKeys(refs: string[]): Promise<Map<string, ImageKeys>> {
       const principal = main?.key ?? images[0]?.key ?? null;
       // Todas as demais fotos como extras (sem duplicar a principal), máx 5
       const extras  = images.map(i => i.key).filter(k => k !== principal).slice(0, 5);
-      console.log(`[qik] ref=${ref} total=${images.length} principal=${principal} extras=${JSON.stringify(extras)}`);
       map.set(ref, { principal, extras });
     }
     return map;
@@ -222,9 +221,8 @@ async function loadUploadPage(cookie: string, pieceId: string): Promise<string> 
   return mergeCookies(cookie, res);
 }
 
-// Carrega gerenciar_imagens.asp antes dos extras — inicializa o contador de slots na sessão PHP
+// Carrega gerenciar_imagens.asp (POST com ID) — igual ao browser ao abrir a página de extras
 async function loadGerenciarImagens(cookie: string, pieceId: string): Promise<string> {
-  const body = new URLSearchParams({ ID: pieceId }).toString();
   const res = await fetch(`${BASE}/gerenciar_imagens.asp`, {
     method: 'POST',
     headers: {
@@ -232,7 +230,7 @@ async function loadGerenciarImagens(cookie: string, pieceId: string): Promise<st
       'Cookie': cookie, 'User-Agent': UA,
       'Referer': `${BASE}/listar_pecas.asp`,
     },
-    body,
+    body: new URLSearchParams({ ID: pieceId }).toString(),
     redirect: 'follow',
   });
   return mergeCookies(cookie, res);
@@ -285,8 +283,9 @@ async function uploadPrincipal(
   return s3Cookie;
 }
 
-// Upload extras via img_pecas_extras.php — um POST por foto com file_id=índice e compl=1
-// (comportamento exato do browser: cada arquivo do <input multiple> gera um request separado)
+// Upload extras via img_pecas_extras.php — um POST por foto.
+// O servidor retorna um contador global no JSON (campo "file_id" ou similar).
+// O browser usa esse contador como file_id do próximo upload; compl = file_id + 1.
 async function uploadExtras(
   cookie:    string,
   pieceId:   string,
@@ -295,11 +294,13 @@ async function uploadExtras(
 ): Promise<number> {
   let activeCookie = cookie;
   let ok = 0;
+  let nextFileId = 0; // começa em 0; atualiza pelo response do servidor
+
   for (let i = 0; i < buffers.length; i++) {
     const fd = new FormData();
     fd.append('Foto',      new Blob([buffers[i] as unknown as BlobPart], { type: 'image/jpeg' }), `extra_${i}.jpg`);
-    fd.append('file_id',   String(i));
-    fd.append('compl',     '1');
+    fd.append('file_id',   String(nextFileId));
+    fd.append('compl',     String(nextFileId + 1));
     fd.append('IdPeca',    pieceId);
     fd.append('NumLeilao', numLeilao);
     fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
@@ -313,8 +314,21 @@ async function uploadExtras(
     });
     activeCookie = mergeCookies(activeCookie, res);
     const text = await res.text();
-    console.log(`[upload-fotos] extra[${i}] status=${res.status}: ${text.slice(0, 80)}`);
-    if (res.ok && !text.includes('"error"')) ok++;
+    console.log(`[upload-fotos] extra[${i}] file_id=${nextFileId} status=${res.status}: ${text.slice(0, 120)}`);
+
+    if (res.ok && !text.includes('"error"')) {
+      ok++;
+      // Extrai o próximo file_id do response JSON (campo que o browser usa para o próximo upload)
+      try {
+        const json = JSON.parse(text) as Record<string, unknown>;
+        // O servidor retorna algo como {"file_id": 3, ...} — usamos para o próximo
+        const ipc = json['initialPreviewConfig'];
+        const ipcFileId = Array.isArray(ipc) ? (ipc[0] as Record<string, unknown>)?.['extra']?.['file_id'] : undefined;
+        const returned = json['file_id'] ?? json['fileId'] ?? ipcFileId;
+        if (typeof returned === 'number') nextFileId = returned + 1;
+        else nextFileId += 1; // fallback sequencial
+      } catch { nextFileId += 1; }
+    }
     if (i < buffers.length - 1) await new Promise(r => setTimeout(r, 500));
   }
   return ok;
