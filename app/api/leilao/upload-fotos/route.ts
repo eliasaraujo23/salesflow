@@ -221,8 +221,9 @@ async function loadUploadPage(cookie: string, pieceId: string): Promise<string> 
   return mergeCookies(cookie, res);
 }
 
-// Carrega gerenciar_imagens.asp (POST com ID) — igual ao browser ao abrir a página de extras
-async function loadGerenciarImagens(cookie: string, pieceId: string): Promise<string> {
+// Carrega gerenciar_imagens.asp e retorna cookie atualizado + nº de extras já cadastradas
+// O file_id do próximo upload deve começar em extrasExistentes
+async function loadGerenciarImagens(cookie: string, pieceId: string): Promise<{ cookie: string; existingCount: number }> {
   const res = await fetch(`${BASE}/gerenciar_imagens.asp`, {
     method: 'POST',
     headers: {
@@ -233,7 +234,13 @@ async function loadGerenciarImagens(cookie: string, pieceId: string): Promise<st
     body: new URLSearchParams({ ID: pieceId }).toString(),
     redirect: 'follow',
   });
-  return mergeCookies(cookie, res);
+  const updatedCookie = mergeCookies(cookie, res);
+  const html = await res.text();
+  // Conta itens de extras já cadastrados (cada extra tem um elemento com data-key ou similar)
+  // Bootstrap FileInput renderiza cada extra como um div.file-preview-frame
+  const existingCount = (html.match(/file-preview-frame/g) ?? []).length;
+  console.log(`[upload-fotos] gerenciar_imagens existingCount=${existingCount}`);
+  return { cookie: updatedCookie, existingCount };
 }
 
 // Upload da imagem principal via img_pecas.php + s3enviaimagem.asp
@@ -283,13 +290,15 @@ async function uploadPrincipal(
   return s3Cookie;
 }
 
-// Upload extras via img_pecas_extras.php — um POST por foto, file_id sequencial a partir de 0.
-// compl = total de arquivos do lote (fixo). Replica o Bootstrap FileInput quando não há extras.
+// Upload extras via img_pecas_extras.php — um POST por foto.
+// file_id começa em startFileId (número de extras já existentes na peça).
+// compl = total de arquivos do lote (fixo). Replica o Bootstrap FileInput.
 async function uploadExtras(
-  cookie:    string,
-  pieceId:   string,
-  numLeilao: string,
-  buffers:   Buffer[],
+  cookie:        string,
+  pieceId:       string,
+  numLeilao:     string,
+  buffers:       Buffer[],
+  startFileId:   number = 0,
 ): Promise<number> {
   let activeCookie = cookie;
   let ok = 0;
@@ -298,7 +307,7 @@ async function uploadExtras(
   for (let i = 0; i < total; i++) {
     const fd = new FormData();
     fd.append('Foto',      new Blob([buffers[i] as unknown as BlobPart], { type: 'image/jpeg' }), `extra_${i}.jpg`);
-    fd.append('file_id',   String(i));
+    fd.append('file_id',   String(startFileId + i));
     fd.append('compl',     String(total));
     fd.append('IdPeca',    pieceId);
     fd.append('NumLeilao', numLeilao);
@@ -466,10 +475,15 @@ export async function POST(req: Request) {
         if (extraKeys.length > 0) {
           await send({ type: 'status', message: `Lote ${peca.lote}: enviando ${extraKeys.length} foto(s) extra...` });
           try {
-            // Inicializa contador de slots na sessão PHP (igual ao browser antes de subir extras)
-            try { pieceCookie = await loadGerenciarImagens(pieceCookie, pieceId); } catch { /* non-fatal */ }
+            // Carrega página de extras — inicializa sessão PHP e conta slots já existentes
+            let existingExtras = 0;
+            try {
+              const gm = await loadGerenciarImagens(pieceCookie, pieceId);
+              pieceCookie = gm.cookie;
+              existingExtras = gm.existingCount;
+            } catch { /* non-fatal */ }
             const bufs = await Promise.all(extraKeys.map(k => downloadImage(k)));
-            extrasOk = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs);
+            extrasOk = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs, existingExtras);
           } catch (e) {
             console.error(`[upload-fotos] Lote ${peca.lote} extras ERRO:`, e instanceof Error ? e.message : e);
           }
