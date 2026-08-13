@@ -122,31 +122,42 @@ interface ImageKeys {
   extras:    string[];
 }
 
+function isVideo(key: string): boolean {
+  return /\.(mov|mp4|avi|webm)$/i.test(key);
+}
+
 async function queryImageKeys(refs: string[]): Promise<Map<string, ImageKeys>> {
   const client = await pool.connect();
   try {
     const { rows } = await client.query<{
-      referencia:    string;
-      key_principal: string | null;
-      key_extra_1:   string | null;
-      key_extra_2:   string | null;
-      key_extra_3:   string | null;
-      key_extra_4:   string | null;
-      key_extra_5:   string | null;
+      referencia:   string;
+      key:          string;
+      is_main:      boolean;
+      is_secondary: boolean;
     }>(
-      `SELECT referencia, key_principal, key_extra_1, key_extra_2, key_extra_3, key_extra_4, key_extra_5
-       FROM product_details
-       WHERE referencia = ANY($1::text[])`,
+      `SELECT pd.referencia, li.key, li.is_main, li.is_secondary
+       FROM product_details pd
+       JOIN leilao_image li ON li."productDetailsId" = pd.id
+       WHERE pd.referencia = ANY($1::text[])
+       ORDER BY pd.referencia, li.is_main DESC, li.is_secondary DESC, li."createdAt" ASC`,
       [refs],
     );
 
-    const map = new Map<string, ImageKeys>();
+    const grouped = new Map<string, typeof rows>();
     for (const r of rows) {
-      map.set(r.referencia, {
-        principal: r.key_principal,
-        extras: [r.key_extra_1, r.key_extra_2, r.key_extra_3, r.key_extra_4, r.key_extra_5]
-          .filter((k): k is string => !!k),
-      });
+      const arr = grouped.get(r.referencia) ?? [];
+      arr.push(r);
+      grouped.set(r.referencia, arr);
+    }
+
+    const map = new Map<string, ImageKeys>();
+    for (const ref of refs) {
+      const images  = (grouped.get(ref) ?? []).filter(i => !isVideo(i.key));
+      const main    = images.find(i => i.is_main);
+      const principal = main?.key ?? images[0]?.key ?? null;
+      // Todas as demais fotos como extras (sem duplicar a principal), máx 5
+      const extras  = images.map(i => i.key).filter(k => k !== principal).slice(0, 5);
+      map.set(ref, { principal, extras });
     }
     return map;
   } finally {
