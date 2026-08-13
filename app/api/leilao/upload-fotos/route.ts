@@ -397,10 +397,13 @@ export async function POST(req: Request) {
       }
 
       await send({ type: 'status', message: 'Autenticando...' });
+      console.log(`[upload-fotos] login nome=${nome} codigo=${codigoPlatforma}`);
       const cookie = await loginLeiloesbr(creds.user, creds.pass, codigoPlatforma);
+      console.log(`[upload-fotos] login ok cookie=${cookie.slice(0, 30)}`);
 
       await send({ type: 'status', message: 'Buscando IDs das peças...' });
       const loteIdMap = await scrapeListing(cookie, codigoPlatforma);
+      console.log(`[upload-fotos] loteIdMap size=${loteIdMap.size}`);
 
       const withId = pecas.filter(p => loteIdMap.has(p.lote));
       if (withId.length === 0) {
@@ -466,7 +469,9 @@ export async function POST(req: Request) {
 
       await send({ type: 'done' });
     } catch (err) {
-      await send({ type: 'error', message: err instanceof Error ? err.message : 'Erro interno' });
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[upload-fotos] FATAL: ${msg}`);
+      await send({ type: 'error', message: msg });
     } finally {
       await writer.close();
     }
