@@ -525,14 +525,14 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
         leilaoDestino={novoLeilao || undefined}
         onClose={closeTransferir}
         isRunning={transferirRunning}
-        onExecute={() => {
-          if (!novoLeilao || !novoLeilaoSel || !selectedOld || pecasParaTransferir.length === 0) return;
+        onExecute={(selected) => {
+          if (!novoLeilao || !novoLeilaoSel || !selectedOld || selected.length === 0) return;
           executeTransferir({
             nome:          novoLeilaoSel.nome,
             leilaoOrigem:  selectedOld,
             leilaoDestino: novoLeilao,
             startLote:     transferStartLote,
-            pecas:         pecasParaTransferir,
+            pecas:         selected,
           });
         }}
       />

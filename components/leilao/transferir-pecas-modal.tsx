@@ -1,19 +1,19 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, CheckCircle2, XCircle, Loader2, AlertTriangle, FileDown, ArrowRightLeft } from 'lucide-react';
 import type { PecaTransferencia, TransferirPecasState } from '@/lib/hooks/use-transferir-pecas';
 
 interface Props {
-  open:          boolean;
-  state:         TransferirPecasState;
-  pecas:         PecaTransferencia[];
-  startLote:     number;
-  leilaoOrigem?: string;
+  open:           boolean;
+  state:          TransferirPecasState;
+  pecas:          PecaTransferencia[];
+  startLote:      number;
+  leilaoOrigem?:  string;
   leilaoDestino?: string;
-  onClose:       () => void;
-  onExecute:     () => void;
-  isRunning:     boolean;
+  onClose:        () => void;
+  onExecute:      (selected: PecaTransferencia[]) => void;
+  isRunning:      boolean;
 }
 
 function fmtPreco(v: number) {
@@ -21,12 +21,12 @@ function fmtPreco(v: number) {
 }
 
 function downloadRelatorio(
-  state:        TransferirPecasState,
-  leilaoOrigem: string | undefined,
+  state:         TransferirPecasState,
+  leilaoOrigem:  string | undefined,
   leilaoDestino: string | undefined,
 ) {
   const now    = new Date().toLocaleString('pt-BR');
-  const header = ['Novo Lote', 'REF', 'Preço (R$)', 'Status', 'Erro'];
+  const header = ['Novo Lote', 'REF', 'Status', 'Erro'];
   const rows   = state.pecas.map(p => {
     const status = p.status === 'ok'       ? 'Transferido'
                  : p.status === 'error'    ? 'Erro'
@@ -57,6 +57,11 @@ export function TransferirPecasModal({
   open, state, pecas, startLote, leilaoOrigem, leilaoDestino, onClose, onExecute, isRunning,
 }: Props) {
   const tbodyRef = useRef<HTMLDivElement>(null);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(pecas.map(p => p.ref)));
+
+  useEffect(() => {
+    setSelected(new Set(pecas.map(p => p.ref)));
+  }, [pecas]);
 
   useEffect(() => {
     if (state.phase !== 'running') return;
@@ -66,13 +71,34 @@ export function TransferirPecasModal({
 
   if (!open) return null;
 
-  const isDone  = state.phase === 'done';
-  const isError = state.phase === 'error';
-  const isIdle  = state.phase === 'idle';
+  const canSelect    = state.phase === 'idle';
+  const allSelected  = selected.size === pecas.length;
+  const noneSelected = selected.size === 0;
+  const isDone       = state.phase === 'done';
+  const isError      = state.phase === 'error';
+  const isIdle       = state.phase === 'idle';
 
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(pecas.map(p => p.ref)));
+  }
+
+  function toggleOne(ref: string) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(ref) ? next.delete(ref) : next.add(ref);
+      return next;
+    });
+  }
+
+  // In idle: show pecas with computed lotes; in running/done: show state.pecas
   const rows = isIdle
     ? pecas.map((p, i) => ({ ref: p.ref, lote: startLote + i, valor: p.valor, status: 'pending' as const, error: undefined }))
-    : state.pecas;
+    : state.pecas.map(p => {
+        const orig = pecas.find(x => x.ref === p.ref);
+        return { ...p, valor: orig?.valor ?? 0 };
+      });
+
+  const selectedPecas = pecas.filter(p => selected.has(p.ref));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -107,6 +133,17 @@ export function TransferirPecasModal({
           <table className="w-full text-xs border-separate border-spacing-0 data-table">
             <thead>
               <tr>
+                <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] w-8">
+                  {canSelect && (
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={el => { if (el) el.indeterminate = !allSelected && !noneSelected; }}
+                      onChange={toggleAll}
+                      className="w-3.5 h-3.5 rounded accent-violet-500 cursor-pointer"
+                    />
+                  )}
+                </th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-16">Lote</th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500">REF</th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-24">Preço</th>
@@ -115,7 +152,8 @@ export function TransferirPecasModal({
             </thead>
             <tbody>
               {rows.map((r) => {
-                const isRunningRow = r.status === 'pending' && state.phase === 'running' && state.pecas.find(p => p.ref === r.ref && p.status === 'running');
+                const isChecked = selected.has(r.ref);
+                const isSkipped = !isChecked && canSelect;
                 const currentStatus = state.phase === 'running'
                   ? (state.pecas.find(p => p.ref === r.ref)?.status ?? 'pending')
                   : r.status;
@@ -124,22 +162,36 @@ export function TransferirPecasModal({
                 return (
                   <tr
                     key={`${r.ref}-${r.lote}`}
-                    data-running={isRunningRow ? 'true' : undefined}
-                    className={
+                    data-running={currentStatus === 'running' ? 'true' : undefined}
+                    onClick={canSelect ? () => toggleOne(r.ref) : undefined}
+                    className={[
+                      canSelect ? 'cursor-pointer select-none' : '',
+                      isSkipped            ? 'opacity-40' :
                       currentStatus === 'ok'       ? 'bg-emerald-50/40 dark:bg-emerald-950/10' :
                       currentStatus === 'error'    ? 'bg-red-50/40 dark:bg-red-950/10' :
                       currentStatus === 'notfound' ? 'bg-amber-50/40 dark:bg-amber-950/10' :
                       currentStatus === 'running'  ? 'bg-violet-50 dark:bg-violet-950/30' :
-                      ''
-                    }
+                      canSelect && isChecked ? 'hover:bg-zinc-50 dark:hover:bg-white/[0.03]' : '',
+                    ].filter(Boolean).join(' ')}
                   >
+                    <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04]">
+                      {canSelect && (
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleOne(r.ref)}
+                          onClick={e => e.stopPropagation()}
+                          className="w-3.5 h-3.5 rounded accent-violet-500 cursor-pointer"
+                        />
+                      )}
+                    </td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] tabular-nums font-semibold text-zinc-500">
                       {r.lote}
                       {r.lote > 200 && <span className="ml-1 text-[9px] text-zinc-400">D2</span>}
                     </td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] font-mono font-semibold text-zinc-700 dark:text-zinc-200">{r.ref}</td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] tabular-nums font-semibold text-violet-600 dark:text-violet-400">
-                      {'valor' in r ? fmtPreco((r as typeof pecas[0]).valor) : '—'}
+                      {fmtPreco(r.valor)}
                     </td>
 
                     {/* Status */}
@@ -212,11 +264,14 @@ export function TransferirPecasModal({
             </div>
           )}
 
-          {/* Preview count */}
-          {isIdle && (
+          {/* Contagem de selecionados */}
+          {canSelect && (
             <p className="text-[11px] text-zinc-400">
-              {pecas.length} peça{pecas.length !== 1 ? 's' : ''} — lotes {startLote} a {startLote + pecas.length - 1}
-              {startLote + pecas.length - 1 > 200 && ` (dias 1 e 2)`}
+              {selected.size === pecas.length
+                ? `Todas as ${pecas.length} peças selecionadas`
+                : selected.size === 0
+                  ? 'Nenhuma peça selecionada'
+                  : `${selected.size} de ${pecas.length} peças selecionadas`}
             </p>
           )}
 
@@ -242,12 +297,12 @@ export function TransferirPecasModal({
 
             {isIdle && (
               <button
-                onClick={onExecute}
-                disabled={pecas.length === 0}
+                onClick={() => onExecute(selectedPecas)}
+                disabled={noneSelected}
                 className="flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg bg-violet-600 hover:bg-violet-700 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 font-semibold transition-colors"
               >
                 <ArrowRightLeft size={12} />
-                Transferir {pecas.length} peça{pecas.length !== 1 ? 's' : ''}
+                Transferir {selected.size} peça{selected.size !== 1 ? 's' : ''}
               </button>
             )}
           </div>
