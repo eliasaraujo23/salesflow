@@ -183,9 +183,12 @@ async function transferPiece(
   }
 
   const text = await res.text();
-  // leiloesbr returns "1|OK" or "0|mensagem_erro"
+  // leiloesbr returns "1|OK", "0|Lote incluído" (sucesso) or "0|Erro: ..." (falha)
   if (text.startsWith('0|')) {
-    throw new Error(text.slice(2).replace(/<[^>]+>/g, '').trim().slice(0, 120) || 'Erro no servidor');
+    const msg = text.slice(2).replace(/<[^>]+>/g, '').trim();
+    // "Lote incluído" usa prefixo 0 mas é sucesso
+    if (/inclu/i.test(msg)) return;
+    throw new Error(msg.slice(0, 120) || 'Erro no servidor');
   }
 }
 
