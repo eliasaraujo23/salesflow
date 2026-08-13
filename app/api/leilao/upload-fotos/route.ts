@@ -441,8 +441,13 @@ export async function POST(req: Request) {
       }
 
       await send({ type: 'status', message: 'Carregando imagens do banco...' });
-      const refs     = [...new Set(withId.map(p => p.referencia))];
+      const refs = [...new Set(withId.map(p => p.referencia))];
+      console.log(`[upload-fotos] queryImageKeys refs=${JSON.stringify(refs)}`);
       const imageMap = await queryImageKeys(refs);
+      console.log(`[upload-fotos] queryImageKeys done size=${imageMap.size} keys=${JSON.stringify([...imageMap.keys()])}`);
+      for (const [ref, keys] of imageMap) {
+        console.log(`[upload-fotos] imageMap ${ref}: principal=${keys.principal} extras=${keys.extras.filter(Boolean).length}`);
+      }
 
       await send({ type: 'start', total: withId.length });
 
