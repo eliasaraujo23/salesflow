@@ -4,7 +4,7 @@ import sharp               from 'sharp';
 import { Pool }            from 'pg';
 import { getPresignedUrl } from '@/lib/r2';
 
-const BASE           = 'https://leiloesbr.com.br/painel_lbr';
+const BASE           = 'https://www.leiloesbr.com.br/painel_lbr';
 const UA             = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 const IDC            = '257103';
 const ID_TIPO_JOIAS  = '18';
@@ -91,14 +91,14 @@ function parseLoteId(html: string): Map<number, string> {
 // listar_pecas.asp retorna o shell SPA (66KB, 0 tds) com body incompleto.
 // Precisa de TODOS os campos do form + Tipo=1 + X-Requested-With para retornar a tabela real (~3KB).
 async function scrapeListing(cookie: string, numLeilao: string): Promise<Map<number, string>> {
-  const res = await fetch('https://www.leiloesbr.com.br/painel_lbr/listar_pecas.asp', {
+  const res = await fetch(`${BASE}/listar_pecas.asp`, {
     method: 'POST',
     headers: {
       'Content-Type':     'application/x-www-form-urlencoded; charset=UTF-8',
       'Cookie':           cookie,
       'User-Agent':       UA,
       'Origin':           'https://www.leiloesbr.com.br',
-      'Referer':          `https://www.leiloesbr.com.br/painel_lbr/listar_pecas.asp?Listar=on&Leilao=${numLeilao}`,
+      'Referer':          `${BASE}/listar_pecas.asp?Listar=on&Leilao=${numLeilao}`,
       'Accept':           'text/html, */*; q=0.01',
       'X-Requested-With': 'XMLHttpRequest',
     },
@@ -231,19 +231,21 @@ async function uploadPrincipal(
   fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
   fd.append('Foto', new Blob([buf as unknown as BlobPart], { type: 'image/jpeg' }), 'photo.jpg');
 
+  console.log(`[upload-fotos] principal POST img_pecas.php pieceId=${pieceId} size=${buf.byteLength}`);
   const res = await fetch(`${BASE}/img_pecas.php`, {
     method: 'POST',
     headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
     body: fd,
     redirect: 'follow',
+    signal: AbortSignal.timeout(60_000),
   });
-  // Captura PHPSESSID que img_pecas.php pode estabelecer
   const updatedCookie = mergeCookies(cookie, res);
 
   const text = await res.text();
+  console.log(`[upload-fotos] principal resp status=${res.status}: ${text.slice(0, 120)}`);
   if (!res.ok) throw new Error(`principal HTTP ${res.status}: ${text.slice(0, 100)}`);
-  console.log(`[upload-fotos] principal resp: ${text.slice(0, 80)}`);
 
+  console.log(`[upload-fotos] principal POST s3enviaimagem.asp pieceId=${pieceId}`);
   const s3Res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
     method: 'POST',
     headers: {
@@ -254,9 +256,11 @@ async function uploadPrincipal(
     },
     body: new URLSearchParams({ idpeca: pieceId, index: '0', tipo: '0' }).toString(),
     redirect: 'follow',
+    signal: AbortSignal.timeout(30_000),
   });
   const s3Cookie = mergeCookies(updatedCookie, s3Res);
-  console.log(`[upload-fotos] principal s3: ${(await s3Res.text()).slice(0, 80)}`);
+  const s3Text = await s3Res.text();
+  console.log(`[upload-fotos] principal s3 status=${s3Res.status}: ${s3Text.slice(0, 120)}`);
   return s3Cookie;
 }
 
@@ -286,6 +290,7 @@ async function uploadExtras(
         headers: { 'Cookie': activeCookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
         body:    fd,
         redirect: 'follow',
+        signal: AbortSignal.timeout(60_000),
       });
       activeCookie = mergeCookies(activeCookie, phpRes);
       const phpText = await phpRes.text();
@@ -318,6 +323,7 @@ async function activateSite(
       'Referer':          `${BASE}/cad_peca.asp`,
       'X-Requested-With': 'XMLHttpRequest',
     },
+    signal: AbortSignal.timeout(30_000),
     body: new URLSearchParams({
       ID:               pieceId,
       ID_Peca:          '',
