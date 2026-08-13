@@ -2,7 +2,14 @@
 
 import { useRef } from 'react';
 import { Upload, X, Eye, EyeOff } from 'lucide-react';
-import type { Leilao } from '@/lib/hooks/use-leiloes';
+import type { Leilao, LeilaoStatus } from '@/lib/hooks/use-leiloes';
+
+const STATUS_BADGE: Record<Exclude<LeilaoStatus, 'finalizado'>, { label: string; className: string }> = {
+  captando:          { label: 'Captando',          className: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300' },
+  convite:           { label: 'Convite',            className: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300' },
+  convite_catalogo:  { label: 'Conv. e Catálogo',   className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' },
+  venda_pos_leilao:  { label: 'Venda pós leilão',   className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
+};
 
 export type ActivePieceInfo = {
   codigoPlatforma: string;
@@ -190,6 +197,11 @@ export function BaseSistemaUpload({
                 <span className={`flex-1 truncate ${excluded ? 'text-zinc-400' : 'text-zinc-600 dark:text-zinc-400'}`}>
                   {label}
                 </span>
+                {f.leilao?.status && f.leilao.status !== 'finalizado' && !excluded && (
+                  <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${STATUS_BADGE[f.leilao.status].className}`}>
+                    {STATUS_BADGE[f.leilao.status].label}
+                  </span>
+                )}
                 <span className={`shrink-0 tabular-nums ${excluded ? 'text-zinc-400' : 'text-zinc-500 dark:text-zinc-500'}`}>
                   {f.count} peças
                 </span>
