@@ -119,7 +119,7 @@ async function scrapeListing(cookie: string, numLeilao: string): Promise<Map<num
 
 interface ImageKeys {
   principal: string | null;
-  extras:    (string | null)[];
+  extras:    string[];
 }
 
 function isVideo(key: string | null): boolean {
@@ -155,20 +155,14 @@ async function queryImageKeys(refs: string[]): Promise<Map<string, ImageKeys>> {
     const map = new Map<string, ImageKeys>();
     for (const ref of refs) {
       const images = grouped.get(ref) ?? [];
-      const mains       = images.filter(i => i.is_main      && !isVideo(i.key)).map(i => i.key);
-      const secondaries = images.filter(i => i.is_secondary && !isVideo(i.key)).map(i => i.key);
-      const extras      = images.filter(i => !i.is_main && !i.is_secondary && !isVideo(i.key)).map(i => i.key);
-      const allPhotos   = [...mains, ...secondaries, ...extras];
-      const used        = new Set<string>();
-      function pick(candidates: string[]): string | null {
-        for (const k of candidates) { if (!used.has(k)) { used.add(k); return k; } }
-        for (const k of allPhotos)  { if (!used.has(k)) { used.add(k); return k; } }
-        return null;
-      }
-      map.set(ref, {
-        principal: pick(mains),
-        extras: [pick(secondaries), pick(extras), pick(extras), pick(extras), pick(extras)],
-      });
+      // Todas as fotos sem vídeo, ordenadas: is_main desc → is_secondary desc → createdAt asc
+      const photos = images.filter(i => !isVideo(i.key)).map(i => i.key);
+      // Principal = primeira foto marcada como main; se não houver, a primeira do array
+      const mainIdx = images.findIndex(i => i.is_main && !isVideo(i.key));
+      const principal = photos[mainIdx >= 0 ? mainIdx : 0] ?? null;
+      // Extras = todas as outras fotos (sem a principal, sem duplicatas), máx 5
+      const extras = photos.filter(k => k !== principal).slice(0, 5);
+      map.set(ref, { principal, extras });
     }
     return map;
   } finally {
@@ -440,7 +434,7 @@ export async function POST(req: Request) {
         const pieceId  = loteIdMap.get(peca.lote)!;
         const imgKeys  = imageMap.get(peca.referencia);
         const mainKey  = imgKeys?.principal ?? null;
-        const extraKeys = (imgKeys?.extras ?? []).filter((k): k is string => k !== null && k !== '');
+        const extraKeys = imgKeys?.extras ?? [];
 
         // Carregar página de edição — captura PHPSESSID junto com ASPSESSIONID
         let pieceCookie = cookie;
