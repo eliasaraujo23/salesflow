@@ -49,7 +49,6 @@ export default function RoboPage() {
 
       {/* ── Criar Novo Leilão ─────────────────────────────────── */}
       <section className="flex flex-col gap-2 shrink-0">
-        <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Criar Novo Leilão</h2>
         {uploadedFiles.length === 0 ? (
           <div className="rounded-xl border border-dashed border-zinc-200 dark:border-white/[0.08] p-5 text-center">
             <p className="text-xs text-zinc-400">Carregue ao menos uma base do leilão acima</p>
