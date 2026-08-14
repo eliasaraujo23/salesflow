@@ -173,7 +173,7 @@ async function transferPiece(
       lote:         lote.toString(),
       extra:        '',
       dia:          dia.toString(),
-      item:         '',
+      item:         lote.toString(),
     }).toString(),
     redirect: 'follow',
   });
