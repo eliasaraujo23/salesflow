@@ -145,12 +145,19 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   );
   const eligibleCount = unsoldRefs.length - excluded.total;
 
+  // Limite de capacidade do leilão destino
+  const isDestinoTop  = novoLeilaoSel?.nome?.toUpperCase().includes('TOP') ?? false;
+  const MAX_LEILAO    = isDestinoTop ? 400 : 9999;
+  // Quantas vagas restam no destino (baseado no último lote já ocupado)
+  const vagasDestino  = fetchingUltimoLote ? 9999 : Math.max(0, MAX_LEILAO - (transferStartLote - 1));
+
   // Peças elegíveis para transferência com valor atualizado do sistema
   // Exclui peças já presentes no leilão destino (detectadas via scraping)
+  // Limita pela capacidade restante do leilão destino
   const pecasParaTransferir = useMemo(() => {
     if (!oldFile) return [];
     const vendidosSet = new Set(oldFile.vendidos);
-    return unsoldRefs
+    const candidatas = unsoldRefs
       .filter(r => !vendidosSet.has(r))
       .filter(r => {
         const row = priceMap.get(r.toUpperCase());
@@ -161,7 +168,8 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
         ref:   r,
         valor: Math.round(priceMap.get(r.toUpperCase())?.preco_avista ?? 0),
       }));
-  }, [oldFile, unsoldRefs, priceMap, refsJaNoDestino]);
+    return candidatas.slice(0, vagasDestino);
+  }, [oldFile, unsoldRefs, priceMap, refsJaNoDestino, vagasDestino]);
 
   const qtdJaTransferidas = useMemo(() => {
     if (!oldFile || refsJaNoDestino.size === 0) return 0;
@@ -172,6 +180,18 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
       refsJaNoDestino.has(r.toUpperCase()),
     ).length;
   }, [oldFile, unsoldRefs, priceMap, refsJaNoDestino]);
+
+  // Peças que cabem mas ficam de fora por limite de capacidade
+  const qtdForaCapacidade = useMemo(() => {
+    if (!oldFile || vagasDestino >= 9999) return 0;
+    const vendidosSet = new Set(oldFile.vendidos);
+    const total = unsoldRefs.filter(r =>
+      !vendidosSet.has(r) &&
+      (priceMap.get(r.toUpperCase())?.preco_avista ?? 0) > 0 &&
+      !refsJaNoDestino.has(r.toUpperCase()),
+    ).length;
+    return Math.max(0, total - vagasDestino);
+  }, [oldFile, unsoldRefs, priceMap, refsJaNoDestino, vagasDestino]);
 
   function handleDownloadCadastrar() {
     if (newPieces.length === 0) return;
@@ -538,6 +558,14 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
                   </div>
                 )}
 
+                {/* Carregando refs do destino */}
+                {fetchingUltimoLote && novoLeilao && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-white/[0.06]">
+                    <div className="w-3 h-3 rounded-full border-2 border-violet-400 border-t-transparent animate-spin shrink-0" />
+                    <span className="text-[10px] text-zinc-400">Verificando leilão destino...</span>
+                  </div>
+                )}
+
                 {/* Aviso de peças já no destino */}
                 {!fetchingUltimoLote && qtdJaTransferidas > 0 && (
                   <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/40">
@@ -547,17 +575,24 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
                         {qtdJaTransferidas} peça{qtdJaTransferidas > 1 ? 's' : ''} já no leilão destino
                       </span>
                       <span className="text-[10px] text-sky-600 dark:text-sky-500">
-                        Removidas da lista — já foram transferidas anteriormente
+                        Removidas da lista — já transferidas anteriormente
                       </span>
                     </div>
                   </div>
                 )}
 
-                {/* Carregando refs do destino */}
-                {fetchingUltimoLote && novoLeilao && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-white/[0.06]">
-                    <div className="w-3 h-3 rounded-full border-2 border-violet-400 border-t-transparent animate-spin shrink-0" />
-                    <span className="text-[10px] text-zinc-400">Verificando leilão destino...</span>
+                {/* Aviso de limite de capacidade (TOP = 400) */}
+                {!fetchingUltimoLote && isDestinoTop && qtdForaCapacidade > 0 && (
+                  <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/40">
+                    <AlertTriangle size={13} className="text-orange-500 shrink-0 mt-0.5" />
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[11px] font-semibold text-orange-700 dark:text-orange-400">
+                        {qtdForaCapacidade} peça{qtdForaCapacidade > 1 ? 's' : ''} fora por limite TOP (400)
+                      </span>
+                      <span className="text-[10px] text-orange-600 dark:text-orange-500">
+                        Leilão destino já tem {transferStartLote - 1} peças — cabem mais {vagasDestino}
+                      </span>
+                    </div>
                   </div>
                 )}
               </>

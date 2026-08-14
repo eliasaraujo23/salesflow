@@ -74,30 +74,36 @@ async function scrapeLeilao(cookie: string, leilao: string): Promise<{ ultimoLot
 
   const html = await res.text();
 
-  // Colunas por linha: 0=ID(6-9 dígitos), 1=Comitente, 2=Lote, 3=Peça(descrição), 4=2ª Desc(REF), ...
-  // Extrai linha a linha para pegar a REF (segunda_descricao = células[4])
   const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'));
+  console.log(`[ultimo-lote] leilao=${leilao} htmlLen=${html.length} rows=${rows.length}`);
 
   let maxLote = 0;
   const refsPresentes: string[] = [];
 
-  for (const row of rows) {
-    const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+  for (let ri = 0; ri < rows.length; ri++) {
+    const cells = [...rows[ri][1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
     const id    = cells[0]?.trim();
     if (!id || !/^\d{6,9}$/.test(id)) continue;
 
-    // Lote está na coluna 2
+    // Log das primeiras 3 linhas para entender a estrutura real das colunas
+    if (ri < 3) {
+      console.log(`[ultimo-lote] row[${ri}] cells(${cells.length}):`, cells.slice(0, 8).map((c, i) => `[${i}]=${c.slice(0, 30)}`).join(' | '));
+    }
+
     const loteNum = Number(cells[2]?.replace(/\D/g, '') ?? '0');
     if (loteNum > 0 && loteNum <= 9999 && loteNum > maxLote) maxLote = loteNum;
 
-    // segunda_descricao (REF) está na coluna 4 — campo Descricao_2 enviado pelo robô de cadastro
-    // O valor é a referência pura (ex: AB123, 12345) sem texto adicional
-    const ref = cells[4]?.trim();
-    if (ref && /^[A-Z0-9]{3,10}$/i.test(ref)) {
-      refsPresentes.push(ref.toUpperCase());
+    // Tenta colunas 4, 3, 5 em sequência — REF pura (3-10 chars alfanum)
+    for (const colIdx of [4, 3, 5]) {
+      const ref = cells[colIdx]?.trim();
+      if (ref && /^[A-Z0-9]{3,10}$/i.test(ref) && !/^\d+$/.test(ref)) {
+        refsPresentes.push(ref.toUpperCase());
+        break;
+      }
     }
   }
 
+  console.log(`[ultimo-lote] ultimoLote=${maxLote} refsPresentes=${refsPresentes.length} sample=${refsPresentes.slice(0, 5).join(',')}`);
   return { ultimoLote: maxLote, refsPresentes };
 }
 
