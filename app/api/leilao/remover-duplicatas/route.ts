@@ -83,33 +83,37 @@ async function listarPecas(cookie: string, leilao: string): Promise<PecaRow[]> {
   const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'));
   const pecas: PecaRow[] = [];
 
+  // Log primeiras 2 linhas para debug do parser
+  const sampleRows = rows.slice(0, 2);
+  for (const r of sampleRows) {
+    const cells = [...r[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+    console.log(`[remover-dup] sample cells: ${JSON.stringify(cells.slice(0, 6))}`);
+    const funcs = [...r[0].matchAll(/data-func=["']([^"']+)/gi)].map(m => m[1]);
+    console.log(`[remover-dup] sample funcs: ${JSON.stringify(funcs)}`);
+  }
+
   for (const row of rows) {
     const rowHtml = row[0];
     const cells   = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
-    const idpeca  = cells[0]?.trim();
+
+    // Coluna 0: idpeca (número longo, 6-9 dígitos)
+    const idpeca = cells[0]?.trim();
     if (!idpeca || !/^\d{6,9}$/.test(idpeca)) continue;
 
+    // Coluna 2: lote
     const loteNum = Number(cells[2]?.replace(/\D/g, ''));
     if (!loteNum) continue;
 
-    // Ref está em alguma célula de texto — procura padrão 6-8 dígitos não sendo o ID nem o lote
-    let ref = '';
-    for (let i = 1; i < cells.length; i++) {
-      const c = cells[i].trim();
-      // REF: 6-8 dígitos numéricos, diferente do idpeca
-      if (/^\d{6,8}$/.test(c) && c !== idpeca) { ref = c; break; }
-    }
-    if (!ref) {
-      // tenta extrair da coluna de descrição — REF costuma ser o primeiro token numérico
-      const desc = cells.find((c, i) => i > 0 && c.length > 4 && !/^\d+$/.test(c)) ?? '';
-      const m = desc.match(/\b(\d{6,8})\b/);
-      if (m) ref = m[1];
-    }
+    // Coluna 3: descrição — formato "REF NOME DA PECA" onde REF é o primeiro token numérico de 6-8 dígitos
+    const desc = cells[3] ?? '';
+    const refMatch = desc.match(/\b(\d{6,8})\b/);
+    const ref = refMatch ? refMatch[1] : '';
 
-    // Captura todos os data-func da linha para inspeção
+    // Captura todos os data-func da linha para inspeção/debug
     const funcs = [...rowHtml.matchAll(/data-func=["']([^"']+)/gi)].map(m => m[1]);
 
     if (ref) pecas.push({ idpeca, lote: loteNum, ref, funcs });
+    else console.log(`[remover-dup] sem ref: idpeca=${idpeca} lote=${loteNum} desc="${desc.slice(0,60)}"`);
   }
 
   return pecas;
