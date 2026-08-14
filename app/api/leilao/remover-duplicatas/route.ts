@@ -145,8 +145,8 @@ async function listarPecas(cookie: string, leilao: string): Promise<PecaRow[]> {
   return pecas;
 }
 
-async function excluirPeca(cookie: string, idpeca: string, leilao: string): Promise<void> {
-  const res = await fetch(`${BASE}/ajax/excluipeca.asp`, {
+async function excluirPeca(cookie: string, idpeca: string): Promise<void> {
+  const res = await fetch(`${BASE}/ajax/exclui_lote.asp`, {
     method: 'POST',
     headers: {
       'Content-Type':     'application/x-www-form-urlencoded; charset=UTF-8',
@@ -156,18 +156,14 @@ async function excluirPeca(cookie: string, idpeca: string, leilao: string): Prom
       'Referer':          `${BASE}/listar_pecas.asp`,
       'X-Requested-With': 'XMLHttpRequest',
     },
-    body: new URLSearchParams({ idpeca, nleilao: leilao }).toString(),
+    body: new URLSearchParams({ idpeca }).toString(),
     redirect: 'follow',
   });
 
   const text = await res.text();
-  console.log(`[excluir] idpeca=${idpeca} status=${res.status} url=${res.url} body="${text.slice(0, 200)}"`);
+  console.log(`[excluir] idpeca=${idpeca} status=${res.status} body="${text.slice(0, 100)}"`);
 
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  if (text.trim().startsWith('0')) {
-    const msg = text.slice(2).replace(/<[^>]+>/g, '').trim();
-    throw new Error(msg || 'Servidor retornou erro');
-  }
 }
 
 // ─── GET: escanear duplicatas sem remover ─────────────────────────────────────
@@ -264,7 +260,7 @@ export async function POST(req: Request) {
       for (const p of paraExcluir) {
         try {
           await send({ type: 'status', message: `Removendo lote ${p.lote} REF ${p.ref}...` });
-          await excluirPeca(cookie, p.idpeca, leilao);
+          await excluirPeca(cookie, p.idpeca);
           done++; success++;
           await send({ type: 'progress', done, total: paraExcluir.length, ref: p.ref, lote: p.lote, success: true });
         } catch (err) {
