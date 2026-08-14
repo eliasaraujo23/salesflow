@@ -107,6 +107,51 @@ interface DupState {
 }
 const DUP_INIT: DupState = { phase: 'idle', totalPecas: 0, duplicatas: 0, done: 0, total: 0, removed: 0, errors: 0, statusMsg: '', fatalError: '' };
 
+type ZerarPhase = 'idle' | 'confirm' | 'running' | 'done' | 'error';
+interface ZerarState { phase: ZerarPhase; done: number; total: number; removed: number; errors: number; statusMsg: string; fatalError: string; }
+const ZERAR_INIT: ZerarState = { phase: 'idle', done: 0, total: 0, removed: 0, errors: 0, statusMsg: '', fatalError: '' };
+
+function useZerarLeilao() {
+  const [state, setState] = useState<ZerarState>(ZERAR_INIT);
+
+  async function zerar(leilao: string, nome: string) {
+    setState(s => ({ ...s, phase: 'running', done: 0, total: 0, removed: 0, errors: 0, statusMsg: '' }));
+    try {
+      const res = await fetch('/api/leilao/remover-duplicatas', {
+        method:  'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ leilao, nome }),
+      });
+      const reader  = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const parts = buf.split('\n\n');
+        buf = parts.pop() ?? '';
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith('data:')) continue;
+          const event = JSON.parse(line.slice(5).trim()) as Record<string, unknown>;
+          if (event.type === 'status')   setState(s => ({ ...s, statusMsg: event.message as string }));
+          if (event.type === 'start')    setState(s => ({ ...s, total: event.total as number }));
+          if (event.type === 'progress') setState(s => ({ ...s, done: event.done as number, removed: s.removed + (event.success ? 1 : 0), errors: s.errors + (!event.success ? 1 : 0) }));
+          if (event.type === 'done')     setState(s => ({ ...s, phase: 'done', removed: event.removed as number, errors: event.errors as number, statusMsg: '' }));
+          if (event.type === 'error')    setState(s => ({ ...s, phase: 'error', fatalError: event.message as string }));
+        }
+      }
+    } catch (e) {
+      setState(s => ({ ...s, phase: 'error', fatalError: e instanceof Error ? e.message : 'Erro' }));
+    }
+  }
+
+  function confirm() { setState(s => ({ ...s, phase: 'confirm' })); }
+  function reset()   { setState(ZERAR_INIT); }
+  return { state, confirm, zerar, reset };
+}
+
 function useDuplicatas() {
   const [state, setState] = useState<DupState>(DUP_INIT);
 
@@ -169,8 +214,10 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   const [loadingImagem, setLoadingImagem] = useState(false);
   const [precoBase,     setPrecoBase]     = useState('');
   const [dupBase,       setDupBase]       = useState('');
+  const [zerarBase,     setZerarBase]     = useState('');
   const { open, openModal, closeModal, state, execute, isRunning } = useAtualizarPreco();
   const { state: dupState, scan: dupScan, remover: dupRemover, reset: dupReset } = useDuplicatas();
+  const { state: zerarState, confirm: zerarConfirm, zerar, reset: zerarReset } = useZerarLeilao();
 
   const priceMap = useMemo(
     () => new Map<string, LeilaoBaseRow>(basePieces.map(p => [p.referencia.toUpperCase(), p])),
@@ -441,6 +488,117 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400">
               <XCircle size={13} />
               <span>{dupState.fatalError}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Zerar Leilão */}
+      <div className="rounded-xl border border-red-200 dark:border-red-900/40 overflow-visible sm:col-span-2">
+        <div className="px-4 py-3 rounded-t-xl bg-red-50 dark:bg-red-950/30 border-b border-red-200 dark:border-red-900/40">
+          <span className="text-xs font-semibold text-red-700 dark:text-red-400">Zerar Leilão</span>
+          <p className="text-[10px] text-red-500 dark:text-red-500 mt-0.5">Remove <strong>todas</strong> as peças do leilão selecionado. Use para recomeçar do zero.</p>
+        </div>
+        <div className="p-4 flex flex-col gap-3">
+          <div className="flex gap-2 items-start">
+            <div className="flex-1">
+              <BaseSelect
+                value={zerarBase}
+                onChange={v => { setZerarBase(v); zerarReset(); }}
+                uploadedFiles={uploadedFiles}
+              />
+            </div>
+            {(() => {
+              const zerarFile    = uploadedFiles.find(f => f.filename === zerarBase);
+              const leilao       = zerarFile?.codigoPlatforma ?? '';
+              const nome         = zerarFile?.leilao?.nome ?? '';
+              const isRunningZerar = zerarState.phase === 'running';
+
+              if (zerarState.phase === 'confirm') {
+                return (
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => zerarReset()}
+                      className="px-3 py-2 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] text-xs font-medium transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={() => zerar(leilao, nome)}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors"
+                    >
+                      <Trash2 size={12} />
+                      Confirmar — zerar N°{leilao}
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  onClick={() => {
+                    if (!leilao || !nome) return;
+                    if (zerarState.phase === 'idle' || zerarState.phase === 'error') zerarConfirm();
+                    else zerarReset();
+                  }}
+                  disabled={!zerarBase || isRunningZerar}
+                  className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-colors"
+                >
+                  {isRunningZerar ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                  {zerarState.phase === 'idle'    && 'Zerar leilão'}
+                  {zerarState.phase === 'running' && 'Zerando...'}
+                  {zerarState.phase === 'done'    && 'Zerar novamente'}
+                  {zerarState.phase === 'error'   && 'Tentar novamente'}
+                </button>
+              );
+            })()}
+          </div>
+
+          {zerarState.phase === 'confirm' && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 text-xs font-semibold text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/40">
+              <AlertTriangle size={13} className="shrink-0" />
+              <span>Isso vai remover <strong>todas</strong> as peças do leilão. Confirme clicando no botão acima.</span>
+            </div>
+          )}
+
+          {zerarState.phase === 'running' && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                <div className="flex items-center gap-2">
+                  <Loader2 size={11} className="animate-spin shrink-0 text-red-500" />
+                  <span>{zerarState.statusMsg || `Removendo: ${zerarState.done} de ${zerarState.total}`}</span>
+                </div>
+                <span className="tabular-nums font-semibold text-red-500">
+                  {zerarState.total > 0 ? Math.round(zerarState.done / zerarState.total * 100) : 0}%
+                </span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-red-100 dark:bg-red-950 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-red-500 transition-all duration-300"
+                  style={{ width: `${zerarState.total > 0 ? Math.round(zerarState.done / zerarState.total * 100) : 0}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {zerarState.phase === 'done' && (
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
+              zerarState.errors === 0
+                ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
+                : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400'
+            }`}>
+              {zerarState.errors === 0 ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+              <span>
+                {zerarState.removed} peça{zerarState.removed !== 1 ? 's' : ''} removida{zerarState.removed !== 1 ? 's' : ''}
+                {zerarState.errors > 0 && ` · ${zerarState.errors} com erro`}
+              </span>
+            </div>
+          )}
+
+          {zerarState.phase === 'error' && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400">
+              <XCircle size={13} />
+              <span>{zerarState.fatalError}</span>
             </div>
           )}
         </div>

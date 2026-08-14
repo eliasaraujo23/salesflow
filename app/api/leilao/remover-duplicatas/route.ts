@@ -203,6 +203,79 @@ export async function GET(req: Request) {
   });
 }
 
+// ─── DELETE: zerar leilão inteiro via SSE ────────────────────────────────────
+
+export async function DELETE(req: Request) {
+  const body = await req.json() as { nome: string; leilao: string };
+  const { nome, leilao } = body;
+
+  if (!nome || !leilao) return new Response('Payload inválido', { status: 400 });
+
+  const creds = getCreds(nome);
+  if (!creds) return new Response(`Sem credenciais para "${nome}"`, { status: 400 });
+
+  const stream = new TransformStream<Uint8Array, Uint8Array>();
+  const writer = stream.writable.getWriter();
+  const enc    = new TextEncoder();
+
+  const send = async (data: Record<string, unknown>) => {
+    await writer.write(enc.encode(`data: ${JSON.stringify(data)}\n\n`));
+  };
+
+  (async () => {
+    try {
+      await send({ type: 'status', message: 'Autenticando...' });
+      const cookie = await loginLeiloesbr(creds.user, creds.pass, leilao);
+
+      await send({ type: 'status', message: 'Listando peças do leilão...' });
+      const pecas = await listarPecas(cookie, leilao);
+
+      if (pecas.length === 0) {
+        await send({ type: 'done', removed: 0, errors: 0, message: 'Leilão já está vazio.' });
+        return;
+      }
+
+      await send({ type: 'start', total: pecas.length });
+
+      let done    = 0;
+      let success = 0;
+      let errors  = 0;
+
+      for (const p of pecas) {
+        try {
+          await send({ type: 'status', message: `Removendo lote ${p.lote} REF ${p.ref}...` });
+          await excluirPeca(cookie, p.idpeca);
+          done++; success++;
+          await send({ type: 'progress', done, total: pecas.length, ref: p.ref, lote: p.lote, success: true });
+        } catch (err) {
+          done++; errors++;
+          await send({
+            type: 'progress', done, total: pecas.length,
+            ref: p.ref, lote: p.lote, success: false,
+            error: err instanceof Error ? err.message : 'Erro',
+          });
+        }
+        if (done < pecas.length) await new Promise(r => setTimeout(r, 200));
+      }
+
+      await send({ type: 'done', removed: success, errors });
+    } catch (err) {
+      await send({ type: 'error', message: err instanceof Error ? err.message : 'Erro interno' });
+    } finally {
+      await writer.close();
+    }
+  })();
+
+  return new Response(stream.readable, {
+    headers: {
+      'Content-Type':      'text/event-stream',
+      'Cache-Control':     'no-cache, no-transform',
+      'Connection':        'keep-alive',
+      'X-Accel-Buffering': 'no',
+    },
+  });
+}
+
 // ─── POST: remover duplicatas via SSE ─────────────────────────────────────────
 
 export async function POST(req: Request) {
