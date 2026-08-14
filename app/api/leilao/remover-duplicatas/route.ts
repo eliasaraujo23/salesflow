@@ -146,7 +146,6 @@ async function listarPecas(cookie: string, leilao: string): Promise<PecaRow[]> {
 }
 
 async function excluirPeca(cookie: string, idpeca: string, leilao: string): Promise<void> {
-  // O leiloes.br usa esta URL para excluir via AJAX (confirmado pelo padrão data-func="excluipeca(ID)")
   const res = await fetch(`${BASE}/ajax/excluipeca.asp`, {
     method: 'POST',
     headers: {
@@ -161,9 +160,10 @@ async function excluirPeca(cookie: string, idpeca: string, leilao: string): Prom
     redirect: 'follow',
   });
 
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const text = await res.text();
-  // Resposta esperada: "1" ou "1|OK" em caso de sucesso
+  console.log(`[excluir] idpeca=${idpeca} status=${res.status} url=${res.url} body="${text.slice(0, 200)}"`);
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   if (text.trim().startsWith('0')) {
     const msg = text.slice(2).replace(/<[^>]+>/g, '').trim();
     throw new Error(msg || 'Servidor retornou erro');
