@@ -390,52 +390,47 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
           <p className="text-[10px] text-zinc-400 mt-0.5">Detecta e remove peças com mesma REF, mantendo a de menor lote</p>
         </div>
         <div className="p-3 flex flex-col gap-2.5">
-          <div className="flex gap-2 items-start">
-            <div className="flex-1">
-              <BaseSelect
-                value={dupBase}
-                onChange={v => { setDupBase(v); dupReset(); }}
-                uploadedFiles={uploadedFiles}
-              />
-            </div>
-            {(() => {
-              const dupFile    = uploadedFiles.find(f => f.filename === dupBase);
-              const leilao     = dupFile?.codigoPlatforma ?? '';
-              const nome       = dupFile?.leilao?.nome ?? '';
-              const isRunningDup = dupState.phase === 'scanning' || dupState.phase === 'running';
-
-              return (
-                <button
-                  onClick={() => {
-                    if (!leilao || !nome) return;
-                    if (dupState.phase === 'idle' || dupState.phase === 'error') dupScan(leilao, nome);
-                    else if (dupState.phase === 'scanned' && dupState.duplicatas > 0) dupRemover(leilao, nome);
-                    else dupReset();
-                  }}
-                  disabled={!dupBase || isRunningDup}
-                  className={[
-                    'shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
-                    dupState.phase === 'scanned' && dupState.duplicatas > 0
-                      ? 'bg-red-600 hover:bg-red-700 text-white'
-                      : 'border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04]',
-                  ].join(' ')}
-                >
-                  {isRunningDup
-                    ? <Loader2 size={12} className="animate-spin" />
-                    : dupState.phase === 'scanned' && dupState.duplicatas > 0
-                      ? <Trash2 size={12} />
-                      : <Zap size={12} />}
-                  {dupState.phase === 'idle'    && 'Escanear'}
-                  {dupState.phase === 'scanning' && 'Escaneando...'}
-                  {dupState.phase === 'scanned' && dupState.duplicatas === 0 && 'Escanear novamente'}
-                  {dupState.phase === 'scanned' && dupState.duplicatas > 0  && `Remover ${dupState.duplicatas} duplicata${dupState.duplicatas > 1 ? 's' : ''}`}
-                  {dupState.phase === 'running' && 'Removendo...'}
-                  {dupState.phase === 'done'    && 'Escanear novamente'}
-                  {dupState.phase === 'error'   && 'Tentar novamente'}
-                </button>
-              );
-            })()}
-          </div>
+          <BaseSelect
+            value={dupBase}
+            onChange={v => { setDupBase(v); dupReset(); }}
+            uploadedFiles={uploadedFiles}
+          />
+          {(() => {
+            const dupFile      = uploadedFiles.find(f => f.filename === dupBase);
+            const leilao       = dupFile?.codigoPlatforma ?? '';
+            const nome         = dupFile?.leilao?.nome ?? '';
+            const isRunningDup = dupState.phase === 'scanning' || dupState.phase === 'running';
+            return (
+              <button
+                onClick={() => {
+                  if (!leilao || !nome) return;
+                  if (dupState.phase === 'idle' || dupState.phase === 'error') dupScan(leilao, nome);
+                  else if (dupState.phase === 'scanned' && dupState.duplicatas > 0) dupRemover(leilao, nome);
+                  else dupReset();
+                }}
+                disabled={!dupBase || isRunningDup}
+                className={[
+                  'w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+                  dupState.phase === 'scanned' && dupState.duplicatas > 0
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04]',
+                ].join(' ')}
+              >
+                {isRunningDup
+                  ? <Loader2 size={12} className="animate-spin" />
+                  : dupState.phase === 'scanned' && dupState.duplicatas > 0
+                    ? <Trash2 size={12} />
+                    : <Zap size={12} />}
+                {dupState.phase === 'idle'     && 'Escanear'}
+                {dupState.phase === 'scanning' && 'Escaneando...'}
+                {dupState.phase === 'scanned'  && dupState.duplicatas === 0 && 'Escanear novamente'}
+                {dupState.phase === 'scanned'  && dupState.duplicatas > 0   && `Remover ${dupState.duplicatas} duplicata${dupState.duplicatas > 1 ? 's' : ''}`}
+                {dupState.phase === 'running'  && 'Removendo...'}
+                {dupState.phase === 'done'     && 'Escanear novamente'}
+                {dupState.phase === 'error'    && 'Tentar novamente'}
+              </button>
+            );
+          })()}
 
           {dupState.phase === 'scanned' && dupState.duplicatas === 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
@@ -500,66 +495,61 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
           <p className="text-[10px] text-red-500 dark:text-red-500 mt-0.5">Remove <strong>todas</strong> as peças do leilão. Use para recomeçar do zero.</p>
         </div>
         <div className="p-3 flex flex-col gap-2.5">
-          <div className="flex gap-2 items-start">
-            <div className="flex-1">
-              <BaseSelect
-                value={zerarBase}
-                onChange={v => { setZerarBase(v); zerarReset(); }}
-                uploadedFiles={uploadedFiles}
-              />
-            </div>
-            {(() => {
-              const zerarFile    = uploadedFiles.find(f => f.filename === zerarBase);
-              const leilao       = zerarFile?.codigoPlatforma ?? '';
-              const nome         = zerarFile?.leilao?.nome ?? '';
-              const isRunningZerar = zerarState.phase === 'running';
+          <BaseSelect
+            value={zerarBase}
+            onChange={v => { setZerarBase(v); zerarReset(); }}
+            uploadedFiles={uploadedFiles}
+          />
+          {(() => {
+            const zerarFile      = uploadedFiles.find(f => f.filename === zerarBase);
+            const leilao         = zerarFile?.codigoPlatforma ?? '';
+            const nome           = zerarFile?.leilao?.nome ?? '';
+            const isRunningZerar = zerarState.phase === 'running';
 
-              if (zerarState.phase === 'confirm') {
-                return (
-                  <div className="flex gap-2 shrink-0">
+            if (zerarState.phase === 'confirm') {
+              return (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 text-xs font-semibold text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/40">
+                    <AlertTriangle size={13} className="shrink-0" />
+                    <span>Isso vai remover <strong>todas</strong> as peças. Confirme abaixo.</span>
+                  </div>
+                  <div className="flex gap-2">
                     <button
                       onClick={() => zerarReset()}
-                      className="px-3 py-2 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] text-xs font-medium transition-colors"
+                      className="flex-1 px-3 py-2 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] text-xs font-medium transition-colors"
                     >
                       Cancelar
                     </button>
                     <button
                       onClick={() => zerar(leilao, nome)}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors"
                     >
                       <Trash2 size={12} />
-                      Confirmar — zerar N°{leilao}
+                      Confirmar — N°{leilao}
                     </button>
                   </div>
-                );
-              }
-
-              return (
-                <button
-                  onClick={() => {
-                    if (!leilao || !nome) return;
-                    if (zerarState.phase === 'idle' || zerarState.phase === 'error') zerarConfirm();
-                    else zerarReset();
-                  }}
-                  disabled={!zerarBase || isRunningZerar}
-                  className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-colors"
-                >
-                  {isRunningZerar ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                  {zerarState.phase === 'idle'    && 'Zerar leilão'}
-                  {zerarState.phase === 'running' && 'Zerando...'}
-                  {zerarState.phase === 'done'    && 'Zerar novamente'}
-                  {zerarState.phase === 'error'   && 'Tentar novamente'}
-                </button>
+                </div>
               );
-            })()}
-          </div>
+            }
 
-          {zerarState.phase === 'confirm' && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 text-xs font-semibold text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/40">
-              <AlertTriangle size={13} className="shrink-0" />
-              <span>Isso vai remover <strong>todas</strong> as peças do leilão. Confirme clicando no botão acima.</span>
-            </div>
-          )}
+            return (
+              <button
+                onClick={() => {
+                  if (!leilao || !nome) return;
+                  if (zerarState.phase === 'idle' || zerarState.phase === 'error') zerarConfirm();
+                  else zerarReset();
+                }}
+                disabled={!zerarBase || isRunningZerar}
+                className="w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-colors"
+              >
+                {isRunningZerar ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                {zerarState.phase === 'idle'    && 'Zerar leilão'}
+                {zerarState.phase === 'running' && 'Zerando...'}
+                {zerarState.phase === 'done'    && 'Zerar novamente'}
+                {zerarState.phase === 'error'   && 'Tentar novamente'}
+              </button>
+            );
+          })()}
 
           {zerarState.phase === 'running' && (
             <div className="flex flex-col gap-1.5">
