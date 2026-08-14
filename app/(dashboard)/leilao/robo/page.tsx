@@ -26,14 +26,14 @@ export default function RoboPage() {
   );
 
   return (
-    <div className="h-full overflow-y-auto p-4 sm:p-6 flex flex-col gap-6">
+    <div className="h-full overflow-y-auto p-4 sm:p-5 flex flex-col gap-4">
 
       {/* ── Bases do Leilão ──────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-col gap-0.5">
+      <section className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-baseline gap-2">
             <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Bases do Leilão</h2>
-            <p className="text-[11px] text-zinc-400">Sincronize automaticamente ou importe CSVs da leiloes.br</p>
+            <p className="text-[11px] text-zinc-400">Sincronize ou importe CSVs da leiloes.br</p>
           </div>
           <BasesSyncButton leiloes={leiloes} onSyncComplete={() => setSyncKey(k => k + 1)} />
         </div>
@@ -47,46 +47,51 @@ export default function RoboPage() {
         />
       </section>
 
-      {/* ── Criar Novo Leilão ─────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-0.5">
-          <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Criar Novo Leilão</h2>
-          <p className="text-[11px] text-zinc-400">Gera os CSVs para o robô: peças novas + transferência do leilão anterior</p>
-        </div>
-        {uploadedFiles.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-200 dark:border-white/[0.08] p-6 text-center">
-            <p className="text-xs text-zinc-400">Carregue ao menos uma base do leilão acima</p>
-          </div>
-        ) : (
-          <RoboNovoLeilao
-            basePieces={basePieces}
-            uploadedFiles={uploadedFiles}
-            refsPerFile={refsPerFile}
-            excludedFiles={excludedFiles}
-            leiloes={leiloes}
-            syncKey={syncKey}
-          />
-        )}
-      </section>
+      {/* ── Criar Novo Leilão + Operações Avulsas (lado a lado) ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 flex-1 min-h-0">
 
-      {/* ── Operações Avulsas ─────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-0.5">
-          <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Operações Avulsas</h2>
-          <p className="text-[11px] text-zinc-400">Upload de imagens ou atualização de preço para uma base específica</p>
-        </div>
-        {uploadedFiles.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-200 dark:border-white/[0.08] p-6 text-center">
-            <p className="text-xs text-zinc-400">Nenhuma base carregada</p>
+        {/* Criar Novo Leilão */}
+        <section className="flex flex-col gap-2 min-h-0">
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Criar Novo Leilão</h2>
+            <p className="text-[11px] text-zinc-400">Peças novas + transferência do leilão anterior</p>
           </div>
-        ) : (
-          <RoboOperacoes
-            basePieces={basePieces}
-            uploadedFiles={uploadedFiles}
-            refsPerFile={refsPerFile}
-          />
-        )}
-      </section>
+          {uploadedFiles.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-zinc-200 dark:border-white/[0.08] p-6 text-center">
+              <p className="text-xs text-zinc-400">Carregue ao menos uma base do leilão acima</p>
+            </div>
+          ) : (
+            <RoboNovoLeilao
+              basePieces={basePieces}
+              uploadedFiles={uploadedFiles}
+              refsPerFile={refsPerFile}
+              excludedFiles={excludedFiles}
+              leiloes={leiloes}
+              syncKey={syncKey}
+            />
+          )}
+        </section>
+
+        {/* Operações Avulsas */}
+        <section className="flex flex-col gap-2 min-h-0">
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Operações Avulsas</h2>
+            <p className="text-[11px] text-zinc-400">Upload de imagens, preço, duplicatas e reset</p>
+          </div>
+          {uploadedFiles.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-zinc-200 dark:border-white/[0.08] p-6 text-center">
+              <p className="text-xs text-zinc-400">Nenhuma base carregada</p>
+            </div>
+          ) : (
+            <RoboOperacoes
+              basePieces={basePieces}
+              uploadedFiles={uploadedFiles}
+              refsPerFile={refsPerFile}
+            />
+          )}
+        </section>
+
+      </div>
 
     </div>
   );

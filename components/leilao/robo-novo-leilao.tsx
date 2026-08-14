@@ -217,7 +217,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-3">
 
       {/* ── Config ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -349,12 +349,12 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
       </div>
 
       {/* ── Step cards ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
         {/* ① Cadastrar Peças Novas */}
         <div className="flex flex-col rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
           {/* Header */}
-          <div className="flex items-center gap-2.5 px-4 py-3 rounded-t-xl border-b border-zinc-100 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/40">
+          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-t-xl border-b border-zinc-100 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/40">
             <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold shrink-0">1</span>
             <div>
               <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-100">Cadastrar Peças Novas</p>
@@ -364,7 +364,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
           </div>
 
           {/* Body */}
-          <div className="flex flex-col gap-4 p-4 flex-1">
+          <div className="flex flex-col gap-3 p-3 flex-1">
             {/* Tipo do leilão — auto-detectado, ajustável */}
             <div className="flex flex-col gap-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Tipo do leilão</span>
@@ -450,7 +450,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
         {/* ② Transferir do Leilão Anterior */}
         <div className="flex flex-col rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
           {/* Header */}
-          <div className="flex items-center gap-2.5 px-4 py-3 rounded-t-xl border-b border-zinc-100 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/40">
+          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-t-xl border-b border-zinc-100 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/40">
             <span className="flex items-center justify-center w-5 h-5 rounded-full bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 text-[10px] font-bold shrink-0">2</span>
             <div>
               <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-100">Transferir do Leilão Anterior</p>
@@ -463,7 +463,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
             {eligibleCount > 0 && !!novoLeilao && <CheckCircle2 size={13} className="text-emerald-500 ml-auto shrink-0" />}
           </div>
 
-          <div className="flex flex-col gap-4 p-4 flex-1">
+          <div className="flex flex-col gap-3 p-3 flex-1">
             {oldFile ? (
               <>
                 {/* Stats + Lote inicial */}

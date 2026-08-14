@@ -283,15 +283,15 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   );
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
       {/* Upload Imagens */}
       <div className="rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
-        <div className="px-4 py-3 rounded-t-xl bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-white/[0.06]">
+        <div className="px-3 py-2.5 rounded-t-xl bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-white/[0.06]">
           <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">Upload Imagens</span>
           <p className="text-[10px] text-zinc-400 mt-0.5">Gera lista de referências — imagens buscadas pelo banco</p>
         </div>
-        <div className="p-4 flex flex-col gap-3">
+        <div className="p-3 flex flex-col gap-2.5">
           <BaseSelect value={imgBase} onChange={setImgBase} uploadedFiles={uploadedFiles} />
           <button
             onClick={handleUploadImagens}
@@ -309,11 +309,11 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
 
       {/* Atualizar Preço */}
       <div className="rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
-        <div className="px-4 py-3 rounded-t-xl bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-white/[0.06]">
+        <div className="px-3 py-2.5 rounded-t-xl bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-white/[0.06]">
           <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Atualizar Preço</span>
           <p className="text-[10px] text-zinc-400 mt-0.5">Atualiza preço contratado com o valor à vista do sistema</p>
         </div>
-        <div className="p-4 flex flex-col gap-3">
+        <div className="p-3 flex flex-col gap-2.5">
           <BaseSelect value={precoBase} onChange={setPrecoBase} uploadedFiles={uploadedFiles} />
 
           {/* Price diff info block */}
@@ -384,12 +384,12 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
       </div>
 
       {/* Remover Duplicatas */}
-      <div className="rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible sm:col-span-2">
-        <div className="px-4 py-3 rounded-t-xl bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-white/[0.06]">
+      <div className="rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
+        <div className="px-3 py-2.5 rounded-t-xl bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-white/[0.06]">
           <span className="text-xs font-semibold text-red-600 dark:text-red-400">Remover Duplicatas</span>
-          <p className="text-[10px] text-zinc-400 mt-0.5">Detecta e remove peças com a mesma REF no leilão, mantendo a de menor lote</p>
+          <p className="text-[10px] text-zinc-400 mt-0.5">Detecta e remove peças com mesma REF, mantendo a de menor lote</p>
         </div>
-        <div className="p-4 flex flex-col gap-3">
+        <div className="p-3 flex flex-col gap-2.5">
           <div className="flex gap-2 items-start">
             <div className="flex-1">
               <BaseSelect
@@ -494,12 +494,12 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
       </div>
 
       {/* Zerar Leilão */}
-      <div className="rounded-xl border border-red-200 dark:border-red-900/40 overflow-visible sm:col-span-2">
-        <div className="px-4 py-3 rounded-t-xl bg-red-50 dark:bg-red-950/30 border-b border-red-200 dark:border-red-900/40">
+      <div className="rounded-xl border border-red-200 dark:border-red-900/40 overflow-visible">
+        <div className="px-3 py-2.5 rounded-t-xl bg-red-50 dark:bg-red-950/30 border-b border-red-200 dark:border-red-900/40">
           <span className="text-xs font-semibold text-red-700 dark:text-red-400">Zerar Leilão</span>
-          <p className="text-[10px] text-red-500 dark:text-red-500 mt-0.5">Remove <strong>todas</strong> as peças do leilão selecionado. Use para recomeçar do zero.</p>
+          <p className="text-[10px] text-red-500 dark:text-red-500 mt-0.5">Remove <strong>todas</strong> as peças do leilão. Use para recomeçar do zero.</p>
         </div>
-        <div className="p-4 flex flex-col gap-3">
+        <div className="p-3 flex flex-col gap-2.5">
           <div className="flex gap-2 items-start">
             <div className="flex-1">
               <BaseSelect
