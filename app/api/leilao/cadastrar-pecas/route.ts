@@ -162,7 +162,7 @@ export async function POST(req: Request) {
       let successCount = 0;
       let errorCount   = 0;
 
-      const CONCURRENCY = 3;
+      const CONCURRENCY = 2;
       const queue = [...pecas];
 
       async function worker() {

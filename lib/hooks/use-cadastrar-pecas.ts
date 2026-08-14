@@ -60,7 +60,7 @@ const INITIAL: CadastrarPecasState = {
   statusMsg:    '',
 };
 
-const CHUNK_SIZE = 30;
+const CHUNK_SIZE = 50;
 
 export function buildPecasParaCadastrar(
   pieces:    LeilaoBaseRow[],
@@ -128,6 +128,7 @@ export function useCadastrarPecas() {
         ? `Lote ${ci + 1} de ${chunks.length} (${chunk.length} peças)`
         : '';
 
+      let chunkDone = 0;
       try {
         const res = await fetch('/api/leilao/cadastrar-pecas', {
           method:  'POST',
@@ -150,10 +151,15 @@ export function useCadastrarPecas() {
         const reader  = res.body.getReader();
         const decoder = new TextDecoder();
         let   buffer  = '';
-        let   chunkDone = 0;
 
+        let gotDone = false;
         while (true) {
-          const { done, value } = await reader.read();
+          // Timeout de 4min por chunk — evita travar se o Vercel fechar o stream sem 'done'
+          const readPromise = reader.read();
+          const timeout     = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('chunk timeout')), 4 * 60 * 1000),
+          );
+          const { done, value } = await Promise.race([readPromise, timeout]);
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
@@ -196,6 +202,7 @@ export function useCadastrarPecas() {
               }));
 
             } else if (type === 'done') {
+              gotDone = true;
               cumulativeDone    += chunkDone;
               cumulativeSuccess += (event.success as number) ?? 0;
               cumulativeErrors  += (event.errors  as number) ?? 0;
@@ -211,14 +218,33 @@ export function useCadastrarPecas() {
           }
         }
 
+        // Stream fechou sem 'done' — conta as peças que não responderam como erro
+        if (!gotDone) {
+          const missing = chunk.length - chunkDone;
+          if (missing > 0) {
+            cumulativeDone    += chunkDone;
+            cumulativeErrors  += missing;
+            setState(s => ({ ...s, errorCount: s.errorCount + missing }));
+          }
+        }
+
       } catch (err) {
         if ((err as Error)?.name === 'AbortError') return;
-        setState(s => ({
-          ...s,
-          phase:      'error',
-          fatalError: err instanceof Error ? err.message : 'Erro de rede',
-        }));
-        return;
+        // Timeout ou erro de rede — marca peças não respondidas como erro e continua próximo chunk
+        const missing = chunk.length - chunkDone;
+        if (missing > 0) {
+          cumulativeDone   += chunkDone;
+          cumulativeErrors += missing;
+          setState(s => ({ ...s, errorCount: s.errorCount + missing }));
+        }
+        if ((err as Error)?.message !== 'chunk timeout') {
+          setState(s => ({
+            ...s,
+            phase:      'error',
+            fatalError: err instanceof Error ? err.message : 'Erro de rede',
+          }));
+          return;
+        }
       }
     }
 
