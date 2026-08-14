@@ -48,11 +48,44 @@ interface PecaRow {
   idpeca: string;
   lote:   number;
   ref:    string;
-  // funções disponíveis no HTML (para debug)
-  funcs:  string[];
 }
 
-async function listarPecas(cookie: string, leilao: string): Promise<PecaRow[]> {
+// Exportação XLS: retorna mapa Lote (string) → REF (Descricao_2 / MiniDesc)
+async function exportLoteRef(cookie: string, leilao: string): Promise<Map<string, string>> {
+  const res = await fetch(`${BASE}/ajax/exportalotes.asp?Leilao=${leilao}`, {
+    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_pecas.asp` },
+    redirect: 'follow',
+  });
+  if (!res.ok) throw new Error(`Export falhou: HTTP ${res.status}`);
+  const html = await res.text();
+
+  const segments = html.split(/<\/tr>/i);
+  const headerSeg = segments[0] ?? '';
+  const headers = [...headerSeg.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/gi)]
+    .map(m => cleanCell(m[1]));
+
+  console.log(`[remover-dup] export headers: ${JSON.stringify(headers)}`);
+
+  const idxLote = headers.findIndex(h => /^lote$/i.test(h));
+  const idxRef  = headers.findIndex(h => /minidesc|mini|descri.o.2|segunda/i.test(h));
+
+  console.log(`[remover-dup] idxLote=${idxLote} idxRef=${idxRef}`);
+
+  if (idxLote < 0 || idxRef < 0) return new Map();
+
+  const map = new Map<string, string>();
+  for (const seg of segments.slice(1)) {
+    const cells = [...seg.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+    if (cells.length === 0) continue;
+    const lote = cells[idxLote]?.trim();
+    const ref  = cells[idxRef]?.trim().toUpperCase();
+    if (lote && ref) map.set(lote, ref);
+  }
+  return map;
+}
+
+// Listagem AJAX: retorna mapa Lote (string) → idpeca
+async function listingLoteId(cookie: string, leilao: string): Promise<Map<string, string>> {
   const res = await fetch(`${BASE}/listar_pecas.asp`, {
     method: 'POST',
     headers: {
@@ -78,44 +111,37 @@ async function listarPecas(cookie: string, leilao: string): Promise<PecaRow[]> {
     }).toString(),
     redirect: 'follow',
   });
-
   const html = await res.text();
   const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'));
-  const pecas: PecaRow[] = [];
-
-  // Log primeiras 2 linhas para debug do parser
-  const sampleRows = rows.slice(0, 2);
-  for (const r of sampleRows) {
-    const cells = [...r[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
-    console.log(`[remover-dup] sample cells: ${JSON.stringify(cells.slice(0, 6))}`);
-    const funcs = [...r[0].matchAll(/data-func=["']([^"']+)/gi)].map(m => m[1]);
-    console.log(`[remover-dup] sample funcs: ${JSON.stringify(funcs)}`);
-  }
-
+  const map  = new Map<string, string>();
   for (const row of rows) {
-    const rowHtml = row[0];
-    const cells   = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
-
-    // Coluna 0: idpeca (número longo, 6-9 dígitos)
+    const cells  = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
     const idpeca = cells[0]?.trim();
-    if (!idpeca || !/^\d{6,9}$/.test(idpeca)) continue;
-
-    // Coluna 2: lote
-    const loteNum = Number(cells[2]?.replace(/\D/g, ''));
-    if (!loteNum) continue;
-
-    // Coluna 3: descrição — formato "REF NOME DA PECA" onde REF é o primeiro token numérico de 6-8 dígitos
-    const desc = cells[3] ?? '';
-    const refMatch = desc.match(/\b(\d{6,8})\b/);
-    const ref = refMatch ? refMatch[1] : '';
-
-    // Captura todos os data-func da linha para inspeção/debug
-    const funcs = [...rowHtml.matchAll(/data-func=["']([^"']+)/gi)].map(m => m[1]);
-
-    if (ref) pecas.push({ idpeca, lote: loteNum, ref, funcs });
-    else console.log(`[remover-dup] sem ref: idpeca=${idpeca} lote=${loteNum} desc="${desc.slice(0,60)}"`);
+    const lote   = cells[2]?.trim();
+    if (idpeca && lote && /^\d{6,9}$/.test(idpeca)) map.set(lote, idpeca);
   }
+  return map;
+}
 
+async function listarPecas(cookie: string, leilao: string): Promise<PecaRow[]> {
+  // Busca em paralelo: XLS com REF (Descricao_2) + listagem AJAX com idpeca
+  const [loteRefMap, loteIdMap] = await Promise.all([
+    exportLoteRef(cookie, leilao),
+    listingLoteId(cookie, leilao),
+  ]);
+
+  console.log(`[remover-dup] loteRefMap size=${loteRefMap.size} loteIdMap size=${loteIdMap.size}`);
+  // Amostra para debug
+  const sample = [...loteRefMap.entries()].slice(0, 3);
+  console.log(`[remover-dup] sample loteRef: ${JSON.stringify(sample)}`);
+
+  const pecas: PecaRow[] = [];
+  for (const [lote, ref] of loteRefMap) {
+    const idpeca  = loteIdMap.get(lote);
+    const loteNum = Number(lote);
+    if (!idpeca || !loteNum || !ref) continue;
+    pecas.push({ idpeca, lote: loteNum, ref });
+  }
   return pecas;
 }
 
