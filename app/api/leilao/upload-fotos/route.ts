@@ -287,9 +287,9 @@ async function uploadPrincipal(
   return s3Cookie;
 }
 
-// Upload extras via img_pecas_extras.php — um POST por arquivo, mantendo o mesmo
-// PHPSESSID em todos os requests. O PHP (Bootstrap FileInput server-side) acumula
-// os arquivos em sessão PHP e persiste todos quando recebe o último (file_id == compl-1).
+// Upload extras via img_pecas_extras.php + s3enviaimagem.asp por foto.
+// O img_pecas_extras.php salva num slot temporário; s3enviaimagem.asp (tipo=1, index=i)
+// commita para o slot definitivo (_1, _2...) — igual ao fluxo da foto principal.
 async function uploadExtras(
   cookie:      string,
   pieceId:     string,
@@ -319,14 +319,29 @@ async function uploadExtras(
       redirect: 'follow',
       signal:  AbortSignal.timeout(60_000),
     });
-    // Mantém PHPSESSID retornado pelo servidor — essencial para acumulação em sessão
     activeCookie = mergeCookies(activeCookie, res);
     const text = await res.text();
-    // Log completo no primeiro extra para entender o initialPreviewConfig retornado pelo PHP
-    const logLen = i === 0 ? 600 : 200;
-    console.log(`[upload-fotos] extra[${i + 1}/${total}] status=${res.status}: ${text.slice(0, logLen)}`);
-    if (res.ok && !text.includes('"error"')) ok++;
-    // Pequena pausa entre requests para não sobrecarregar o servidor PHP
+    console.log(`[upload-fotos] extra[${i + 1}/${total}] php status=${res.status}: ${text.slice(0, 200)}`);
+    if (!res.ok || text.includes('"error"')) continue;
+
+    // Commita o slot temporário para o definitivo — mesmo mecanismo da foto principal
+    const s3Res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type':     'application/x-www-form-urlencoded',
+        'Cookie':           activeCookie, 'User-Agent': UA,
+        'Referer':          `${BASE}/cad_peca.asp`,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: new URLSearchParams({ idpeca: pieceId, index: String(i), tipo: '1' }).toString(),
+      redirect: 'follow',
+      signal:   AbortSignal.timeout(30_000),
+    });
+    activeCookie = mergeCookies(activeCookie, s3Res);
+    const s3Text = await s3Res.text();
+    console.log(`[upload-fotos] extra[${i + 1}/${total}] s3 status=${s3Res.status}: ${s3Text.slice(0, 120)}`);
+    if (s3Res.ok) ok++;
+
     if (i < total - 1) await new Promise(r => setTimeout(r, 300));
   }
   return ok;
