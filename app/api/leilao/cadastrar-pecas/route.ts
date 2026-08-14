@@ -151,7 +151,7 @@ export async function POST(req: Request) {
         return;
       }
 
-      await send({ type: 'mapping', message: 'Autenticando...' });
+      await send({ type: 'status', message: 'Autenticando...' });
       const cookie = await loginLeiloesbr(creds.user, creds.pass, codigoPlatforma);
 
       const total      = pecas.length;
@@ -172,16 +172,14 @@ export async function POST(req: Request) {
 
           try {
             await createPiece(cookie, peca, codigoPlatforma);
-            localDone++;
-            successCount++;
-            await send({ type: 'progress', lote: peca.lote, done: doneOffset + localDone, total, success: true });
+            const snap = ++localDone; successCount++;
+            await send({ type: 'progress', lote: peca.lote, done: doneOffset + snap, total, success: true });
           } catch (err) {
-            localDone++;
-            errorCount++;
+            const snap = ++localDone; errorCount++;
             await send({
               type: 'progress',
               lote: peca.lote,
-              done: doneOffset + localDone,
+              done: doneOffset + snap,
               total,
               success: false,
               error: err instanceof Error ? err.message : 'Erro',

@@ -94,19 +94,18 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   // Auto-detecta o último lote do leilão destino para evitar duplicatas
   useEffect(() => {
     if (!novoLeilao || !novoLeilaoSel) return;
-    let cancelled = false;
+    const ctrl = new AbortController();
     setFetchingUltimoLote(true);
-    fetch(`/api/leilao/ultimo-lote?leilao=${novoLeilao}&nome=${encodeURIComponent(novoLeilaoSel.nome)}`)
+    fetch(`/api/leilao/ultimo-lote?leilao=${novoLeilao}&nome=${encodeURIComponent(novoLeilaoSel.nome)}`, { signal: ctrl.signal })
       .then(r => r.json())
       .then((data: { ultimoLote?: number; error?: string }) => {
-        if (cancelled) return;
         if (typeof data.ultimoLote === 'number') {
           setTransferStartLote(data.ultimoLote + 1);
         }
       })
       .catch(() => { /* silencioso — usuário pode ajustar manualmente */ })
-      .finally(() => { if (!cancelled) setFetchingUltimoLote(false); });
-    return () => { cancelled = true; };
+      .finally(() => setFetchingUltimoLote(false));
+    return () => ctrl.abort();
   }, [novoLeilao, novoLeilaoSel]);
 
   const oldFile = uploadedFiles.find(f => f.codigoPlatforma === selectedOld);

@@ -75,7 +75,7 @@ async function getUltimoLote(cookie: string, leilao: string): Promise<number> {
     .map(m => m[1].replace(/<[^>]+>/g, '').replace(/&nbsp;/g, '').trim());
 
   let maxLote = 0;
-  for (let i = 0; i + 2 < allTds.length; i++) {
+  for (let i = 0; i + 2 <= allTds.length - 1; i++) {
     const rawId  = allTds[i]?.trim();
     const rawLot = allTds[i + 2]?.replace(/\s/g, '').replace(/\D/g, '');
     if (rawId && /^\d{6,9}$/.test(rawId)) {

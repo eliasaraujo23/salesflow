@@ -71,7 +71,7 @@ function cleanCell(raw: string): string {
 function parseLoteId(html: string): Map<number, string> {
   const map    = new Map<number, string>();
   const allTds = [...html.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
-  for (let i = 0; i + 2 < allTds.length; i++) {
+  for (let i = 0; i + 2 <= allTds.length - 1; i++) {
     const rawId  = allTds[i]?.trim();
     const rawLot = allTds[i + 2]?.replace(/\s/g, '').replace(/\D/g, '');
     if (rawId && /^\d{6,9}$/.test(rawId)) {

@@ -111,7 +111,7 @@ export function useTransferirPecas() {
         });
 
         if (!res.ok || !res.body) {
-          setState(s => ({ ...s, phase: 'error', fatalError: `HTTP ${res.status}` }));
+          setState(s => ({ ...s, phase: 'error', fatalError: `HTTP ${res.status}`, chunkInfo: '' }));
           return;
         }
 
@@ -173,6 +173,7 @@ export function useTransferirPecas() {
                 phase:      'error',
                 fatalError: (event.message as string) ?? 'Erro desconhecido',
                 statusMsg:  '',
+                chunkInfo:  '',
               }));
               return;
             }
@@ -185,6 +186,7 @@ export function useTransferirPecas() {
           ...s,
           phase:      'error',
           fatalError: err instanceof Error ? err.message : 'Erro de rede',
+          chunkInfo:  '',
         }));
         return;
       }
