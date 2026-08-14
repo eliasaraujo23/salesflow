@@ -17,11 +17,11 @@ function getCreds(nome: string): { user: string; pass: string } | null {
   return null;
 }
 
-async function loginAndExport(user: string, pass: string, numLeilao: string): Promise<string> {
-  const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 
+async function login(user: string, pass: string, numLeilao: string): Promise<string> {
   const initRes = await fetch(`${BASE}/default.asp?Log=off`, {
-    headers: { 'User-Agent': ua },
+    headers: { 'User-Agent': UA },
     redirect: 'follow',
   });
   const sessionId = (initRes.headers.get('set-cookie') ?? '').match(/ASPSESSIONID\w+=\w+/i)?.[0] ?? '';
@@ -32,19 +32,46 @@ async function loginAndExport(user: string, pass: string, numLeilao: string): Pr
       'Content-Type': 'application/x-www-form-urlencoded',
       'Cookie': sessionId,
       'Referer': `${BASE}/default.asp?Log=off`,
-      'User-Agent': ua,
+      'User-Agent': UA,
     },
     body: new URLSearchParams({ Login: user, Senha: pass, NumLeilao: numLeilao, Acessar: 'Acessar' }).toString(),
     redirect: 'manual',
   });
 
-  const newCookie = (loginRes.headers.get('set-cookie') ?? '').match(/ASPSESSIONID\w+=\w+/i)?.[0] ?? sessionId;
+  return (loginRes.headers.get('set-cookie') ?? '').match(/ASPSESSIONID\w+=\w+/i)?.[0] ?? sessionId;
+}
 
+// Lê a página de edição do leilão e detecta se o status é "Finalizado"
+async function isLeilaoFinalizado(cookie: string, numLeilao: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE}/cadleilao.asp?Leilao=${numLeilao}`, {
+      headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/default.asp` },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(15_000),
+    });
+    const html = await res.text();
+
+    // Extrai o bloco do <select name="Status"> (ou "status", case-insensitive)
+    const selectMatch = html.match(/<select[^>]+name\s*=\s*["']?Status["']?[^>]*>([\s\S]*?)<\/select>/i);
+    if (!selectMatch) return false;
+
+    const selectHtml = selectMatch[1];
+    // Dentro do select, acha a <option selected>
+    const selectedMatch = selectHtml.match(/<option[^>]+selected[^>]*>([\s\S]*?)<\/option>/i);
+    if (!selectedMatch) return false;
+
+    const selectedText = selectedMatch[1].replace(/<[^>]+>/g, '').trim();
+    return /finalizado/i.test(selectedText);
+  } catch {
+    return false; // na dúvida, não pula
+  }
+}
+
+async function exportHtml(cookie: string, numLeilao: string): Promise<string> {
   const exportRes = await fetch(`${BASE}/ajax/exportalotes.asp?Leilao=${numLeilao}`, {
-    headers: { 'Cookie': newCookie, 'User-Agent': ua, 'Referer': `${BASE}/listar_pecas.asp` },
+    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_pecas.asp` },
     redirect: 'follow',
   });
-
   if (!exportRes.ok) throw new Error(`Export falhou: HTTP ${exportRes.status}`);
   return exportRes.text();
 }
@@ -107,6 +134,7 @@ export interface SyncResult {
   pricePerRef?:    Record<string, number>;
   count?:          number;
   skipped:         boolean;
+  finalizado?:     boolean; // leilão está finalizado na leiloes.br → remover do storage
   reason?:         string;
   error?:          string;
 }
@@ -124,7 +152,14 @@ export async function POST(req: Request) {
         return { codigoPlatforma: l.codigoPlatforma, nome: l.nome, numero: l.numero, skipped: true, reason: 'Sem credenciais para este tipo de leilão' };
       }
 
-      const html   = await loginAndExport(creds.user, creds.pass, l.codigoPlatforma);
+      const cookie     = await login(creds.user, creds.pass, l.codigoPlatforma);
+      const finalizado = await isLeilaoFinalizado(cookie, l.codigoPlatforma);
+
+      if (finalizado) {
+        return { codigoPlatforma: l.codigoPlatforma, nome: l.nome, numero: l.numero, skipped: true, finalizado: true, reason: 'Leilão finalizado na leiloes.br' };
+      }
+
+      const html   = await exportHtml(cookie, l.codigoPlatforma);
       const parsed = parseHtmlTable(html);
 
       return {

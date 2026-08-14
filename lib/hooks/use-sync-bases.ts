@@ -45,12 +45,24 @@ export function useSyncBases(leiloes: Leilao[], onSyncComplete?: () => void) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { data } = await res.json() as { data: SyncResult[] };
 
-      let ok      = 0;
-      let skipped = 0;
-      let errors  = 0;
+      let ok         = 0;
+      let skipped    = 0;
+      let finalizados = 0;
+      let errors     = 0;
 
       for (const item of data) {
         if (item.error) { errors++; continue; }
+
+        // Leilão finalizado na leiloes.br → remover do storage local
+        if (item.finalizado) {
+          finalizados++;
+          const existing = await getDocs(
+            query(collection(db, COLLECTION), where('codigo_plataforma', '==', item.codigoPlatforma)),
+          );
+          await Promise.all(existing.docs.map(d => deleteDoc(d.ref)));
+          continue;
+        }
+
         if (item.skipped) { skipped++; continue; }
 
         const filename = `Lotes_${item.codigoPlatforma}.xls`;
@@ -79,9 +91,10 @@ export function useSyncBases(leiloes: Leilao[], onSyncComplete?: () => void) {
       onSyncComplete?.();
 
       const parts: string[] = [];
-      if (ok      > 0) parts.push(`${ok} sincronizada${ok !== 1 ? 's' : ''}`);
-      if (skipped > 0) parts.push(`${skipped} sem credencial`);
-      if (errors  > 0) parts.push(`${errors} com erro`);
+      if (ok          > 0) parts.push(`${ok} sincronizada${ok !== 1 ? 's' : ''}`);
+      if (finalizados > 0) parts.push(`${finalizados} finalizada${finalizados !== 1 ? 's' : ''} (removida${finalizados !== 1 ? 's' : ''})`);
+      if (skipped     > 0) parts.push(`${skipped} sem credencial`);
+      if (errors      > 0) parts.push(`${errors} com erro`);
       toast.success(parts.join(' · '), { id: tid });
     } catch (err) {
       toast.error(
