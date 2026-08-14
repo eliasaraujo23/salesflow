@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
-import { Download, ChevronDown, AlertTriangle, CheckCircle2, Info, Zap, Trash2, Loader2, XCircle } from 'lucide-react';
+import { Download, ChevronDown, AlertTriangle, CheckCircle2, Info, Zap, Trash2, Loader2, XCircle, Camera } from 'lucide-react';
 import type { LeilaoBaseRow } from '@/lib/hooks/use-leilao-base';
 import type { UploadedFileStored } from '@/lib/hooks/use-leilao-bases-storage';
 import {
@@ -92,6 +92,139 @@ function BaseSelect({
     </div>
   );
 }
+
+// ─── Reupload Fotos ──────────────────────────────────────────────────────────
+
+type ReuphPhase = 'idle' | 'scanning' | 'scanned' | 'running' | 'done' | 'error';
+interface ReuphState {
+  phase:       ReuphPhase;
+  total:       number;  // peças escaneadas
+  semFoto:     number;  // peças sem foto
+  withImg:     number;  // sem foto mas com R2
+  withoutImg:  number;  // sem foto e sem R2
+  done:        number;  // processadas
+  uploaded:    number;  // fotos enviadas com sucesso
+  activated:   number;  // Sites ativados
+  deactivated: number;  // Sites desativados (sem R2)
+  errors:      number;
+  statusMsg:   string;
+  fatalError:  string;
+}
+const REUPH_INIT: ReuphState = {
+  phase: 'idle', total: 0, semFoto: 0, withImg: 0, withoutImg: 0,
+  done: 0, uploaded: 0, activated: 0, deactivated: 0, errors: 0, statusMsg: '', fatalError: '',
+};
+
+interface ScannedPeca { lote: number; ref: string; pieceId: string; }
+
+function useReuploads() {
+  const [state,    setState]    = useState<ReuphState>(REUPH_INIT);
+  const [pecasSem, setPecasSem] = useState<ScannedPeca[]>([]);
+  const abortRef = useRef<AbortController | null>(null);
+
+  async function scan(leilao: string, nome: string) {
+    setState({ ...REUPH_INIT, phase: 'scanning' });
+    setPecasSem([]);
+    try {
+      const res  = await fetch(`/api/leilao/scan-sem-foto?leilao=${leilao}&nome=${encodeURIComponent(nome)}`);
+      const data = await res.json() as { total?: number; semFoto?: number; pecas?: ScannedPeca[]; error?: string };
+      if (data.error) { setState(s => ({ ...s, phase: 'error', fatalError: data.error! })); return; }
+      const pecas = (data.pecas ?? []).filter(p => !!p.pieceId);
+      setPecasSem(pecas);
+      setState(s => ({ ...s, phase: 'scanned', total: data.total ?? 0, semFoto: pecas.length }));
+    } catch (e) {
+      setState(s => ({ ...s, phase: 'error', fatalError: e instanceof Error ? e.message : 'Erro' }));
+    }
+  }
+
+  async function executar(leilao: string, nome: string) {
+    if (pecasSem.length === 0) return;
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+
+    setState(s => ({ ...s, phase: 'running', done: 0, uploaded: 0, activated: 0, deactivated: 0, errors: 0, statusMsg: '' }));
+
+    const CHUNK = 30;
+    const chunks: ScannedPeca[][] = [];
+    for (let i = 0; i < pecasSem.length; i += CHUNK) chunks.push(pecasSem.slice(i, i + CHUNK));
+
+    for (let ci = 0; ci < chunks.length; ci++) {
+      if (ctrl.signal.aborted) break;
+      const chunk = chunks[ci];
+      try {
+        const res = await fetch('/api/leilao/reupload-fotos', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ codigoPlatforma: leilao, nome, pecas: chunk }),
+          signal:  ctrl.signal,
+        });
+        if (!res.ok || !res.body) continue;
+
+        const reader  = res.body.getReader();
+        const decoder = new TextDecoder();
+        let   buf     = '';
+
+        outer: while (true) {
+          const readP   = reader.read();
+          const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 4 * 60 * 1000));
+          const { done, value } = await Promise.race([readP, timeout]);
+          if (done) break;
+
+          buf += decoder.decode(value, { stream: true });
+          const parts = buf.split('\n\n');
+          buf = parts.pop() ?? '';
+
+          for (const part of parts) {
+            const line = part.trim();
+            if (!line.startsWith('data: ')) continue;
+            let event: Record<string, unknown>;
+            try { event = JSON.parse(line.slice(6)); } catch { continue; }
+            const type = event.type as string;
+
+            if (type === 'status') {
+              setState(s => ({ ...s, statusMsg: (event.message as string) ?? '' }));
+            } else if (type === 'photoProgress') {
+              const slot    = event.slot as string;
+              const success = event.success as boolean;
+              if (slot === 'main') {
+                setState(s => ({
+                  ...s,
+                  done:     s.done + 1,
+                  uploaded: success ? s.uploaded + 1 : s.uploaded,
+                  errors:   success ? s.errors : s.errors + 1,
+                }));
+              }
+            } else if (type === 'siteProgress') {
+              const action  = event.action as string;
+              const success = event.success as boolean;
+              setState(s => ({
+                ...s,
+                activated:   action === 'ativar'    && success ? s.activated   + 1 : s.activated,
+                deactivated: action === 'desativar' && success ? s.deactivated + 1 : s.deactivated,
+              }));
+            } else if (type === 'error') {
+              setState(s => ({ ...s, statusMsg: (event.message as string) ?? 'Erro' }));
+              break outer;
+            }
+          }
+        }
+      } catch (e) {
+        if ((e as Error)?.name === 'AbortError') return;
+        // timeout ou rede — continua próximo chunk
+      }
+    }
+
+    if (!ctrl.signal.aborted) {
+      setState(s => ({ ...s, phase: 'done', statusMsg: '' }));
+    }
+  }
+
+  function reset() { setState(REUPH_INIT); setPecasSem([]); }
+  return { state, scan, executar, reset };
+}
+
+// ─── Duplicatas ───────────────────────────────────────────────────────────────
 
 type DupPhase = 'idle' | 'scanning' | 'scanned' | 'running' | 'done' | 'error';
 interface DupState {
@@ -215,9 +348,17 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   const [precoBase,     setPrecoBase]     = useState('');
   const [dupBase,       setDupBase]       = useState('');
   const [zerarBase,     setZerarBase]     = useState('');
+  const [reuphBase,  setReuphBase]  = useState('');
   const { open, openModal, closeModal, state, execute, isRunning } = useAtualizarPreco();
-  const { state: dupState, scan: dupScan, remover: dupRemover, reset: dupReset } = useDuplicatas();
+  const { state: dupState,   scan: dupScan, remover: dupRemover, reset: dupReset } = useDuplicatas();
   const { state: zerarState, confirm: zerarConfirm, zerar, reset: zerarReset } = useZerarLeilao();
+  const { state: reuphState, scan: reuphScan, executar: reuphExecutar, reset: reuphReset } = useReuploads();
+
+  const reuphFile      = uploadedFiles.find(f => f.filename === reuphBase);
+  const reuphLeilao    = reuphFile?.codigoPlatforma ?? '';
+  const reuphNome      = reuphFile?.leilao?.nome ?? '';
+  const isRunningReuph = reuphState.phase === 'scanning' || reuphState.phase === 'running';
+  const reuphPct       = reuphState.semFoto > 0 ? Math.round(reuphState.done / reuphState.semFoto * 100) : 0;
 
   const priceMap = useMemo(
     () => new Map<string, LeilaoBaseRow>(basePieces.map(p => [p.referencia.toUpperCase(), p])),
@@ -283,7 +424,7 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   );
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
 
       {/* Upload Imagens */}
       <div className="rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
@@ -483,6 +624,101 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400">
               <XCircle size={13} />
               <span>{dupState.fatalError}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Reupload Fotos */}
+      <div className="rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
+        <div className="px-3 py-2.5 rounded-t-xl bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-white/[0.06]">
+          <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">Reupload Fotos</span>
+          <p className="text-[10px] text-zinc-400 mt-0.5">Detecta peças sem foto e envia — ou desativa Site se sem imagem no R2</p>
+        </div>
+        <div className="p-3 flex flex-col gap-2.5">
+          <BaseSelect
+            value={reuphBase}
+            onChange={v => { setReuphBase(v); reuphReset(); }}
+            uploadedFiles={uploadedFiles}
+          />
+
+          <button
+            onClick={() => {
+              if (!reuphLeilao || !reuphNome) return;
+              if (reuphState.phase === 'idle' || reuphState.phase === 'error')   reuphScan(reuphLeilao, reuphNome);
+              else if (reuphState.phase === 'scanned' && reuphState.semFoto > 0) reuphExecutar(reuphLeilao, reuphNome);
+              else reuphReset();
+            }}
+            disabled={!reuphBase || isRunningReuph}
+            className={[
+              'w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+              reuphState.phase === 'scanned' && reuphState.semFoto > 0
+                ? 'bg-violet-600 hover:bg-violet-700 text-white'
+                : 'border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04]',
+            ].join(' ')}
+          >
+            {isRunningReuph
+              ? <Loader2 size={12} className="animate-spin" />
+              : reuphState.phase === 'scanned' && reuphState.semFoto > 0
+                ? <Camera size={12} />
+                : <Zap size={12} />}
+            {reuphState.phase === 'idle'     && 'Escanear'}
+            {reuphState.phase === 'scanning' && 'Escaneando...'}
+            {reuphState.phase === 'scanned'  && reuphState.semFoto === 0 && 'Escanear novamente'}
+            {reuphState.phase === 'scanned'  && reuphState.semFoto > 0   && `Enviar fotos (${reuphState.semFoto})`}
+            {reuphState.phase === 'running'  && 'Enviando...'}
+            {reuphState.phase === 'done'     && 'Escanear novamente'}
+            {reuphState.phase === 'error'    && 'Tentar novamente'}
+          </button>
+
+          {reuphState.phase === 'scanned' && reuphState.semFoto === 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+              <CheckCircle2 size={13} />
+              <span>Todas as {reuphState.total} peças têm foto</span>
+            </div>
+          )}
+          {reuphState.phase === 'scanned' && reuphState.semFoto > 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-50 dark:bg-violet-950/30 text-xs font-semibold text-violet-700 dark:text-violet-400">
+              <AlertTriangle size={13} />
+              <span>{reuphState.semFoto} de {reuphState.total} sem foto</span>
+            </div>
+          )}
+
+          {reuphState.phase === 'running' && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                <div className="flex items-center gap-2">
+                  <Loader2 size={11} className="animate-spin shrink-0 text-violet-500" />
+                  <span className="truncate max-w-[130px]">{reuphState.statusMsg || `${reuphState.done} de ${reuphState.semFoto}`}</span>
+                </div>
+                <span className="tabular-nums font-semibold text-violet-500">{reuphPct}%</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-violet-100 dark:bg-violet-950 overflow-hidden">
+                <div className="h-full rounded-full bg-violet-500 transition-all duration-300" style={{ width: `${reuphPct}%` }} />
+              </div>
+            </div>
+          )}
+
+          {reuphState.phase === 'done' && (
+            <div className={`flex items-start gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
+              reuphState.errors === 0
+                ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
+                : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400'
+            }`}>
+              {reuphState.errors === 0 ? <CheckCircle2 size={13} className="shrink-0 mt-0.5" /> : <AlertTriangle size={13} className="shrink-0 mt-0.5" />}
+              <span>
+                {reuphState.uploaded} foto{reuphState.uploaded !== 1 ? 's' : ''} enviada{reuphState.uploaded !== 1 ? 's' : ''}
+                {reuphState.activated > 0 && ` · ${reuphState.activated} ativada${reuphState.activated !== 1 ? 's' : ''}`}
+                {reuphState.deactivated > 0 && ` · ${reuphState.deactivated} desativada${reuphState.deactivated !== 1 ? 's' : ''}`}
+                {reuphState.errors > 0 && ` · ${reuphState.errors} com erro`}
+              </span>
+            </div>
+          )}
+
+          {reuphState.phase === 'error' && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400">
+              <XCircle size={13} />
+              <span>{reuphState.fatalError}</span>
             </div>
           )}
         </div>
