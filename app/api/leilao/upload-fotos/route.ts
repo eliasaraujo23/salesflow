@@ -221,9 +221,10 @@ async function loadUploadPage(cookie: string, pieceId: string): Promise<string> 
   return mergeCookies(cookie, res);
 }
 
-// Inicializa sessão PHP para upload de extras — gerenciar_imagens.asp reseta o contador
-// de slots, igual ao que o browser faz antes de clicar em "+ Adicionar Imagens Extras"
-async function loadGerenciarImagens(cookie: string, pieceId: string): Promise<string> {
+// Lê gerenciar_imagens.asp, extrai quais slots (_1.._5) já estão ocupados,
+// e retorna os slots livres (ex: [1,2,3,4,5] para peça sem extras).
+// O JS do Bootstrap FileInput usa exatamente essa lógica (doneArr) para o compl de cada arquivo.
+async function getAvailableSlots(cookie: string, pieceId: string): Promise<{ cookie: string; slots: number[] }> {
   const res = await fetch(`${BASE}/gerenciar_imagens.asp`, {
     method: 'POST',
     headers: {
@@ -235,9 +236,25 @@ async function loadGerenciarImagens(cookie: string, pieceId: string): Promise<st
     redirect: 'follow',
   });
   const text = await res.text();
-  // Log completo para ver o JS de inicialização do Bootstrap FileInput e os parâmetros do uploadUrl
-  console.log(`[upload-fotos] gerenciar_imagens resp status=${res.status} len=${text.length}: ${text.slice(0, 3000)}`);
-  return mergeCookies(cookie, res);
+  const updatedCookie = mergeCookies(cookie, res);
+
+  // Extrai captions dos extras já existentes (ex: "32139884_2.jpg" → slot 2)
+  const occupied = new Set<number>();
+  for (const m of text.matchAll(/initialPreview(?:Config)?\s*:\s*\[([^\]]*)\]/g)) {
+    for (const cap of m[1].matchAll(/"caption"\s*:\s*"[^"]*_(\d+)\.jpg"/g)) {
+      const n = parseInt(cap[1]);
+      if (n >= 1 && n <= 5) occupied.add(n);
+    }
+  }
+
+  // Slots livres de 1 a 5, em ordem — igual ao doneArr do JS
+  const slots: number[] = [];
+  for (let i = 1; i <= 5; i++) {
+    if (!occupied.has(i)) slots.push(i);
+  }
+
+  console.log(`[upload-fotos] gerenciar_imagens pieceId=${pieceId} occupied=[${[...occupied]}] freeSlots=[${slots}]`);
+  return { cookie: updatedCookie, slots };
 }
 
 
@@ -288,31 +305,33 @@ async function uploadPrincipal(
   return s3Cookie;
 }
 
-// Upload extras via img_pecas_extras.php + s3enviaimagem.asp por foto.
-// O img_pecas_extras.php salva num slot temporário; s3enviaimagem.asp (tipo=1, index=i)
-// commita para o slot definitivo (_1, _2...) — igual ao fluxo da foto principal.
+// Upload extras via img_pecas_extras.php, um POST por arquivo.
+// compl = número do slot livre (1..5), calculado pelo getAvailableSlots — replica
+// exatamente o uploadExtraData do Bootstrap FileInput (variável doneArr no JS do servidor).
 async function uploadExtras(
   cookie:      string,
   pieceId:     string,
   numLeilao:   string,
   buffers:     Buffer[],
+  freeSlots:   number[],
 ): Promise<number> {
   if (buffers.length === 0) return 0;
 
-  const total = buffers.length;
+  const count = Math.min(buffers.length, freeSlots.length);
   let activeCookie = cookie;
   let ok = 0;
 
-  for (let i = 0; i < total; i++) {
+  for (let i = 0; i < count; i++) {
+    const slot = freeSlots[i]; // slot livre: 1, 2, 3, 4 ou 5
     const fd = new FormData();
     fd.append('Foto',      new Blob([buffers[i] as unknown as BlobPart], { type: 'image/jpeg' }), `extra_${i}.jpg`);
     fd.append('file_id',   String(i));
-    fd.append('compl',     String(total));
+    fd.append('compl',     String(slot)); // compl = número do slot, não total de arquivos
     fd.append('IdPeca',    pieceId);
     fd.append('NumLeilao', numLeilao);
     fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
 
-    console.log(`[upload-fotos] extra[${i + 1}/${total}] file_id=${i} pieceId=${pieceId}`);
+    console.log(`[upload-fotos] extra[${i + 1}/${count}] file_id=${i} compl=${slot} pieceId=${pieceId}`);
     const res = await fetch(`${BASE}/img_pecas_extras.php`, {
       method:  'POST',
       headers: { 'Cookie': activeCookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
@@ -322,28 +341,10 @@ async function uploadExtras(
     });
     activeCookie = mergeCookies(activeCookie, res);
     const text = await res.text();
-    console.log(`[upload-fotos] extra[${i + 1}/${total}] php status=${res.status}: ${text.slice(0, 200)}`);
-    if (!res.ok || text.includes('"error"')) continue;
+    console.log(`[upload-fotos] extra[${i + 1}/${count}] slot=${slot} status=${res.status}: ${text.slice(0, 200)}`);
+    if (res.ok && !text.includes('"error"')) ok++;
 
-    // Commita o slot temporário para o definitivo — mesmo mecanismo da foto principal
-    const s3Res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
-      method: 'POST',
-      headers: {
-        'Content-Type':     'application/x-www-form-urlencoded',
-        'Cookie':           activeCookie, 'User-Agent': UA,
-        'Referer':          `${BASE}/cad_peca.asp`,
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      body: new URLSearchParams({ idpeca: pieceId, index: String(i), tipo: '1' }).toString(),
-      redirect: 'follow',
-      signal:   AbortSignal.timeout(30_000),
-    });
-    activeCookie = mergeCookies(activeCookie, s3Res);
-    const s3Text = await s3Res.text();
-    console.log(`[upload-fotos] extra[${i + 1}/${total}] s3 status=${s3Res.status}: ${s3Text.slice(0, 120)}`);
-    if (s3Res.ok) ok++;
-
-    if (i < total - 1) await new Promise(r => setTimeout(r, 300));
+    if (i < count - 1) await new Promise(r => setTimeout(r, 300));
   }
   return ok;
 }
@@ -494,10 +495,11 @@ export async function POST(req: Request) {
         if (extraKeys.length > 0) {
           await send({ type: 'status', message: `Lote ${peca.lote}: enviando ${extraKeys.length} foto(s) extra...` });
           try {
-            // Inicializa contador de slots na sessão PHP (igual ao browser antes de subir extras)
-            try { pieceCookie = await loadGerenciarImagens(pieceCookie, pieceId); } catch { /* non-fatal */ }
+            // Consulta slots livres (_1.._5) — replica o doneArr do JS do servidor
+            const { cookie: gc, slots } = await getAvailableSlots(pieceCookie, pieceId);
+            pieceCookie = gc;
             const bufs = await Promise.all(extraKeys.map(k => downloadImage(k)));
-            extrasOk = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs);
+            extrasOk = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs, slots);
           } catch (e) {
             console.error(`[upload-fotos] Lote ${peca.lote} extras ERRO:`, e instanceof Error ? e.message : e);
           }
