@@ -230,14 +230,25 @@ export function TransferirPecasModal({
 
           {/* Status em progresso */}
           {state.phase === 'running' && (
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2 text-[11px] text-zinc-500">
-                <Loader2 size={11} className="animate-spin shrink-0 text-violet-500" />
-                <span>Transferindo: {state.done} de {state.total}</span>
-                {state.chunkInfo && <span className="text-violet-400">· {state.chunkInfo}</span>}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                <div className="flex items-center gap-2">
+                  <Loader2 size={11} className="animate-spin shrink-0 text-violet-500" />
+                  <span>Transferindo: {state.done} de {state.total}</span>
+                  {state.chunkInfo && <span className="text-violet-400">· {state.chunkInfo}</span>}
+                </div>
+                <span className="tabular-nums font-semibold text-violet-500">
+                  {state.total > 0 ? Math.round(state.done / state.total * 100) : 0}%
+                </span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-violet-100 dark:bg-violet-950 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-violet-500 transition-all duration-300"
+                  style={{ width: `${state.total > 0 ? Math.round(state.done / state.total * 100) : 0}%` }}
+                />
               </div>
               {state.statusMsg && (
-                <p className="text-[10px] text-zinc-400 pl-5">{state.statusMsg}</p>
+                <p className="text-[10px] text-zinc-400">{state.statusMsg}</p>
               )}
             </div>
           )}

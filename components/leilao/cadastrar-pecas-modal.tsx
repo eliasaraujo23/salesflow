@@ -292,25 +292,43 @@ export function CadastrarPecasModal({
 
           {/* Status atual — spinner + descrição do que está acontecendo agora */}
           {state.phase === 'running' && (
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2 text-[11px] text-zinc-500">
-                <Loader2 size={11} className="animate-spin shrink-0 text-indigo-500" />
-                <span>
-                  Cadastrando peças: {state.done} de {state.total}
-                  {state.chunkInfo ? ` · ${state.chunkInfo}` : ''}
-                </span>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                <div className="flex items-center gap-2">
+                  <Loader2 size={11} className="animate-spin shrink-0 text-indigo-500" />
+                  <span>
+                    Cadastrando peças: {state.done} de {state.total}
+                    {state.chunkInfo ? ` · ${state.chunkInfo}` : ''}
+                  </span>
+                </div>
+                <span className="tabular-nums font-semibold text-indigo-500">{pct}%</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-indigo-100 dark:bg-indigo-950 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-indigo-500 transition-all duration-300"
+                  style={{ width: `${pct}%` }}
+                />
               </div>
             </div>
           )}
 
           {isPhotos && (
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2 text-[11px] text-zinc-500">
-                <Loader2 size={11} className="animate-spin shrink-0 text-emerald-500" />
-                <span>Enviando fotos: {state.photoDone} de {state.photoTotal} peças</span>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                <div className="flex items-center gap-2">
+                  <Loader2 size={11} className="animate-spin shrink-0 text-emerald-500" />
+                  <span>Enviando fotos: {state.photoDone} de {state.photoTotal} peças</span>
+                </div>
+                <span className="tabular-nums font-semibold text-emerald-500">{photoPct}%</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+                  style={{ width: `${photoPct}%` }}
+                />
               </div>
               {state.statusMsg && (
-                <p className="text-[10px] text-zinc-400 pl-5">{state.statusMsg}</p>
+                <p className="text-[10px] text-zinc-400">{state.statusMsg}</p>
               )}
             </div>
           )}
