@@ -234,6 +234,8 @@ async function loadGerenciarImagens(cookie: string, pieceId: string): Promise<st
     body: new URLSearchParams({ ID: pieceId }).toString(),
     redirect: 'follow',
   });
+  const text = await res.text();
+  console.log(`[upload-fotos] gerenciar_imagens resp status=${res.status} len=${text.length}: ${text.slice(0, 300)}`);
   return mergeCookies(cookie, res);
 }
 
@@ -320,7 +322,9 @@ async function uploadExtras(
     // Mantém PHPSESSID retornado pelo servidor — essencial para acumulação em sessão
     activeCookie = mergeCookies(activeCookie, res);
     const text = await res.text();
-    console.log(`[upload-fotos] extra[${i + 1}/${total}] status=${res.status}: ${text.slice(0, 120)}`);
+    // Log completo no primeiro extra para entender o initialPreviewConfig retornado pelo PHP
+    const logLen = i === 0 ? 600 : 200;
+    console.log(`[upload-fotos] extra[${i + 1}/${total}] status=${res.status}: ${text.slice(0, logLen)}`);
     if (res.ok && !text.includes('"error"')) ok++;
     // Pequena pausa entre requests para não sobrecarregar o servidor PHP
     if (i < total - 1) await new Promise(r => setTimeout(r, 300));
