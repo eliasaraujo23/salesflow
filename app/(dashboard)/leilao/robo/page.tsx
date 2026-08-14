@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useLeilaoBase } from '@/lib/hooks/use-leilao-base';
 import { useLeiloes } from '@/lib/hooks/use-leiloes';
 import { useLeilaoBasesStorage } from '@/lib/hooks/use-leilao-bases-storage';
@@ -14,6 +15,8 @@ export default function RoboPage() {
   const { data: basePieces = [], isLoading, error } = useLeilaoBase(activeDestinos);
   const { leiloes } = useLeiloes();
   const { uploadedFiles, refsPerFile, excludedFiles, add, remove, toggleExclude } = useLeilaoBasesStorage(leiloes);
+  // Incrementado após sync — força RoboNovoLeilao a re-detectar ultimoLote e resetar verificação
+  const [syncKey, setSyncKey] = useState(0);
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-full text-sm text-zinc-400">Carregando base...</div>
@@ -32,7 +35,7 @@ export default function RoboPage() {
             <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Bases do Leilão</h2>
             <p className="text-[11px] text-zinc-400">Sincronize automaticamente ou importe CSVs da leiloes.br</p>
           </div>
-          <BasesSyncButton leiloes={leiloes} />
+          <BasesSyncButton leiloes={leiloes} onSyncComplete={() => setSyncKey(k => k + 1)} />
         </div>
         <BaseSistemaUpload
           uploaded={uploadedFiles}
@@ -61,6 +64,7 @@ export default function RoboPage() {
             refsPerFile={refsPerFile}
             excludedFiles={excludedFiles}
             leiloes={leiloes}
+            syncKey={syncKey}
           />
         )}
       </section>

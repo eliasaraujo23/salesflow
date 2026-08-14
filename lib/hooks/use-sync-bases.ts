@@ -14,7 +14,7 @@ import type { SyncResult } from '@/app/api/leilao/sync-base/route';
 const COLLECTION = 'leilao_bases_ativas';
 const QUERY_KEY  = ['leilao-bases-ativas'];
 
-export function useSyncBases(leiloes: Leilao[]) {
+export function useSyncBases(leiloes: Leilao[], onSyncComplete?: () => void) {
   const [syncing, setSyncing] = useState(false);
   const qc = useQueryClient();
 
@@ -76,6 +76,7 @@ export function useSyncBases(leiloes: Leilao[]) {
       }
 
       qc.invalidateQueries({ queryKey: QUERY_KEY });
+      onSyncComplete?.();
 
       const parts: string[] = [];
       if (ok      > 0) parts.push(`${ok} sincronizada${ok !== 1 ? 's' : ''}`);

@@ -5,11 +5,12 @@ import type { Leilao } from '@/lib/hooks/use-leiloes';
 import { useSyncBases } from '@/lib/hooks/use-sync-bases';
 
 interface Props {
-  leiloes: Leilao[];
+  leiloes:         Leilao[];
+  onSyncComplete?: () => void;
 }
 
-export function BasesSyncButton({ leiloes }: Props) {
-  const { sync, syncing } = useSyncBases(leiloes);
+export function BasesSyncButton({ leiloes, onSyncComplete }: Props) {
+  const { sync, syncing } = useSyncBases(leiloes, onSyncComplete);
 
   return (
     <button

@@ -28,6 +28,7 @@ interface Props {
   refsPerFile:   Map<string, string[]>;
   excludedFiles: Set<string>;
   leiloes:       Leilao[];
+  syncKey?:      number;
 }
 
 type TransferMode = 'com_valor' | 'simples';
@@ -49,7 +50,7 @@ function Stat({ value, label, color = 'zinc' }: { value: number; label: string; 
   );
 }
 
-export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, excludedFiles, leiloes }: Props) {
+export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, excludedFiles, leiloes, syncKey }: Props) {
   const [selectedOld,      setSelectedOld]      = useState<string>('');
   const [oldOpen,          setOldOpen]          = useState(false);
   const [novoLeilao,       setNovoLeilao]       = useState('');
@@ -96,9 +97,10 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
     resetVerificar();
   }
 
-  // Ao selecionar leilão destino: detecta ultimoLote
+  // Ao selecionar leilão destino (ou após sync): detecta ultimoLote e reseta verificação
   useEffect(() => {
     if (!novoLeilao || !novoLeilaoSel) return;
+    void syncKey; // re-dispara quando sync completar
     const ctrl = new AbortController();
     setFetchingUltimoLote(true);
     resetVerificar();
@@ -112,7 +114,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
       .catch(() => { /* silencioso — usuário pode ajustar manualmente */ })
       .finally(() => setFetchingUltimoLote(false));
     return () => ctrl.abort();
-  }, [novoLeilao, novoLeilaoSel]);
+  }, [novoLeilao, novoLeilaoSel, syncKey]);
 
   const oldFile = uploadedFiles.find(f => f.codigoPlatforma === selectedOld);
   // Filtra refs inválidas que possam ter chegado de uploads antigos (ex: linhas de diamantes)
