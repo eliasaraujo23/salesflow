@@ -268,21 +268,40 @@ export function useCadastrarPecas() {
         photoDone:  0,
       }));
 
-      try {
-        const res = await fetch('/api/leilao/upload-fotos', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ codigoPlatforma, nome, pecas: pecasParaFoto }),
-          signal:  ctrl.signal,
-        });
+      const PHOTO_CHUNK = 30;
+      const photoChunks: typeof pecasParaFoto[] = [];
+      for (let i = 0; i < pecasParaFoto.length; i += PHOTO_CHUNK) {
+        photoChunks.push(pecasParaFoto.slice(i, i + PHOTO_CHUNK));
+      }
 
-        if (res.ok && res.body) {
+      for (let ci = 0; ci < photoChunks.length; ci++) {
+        if (ctrl.signal.aborted) break;
+        const photoChunk = photoChunks[ci];
+        const chunkLabel = photoChunks.length > 1
+          ? `Fotos: lote ${ci + 1} de ${photoChunks.length}`
+          : '';
+        if (chunkLabel) setState(s => ({ ...s, statusMsg: chunkLabel }));
+
+        try {
+          const res = await fetch('/api/leilao/upload-fotos', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ codigoPlatforma, nome, pecas: photoChunk }),
+            signal:  ctrl.signal,
+          });
+
+          if (!res.ok || !res.body) continue;
+
           const reader  = res.body.getReader();
           const decoder = new TextDecoder();
           let   buffer  = '';
 
           outer: while (true) {
-            const { done, value } = await reader.read();
+            const readPromise = reader.read();
+            const timeout     = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('photo chunk timeout')), 4 * 60 * 1000),
+            );
+            const { done, value } = await Promise.race([readPromise, timeout]);
             if (done) break;
 
             buffer += decoder.decode(value, { stream: true });
@@ -336,10 +355,10 @@ export function useCadastrarPecas() {
               }
             }
           }
+        } catch (err) {
+          if ((err as Error)?.name === 'AbortError') return;
+          // Timeout ou erro de rede no chunk de fotos — continua próximo chunk
         }
-      } catch (err) {
-        if ((err as Error)?.name === 'AbortError') return;
-        // Photo upload errors are non-fatal — fall through to done
       }
     }
 
