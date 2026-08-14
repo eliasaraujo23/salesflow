@@ -235,7 +235,8 @@ async function loadGerenciarImagens(cookie: string, pieceId: string): Promise<st
     redirect: 'follow',
   });
   const text = await res.text();
-  console.log(`[upload-fotos] gerenciar_imagens resp status=${res.status} len=${text.length}: ${text.slice(0, 300)}`);
+  // Log completo para ver o JS de inicialização do Bootstrap FileInput e os parâmetros do uploadUrl
+  console.log(`[upload-fotos] gerenciar_imagens resp status=${res.status} len=${text.length}: ${text.slice(0, 3000)}`);
   return mergeCookies(cookie, res);
 }
 
