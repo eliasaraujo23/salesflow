@@ -40,39 +40,35 @@ async function loginLeiloesbr(user: string, pass: string, numLeilao: string): Pr
   return (loginRes.headers.get('set-cookie') ?? '').match(/ASPSESSIONID\w+=\w+/i)?.[0] ?? sessionId;
 }
 
-// Busca uma REF específica no leilão via filtro Descricao — retorna true se encontrada
-async function refExisteNoLeilao(cookie: string, leilao: string, ref: string): Promise<boolean> {
-  const res = await fetch(`${BASE}/listar_pecas.asp`, {
-    method: 'POST',
-    headers: {
-      'Content-Type':     'application/x-www-form-urlencoded; charset=UTF-8',
-      'Cookie':           cookie,
-      'User-Agent':       UA,
-      'Origin':           'https://www.leiloesbr.com.br',
-      'Referer':          `${BASE}/listar_pecas.asp?Listar=on&Leilao=${leilao}`,
-      'Accept':           'text/html, */*; q=0.01',
-      'X-Requested-With': 'XMLHttpRequest',
-    },
-    body: new URLSearchParams({
-      Listar: 'on', Leilao: leilao,
-      Peca: '', Lotel: '', LoteF: '', Cartela: '', Cart: '',
-      Descricao: ref,
-      Dia: '', Item: '', IdT: '', Nota: '',
-      DtNI: '', DtNF: '', DtSI: '', DtSF: '', DtAI: '', DtAF: '',
-      ID_Clil: '', ID_ClIF: '', Extra: '', TaxaL: '',
-      Site: '', Ft: '', Gbl: '', Dv: '', DESTAQUE_O: '',
-      PVendal: '', PVendaF: '', Avall: '', AvalF: '',
-      saida: '', order: '',
-      Botao: 'Pesquisar',
-      Tipo: '1',
-    }).toString(),
-    redirect: 'follow',
-    signal: AbortSignal.timeout(15_000),
-  });
+function cleanCell(html: string): string {
+  return html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').trim();
+}
 
+// Exporta o leilão via XLS e retorna todas as REFs presentes (Descricao_2 / MiniDescrição)
+async function listarRefsNoLeilao(cookie: string, leilao: string): Promise<Set<string>> {
+  const res = await fetch(`${BASE}/ajax/exportalotes.asp?Leilao=${leilao}`, {
+    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_pecas.asp` },
+    redirect: 'follow',
+    signal: AbortSignal.timeout(60_000),
+  });
+  if (!res.ok) throw new Error(`Export falhou: HTTP ${res.status}`);
   const html = await res.text();
-  // Se retornou algum <td> com ID numérico de peça, a ref existe
-  return /<td[^>]*>\s*\d{6,9}\s*<\/td>/i.test(html);
+
+  const segments = html.split(/<\/tr>/i);
+  const headerSeg = segments[0] ?? '';
+  const headers = [...headerSeg.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/gi)]
+    .map(m => cleanCell(m[1]));
+
+  const idxRef = headers.findIndex(h => /minidesc|mini|descri.o.2|segunda/i.test(h));
+  if (idxRef < 0) return new Set();
+
+  const refs = new Set<string>();
+  for (const seg of segments.slice(1)) {
+    const cells = [...seg.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+    const ref   = cells[idxRef]?.trim().toUpperCase();
+    if (ref) refs.add(ref);
+  }
+  return refs;
 }
 
 export async function POST(req: Request) {
@@ -105,28 +101,23 @@ export async function POST(req: Request) {
       await send({ type: 'status', message: 'Autenticando...' });
       const cookie = await loginLeiloesbr(creds.user, creds.pass, leilao);
 
+      await send({ type: 'status', message: 'Exportando leilão destino...' });
+      // Uma única chamada XLS — muito mais rápida e usa Descricao_2 (campo correto da REF)
+      const refsNoDestino = await listarRefsNoLeilao(cookie, leilao);
+
       const total       = refs.length;
       const encontradas = new Set<string>();
-      let   done        = 0;
 
       await send({ type: 'start', total });
 
-      // Processa em paralelo com CONCURRENCY = 8
-      const CONCURRENCY = 8;
-      const queue = [...refs];
-
-      async function worker() {
-        while (queue.length > 0) {
-          const ref = queue.shift();
-          if (!ref) break;
-          const existe = await refExisteNoLeilao(cookie, leilao, ref);
-          if (existe) encontradas.add(ref.toUpperCase());
-          const snap = ++done;
-          await send({ type: 'progress', ref, existe, done: snap, total });
-        }
+      // Cruzamento local — sem requests adicionais
+      for (let i = 0; i < refs.length; i++) {
+        const ref    = refs[i];
+        const existe = refsNoDestino.has(ref.toUpperCase());
+        if (existe) encontradas.add(ref.toUpperCase());
+        await send({ type: 'progress', ref, existe, done: i + 1, total });
       }
 
-      await Promise.all(Array.from({ length: CONCURRENCY }, worker));
       await send({ type: 'done', refsPresentes: [...encontradas] });
 
     } catch (err) {

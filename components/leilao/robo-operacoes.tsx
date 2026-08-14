@@ -283,7 +283,7 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   );
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
 
       {/* Upload Imagens */}
       <div className="rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">

@@ -29,7 +29,7 @@ export default function RoboPage() {
     <div className="h-full overflow-y-auto p-4 sm:p-5 flex flex-col gap-4">
 
       {/* ── Bases do Leilão ──────────────────────────────────── */}
-      <section className="flex flex-col gap-2">
+      <section className="flex flex-col gap-2 shrink-0">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-baseline gap-2">
             <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Bases do Leilão</h2>
@@ -47,51 +47,40 @@ export default function RoboPage() {
         />
       </section>
 
-      {/* ── Criar Novo Leilão + Operações Avulsas (lado a lado) ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 flex-1 min-h-0">
-
-        {/* Criar Novo Leilão */}
-        <section className="flex flex-col gap-2 min-h-0">
-          <div className="flex items-baseline gap-2">
-            <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Criar Novo Leilão</h2>
-            <p className="text-[11px] text-zinc-400">Peças novas + transferência do leilão anterior</p>
+      {/* ── Criar Novo Leilão ─────────────────────────────────── */}
+      <section className="flex flex-col gap-2 shrink-0">
+        <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Criar Novo Leilão</h2>
+        {uploadedFiles.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-200 dark:border-white/[0.08] p-5 text-center">
+            <p className="text-xs text-zinc-400">Carregue ao menos uma base do leilão acima</p>
           </div>
-          {uploadedFiles.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-zinc-200 dark:border-white/[0.08] p-6 text-center">
-              <p className="text-xs text-zinc-400">Carregue ao menos uma base do leilão acima</p>
-            </div>
-          ) : (
-            <RoboNovoLeilao
-              basePieces={basePieces}
-              uploadedFiles={uploadedFiles}
-              refsPerFile={refsPerFile}
-              excludedFiles={excludedFiles}
-              leiloes={leiloes}
-              syncKey={syncKey}
-            />
-          )}
-        </section>
+        ) : (
+          <RoboNovoLeilao
+            basePieces={basePieces}
+            uploadedFiles={uploadedFiles}
+            refsPerFile={refsPerFile}
+            excludedFiles={excludedFiles}
+            leiloes={leiloes}
+            syncKey={syncKey}
+          />
+        )}
+      </section>
 
-        {/* Operações Avulsas */}
-        <section className="flex flex-col gap-2 min-h-0">
-          <div className="flex items-baseline gap-2">
-            <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Operações Avulsas</h2>
-            <p className="text-[11px] text-zinc-400">Upload de imagens, preço, duplicatas e reset</p>
+      {/* ── Operações Avulsas ─────────────────────────────────── */}
+      <section className="flex flex-col gap-2 shrink-0">
+        <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Operações Avulsas</h2>
+        {uploadedFiles.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-200 dark:border-white/[0.08] p-5 text-center">
+            <p className="text-xs text-zinc-400">Nenhuma base carregada</p>
           </div>
-          {uploadedFiles.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-zinc-200 dark:border-white/[0.08] p-6 text-center">
-              <p className="text-xs text-zinc-400">Nenhuma base carregada</p>
-            </div>
-          ) : (
-            <RoboOperacoes
-              basePieces={basePieces}
-              uploadedFiles={uploadedFiles}
-              refsPerFile={refsPerFile}
-            />
-          )}
-        </section>
-
-      </div>
+        ) : (
+          <RoboOperacoes
+            basePieces={basePieces}
+            uploadedFiles={uploadedFiles}
+            refsPerFile={refsPerFile}
+          />
+        )}
+      </section>
 
     </div>
   );
