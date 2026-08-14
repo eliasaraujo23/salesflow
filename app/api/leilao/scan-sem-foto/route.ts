@@ -149,6 +149,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
   const leilao = searchParams.get('leilao')?.trim() ?? '';
   const nome   = searchParams.get('nome')?.trim() ?? '';
+  const debug  = searchParams.get('debug') === '1';
 
   if (!leilao || !nome)
     return NextResponse.json({ error: 'Parâmetros: leilao, nome' }, { status: 400 });
@@ -165,13 +166,22 @@ export async function GET(req: Request): Promise<NextResponse> {
       listarPecas(cookie, leilao),
     ]);
 
-    const loteRef  = parseXls(xlsHtml);        // lote → ref
-    const loteInfo = parseListagem(listHtml);   // lote → { pieceId, nFotos, siteAtivo }
+    // Modo debug: retorna as primeiras 5 linhas parseadas com todas as células
+    if (debug) {
+      const rows = [...listHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
+        .filter(m => m[1].includes('<td'))
+        .slice(0, 5)
+        .map(m => [...m[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(c => cleanCell(c[1])));
+      const xlsRows = [...xlsHtml.matchAll(/<\/tr>/gi)].length;
+      return NextResponse.json({ listRows: rows, xlsRowCount: xlsRows, listLen: listHtml.length });
+    }
+
+    const loteRef  = parseXls(xlsHtml);
+    const loteInfo = parseListagem(listHtml);
 
     const semFoto: PecaSemFoto[] = [];
     for (const [lote, ref] of loteRef) {
       const info = loteInfo.get(lote);
-      // sem foto = nFotos === 0 ou -1 (desconhecido, conservador)
       if (!info || info.nFotos === 0) {
         semFoto.push({
           lote,
