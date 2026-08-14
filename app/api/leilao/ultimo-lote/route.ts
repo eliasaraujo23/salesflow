@@ -85,9 +85,9 @@ async function scrapeLeilao(cookie: string, leilao: string): Promise<{ ultimoLot
     const id    = cells[0]?.trim();
     if (!id || !/^\d{6,9}$/.test(id)) continue;
 
-    // Log das primeiras 3 linhas para entender a estrutura real das colunas
+    // Log das primeiras 3 linhas — coluna 3 sem truncar para ver a REF completa
     if (ri < 3) {
-      console.log(`[ultimo-lote] row[${ri}] cells(${cells.length}):`, cells.slice(0, 8).map((c, i) => `[${i}]=${c.slice(0, 30)}`).join(' | '));
+      console.log(`[ultimo-lote] row[${ri}] cells(${cells.length}):`, cells.slice(0, 8).map((c, i) => `[${i}]=${i === 3 ? c : c.slice(0, 30)}`).join(' | '));
     }
 
     const loteNum = Number(cells[2]?.replace(/\D/g, '') ?? '0');
