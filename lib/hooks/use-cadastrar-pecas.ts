@@ -223,7 +223,7 @@ export function useCadastrarPecas() {
     }
 
     // ── Phase 2: upload photos + activate Site ─────────────────────────────────
-    const pecasParaFoto = Array.from(successMap.values()).map(p => ({
+    const pecasParaFoto = Array.from(successMap.values()).sort((a, b) => a.lote - b.lote).map(p => ({
       lote:              p.lote,
       referencia:        p.referencia,
       peca:              p.peca,
