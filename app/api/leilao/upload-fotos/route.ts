@@ -253,7 +253,7 @@ async function getAvailableSlots(cookie: string, pieceId: string): Promise<{ coo
     if (!occupied.has(i)) slots.push(i);
   }
 
-  console.log(`[upload-fotos] gerenciar_imagens pieceId=${pieceId} occupied=[${[...occupied]}] freeSlots=[${slots}]`);
+  console.log(`[upload-fotos] extras pieceId=${pieceId} slots ocupados=[${[...occupied]}] livres=[${slots}]`);
   return { cookie: updatedCookie, slots };
 }
 
@@ -341,7 +341,7 @@ async function uploadExtras(
     });
     activeCookie = mergeCookies(activeCookie, res);
     const text = await res.text();
-    console.log(`[upload-fotos] extra[${i + 1}/${count}] slot=${slot} status=${res.status}: ${text.slice(0, 200)}`);
+    console.log(`[upload-fotos] extra[${i + 1}/${count}] slot=${slot} status=${res.status}`);
     if (res.ok && !text.includes('"error"')) ok++;
 
     if (i < count - 1) await new Promise(r => setTimeout(r, 300));
