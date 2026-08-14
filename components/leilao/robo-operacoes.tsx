@@ -14,6 +14,7 @@ import {
 import { fetchImageKeys } from '@/lib/actions/fetch-image-keys';
 import { useAtualizarPreco } from '@/lib/hooks/use-atualizar-preco';
 import { AtualizarPrecoModal } from '@/components/leilao/atualizar-preco-modal';
+import { ReuploadsModal } from '@/components/leilao/reuploads-modal';
 
 interface Props {
   basePieces:    LeilaoBaseRow[];
@@ -96,30 +97,35 @@ function BaseSelect({
 // ─── Reupload Fotos ──────────────────────────────────────────────────────────
 
 type ReuphPhase = 'idle' | 'scanning' | 'scanned' | 'running' | 'done' | 'error';
-interface ReuphState {
+
+export type PecaStatus = 'pending' | 'running' | 'ok' | 'noimg' | 'error';
+
+export interface ReuphState {
   phase:       ReuphPhase;
-  total:       number;  // peças escaneadas
-  semFoto:     number;  // peças sem foto
-  withImg:     number;  // sem foto mas com R2
-  withoutImg:  number;  // sem foto e sem R2
-  done:        number;  // processadas
-  uploaded:    number;  // fotos enviadas com sucesso
-  activated:   number;  // Sites ativados
-  deactivated: number;  // Sites desativados (sem R2)
+  total:       number;
+  semFoto:     number;
+  done:        number;
+  uploaded:    number;
+  activated:   number;
+  deactivated: number;
   errors:      number;
   statusMsg:   string;
   fatalError:  string;
+  pecaStatus:  Record<string, PecaStatus>; // pieceId → status
 }
+
 const REUPH_INIT: ReuphState = {
-  phase: 'idle', total: 0, semFoto: 0, withImg: 0, withoutImg: 0,
-  done: 0, uploaded: 0, activated: 0, deactivated: 0, errors: 0, statusMsg: '', fatalError: '',
+  phase: 'idle', total: 0, semFoto: 0,
+  done: 0, uploaded: 0, activated: 0, deactivated: 0, errors: 0,
+  statusMsg: '', fatalError: '', pecaStatus: {},
 };
 
-interface ScannedPeca { lote: number; ref: string; pieceId: string; }
+export interface ScannedPeca { lote: number; ref: string; pieceId: string; }
 
 function useReuploads() {
   const [state,    setState]    = useState<ReuphState>(REUPH_INIT);
   const [pecasSem, setPecasSem] = useState<ScannedPeca[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   async function scan(leilao: string, nome: string) {
@@ -132,6 +138,7 @@ function useReuploads() {
       const pecas = (data.pecas ?? []).filter(p => !!p.pieceId);
       setPecasSem(pecas);
       setState(s => ({ ...s, phase: 'scanned', total: data.total ?? 0, semFoto: pecas.length }));
+      if (pecas.length > 0) setModalOpen(true);
     } catch (e) {
       setState(s => ({ ...s, phase: 'error', fatalError: e instanceof Error ? e.message : 'Erro' }));
     }
@@ -143,7 +150,14 @@ function useReuploads() {
     const ctrl = new AbortController();
     abortRef.current = ctrl;
 
-    setState(s => ({ ...s, phase: 'running', done: 0, uploaded: 0, activated: 0, deactivated: 0, errors: 0, statusMsg: '' }));
+    // Inicializa status de todas as peças como pending
+    const initStatus: Record<string, PecaStatus> = {};
+    for (const p of pecasSem) initStatus[p.pieceId] = 'pending';
+
+    setState(s => ({
+      ...s, phase: 'running', done: 0, uploaded: 0, activated: 0, deactivated: 0,
+      errors: 0, statusMsg: '', pecaStatus: initStatus,
+    }));
 
     const CHUNK = 30;
     const chunks: ScannedPeca[][] = [];
@@ -152,6 +166,14 @@ function useReuploads() {
     for (let ci = 0; ci < chunks.length; ci++) {
       if (ctrl.signal.aborted) break;
       const chunk = chunks[ci];
+
+      // Marca peças do chunk como running
+      setState(s => {
+        const next = { ...s.pecaStatus };
+        for (const p of chunk) next[p.pieceId] = 'running';
+        return { ...s, pecaStatus: next };
+      });
+
       try {
         const res = await fetch('/api/leilao/reupload-fotos', {
           method:  'POST',
@@ -164,6 +186,9 @@ function useReuploads() {
         const reader  = res.body.getReader();
         const decoder = new TextDecoder();
         let   buf     = '';
+
+        // Rastreia o último lote processado para associar pieceId
+        let currentPieceId = '';
 
         outer: while (true) {
           const readP   = reader.read();
@@ -184,25 +209,40 @@ function useReuploads() {
 
             if (type === 'status') {
               setState(s => ({ ...s, statusMsg: (event.message as string) ?? '' }));
+
             } else if (type === 'photoProgress') {
               const slot    = event.slot as string;
+              const lote    = event.lote as number;
               const success = event.success as boolean;
               if (slot === 'main') {
+                const peca = chunk.find(p => p.lote === lote);
+                currentPieceId = peca?.pieceId ?? '';
                 setState(s => ({
                   ...s,
                   done:     s.done + 1,
                   uploaded: success ? s.uploaded + 1 : s.uploaded,
-                  errors:   success ? s.errors : s.errors + 1,
+                  errors:   success ? s.errors : s.errors + (success ? 0 : 0), // site events count errors
+                  pecaStatus: currentPieceId
+                    ? { ...s.pecaStatus, [currentPieceId]: success ? 'ok' : 'noimg' }
+                    : s.pecaStatus,
                 }));
               }
+
             } else if (type === 'siteProgress') {
+              const lote    = event.lote as number;
               const action  = event.action as string;
               const success = event.success as boolean;
+              const peca    = chunk.find(p => p.lote === lote);
               setState(s => ({
                 ...s,
                 activated:   action === 'ativar'    && success ? s.activated   + 1 : s.activated,
                 deactivated: action === 'desativar' && success ? s.deactivated + 1 : s.deactivated,
+                errors:      !success ? s.errors + 1 : s.errors,
+                pecaStatus: peca
+                  ? { ...s.pecaStatus, [peca.pieceId]: action === 'desativar' ? 'noimg' : (success ? 'ok' : 'error') }
+                  : s.pecaStatus,
               }));
+
             } else if (type === 'error') {
               setState(s => ({ ...s, statusMsg: (event.message as string) ?? 'Erro' }));
               break outer;
@@ -211,7 +251,14 @@ function useReuploads() {
         }
       } catch (e) {
         if ((e as Error)?.name === 'AbortError') return;
-        // timeout ou rede — continua próximo chunk
+        // timeout ou rede — marca peças do chunk como erro e continua
+        setState(s => {
+          const next = { ...s.pecaStatus };
+          for (const p of chunk) {
+            if (next[p.pieceId] === 'running') next[p.pieceId] = 'error';
+          }
+          return { ...s, pecaStatus: next };
+        });
       }
     }
 
@@ -220,8 +267,11 @@ function useReuploads() {
     }
   }
 
-  function reset() { setState(REUPH_INIT); setPecasSem([]); }
-  return { state, scan, executar, reset };
+  function openModal()  { setModalOpen(true); }
+  function closeModal() { if (state.phase !== 'running') { setModalOpen(false); } }
+  function reset()      { abortRef.current?.abort(); setState(REUPH_INIT); setPecasSem([]); setModalOpen(false); }
+
+  return { state, pecasSem, modalOpen, openModal, closeModal, scan, executar, reset };
 }
 
 // ─── Duplicatas ───────────────────────────────────────────────────────────────
@@ -352,7 +402,7 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   const { open, openModal, closeModal, state, execute, isRunning } = useAtualizarPreco();
   const { state: dupState,   scan: dupScan, remover: dupRemover, reset: dupReset } = useDuplicatas();
   const { state: zerarState, confirm: zerarConfirm, zerar, reset: zerarReset } = useZerarLeilao();
-  const { state: reuphState, scan: reuphScan, executar: reuphExecutar, reset: reuphReset } = useReuploads();
+  const { state: reuphState, pecasSem: reuphPecas, modalOpen: reuphModalOpen, openModal: reuphOpenModal, closeModal: reuphCloseModal, scan: reuphScan, executar: reuphExecutar, reset: reuphReset } = useReuploads();
 
   const reuphFile      = uploadedFiles.find(f => f.filename === reuphBase);
   const reuphLeilao    = reuphFile?.codigoPlatforma ?? '';
@@ -424,6 +474,7 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   );
 
   return (
+    <>
     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
 
       {/* Upload Imagens */}
@@ -645,29 +696,35 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
           <button
             onClick={() => {
               if (!reuphLeilao || !reuphNome) return;
-              if (reuphState.phase === 'idle' || reuphState.phase === 'error')   reuphScan(reuphLeilao, reuphNome);
-              else if (reuphState.phase === 'scanned' && reuphState.semFoto > 0) reuphExecutar(reuphLeilao, reuphNome);
-              else reuphReset();
+              if (reuphState.phase === 'idle' || reuphState.phase === 'error') {
+                reuphScan(reuphLeilao, reuphNome);
+              } else if (reuphState.phase === 'scanned' && reuphState.semFoto > 0) {
+                reuphOpenModal();
+              } else if (reuphState.phase === 'running' || reuphState.phase === 'done') {
+                reuphOpenModal();
+              } else {
+                reuphReset();
+              }
             }}
-            disabled={!reuphBase || isRunningReuph}
+            disabled={!reuphBase || reuphState.phase === 'scanning'}
             className={[
               'w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
-              reuphState.phase === 'scanned' && reuphState.semFoto > 0
+              (reuphState.phase === 'scanned' && reuphState.semFoto > 0) || reuphState.phase === 'running' || reuphState.phase === 'done'
                 ? 'bg-violet-600 hover:bg-violet-700 text-white'
                 : 'border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04]',
             ].join(' ')}
           >
-            {isRunningReuph
+            {reuphState.phase === 'scanning'
               ? <Loader2 size={12} className="animate-spin" />
-              : reuphState.phase === 'scanned' && reuphState.semFoto > 0
+              : (reuphState.phase === 'scanned' && reuphState.semFoto > 0) || reuphState.phase === 'running' || reuphState.phase === 'done'
                 ? <Camera size={12} />
                 : <Zap size={12} />}
             {reuphState.phase === 'idle'     && 'Escanear'}
             {reuphState.phase === 'scanning' && 'Escaneando...'}
             {reuphState.phase === 'scanned'  && reuphState.semFoto === 0 && 'Escanear novamente'}
-            {reuphState.phase === 'scanned'  && reuphState.semFoto > 0   && `Enviar fotos (${reuphState.semFoto})`}
-            {reuphState.phase === 'running'  && 'Enviando...'}
-            {reuphState.phase === 'done'     && 'Escanear novamente'}
+            {reuphState.phase === 'scanned'  && reuphState.semFoto > 0   && `Ver peças (${reuphState.semFoto})`}
+            {reuphState.phase === 'running'  && 'Ver progresso'}
+            {reuphState.phase === 'done'     && 'Ver resultado'}
             {reuphState.phase === 'error'    && 'Tentar novamente'}
           </button>
 
@@ -831,5 +888,17 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
       </div>
 
     </div>
+
+    <ReuploadsModal
+      open={reuphModalOpen}
+      state={reuphState}
+      pecas={reuphPecas}
+      leilaoNome={reuphFile?.leilao?.nome}
+      codigoPlatforma={reuphFile?.codigoPlatforma ?? undefined}
+      isRunning={reuphState.phase === 'running'}
+      onClose={reuphCloseModal}
+      onExecute={() => reuphExecutar(reuphLeilao, reuphNome)}
+    />
+    </>
   );
 }
