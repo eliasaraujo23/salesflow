@@ -40,12 +40,7 @@ async function loginLeiloesbr(user: string, pass: string, numLeilao: string): Pr
   return (loginRes.headers.get('set-cookie') ?? '').match(/ASPSESSIONID\w+=\w+/i)?.[0] ?? sessionId;
 }
 
-function cleanCell(html: string): string {
-  return html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').trim();
-}
-
-// Raspa listar_pecas.asp e retorna o maior Lote + todas as refs (segunda_descricao) presentes
-async function scrapeLeilao(cookie: string, leilao: string): Promise<{ ultimoLote: number; refsPresentes: string[] }> {
+async function getUltimoLote(cookie: string, leilao: string): Promise<number> {
   const res = await fetch(`${BASE}/listar_pecas.asp`, {
     method: 'POST',
     headers: {
@@ -73,38 +68,20 @@ async function scrapeLeilao(cookie: string, leilao: string): Promise<{ ultimoLot
   });
 
   const html = await res.text();
-
-  const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'));
-  console.log(`[ultimo-lote] leilao=${leilao} htmlLen=${html.length} rows=${rows.length}`);
+  const allTds = [...html.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)]
+    .map(m => m[1].replace(/<[^>]+>/g, '').replace(/&nbsp;/g, '').trim());
 
   let maxLote = 0;
-  const refsPresentes: string[] = [];
-
-  for (let ri = 0; ri < rows.length; ri++) {
-    const cells = [...rows[ri][1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
-    const id    = cells[0]?.trim();
-    if (!id || !/^\d{6,9}$/.test(id)) continue;
-
-    // Log das primeiras 3 linhas — coluna 3 sem truncar para ver a REF completa
-    if (ri < 3) {
-      console.log(`[ultimo-lote] row[${ri}] cells(${cells.length}):`, cells.slice(0, 8).map((c, i) => `[${i}]=${i === 3 ? c : c.slice(0, 30)}`).join(' | '));
-    }
-
-    const loteNum = Number(cells[2]?.replace(/\D/g, '') ?? '0');
-    if (loteNum > 0 && loteNum <= 9999 && loteNum > maxLote) maxLote = loteNum;
-
-    // Tenta colunas 4, 3, 5 em sequência — REF pura (3-10 chars alfanum)
-    for (const colIdx of [4, 3, 5]) {
-      const ref = cells[colIdx]?.trim();
-      if (ref && /^[A-Z0-9]{3,10}$/i.test(ref) && !/^\d+$/.test(ref)) {
-        refsPresentes.push(ref.toUpperCase());
-        break;
-      }
+  for (let i = 0; i + 2 <= allTds.length - 1; i++) {
+    const rawId  = allTds[i]?.trim();
+    const rawLot = allTds[i + 2]?.replace(/\s/g, '').replace(/\D/g, '');
+    if (rawId && /^\d{6,9}$/.test(rawId)) {
+      const loteNum = Number(rawLot);
+      if (loteNum > 0 && loteNum <= 9999 && loteNum > maxLote) maxLote = loteNum;
     }
   }
 
-  console.log(`[ultimo-lote] ultimoLote=${maxLote} refsPresentes=${refsPresentes.length} sample=${refsPresentes.slice(0, 5).join(',')}`);
-  return { ultimoLote: maxLote, refsPresentes };
+  return maxLote;
 }
 
 export async function GET(req: Request) {
@@ -122,9 +99,9 @@ export async function GET(req: Request) {
   }
 
   try {
-    const cookie = await loginLeiloesbr(creds.user, creds.pass, leilao);
-    const { ultimoLote, refsPresentes } = await scrapeLeilao(cookie, leilao);
-    return Response.json({ ultimoLote, refsPresentes });
+    const cookie     = await loginLeiloesbr(creds.user, creds.pass, leilao);
+    const ultimoLote = await getUltimoLote(cookie, leilao);
+    return Response.json({ ultimoLote });
   } catch (err) {
     return Response.json(
       { error: err instanceof Error ? err.message : 'Erro interno' },

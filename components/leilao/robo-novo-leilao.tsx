@@ -20,6 +20,7 @@ import { useCadastrarPecas, buildPecasParaCadastrar } from '@/lib/hooks/use-cada
 import { CadastrarPecasModal } from '@/components/leilao/cadastrar-pecas-modal';
 import { useTransferirPecas } from '@/lib/hooks/use-transferir-pecas';
 import { TransferirPecasModal } from '@/components/leilao/transferir-pecas-modal';
+import { useVerificarRefs } from '@/lib/hooks/use-verificar-refs';
 
 interface Props {
   basePieces:    LeilaoBaseRow[];
@@ -57,12 +58,14 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   const [startLote,             setStartLote]             = useState(1);
   const [transferStartLote,     setTransferStartLote]     = useState(1);
   const [fetchingUltimoLote,    setFetchingUltimoLote]    = useState(false);
-  const [refsJaNoDestino,       setRefsJaNoDestino]       = useState<Set<string>>(new Set());
   const [transferMode,     setTransferMode]     = useState<TransferMode>('com_valor');
   const [leilaoTipo,       setLeilaoTipo]       = useState<'NORMAL' | 'TOP'>('NORMAL');
   const [loadingExcluidas, setLoadingExcluidas] = useState(false);
   const { open: cadastrarOpen, openModal: openCadastrar, closeModal: closeCadastrar, state: cadastrarState, execute: executeCadastrar, isRunning: cadastrarRunning } = useCadastrarPecas();
   const { open: transferirOpen, openModal: openTransferir, closeModal: closeTransferir, state: transferirState, execute: executeTransferir, isRunning: transferirRunning } = useTransferirPecas();
+  const { state: verificarState, verificar: verificarRefs, reset: resetVerificar } = useVerificarRefs();
+  // refsJaNoDestino vem do hook verificarRefs (busca por Descricao no leiloesbr)
+  const refsJaNoDestino = verificarState.refsPresentes;
 
   useEffect(() => {
     const f = uploadedFiles.find(f => f.codigoPlatforma === selectedOld);
@@ -90,23 +93,20 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
     setNovoLeilao('');
     setNovoLeilaoSel(null);
     setTransferStartLote(1);
-    setRefsJaNoDestino(new Set());
+    resetVerificar();
   }
 
-  // Ao selecionar leilão destino: detecta ultimoLote e refs já presentes (evita duplicatas)
+  // Ao selecionar leilão destino: detecta ultimoLote
   useEffect(() => {
     if (!novoLeilao || !novoLeilaoSel) return;
     const ctrl = new AbortController();
     setFetchingUltimoLote(true);
-    setRefsJaNoDestino(new Set());
+    resetVerificar();
     fetch(`/api/leilao/ultimo-lote?leilao=${novoLeilao}&nome=${encodeURIComponent(novoLeilaoSel.nome)}`, { signal: ctrl.signal })
       .then(r => r.json())
-      .then((data: { ultimoLote?: number; refsPresentes?: string[]; error?: string }) => {
+      .then((data: { ultimoLote?: number; error?: string }) => {
         if (typeof data.ultimoLote === 'number') {
           setTransferStartLote(data.ultimoLote + 1);
-        }
-        if (Array.isArray(data.refsPresentes) && data.refsPresentes.length > 0) {
-          setRefsJaNoDestino(new Set(data.refsPresentes.map(r => r.toUpperCase())));
         }
       })
       .catch(() => { /* silencioso — usuário pode ajustar manualmente */ })
@@ -558,26 +558,87 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
                   </div>
                 )}
 
-                {/* Carregando refs do destino */}
+                {/* Carregando último lote */}
                 {fetchingUltimoLote && novoLeilao && (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-white/[0.06]">
                     <div className="w-3 h-3 rounded-full border-2 border-violet-400 border-t-transparent animate-spin shrink-0" />
-                    <span className="text-[10px] text-zinc-400">Verificando leilão destino...</span>
+                    <span className="text-[10px] text-zinc-400">Lendo leilão destino...</span>
                   </div>
                 )}
 
-                {/* Aviso de peças já no destino */}
-                {!fetchingUltimoLote && qtdJaTransferidas > 0 && (
-                  <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/40">
-                    <CheckCircle2 size={13} className="text-sky-500 shrink-0 mt-0.5" />
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-400">
-                        {qtdJaTransferidas} peça{qtdJaTransferidas > 1 ? 's' : ''} já no leilão destino
-                      </span>
-                      <span className="text-[10px] text-sky-600 dark:text-sky-500">
-                        Removidas da lista — já transferidas anteriormente
+                {/* Botão verificar duplicatas — aparece quando destino está selecionado e não verificou ainda */}
+                {!fetchingUltimoLote && novoLeilao && novoLeilaoSel && verificarState.status === 'idle' && (
+                  <button
+                    onClick={() => {
+                      const refs = unsoldRefs.filter(r => {
+                        const row = priceMap.get(r.toUpperCase());
+                        return row && (row.preco_avista ?? 0) > 0;
+                      });
+                      verificarRefs({ nome: novoLeilaoSel.nome, leilao: novoLeilao, refs });
+                    }}
+                    className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/40 text-sky-700 dark:text-sky-400 text-[11px] font-semibold transition-colors"
+                  >
+                    <CheckCircle2 size={11} />
+                    Verificar duplicatas no destino
+                  </button>
+                )}
+
+                {/* Progresso da verificação */}
+                {verificarState.status === 'running' && (
+                  <div className="flex flex-col gap-1.5 px-3 py-2.5 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/40">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full border-2 border-sky-400 border-t-transparent animate-spin shrink-0" />
+                        <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-400">
+                          Verificando refs no destino...
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-sky-500 tabular-nums">
+                        {verificarState.done}/{verificarState.total}
                       </span>
                     </div>
+                    <div className="w-full h-1.5 rounded-full bg-sky-200 dark:bg-sky-900 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-sky-500 transition-all duration-300"
+                        style={{ width: `${verificarState.total > 0 ? Math.round(verificarState.done / verificarState.total * 100) : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Resultado da verificação */}
+                {verificarState.status === 'done' && (
+                  <>
+                    {qtdJaTransferidas > 0 ? (
+                      <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/40">
+                        <CheckCircle2 size={13} className="text-sky-500 shrink-0 mt-0.5" />
+                        <div className="flex flex-col gap-0.5 flex-1">
+                          <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-400">
+                            {qtdJaTransferidas} peça{qtdJaTransferidas > 1 ? 's' : ''} já no leilão destino — removidas
+                          </span>
+                          <span className="text-[10px] text-sky-600 dark:text-sky-500">
+                            Verificado por REF · {pecasParaTransferir.length} restam para transferir
+                          </span>
+                        </div>
+                        <button onClick={resetVerificar} className="text-[10px] text-sky-400 hover:text-sky-600 shrink-0">refazer</button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40">
+                        <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
+                        <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                          Nenhuma duplicata — todas as {pecasParaTransferir.length} peças ainda não estão no destino
+                        </span>
+                        <button onClick={resetVerificar} className="ml-auto text-[10px] text-emerald-400 hover:text-emerald-600 shrink-0">refazer</button>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {verificarState.status === 'error' && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/40">
+                    <AlertTriangle size={12} className="text-red-500 shrink-0" />
+                    <span className="text-[10px] text-red-600 dark:text-red-400">{verificarState.fatalError}</span>
+                    <button onClick={resetVerificar} className="ml-auto text-[10px] text-red-400 hover:text-red-600 shrink-0">tentar novamente</button>
                   </div>
                 )}
 
