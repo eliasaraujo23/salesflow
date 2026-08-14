@@ -40,8 +40,12 @@ async function loginLeiloesbr(user: string, pass: string, numLeilao: string): Pr
   return (loginRes.headers.get('set-cookie') ?? '').match(/ASPSESSIONID\w+=\w+/i)?.[0] ?? sessionId;
 }
 
-// Scrapia listar_pecas.asp e retorna o maior Lote encontrado (0 se leilão vazio)
-async function getUltimoLote(cookie: string, leilao: string): Promise<number> {
+function cleanCell(html: string): string {
+  return html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').trim();
+}
+
+// Raspa listar_pecas.asp e retorna o maior Lote + todas as refs (segunda_descricao) presentes
+async function scrapeLeilao(cookie: string, leilao: string): Promise<{ ultimoLote: number; refsPresentes: string[] }> {
   const res = await fetch(`${BASE}/listar_pecas.asp`, {
     method: 'POST',
     headers: {
@@ -70,21 +74,31 @@ async function getUltimoLote(cookie: string, leilao: string): Promise<number> {
 
   const html = await res.text();
 
-  // Extrai todos os tds, procura coluna Lote (índice 2: ID, Comitente, Lote, ...)
-  const allTds = [...html.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)]
-    .map(m => m[1].replace(/<[^>]+>/g, '').replace(/&nbsp;/g, '').trim());
+  // Colunas por linha: 0=ID(6-9 dígitos), 1=Comitente, 2=Lote, 3=Peça(descrição), 4=2ª Desc(REF), ...
+  // Extrai linha a linha para pegar a REF (segunda_descricao = células[4])
+  const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'));
 
   let maxLote = 0;
-  for (let i = 0; i + 2 <= allTds.length - 1; i++) {
-    const rawId  = allTds[i]?.trim();
-    const rawLot = allTds[i + 2]?.replace(/\s/g, '').replace(/\D/g, '');
-    if (rawId && /^\d{6,9}$/.test(rawId)) {
-      const loteNum = Number(rawLot);
-      if (loteNum > 0 && loteNum <= 9999 && loteNum > maxLote) maxLote = loteNum;
+  const refsPresentes: string[] = [];
+
+  for (const row of rows) {
+    const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+    const id    = cells[0]?.trim();
+    if (!id || !/^\d{6,9}$/.test(id)) continue;
+
+    // Lote está na coluna 2
+    const loteNum = Number(cells[2]?.replace(/\D/g, '') ?? '0');
+    if (loteNum > 0 && loteNum <= 9999 && loteNum > maxLote) maxLote = loteNum;
+
+    // segunda_descricao (REF) está na coluna 4 — campo Descricao_2 enviado pelo robô de cadastro
+    // O valor é a referência pura (ex: AB123, 12345) sem texto adicional
+    const ref = cells[4]?.trim();
+    if (ref && /^[A-Z0-9]{3,10}$/i.test(ref)) {
+      refsPresentes.push(ref.toUpperCase());
     }
   }
 
-  return maxLote;
+  return { ultimoLote: maxLote, refsPresentes };
 }
 
 export async function GET(req: Request) {
@@ -102,9 +116,9 @@ export async function GET(req: Request) {
   }
 
   try {
-    const cookie    = await loginLeiloesbr(creds.user, creds.pass, leilao);
-    const ultimoLote = await getUltimoLote(cookie, leilao);
-    return Response.json({ ultimoLote });
+    const cookie = await loginLeiloesbr(creds.user, creds.pass, leilao);
+    const { ultimoLote, refsPresentes } = await scrapeLeilao(cookie, leilao);
+    return Response.json({ ultimoLote, refsPresentes });
   } catch (err) {
     return Response.json(
       { error: err instanceof Error ? err.message : 'Erro interno' },

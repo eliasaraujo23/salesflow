@@ -57,6 +57,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   const [startLote,             setStartLote]             = useState(1);
   const [transferStartLote,     setTransferStartLote]     = useState(1);
   const [fetchingUltimoLote,    setFetchingUltimoLote]    = useState(false);
+  const [refsJaNoDestino,       setRefsJaNoDestino]       = useState<Set<string>>(new Set());
   const [transferMode,     setTransferMode]     = useState<TransferMode>('com_valor');
   const [leilaoTipo,       setLeilaoTipo]       = useState<'NORMAL' | 'TOP'>('NORMAL');
   const [loadingExcluidas, setLoadingExcluidas] = useState(false);
@@ -89,18 +90,23 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
     setNovoLeilao('');
     setNovoLeilaoSel(null);
     setTransferStartLote(1);
+    setRefsJaNoDestino(new Set());
   }
 
-  // Auto-detecta o último lote do leilão destino para evitar duplicatas
+  // Ao selecionar leilão destino: detecta ultimoLote e refs já presentes (evita duplicatas)
   useEffect(() => {
     if (!novoLeilao || !novoLeilaoSel) return;
     const ctrl = new AbortController();
     setFetchingUltimoLote(true);
+    setRefsJaNoDestino(new Set());
     fetch(`/api/leilao/ultimo-lote?leilao=${novoLeilao}&nome=${encodeURIComponent(novoLeilaoSel.nome)}`, { signal: ctrl.signal })
       .then(r => r.json())
-      .then((data: { ultimoLote?: number; error?: string }) => {
+      .then((data: { ultimoLote?: number; refsPresentes?: string[]; error?: string }) => {
         if (typeof data.ultimoLote === 'number') {
           setTransferStartLote(data.ultimoLote + 1);
+        }
+        if (Array.isArray(data.refsPresentes) && data.refsPresentes.length > 0) {
+          setRefsJaNoDestino(new Set(data.refsPresentes.map(r => r.toUpperCase())));
         }
       })
       .catch(() => { /* silencioso — usuário pode ajustar manualmente */ })
@@ -140,6 +146,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   const eligibleCount = unsoldRefs.length - excluded.total;
 
   // Peças elegíveis para transferência com valor atualizado do sistema
+  // Exclui peças já presentes no leilão destino (detectadas via scraping)
   const pecasParaTransferir = useMemo(() => {
     if (!oldFile) return [];
     const vendidosSet = new Set(oldFile.vendidos);
@@ -149,11 +156,22 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
         const row = priceMap.get(r.toUpperCase());
         return row && (row.preco_avista ?? 0) > 0;
       })
+      .filter(r => !refsJaNoDestino.has(r.toUpperCase()))
       .map(r => ({
         ref:   r,
         valor: Math.round(priceMap.get(r.toUpperCase())?.preco_avista ?? 0),
       }));
-  }, [oldFile, unsoldRefs, priceMap]);
+  }, [oldFile, unsoldRefs, priceMap, refsJaNoDestino]);
+
+  const qtdJaTransferidas = useMemo(() => {
+    if (!oldFile || refsJaNoDestino.size === 0) return 0;
+    const vendidosSet = new Set(oldFile.vendidos);
+    return unsoldRefs.filter(r =>
+      !vendidosSet.has(r) &&
+      (priceMap.get(r.toUpperCase())?.preco_avista ?? 0) > 0 &&
+      refsJaNoDestino.has(r.toUpperCase()),
+    ).length;
+  }, [oldFile, unsoldRefs, priceMap, refsJaNoDestino]);
 
   function handleDownloadCadastrar() {
     if (newPieces.length === 0) return;
@@ -428,7 +446,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
                     <div className="w-px h-8 bg-zinc-100 dark:bg-white/[0.06]" />
                     <Stat value={oldFile.vendidos.length} label="vendidas" color="emerald" />
                     <div className="w-px h-8 bg-zinc-100 dark:bg-white/[0.06]" />
-                    <Stat value={eligibleCount} label="a transferir" color="violet" />
+                    <Stat value={fetchingUltimoLote ? eligibleCount : pecasParaTransferir.length} label="a transferir" color="violet" />
                   </div>
                   <div className="w-px h-8 bg-zinc-100 dark:bg-white/[0.06]" />
                   <div className="flex flex-col gap-1 shrink-0">
@@ -517,6 +535,29 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
                       <Download size={11} />
                       {loadingExcluidas ? 'Buscando...' : 'Ver lista completa (CSV)'}
                     </button>
+                  </div>
+                )}
+
+                {/* Aviso de peças já no destino */}
+                {!fetchingUltimoLote && qtdJaTransferidas > 0 && (
+                  <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/40">
+                    <CheckCircle2 size={13} className="text-sky-500 shrink-0 mt-0.5" />
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-400">
+                        {qtdJaTransferidas} peça{qtdJaTransferidas > 1 ? 's' : ''} já no leilão destino
+                      </span>
+                      <span className="text-[10px] text-sky-600 dark:text-sky-500">
+                        Removidas da lista — já foram transferidas anteriormente
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Carregando refs do destino */}
+                {fetchingUltimoLote && novoLeilao && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-white/[0.06]">
+                    <div className="w-3 h-3 rounded-full border-2 border-violet-400 border-t-transparent animate-spin shrink-0" />
+                    <span className="text-[10px] text-zinc-400">Verificando leilão destino...</span>
                   </div>
                 )}
               </>
