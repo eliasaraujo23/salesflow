@@ -221,6 +221,22 @@ async function loadUploadPage(cookie: string, pieceId: string): Promise<string> 
   return mergeCookies(cookie, res);
 }
 
+// Inicializa sessão PHP para upload de extras — gerenciar_imagens.asp reseta o contador
+// de slots, igual ao que o browser faz antes de clicar em "+ Adicionar Imagens Extras"
+async function loadGerenciarImagens(cookie: string, pieceId: string): Promise<string> {
+  const res = await fetch(`${BASE}/gerenciar_imagens.asp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookie, 'User-Agent': UA,
+      'Referer': `${BASE}/listar_pecas.asp`,
+    },
+    body: new URLSearchParams({ ID: pieceId }).toString(),
+    redirect: 'follow',
+  });
+  return mergeCookies(cookie, res);
+}
+
 
 // Upload da imagem principal via img_pecas.php + s3enviaimagem.asp
 // Retorna cookie atualizado (incluindo PHPSESSID do servidor PHP)
@@ -269,9 +285,9 @@ async function uploadPrincipal(
   return s3Cookie;
 }
 
-// Upload extras via img_pecas_extras.php — um único POST com todos os arquivos,
-// replicando o comportamento de <input type="file" multiple> no browser.
-// O PHP só persiste as fotos quando recebe todos os arquivos em um único multipart.
+// Upload extras via img_pecas_extras.php — um POST por arquivo, mantendo o mesmo
+// PHPSESSID em todos os requests. O PHP (Bootstrap FileInput server-side) acumula
+// os arquivos em sessão PHP e persiste todos quando recebe o último (file_id == compl-1).
 async function uploadExtras(
   cookie:      string,
   pieceId:     string,
@@ -280,28 +296,36 @@ async function uploadExtras(
 ): Promise<number> {
   if (buffers.length === 0) return 0;
 
-  const fd = new FormData();
-  for (let i = 0; i < buffers.length; i++) {
-    fd.append('Foto', new Blob([buffers[i] as unknown as BlobPart], { type: 'image/jpeg' }), `extra_${i}.jpg`);
-  }
-  fd.append('file_id',   '0');
-  fd.append('compl',     String(buffers.length));
-  fd.append('IdPeca',    pieceId);
-  fd.append('NumLeilao', numLeilao);
-  fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
+  const total = buffers.length;
+  let activeCookie = cookie;
+  let ok = 0;
 
-  console.log(`[upload-fotos] extras POST img_pecas_extras.php pieceId=${pieceId} count=${buffers.length}`);
-  const res = await fetch(`${BASE}/img_pecas_extras.php`, {
-    method:  'POST',
-    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
-    body:    fd,
-    redirect: 'follow',
-    signal:  AbortSignal.timeout(120_000),
-  });
-  const text = await res.text();
-  console.log(`[upload-fotos] extras resp status=${res.status}: ${text.slice(0, 120)}`);
-  if (!res.ok || text.includes('"error"')) return 0;
-  return buffers.length;
+  for (let i = 0; i < total; i++) {
+    const fd = new FormData();
+    fd.append('Foto',      new Blob([buffers[i] as unknown as BlobPart], { type: 'image/jpeg' }), `extra_${i}.jpg`);
+    fd.append('file_id',   String(i));
+    fd.append('compl',     String(total));
+    fd.append('IdPeca',    pieceId);
+    fd.append('NumLeilao', numLeilao);
+    fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
+
+    console.log(`[upload-fotos] extra[${i + 1}/${total}] file_id=${i} pieceId=${pieceId}`);
+    const res = await fetch(`${BASE}/img_pecas_extras.php`, {
+      method:  'POST',
+      headers: { 'Cookie': activeCookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
+      body:    fd,
+      redirect: 'follow',
+      signal:  AbortSignal.timeout(60_000),
+    });
+    // Mantém PHPSESSID retornado pelo servidor — essencial para acumulação em sessão
+    activeCookie = mergeCookies(activeCookie, res);
+    const text = await res.text();
+    console.log(`[upload-fotos] extra[${i + 1}/${total}] status=${res.status}: ${text.slice(0, 120)}`);
+    if (res.ok && !text.includes('"error"')) ok++;
+    // Pequena pausa entre requests para não sobrecarregar o servidor PHP
+    if (i < total - 1) await new Promise(r => setTimeout(r, 300));
+  }
+  return ok;
 }
 
 // ─── Activate Site ────────────────────────────────────────────────────────────
@@ -450,8 +474,8 @@ export async function POST(req: Request) {
         if (extraKeys.length > 0) {
           await send({ type: 'status', message: `Lote ${peca.lote}: enviando ${extraKeys.length} foto(s) extra...` });
           try {
-            // Recarrega a página da peça para obter PHPSESSID limpo antes dos extras
-            try { pieceCookie = await loadUploadPage(cookie, pieceId); } catch { /* non-fatal */ }
+            // Inicializa contador de slots na sessão PHP (igual ao browser antes de subir extras)
+            try { pieceCookie = await loadGerenciarImagens(pieceCookie, pieceId); } catch { /* non-fatal */ }
             const bufs = await Promise.all(extraKeys.map(k => downloadImage(k)));
             extrasOk = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs);
           } catch (e) {
