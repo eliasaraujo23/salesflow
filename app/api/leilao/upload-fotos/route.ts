@@ -269,43 +269,39 @@ async function uploadPrincipal(
   return s3Cookie;
 }
 
-// Upload extras via img_pecas_extras.php — um POST por foto.
-// file_id começa em startFileId (número de extras já existentes na peça).
-// compl = total de arquivos do lote (fixo). Replica o Bootstrap FileInput.
+// Upload extras via img_pecas_extras.php — um único POST com todos os arquivos,
+// replicando o comportamento de <input type="file" multiple> no browser.
+// O PHP só persiste as fotos quando recebe todos os arquivos em um único multipart.
 async function uploadExtras(
-  cookie:        string,
-  pieceId:       string,
-  numLeilao:     string,
-  buffers:       Buffer[],
-  startFileId:   number = 0,
+  cookie:      string,
+  pieceId:     string,
+  numLeilao:   string,
+  buffers:     Buffer[],
 ): Promise<number> {
-  let activeCookie = cookie;
-  let ok = 0;
-  const total = buffers.length;
+  if (buffers.length === 0) return 0;
 
-  for (let i = 0; i < total; i++) {
-    const fd = new FormData();
-    fd.append('Foto',      new Blob([buffers[i] as unknown as BlobPart], { type: 'image/jpeg' }), `extra_${i}.jpg`);
-    fd.append('file_id',   String(startFileId + i));
-    fd.append('compl',     String(total));
-    fd.append('IdPeca',    pieceId);
-    fd.append('NumLeilao', numLeilao);
-    fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
-
-    const res = await fetch(`${BASE}/img_pecas_extras.php`, {
-      method:  'POST',
-      headers: { 'Cookie': activeCookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
-      body:    fd,
-      redirect: 'follow',
-      signal:  AbortSignal.timeout(60_000),
-    });
-    activeCookie = mergeCookies(activeCookie, res);
-    const text = await res.text();
-    console.log(`[upload-fotos] extra[${i}/${total}] status=${res.status}: ${text.slice(0, 80)}`);
-    if (res.ok && !text.includes('"error"')) ok++;
-    if (i < total - 1) await new Promise(r => setTimeout(r, 500));
+  const fd = new FormData();
+  for (let i = 0; i < buffers.length; i++) {
+    fd.append('Foto', new Blob([buffers[i] as unknown as BlobPart], { type: 'image/jpeg' }), `extra_${i}.jpg`);
   }
-  return ok;
+  fd.append('file_id',   '0');
+  fd.append('compl',     String(buffers.length));
+  fd.append('IdPeca',    pieceId);
+  fd.append('NumLeilao', numLeilao);
+  fd.append('Siteurl',   'https://www.leiloesbr.com.br/');
+
+  console.log(`[upload-fotos] extras POST img_pecas_extras.php pieceId=${pieceId} count=${buffers.length}`);
+  const res = await fetch(`${BASE}/img_pecas_extras.php`, {
+    method:  'POST',
+    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp` },
+    body:    fd,
+    redirect: 'follow',
+    signal:  AbortSignal.timeout(120_000),
+  });
+  const text = await res.text();
+  console.log(`[upload-fotos] extras resp status=${res.status}: ${text.slice(0, 120)}`);
+  if (!res.ok || text.includes('"error"')) return 0;
+  return buffers.length;
 }
 
 // ─── Activate Site ────────────────────────────────────────────────────────────
