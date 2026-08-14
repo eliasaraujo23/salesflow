@@ -58,6 +58,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   const [novoOpen,              setNovoOpen]              = useState(false);
   const [startLote,             setStartLote]             = useState(1);
   const [transferStartLote,     setTransferStartLote]     = useState(1);
+  const [countPecasDestino,     setCountPecasDestino]     = useState(0);
   const [fetchingUltimoLote,    setFetchingUltimoLote]    = useState(false);
   const [transferMode,     setTransferMode]     = useState<TransferMode>('com_valor');
   const [leilaoTipo,       setLeilaoTipo]       = useState<'NORMAL' | 'TOP'>('NORMAL');
@@ -94,6 +95,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
     setNovoLeilao('');
     setNovoLeilaoSel(null);
     setTransferStartLote(1);
+    setCountPecasDestino(0);
     resetVerificar();
   }
 
@@ -106,9 +108,12 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
     resetVerificar();
     fetch(`/api/leilao/ultimo-lote?leilao=${novoLeilao}&nome=${encodeURIComponent(novoLeilaoSel.nome)}`, { signal: ctrl.signal })
       .then(r => r.json())
-      .then((data: { ultimoLote?: number; error?: string }) => {
+      .then((data: { ultimoLote?: number; countPecas?: number; error?: string }) => {
         if (typeof data.ultimoLote === 'number') {
           setTransferStartLote(data.ultimoLote + 1);
+        }
+        if (typeof data.countPecas === 'number') {
+          setCountPecasDestino(data.countPecas);
         }
       })
       .catch(() => { /* silencioso — usuário pode ajustar manualmente */ })
@@ -150,8 +155,8 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   // Limite de capacidade do leilão destino
   const isDestinoTop  = novoLeilaoSel?.nome?.toUpperCase().includes('TOP') ?? false;
   const MAX_LEILAO    = isDestinoTop ? 400 : 9999;
-  // Quantas vagas restam no destino (baseado no último lote já ocupado)
-  const vagasDestino  = fetchingUltimoLote ? 9999 : Math.max(0, MAX_LEILAO - (transferStartLote - 1));
+  // Quantas vagas restam no destino (baseado na contagem real de peças, não no último lote)
+  const vagasDestino  = fetchingUltimoLote ? 9999 : Math.max(0, MAX_LEILAO - countPecasDestino);
 
   // Peças elegíveis para transferência com valor atualizado do sistema
   // Exclui peças já presentes no leilão destino (detectadas via scraping)
@@ -653,7 +658,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
                         {qtdForaCapacidade} peça{qtdForaCapacidade > 1 ? 's' : ''} fora por limite TOP (400)
                       </span>
                       <span className="text-[10px] text-orange-600 dark:text-orange-500">
-                        Leilão destino já tem {transferStartLote - 1} peças — cabem mais {vagasDestino}
+                        Leilão destino já tem {countPecasDestino} peças — cabem mais {vagasDestino}
                       </span>
                     </div>
                   </div>

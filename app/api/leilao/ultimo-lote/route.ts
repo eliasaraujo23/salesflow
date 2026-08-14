@@ -40,7 +40,7 @@ async function loginLeiloesbr(user: string, pass: string, numLeilao: string): Pr
   return (loginRes.headers.get('set-cookie') ?? '').match(/ASPSESSIONID\w+=\w+/i)?.[0] ?? sessionId;
 }
 
-async function getUltimoLote(cookie: string, leilao: string): Promise<number> {
+async function getLoteInfo(cookie: string, leilao: string): Promise<{ ultimoLote: number; countPecas: number }> {
   const res = await fetch(`${BASE}/listar_pecas.asp`, {
     method: 'POST',
     headers: {
@@ -71,17 +71,21 @@ async function getUltimoLote(cookie: string, leilao: string): Promise<number> {
   const allTds = [...html.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)]
     .map(m => m[1].replace(/<[^>]+>/g, '').replace(/&nbsp;/g, '').trim());
 
-  let maxLote = 0;
+  let maxLote   = 0;
+  let countPecas = 0;
   for (let i = 0; i + 2 <= allTds.length - 1; i++) {
     const rawId  = allTds[i]?.trim();
     const rawLot = allTds[i + 2]?.replace(/\s/g, '').replace(/\D/g, '');
     if (rawId && /^\d{6,9}$/.test(rawId)) {
       const loteNum = Number(rawLot);
-      if (loteNum > 0 && loteNum <= 9999 && loteNum > maxLote) maxLote = loteNum;
+      if (loteNum > 0 && loteNum <= 9999) {
+        countPecas++;
+        if (loteNum > maxLote) maxLote = loteNum;
+      }
     }
   }
 
-  return maxLote;
+  return { ultimoLote: maxLote, countPecas };
 }
 
 export async function GET(req: Request) {
@@ -99,9 +103,9 @@ export async function GET(req: Request) {
   }
 
   try {
-    const cookie     = await loginLeiloesbr(creds.user, creds.pass, leilao);
-    const ultimoLote = await getUltimoLote(cookie, leilao);
-    return Response.json({ ultimoLote });
+    const cookie = await loginLeiloesbr(creds.user, creds.pass, leilao);
+    const { ultimoLote, countPecas } = await getLoteInfo(cookie, leilao);
+    return Response.json({ ultimoLote, countPecas });
   } catch (err) {
     return Response.json(
       { error: err instanceof Error ? err.message : 'Erro interno' },
