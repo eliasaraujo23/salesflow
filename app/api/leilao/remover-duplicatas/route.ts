@@ -198,8 +198,6 @@ export async function GET(req: Request) {
     .map(([ref, rows]) => ({
       ref,
       ocorrencias: rows.sort((a, b) => a.lote - b.lote),
-      // primeira linha: funcs disponíveis (para debug do endpoint de exclusão)
-      funcsAmostra: rows[0].funcs,
     }));
 
   return Response.json({
