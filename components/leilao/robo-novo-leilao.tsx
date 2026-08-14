@@ -53,9 +53,10 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   const [oldOpen,          setOldOpen]          = useState(false);
   const [novoLeilao,       setNovoLeilao]       = useState('');
   const [novoLeilaoSel,    setNovoLeilaoSel]    = useState<Leilao | null>(null);
-  const [novoOpen,         setNovoOpen]         = useState(false);
-  const [startLote,        setStartLote]        = useState(1);
-  const [transferStartLote, setTransferStartLote] = useState(1);
+  const [novoOpen,              setNovoOpen]              = useState(false);
+  const [startLote,             setStartLote]             = useState(1);
+  const [transferStartLote,     setTransferStartLote]     = useState(1);
+  const [fetchingUltimoLote,    setFetchingUltimoLote]    = useState(false);
   const [transferMode,     setTransferMode]     = useState<TransferMode>('com_valor');
   const [leilaoTipo,       setLeilaoTipo]       = useState<'NORMAL' | 'TOP'>('NORMAL');
   const [loadingExcluidas, setLoadingExcluidas] = useState(false);
@@ -87,7 +88,26 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   function clearNovoLeilao() {
     setNovoLeilao('');
     setNovoLeilaoSel(null);
+    setTransferStartLote(1);
   }
+
+  // Auto-detecta o último lote do leilão destino para evitar duplicatas
+  useEffect(() => {
+    if (!novoLeilao || !novoLeilaoSel) return;
+    let cancelled = false;
+    setFetchingUltimoLote(true);
+    fetch(`/api/leilao/ultimo-lote?leilao=${novoLeilao}&nome=${encodeURIComponent(novoLeilaoSel.nome)}`)
+      .then(r => r.json())
+      .then((data: { ultimoLote?: number; error?: string }) => {
+        if (cancelled) return;
+        if (typeof data.ultimoLote === 'number') {
+          setTransferStartLote(data.ultimoLote + 1);
+        }
+      })
+      .catch(() => { /* silencioso — usuário pode ajustar manualmente */ })
+      .finally(() => { if (!cancelled) setFetchingUltimoLote(false); });
+    return () => { cancelled = true; };
+  }, [novoLeilao, novoLeilaoSel]);
 
   const oldFile = uploadedFiles.find(f => f.codigoPlatforma === selectedOld);
   // Filtra refs inválidas que possam ter chegado de uploads antigos (ex: linhas de diamantes)
@@ -413,13 +433,16 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
                   </div>
                   <div className="w-px h-8 bg-zinc-100 dark:bg-white/[0.06]" />
                   <div className="flex flex-col gap-1 shrink-0">
-                    <label className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Lote inicial</label>
+                    <label className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+                      Lote inicial{fetchingUltimoLote ? ' …' : ''}
+                    </label>
                     <div className="flex items-center gap-2">
                       <input
                         type="number" min={1}
                         value={transferStartLote}
+                        disabled={fetchingUltimoLote}
                         onChange={e => setTransferStartLote(Math.max(1, Number(e.target.value)))}
-                        className="w-16 pl-2 pr-2 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-violet-400 transition-colors"
+                        className="w-16 pl-2 pr-2 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-violet-400 transition-colors disabled:opacity-50"
                       />
                       <span className="text-[10px] text-zinc-400 whitespace-nowrap">
                         até {transferStartLote + pecasParaTransferir.length - 1}

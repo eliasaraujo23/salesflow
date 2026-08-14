@@ -205,13 +205,18 @@ export async function POST(req: Request) {
     leilaoOrigem:  string;
     leilaoDestino: string;
     startLote:     number;
+    doneOffset?:   number;
+    totalGlobal?:  number;
     pecas:         PecaTransferencia[];
   };
 
-  const { nome, leilaoOrigem, leilaoDestino, startLote, pecas } = body;
+  const { nome, leilaoOrigem, leilaoDestino, startLote, totalGlobal, pecas } = body;
   if (!nome || !leilaoOrigem || !leilaoDestino || !startLote || !Array.isArray(pecas) || pecas.length === 0) {
     return new Response('Payload inválido', { status: 400 });
   }
+
+  // totalGlobal é enviado pelo hook quando usa chunking — permite calcular progresso global
+  const reportTotal = totalGlobal ?? pecas.length;
 
   const stream = new TransformStream<Uint8Array, Uint8Array>();
   const writer = stream.writable.getWriter();
@@ -232,12 +237,11 @@ export async function POST(req: Request) {
       await send({ type: 'status', message: 'Autenticando...' });
       const cookie = await loginLeiloesbr(creds.user, creds.pass, leilaoOrigem);
 
-      const total = pecas.length;
-      await send({ type: 'start', total });
+      await send({ type: 'start', total: reportTotal });
 
-      let done    = 0;
-      let success = 0;
-      let errors  = 0;
+      let chunkDone = 0;
+      let success   = 0;
+      let errors    = 0;
 
       // ── Fase 1: scraping único da listagem do leilão antigo → ref→pieceId ──────
       await send({ type: 'status', message: `Carregando listagem do leilão N°${leilaoOrigem}...` });
@@ -251,14 +255,14 @@ export async function POST(req: Request) {
         const idpeca   = refIdMap.get(peca.ref.toUpperCase());
 
         if (!idpeca) {
-          done++;
+          chunkDone++;
           errors++;
           await send({
             type:    'progress',
             ref:     peca.ref,
             lote:    novoLote,
-            done,
-            total,
+            done:    chunkDone,
+            total:   reportTotal,
             success: false,
             error:   'Peça não encontrada no leilão de origem',
           });
@@ -268,18 +272,18 @@ export async function POST(req: Request) {
         try {
           await send({ type: 'status', message: `Lote ${novoLote}: transferindo REF ${peca.ref}...` });
           await transferPiece(cookie, idpeca, leilaoOrigem, leilaoDestino, peca.valor, novoLote, dia);
-          done++;
+          chunkDone++;
           success++;
-          await send({ type: 'progress', ref: peca.ref, lote: novoLote, done, total, success: true });
+          await send({ type: 'progress', ref: peca.ref, lote: novoLote, done: chunkDone, total: reportTotal, success: true });
         } catch (err) {
-          done++;
+          chunkDone++;
           errors++;
           await send({
             type:    'progress',
             ref:     peca.ref,
             lote:    novoLote,
-            done,
-            total,
+            done:    chunkDone,
+            total:   reportTotal,
             success: false,
             error:   err instanceof Error ? err.message : 'Erro',
           });

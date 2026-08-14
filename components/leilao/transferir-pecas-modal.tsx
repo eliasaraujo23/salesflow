@@ -234,6 +234,7 @@ export function TransferirPecasModal({
               <div className="flex items-center gap-2 text-[11px] text-zinc-500">
                 <Loader2 size={11} className="animate-spin shrink-0 text-violet-500" />
                 <span>Transferindo: {state.done} de {state.total}</span>
+                {state.chunkInfo && <span className="text-violet-400">· {state.chunkInfo}</span>}
               </div>
               {state.statusMsg && (
                 <p className="text-[10px] text-zinc-400 pl-5">{state.statusMsg}</p>
