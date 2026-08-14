@@ -349,10 +349,10 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
       </div>
 
       {/* ── Step cards ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
 
         {/* ① Cadastrar Peças Novas */}
-        <div className="flex flex-col rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
+        <div className="flex flex-col rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible self-start">
           {/* Header */}
           <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-t-xl border-b border-zinc-100 dark:border-white/[0.06] bg-zinc-50 dark:bg-zinc-800/40">
             <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold shrink-0">1</span>
@@ -364,7 +364,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
           </div>
 
           {/* Body */}
-          <div className="flex flex-col gap-3 p-3 flex-1">
+          <div className="flex flex-col gap-3 p-3">
             {/* Tipo do leilão — auto-detectado, ajustável */}
             <div className="flex flex-col gap-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Tipo do leilão</span>
@@ -403,7 +403,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
             </div>
 
             {/* Botões CSV + Executar */}
-            <div className="mt-auto flex gap-2">
+            <div className="flex gap-2">
               <button
                 onClick={handleDownloadCadastrar}
                 disabled={newPieces.length === 0}
@@ -463,7 +463,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
             {eligibleCount > 0 && !!novoLeilao && <CheckCircle2 size={13} className="text-emerald-500 ml-auto shrink-0" />}
           </div>
 
-          <div className="flex flex-col gap-3 p-3 flex-1">
+          <div className="flex flex-col gap-3 p-3">
             {oldFile ? (
               <>
                 {/* Stats + Lote inicial */}
@@ -515,161 +515,128 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
                   </div>
                 </div>
 
-                {/* Exclusion warning */}
-                {excluded.total > 0 && (
-                  <div className="flex flex-col gap-2 px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle size={13} className="text-amber-500 shrink-0 mt-0.5" />
-                      <div className="flex flex-col gap-0.5 flex-1">
-                        <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
-                          {excluded.total} peça{excluded.total > 1 ? 's' : ''} excluída{excluded.total > 1 ? 's' : ''}
-                        </span>
-                        {excluded.foraBase > 0 && (
-                          <span className="text-[10px] text-amber-600 dark:text-amber-500">
-                            · {excluded.foraBase} fora da Base Sistema (sem foto, sem preço ou vendidas)
-                          </span>
-                        )}
-                        {excluded.destinoExcluido > 0 && (
-                          <span className="text-[10px] text-amber-600 dark:text-amber-500">
-                            · {excluded.destinoExcluido} com destino exclusivo (Gringa, Lohana, etc.)
-                          </span>
-                        )}
-                      </div>
+                {/* ── Linha de avisos + verificação (não empurra os botões) ── */}
+                <div className="flex flex-col gap-1.5">
+
+                  {/* Excluídas — linha compacta com CSV inline */}
+                  {excluded.total > 0 && (
+                    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40">
+                      <AlertTriangle size={11} className="text-amber-500 shrink-0" />
+                      <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 flex-1 min-w-0 truncate">
+                        {excluded.total} excluída{excluded.total > 1 ? 's' : ''}
+                        {excluded.foraBase > 0 && ` · ${excluded.foraBase} fora da base`}
+                        {excluded.destinoExcluido > 0 && ` · ${excluded.destinoExcluido} destino exclusivo`}
+                      </span>
+                      <button
+                        disabled={loadingExcluidas}
+                        onClick={async () => {
+                          setLoadingExcluidas(true);
+                          try {
+                            const foraBaseRefs = unsoldRefs.filter(r => !priceMap.has(r.toUpperCase()));
+                            const details = await fetchRefsDetail(foraBaseRefs);
+                            const detailMap = new Map<string, RefDetailExtra>(
+                              details.map(d => [d.referencia.toUpperCase(), d])
+                            );
+                            downloadCsv(
+                              generateCsvExcluidas(unsoldRefs, priceMap, detailMap),
+                              `excluidas_N${selectedOld}.csv`,
+                            );
+                          } catch {
+                            toast.error('Erro ao gerar lista. Verifique a conexão.');
+                          } finally {
+                            setLoadingExcluidas(false);
+                          }
+                        }}
+                        className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 hover:bg-amber-200 dark:hover:bg-amber-800/50 disabled:opacity-60 text-amber-700 dark:text-amber-400 text-[10px] font-semibold transition-colors"
+                      >
+                        <Download size={10} />
+                        {loadingExcluidas ? '...' : 'CSV'}
+                      </button>
                     </div>
-                    <button
-                      disabled={loadingExcluidas}
-                      onClick={async () => {
-                        setLoadingExcluidas(true);
-                        try {
-                          // Fetch detail for refs NOT in priceMap
-                          const foraBaseRefs = unsoldRefs.filter(r => !priceMap.has(r.toUpperCase()));
-                          const details = await fetchRefsDetail(foraBaseRefs);
-                          const detailMap = new Map<string, RefDetailExtra>(
-                            details.map(d => [d.referencia.toUpperCase(), d])
-                          );
-                          downloadCsv(
-                            generateCsvExcluidas(unsoldRefs, priceMap, detailMap),
-                            `excluidas_N${selectedOld}.csv`,
-                          );
-                        } catch {
-                          toast.error('Erro ao gerar lista. Verifique a conexão.');
-                        } finally {
-                          setLoadingExcluidas(false);
-                        }
-                      }}
-                      className="self-start flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-100 dark:bg-amber-900/40 hover:bg-amber-200 dark:hover:bg-amber-800/50 disabled:opacity-60 disabled:cursor-wait text-amber-700 dark:text-amber-400 text-[10px] font-semibold transition-colors"
-                    >
-                      <Download size={11} />
-                      {loadingExcluidas ? 'Buscando...' : 'Ver lista completa (CSV)'}
-                    </button>
-                  </div>
-                )}
+                  )}
 
-                {/* Carregando último lote */}
-                {fetchingUltimoLote && novoLeilao && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-white/[0.06]">
-                    <div className="w-3 h-3 rounded-full border-2 border-violet-400 border-t-transparent animate-spin shrink-0" />
-                    <span className="text-[10px] text-zinc-400">Lendo leilão destino...</span>
-                  </div>
-                )}
-
-                {/* Botão verificar duplicatas — aparece quando destino está selecionado e não verificou ainda */}
-                {!fetchingUltimoLote && novoLeilao && novoLeilaoSel && verificarState.status === 'idle' && (
-                  <button
-                    onClick={() => {
-                      const refs = unsoldRefs.filter(r => {
-                        const row = priceMap.get(r.toUpperCase());
-                        return row && (row.preco_avista ?? 0) > 0;
-                      });
-                      verificarRefs({ nome: novoLeilaoSel.nome, leilao: novoLeilao, refs });
-                    }}
-                    className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/40 text-sky-700 dark:text-sky-400 text-[11px] font-semibold transition-colors"
-                  >
-                    <CheckCircle2 size={11} />
-                    Verificar duplicatas no destino
-                  </button>
-                )}
-
-                {/* Progresso da verificação */}
-                {verificarState.status === 'running' && (
-                  <div className="flex flex-col gap-1.5 px-3 py-2.5 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/40">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full border-2 border-sky-400 border-t-transparent animate-spin shrink-0" />
-                        <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-400">
-                          Verificando refs no destino...
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-sky-500 tabular-nums">
-                        {verificarState.done}/{verificarState.total}
+                  {/* Limite TOP — linha compacta */}
+                  {!fetchingUltimoLote && isDestinoTop && qtdForaCapacidade > 0 && (
+                    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/40">
+                      <AlertTriangle size={11} className="text-orange-500 shrink-0" />
+                      <span className="text-[10px] font-semibold text-orange-700 dark:text-orange-400">
+                        {qtdForaCapacidade} fora do limite TOP · destino tem {countPecasDestino}, cabem {vagasDestino}
                       </span>
                     </div>
-                    <div className="w-full h-1.5 rounded-full bg-sky-200 dark:bg-sky-900 overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-sky-500 transition-all duration-300"
-                        style={{ width: `${verificarState.total > 0 ? Math.round(verificarState.done / verificarState.total * 100) : 0}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Resultado da verificação */}
-                {verificarState.status === 'done' && (
-                  <>
-                    {qtdJaTransferidas > 0 ? (
-                      <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/40">
-                        <CheckCircle2 size={13} className="text-sky-500 shrink-0 mt-0.5" />
-                        <div className="flex flex-col gap-0.5 flex-1">
-                          <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-400">
-                            {qtdJaTransferidas} peça{qtdJaTransferidas > 1 ? 's' : ''} já no leilão destino — removidas
-                          </span>
-                          <span className="text-[10px] text-sky-600 dark:text-sky-500">
-                            Verificado por REF · {pecasParaTransferir.length} restam para transferir
-                          </span>
-                        </div>
+                  {/* Verificar duplicatas / progresso / resultado */}
+                  {fetchingUltimoLote && novoLeilao && (
+                    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-white/[0.06]">
+                      <div className="w-3 h-3 rounded-full border-2 border-violet-400 border-t-transparent animate-spin shrink-0" />
+                      <span className="text-[10px] text-zinc-400">Lendo leilão destino...</span>
+                    </div>
+                  )}
+
+                  {!fetchingUltimoLote && novoLeilao && novoLeilaoSel && verificarState.status === 'idle' && (
+                    <button
+                      onClick={() => {
+                        const refs = unsoldRefs.filter(r => {
+                          const row = priceMap.get(r.toUpperCase());
+                          return row && (row.preco_avista ?? 0) > 0;
+                        });
+                        verificarRefs({ nome: novoLeilaoSel.nome, leilao: novoLeilao, refs });
+                      }}
+                      className="self-start flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/30 hover:bg-sky-100 dark:hover:bg-sky-900/40 text-sky-700 dark:text-sky-400 text-[10px] font-semibold transition-colors"
+                    >
+                      <CheckCircle2 size={11} />
+                      Verificar duplicatas no destino
+                    </button>
+                  )}
+
+                  {verificarState.status === 'running' && (
+                    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/40">
+                      <div className="w-3 h-3 rounded-full border-2 border-sky-400 border-t-transparent animate-spin shrink-0" />
+                      <span className="text-[10px] font-semibold text-sky-700 dark:text-sky-400 flex-1">Verificando...</span>
+                      <span className="text-[10px] text-sky-500 tabular-nums shrink-0">{verificarState.done}/{verificarState.total}</span>
+                      <div className="w-16 h-1.5 rounded-full bg-sky-200 dark:bg-sky-900 overflow-hidden shrink-0">
+                        <div className="h-full rounded-full bg-sky-500 transition-all duration-300"
+                          style={{ width: `${verificarState.total > 0 ? Math.round(verificarState.done / verificarState.total * 100) : 0}%` }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {verificarState.status === 'done' && (
+                    qtdJaTransferidas > 0 ? (
+                      <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/40">
+                        <CheckCircle2 size={11} className="text-sky-500 shrink-0" />
+                        <span className="text-[10px] font-semibold text-sky-700 dark:text-sky-400 flex-1">
+                          {qtdJaTransferidas} já no destino — removidas · {pecasParaTransferir.length} restam
+                        </span>
                         <button onClick={resetVerificar} className="text-[10px] text-sky-400 hover:text-sky-600 shrink-0">refazer</button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40">
-                        <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
-                        <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
-                          Nenhuma duplicata — todas as {pecasParaTransferir.length} peças ainda não estão no destino
+                      <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40">
+                        <CheckCircle2 size={11} className="text-emerald-500 shrink-0" />
+                        <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 flex-1">
+                          Nenhuma duplicata — {pecasParaTransferir.length} peças OK
                         </span>
-                        <button onClick={resetVerificar} className="ml-auto text-[10px] text-emerald-400 hover:text-emerald-600 shrink-0">refazer</button>
+                        <button onClick={resetVerificar} className="text-[10px] text-emerald-400 hover:text-emerald-600 shrink-0">refazer</button>
                       </div>
-                    )}
-                  </>
-                )}
+                    )
+                  )}
 
-                {verificarState.status === 'error' && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/40">
-                    <AlertTriangle size={12} className="text-red-500 shrink-0" />
-                    <span className="text-[10px] text-red-600 dark:text-red-400">{verificarState.fatalError}</span>
-                    <button onClick={resetVerificar} className="ml-auto text-[10px] text-red-400 hover:text-red-600 shrink-0">tentar novamente</button>
-                  </div>
-                )}
-
-                {/* Aviso de limite de capacidade (TOP = 400) */}
-                {!fetchingUltimoLote && isDestinoTop && qtdForaCapacidade > 0 && (
-                  <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/40">
-                    <AlertTriangle size={13} className="text-orange-500 shrink-0 mt-0.5" />
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[11px] font-semibold text-orange-700 dark:text-orange-400">
-                        {qtdForaCapacidade} peça{qtdForaCapacidade > 1 ? 's' : ''} fora por limite TOP (400)
-                      </span>
-                      <span className="text-[10px] text-orange-600 dark:text-orange-500">
-                        Leilão destino já tem {countPecasDestino} peças — cabem mais {vagasDestino}
-                      </span>
+                  {verificarState.status === 'error' && (
+                    <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/40">
+                      <AlertTriangle size={11} className="text-red-500 shrink-0" />
+                      <span className="text-[10px] text-red-600 dark:text-red-400 flex-1 truncate">{verificarState.fatalError}</span>
+                      <button onClick={resetVerificar} className="text-[10px] text-red-400 hover:text-red-600 shrink-0">retry</button>
                     </div>
-                  </div>
-                )}
+                  )}
+
+                </div>
               </>
             ) : (
               <p className="text-xs text-zinc-400 text-center py-4">Selecione o leilão anterior</p>
             )}
 
             {/* Botões CSV + Executar */}
-            <div className="mt-auto flex gap-2">
+            <div className="flex gap-2">
               <button
                 onClick={handleDownloadTransferir}
                 disabled={!oldFile || eligibleCount === 0 || !novoLeilao}
