@@ -323,60 +323,56 @@ export async function POST(req: Request) {
         let pieceCookie = cookie;
         try { pieceCookie = await loadUploadPage(cookie, pieceId); } catch { /* non-fatal */ }
 
-        if (hasR2) {
-          // ── Upload foto principal (só se ainda não tem) ────────────────────
-          if (!temPrincipal) {
+        // ── Upload foto principal (só se não tem E tem R2) ────────────────────
+        let principalFinal = temPrincipal; // já tinha antes do reupload
+        if (!temPrincipal) {
+          if (hasR2) {
             let mainOk = false;
             let mainErr = '';
             await send({ type: 'status', message: `Lote ${lote}: enviando foto principal...` });
             try {
-              const buf = await downloadImage(mainKey);
+              const buf = await downloadImage(mainKey!);
               pieceCookie = await uploadPrincipal(pieceCookie, pieceId, codigoPlatforma, buf);
               mainOk = true;
+              principalFinal = true;
             } catch (e) { mainErr = e instanceof Error ? e.message : 'Erro foto'; }
             await send({ type: 'photoProgress', lote, slot: 'main', success: mainOk, error: mainErr || undefined });
+          } else {
+            await send({ type: 'photoProgress', lote, slot: 'main', success: false, error: `Sem imagem R2: ${ref}` });
           }
+        }
 
-          // ── Upload extras (só os slots livres) ─────────────────────────────
-          if (extraKeys.length > 0) {
-            await send({ type: 'status', message: `Lote ${lote}: enviando foto(s) extra...` });
-            let extrasOk = 0;
-            try {
-              const { cookie: gc, slots } = await getAvailableSlots(pieceCookie, pieceId);
-              pieceCookie = gc;
-              if (slots.length > 0) {
-                const bufs = await Promise.all(extraKeys.map(k => downloadImage(k)));
-                extrasOk   = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs, slots);
-              }
-            } catch (e) {
-              console.error(`[reupload-fotos] Lote ${lote} extras ERRO:`, e instanceof Error ? e.message : e);
+        // ── Upload extras nos slots livres (se tiver R2 com extras) ────────
+        if (hasR2 && extraKeys.length > 0) {
+          await send({ type: 'status', message: `Lote ${lote}: enviando foto(s) extra...` });
+          let extrasOk = 0;
+          try {
+            const { cookie: gc, slots } = await getAvailableSlots(pieceCookie, pieceId);
+            pieceCookie = gc;
+            if (slots.length > 0) {
+              const bufs = await Promise.all(extraKeys.map(k => downloadImage(k)));
+              extrasOk   = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs, slots);
             }
-            await send({ type: 'photoProgress', lote, slot: 'extra', success: extrasOk > 0, count: extrasOk });
+          } catch (e) {
+            console.error(`[reupload-fotos] Lote ${lote} extras ERRO:`, e instanceof Error ? e.message : e);
           }
+          await send({ type: 'photoProgress', lote, slot: 'extra', success: extrasOk > 0, count: extrasOk });
+        }
 
-          // ── Ativar Site — só se não for brecho ────────────────────────────
-          if (ativarSite) {
-            await send({ type: 'status', message: `Lote ${lote}: ativando Site...` });
-            let siteOk = false;
-            let siteErr = '';
-            try {
-              await setSite(pieceCookie, pieceId, codigoPlatforma, lote, '1');
-              siteOk = true;
-            } catch (e) { siteErr = e instanceof Error ? e.message : 'Erro site'; }
-            await send({ type: 'siteProgress', lote, success: siteOk, action: 'ativar', error: siteErr || undefined });
-          }
-
-        } else {
-          // ── Sem imagem no R2 — desativar Site ─────────────────────────────
-          await send({ type: 'photoProgress', lote, slot: 'main', success: false, error: `Sem imagem R2: ${ref}` });
-          await send({ type: 'status', message: `Lote ${lote}: sem foto no R2, desativando Site...` });
+        // ── Ativar ou desativar Site ───────────────────────────────────────
+        // Ativa se a peça tem principal (já tinha ou acabou de enviar) e destino permitido.
+        // Desativa só se não tem principal E não tem foto no R2 (impossível resolver).
+        const deveSite = principalFinal ? (ativarSite ? '1' : null) : (!hasR2 ? '0' : null);
+        if (deveSite !== null) {
+          const acao = deveSite === '1' ? 'ativar' : 'desativar';
+          await send({ type: 'status', message: `Lote ${lote}: ${acao === 'ativar' ? 'ativando' : 'desativando'} Site...` });
           let siteOk = false;
           let siteErr = '';
           try {
-            await setSite(pieceCookie, pieceId, codigoPlatforma, lote, '0');
+            await setSite(pieceCookie, pieceId, codigoPlatforma, lote, deveSite as '0' | '1');
             siteOk = true;
           } catch (e) { siteErr = e instanceof Error ? e.message : 'Erro site'; }
-          await send({ type: 'siteProgress', lote, success: siteOk, action: 'desativar', error: siteErr || undefined });
+          await send({ type: 'siteProgress', lote, success: siteOk, action: acao, error: siteErr || undefined });
         }
       }
 
