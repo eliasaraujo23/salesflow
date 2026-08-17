@@ -351,12 +351,49 @@ async function uploadExtras(
 
 // ─── Activate Site ────────────────────────────────────────────────────────────
 
+// Lê o formulário atual da peça e reposta tudo com Site=1, sem apagar nenhum campo.
 async function activateSite(
   cookie:          string,
   pieceId:         string,
-  peca:            PecaForPhotos,
   codigoPlatforma: string,
 ): Promise<void> {
+  const getRes = await fetch(`${BASE}/cad_peca.asp?ID=${pieceId}`, {
+    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_pecas.asp` },
+    redirect: 'follow', signal: AbortSignal.timeout(30_000),
+  });
+  const html = await getRes.text();
+
+  const fields = new Map<string, string>();
+
+  for (const m of html.matchAll(/<input[^>]+>/gi)) {
+    const tag  = m[0];
+    const type = (tag.match(/type=["']?([^"'\s>]+)/i)?.[1] ?? 'text').toLowerCase();
+    if (type === 'submit' || type === 'button' || type === 'image') continue;
+    const name  = tag.match(/name=["']([^"']+)["']/i)?.[1];
+    const value = tag.match(/value=["']([^"']*)["']/i)?.[1] ?? '';
+    if (name) fields.set(name, value);
+  }
+
+  for (const m of html.matchAll(/<select[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/select>/gi)) {
+    const name    = m[1];
+    const inner   = m[2];
+    const selOpt  = inner.match(/<option[^>]+selected[^>]*value=["']([^"']*)["']/i)
+                 ?? inner.match(/<option[^>]+value=["']([^"']*)["'][^>]*selected/i);
+    const firstOpt = inner.match(/<option[^>]+value=["']([^"']*)["']/i);
+    fields.set(name, selOpt?.[1] ?? firstOpt?.[1] ?? '');
+  }
+
+  for (const m of html.matchAll(/<textarea[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/textarea>/gi)) {
+    fields.set(m[1], m[2]);
+  }
+
+  fields.set('Site',      '1');
+  fields.set('Botao',     'Gravar');
+  fields.set('NumLeilao', codigoPlatforma);
+
+  const params = new URLSearchParams();
+  for (const [k, v] of fields) params.append(k, v);
+
   const res = await fetch(`${BASE}/cad_peca.asp`, {
     method: 'POST',
     headers: {
@@ -366,41 +403,7 @@ async function activateSite(
       'Referer':          `${BASE}/cad_peca.asp`,
       'X-Requested-With': 'XMLHttpRequest',
     },
-    signal: AbortSignal.timeout(30_000),
-    body: new URLSearchParams({
-      ID:               pieceId,
-      ID_Peca:          '',
-      ID_Cliente:       IDC,
-      ID_Leilao:        codigoPlatforma,
-      NumLeilao:        codigoPlatforma,
-      ID_Tipo:          ID_TIPO_JOIAS,
-      ID_Artista:       '',
-      Item:             String(peca.lote),
-      Item_O:           String(peca.lote),
-      Peca:             peca.peca,
-      Lote:             String(peca.lote),
-      Extra:            '',
-      Dia:              String(peca.dia),
-      oldcartela:       '',
-      Cartela:          '',
-      Nota:             '',
-      Carteado:         '0',
-      Valor_Contratado: formatBRPrice(peca.preco_contratado),
-      Valor_Venda:      '0',
-      Taxa:             '25',
-      Taxa_Leiloeiro:   '5',
-      Descricao:        peca.descricao,
-      Descricao_2:      peca.segunda_descricao,
-      Incremento:       '',
-      Dt_Nota:          '',
-      Dt_Acerto:        '',
-      Site:             '1',
-      Destaque:         '',
-      dtVenda:          '',
-      oldCartela:       '',
-      Botao:            'Gravar',
-    }).toString(),
-    redirect: 'follow',
+    body: params.toString(), redirect: 'follow', signal: AbortSignal.timeout(30_000),
   });
   const text = await res.text();
   if (!text.startsWith('1|')) throw new Error(text.replace(/<[^>]+>/g, '').trim().slice(0, 120));
@@ -511,7 +514,7 @@ export async function POST(req: Request) {
         let siteOk = false;
         let siteErr = '';
         try {
-          await activateSite(pieceCookie, pieceId, peca, codigoPlatforma);
+          await activateSite(pieceCookie, pieceId, codigoPlatforma);
           siteOk = true;
         } catch (e) { siteErr = e instanceof Error ? e.message : 'Erro site'; }
         await send({ type: 'siteProgress', lote: peca.lote, success: siteOk, error: siteErr || undefined });

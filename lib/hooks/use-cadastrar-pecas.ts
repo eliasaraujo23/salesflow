@@ -268,7 +268,7 @@ export function useCadastrarPecas() {
         photoDone:  0,
       }));
 
-      const PHOTO_CHUNK = 30;
+      const PHOTO_CHUNK = 7; // Hobby plan: 60s limit; ~7 peças × ~7s = ~50s por chunk
       const photoChunks: typeof pecasParaFoto[] = [];
       for (let i = 0; i < pecasParaFoto.length; i += PHOTO_CHUNK) {
         photoChunks.push(pecasParaFoto.slice(i, i + PHOTO_CHUNK));
@@ -299,7 +299,7 @@ export function useCadastrarPecas() {
           outer: while (true) {
             const readPromise = reader.read();
             const timeout     = new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('photo chunk timeout')), 4 * 60 * 1000),
+              setTimeout(() => reject(new Error('photo chunk timeout')), 55 * 1000),
             );
             const { done, value } = await Promise.race([readPromise, timeout]);
             if (done) break;
