@@ -47,7 +47,7 @@ export default function PendenciasPage() {
 
   const counts = useMemo(() => {
     const map: Partial<Record<Filtro, number>> = { todos: rows.length };
-    const tipos: Pendencia[] = ['SEM_PRECO', 'SEM_FOTOS', 'FOTOS_INSUFICIENTES', 'SEM_FOTO_PRINCIPAL', 'SEM_FOTO_SECUNDARIA'];
+    const tipos: Pendencia[] = ['SEM_PRECO', 'SEM_FOTOS', 'SEM_FOTO_PRINCIPAL', 'SEM_FOTO_SECUNDARIA'];
     for (const t of tipos) {
       map[t] = rows.filter(r => r.pendencias.includes(t)).length;
     }
@@ -74,7 +74,6 @@ export default function PendenciasPage() {
     { key: 'todos',              label: 'Todas' },
     { key: 'SEM_PRECO',          label: PENDENCIA_LABELS.SEM_PRECO },
     { key: 'SEM_FOTOS',          label: PENDENCIA_LABELS.SEM_FOTOS },
-    { key: 'FOTOS_INSUFICIENTES',label: PENDENCIA_LABELS.FOTOS_INSUFICIENTES },
     { key: 'SEM_FOTO_PRINCIPAL', label: PENDENCIA_LABELS.SEM_FOTO_PRINCIPAL },
     { key: 'SEM_FOTO_SECUNDARIA',label: PENDENCIA_LABELS.SEM_FOTO_SECUNDARIA },
   ];

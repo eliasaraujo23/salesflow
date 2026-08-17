@@ -56,7 +56,7 @@ const COLUMNS = [
     cell: info => {
       const n = info.getValue();
       return (
-        <span className={`font-semibold ${n >= 6 ? 'text-emerald-600 dark:text-emerald-400' : n > 0 ? 'text-orange-500' : 'text-red-500'}`}>
+        <span className={`font-semibold ${n > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
           {n}
         </span>
       );
