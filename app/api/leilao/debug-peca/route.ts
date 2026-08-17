@@ -1,5 +1,7 @@
 export const maxDuration = 60;
 
+import { loadPecaFormHtml, extractPecaFields, gravarPeca } from '../_peca-form';
+
 const BASE = 'https://www.leiloesbr.com.br/painel_lbr';
 const UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 
@@ -70,6 +72,41 @@ export async function GET(req: Request) {
     fields,
     scriptSrcs,
     totalLen: html.length,
-    html,     // HTML completo do fragmento do formulário
+    html,
   });
+}
+
+// POST /api/leilao/debug-peca
+// Body: { pieceId, leilao, nome, patch: { ID_Cliente: "257103", ... } }
+export async function POST(req: Request) {
+  const body = await req.json() as { pieceId: string; leilao: string; nome: string; patch: Record<string, string> };
+  const { pieceId, leilao, nome, patch } = body;
+
+  const n = nome.toUpperCase();
+  let user = '', pass = '';
+  if (n.startsWith('ETERNNO')) { user = process.env.LEILOESBR_USER_ETERNNO ?? ''; pass = process.env.LEILOESBR_PASS_ETERNNO ?? ''; }
+  if (n.startsWith('BRUNO'))   { user = process.env.LEILOESBR_USER_BARAUJO ?? ''; pass = process.env.LEILOESBR_PASS_BARAUJO ?? ''; }
+
+  const initRes    = await fetch(`${BASE}/default.asp?Log=off`, { headers: { 'User-Agent': UA }, redirect: 'follow' });
+  const sessionId  = (initRes.headers.get('set-cookie') ?? '').match(/ASPSESSIONID\w+=\w+/i)?.[0] ?? '';
+  const loginRes   = await fetch(`${BASE}/default.asp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': sessionId, 'User-Agent': UA },
+    body: new URLSearchParams({ Login: user, Senha: pass, NumLeilao: leilao, Acessar: 'Acessar' }).toString(),
+    redirect: 'manual',
+  });
+  const cookie = (loginRes.headers.get('set-cookie') ?? '').match(/ASPSESSIONID\w+=\w+/i)?.[0] ?? sessionId;
+
+  const html   = await loadPecaFormHtml(cookie, pieceId);
+  const fields = extractPecaFields(html);
+
+  if (fields.size < 3) {
+    return Response.json({ error: `Formulário não carregou (${fields.size} campos)`, htmlPreview: html.slice(0, 300) }, { status: 500 });
+  }
+
+  for (const [k, v] of Object.entries(patch)) fields.set(k, v);
+  fields.set('Botao', 'Gravar');
+
+  const result = await gravarPeca(cookie, fields);
+  return Response.json({ result, fieldsSent: Object.fromEntries(fields) });
 }
