@@ -242,9 +242,17 @@ async function setSite(cookie: string, pieceId: string, codigoPlatforma: string,
     fields.set(m[1], m[2]); // não faz trim — preserva espaços/newlines originais
   }
 
-  // checkboxes — Site é o único que nos importa; os outros podem estar ausentes no POST se desmarcados
-  // Sobrescreve apenas Site com o valor desejado
-  fields.set('Site',     siteValue);
+  // Checkbox Site: extrai o value real do HTML (pode ser 'on', '1', etc.)
+  // Quando ativando (siteValue='1'), usamos esse value; quando desativando ('0'), omitimos o campo
+  const siteCheckMatch = html.match(/<input[^>]*name=["']?Site["']?[^>]*>/i);
+  const siteCheckValue = siteCheckMatch
+    ? (siteCheckMatch[0].match(/value=["']([^"']+)["']/i)?.[1] ?? 'on')
+    : 'on';
+  if (siteValue === '1') {
+    fields.set('Site', siteCheckValue);
+  } else {
+    fields.delete('Site'); // checkbox desmarcado = ausente no POST
+  }
   fields.set('Botao',    'Gravar');
   fields.set('NumLeilao', codigoPlatforma);
 

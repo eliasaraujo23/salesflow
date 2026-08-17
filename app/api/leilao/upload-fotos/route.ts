@@ -387,7 +387,11 @@ async function activateSite(
     fields.set(m[1], m[2]);
   }
 
-  fields.set('Site',      '1');
+  const siteCheckMatch = html.match(/<input[^>]*name=["']?Site["']?[^>]*>/i);
+  const siteCheckValue = siteCheckMatch
+    ? (siteCheckMatch[0].match(/value=["']([^"']+)["']/i)?.[1] ?? 'on')
+    : 'on';
+  fields.set('Site',      siteCheckValue);
   fields.set('Botao',     'Gravar');
   fields.set('NumLeilao', codigoPlatforma);
 

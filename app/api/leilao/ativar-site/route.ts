@@ -101,12 +101,20 @@ async function ativarSite(cookie: string, pieceId: string, codigoPlatforma: stri
   const fields = new Map<string, string>();
 
   for (const m of html.matchAll(/<input[^>]+>/gi)) {
-    const tag  = m[0];
-    const type = (tag.match(/type=["']?([^"'\s>]+)/i)?.[1] ?? 'text').toLowerCase();
+    const tag      = m[0];
+    const type     = (tag.match(/type=["']?([^"'\s>]+)/i)?.[1] ?? 'text').toLowerCase();
     if (type === 'submit' || type === 'button' || type === 'image') continue;
-    const name  = tag.match(/name=["']([^"']+)["']/i)?.[1];
+    const name     = tag.match(/name=["']([^"']+)["']/i)?.[1];
+    if (!name) continue;
+    // Checkboxes: só inclui se estiver checked, e o valor é sempre '1' quando marcado
+    if (type === 'checkbox') {
+      const checked = /\bchecked\b/i.test(tag);
+      if (checked) fields.set(name, tag.match(/value=["']([^"']*)["']/i)?.[1] ?? '1');
+      // Se não checked, não seta — o POST não envia campos unchecked
+      continue;
+    }
     const value = tag.match(/value=["']([^"']*)["']/i)?.[1] ?? '';
-    if (name) fields.set(name, value);
+    fields.set(name, value);
   }
 
   for (const m of html.matchAll(/<select[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/select>/gi)) {
@@ -122,24 +130,34 @@ async function ativarSite(cookie: string, pieceId: string, codigoPlatforma: stri
     fields.set(m[1], m[2]);
   }
 
-  fields.set('Site',      '1');
+  // Checkbox Site: o valor que o browser envia quando marcado depende do atributo value no HTML
+  // Se não tem value explícito, browser envia "on". Extraímos o value real do HTML.
+  const siteCheckMatch = html.match(/<input[^>]*name=["']?Site["']?[^>]*>/i);
+  const siteCheckValue = siteCheckMatch
+    ? (siteCheckMatch[0].match(/value=["']([^"']+)["']/i)?.[1] ?? 'on')
+    : 'on';
+  fields.set('Site',      siteCheckValue);
   fields.set('Botao',     'Gravar');
   fields.set('NumLeilao', codigoPlatforma);
+  if (!fields.has('ID')) fields.set('ID', pieceId);
 
   const params = new URLSearchParams();
   for (const [k, v] of fields) params.append(k, v);
+
+  console.log(`[ativar-site] POST cad_peca.asp pieceId=${pieceId} fields=[${[...fields.keys()].join(',')}] Site=${fields.get('Site')} ID=${fields.get('ID')}`);
 
   const res = await fetch(`${BASE}/cad_peca.asp`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Cookie': cookie, 'User-Agent': UA,
-      'Referer': `${BASE}/cad_peca.asp`,
+      'Referer': `${BASE}/cad_peca.asp?ID=${pieceId}`,
       'X-Requested-With': 'XMLHttpRequest',
     },
     body: params.toString(), redirect: 'follow', signal: AbortSignal.timeout(30_000),
   });
   const text = await res.text();
+  console.log(`[ativar-site] resposta pieceId=${pieceId}: ${text.slice(0, 200)}`);
   if (!text.startsWith('1|')) throw new Error(text.replace(/<[^>]+>/g, '').trim().slice(0, 120));
 }
 
