@@ -53,6 +53,22 @@ export async function GET(req: Request) {
     fields[`TEXTAREA:${m[1]}`] = m[2].slice(0, 80);
   }
 
-  // Também mostra o HTML bruto da seção do formulário (primeiros 8kb)
-  return Response.json({ fields, htmlSample: html.slice(0, 8000) });
+  // Busca o HTML completo e extrai trechos relevantes
+  const formMatch   = html.match(/<form[\s\S]*?<\/form>/i);
+  const ajaxCalls   = [...html.matchAll(/\$\.ajax\([\s\S]{0,300}?\)/gi)].map(m => m[0]);
+  const fetchCalls  = [...html.matchAll(/fetch\(['"`][^'"`]+['"`]/gi)].map(m => m[0]);
+  const aspUrls     = [...html.matchAll(/['"`]([^'"`]*\.asp[^'"`]*?)['"`]/gi)].map(m => m[1]);
+  const scriptSrcs  = [...html.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m => m[1]);
+
+  return Response.json({
+    fields,
+    formHtml:   formMatch?.[0]?.slice(0, 5000) ?? '(sem form)',
+    ajaxCalls,
+    fetchCalls,
+    aspUrls:    [...new Set(aspUrls)],
+    scriptSrcs,
+    totalLen:   html.length,
+    // HTML completo para inspecionar
+    html: html,
+  });
 }
