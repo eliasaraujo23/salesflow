@@ -15,6 +15,7 @@ import { fetchImageKeys } from '@/lib/actions/fetch-image-keys';
 import { useAtualizarPreco } from '@/lib/hooks/use-atualizar-preco';
 import { AtualizarPrecoModal } from '@/components/leilao/atualizar-preco-modal';
 import { ReuploadsModal } from '@/components/leilao/reuploads-modal';
+import { AtivarSiteModal, type SitePeca } from '@/components/leilao/ativar-site-modal';
 import { useLeilaoRegras } from '@/lib/hooks/use-leilao-regras';
 
 interface Props {
@@ -402,11 +403,13 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   const [zerarBase,     setZerarBase]     = useState('');
   const [reuphBase,     setReuphBase]     = useState('');
   const [siteBase,      setSiteBase]      = useState('');
+  const [siteModalOpen, setSiteModalOpen] = useState(false);
   const [siteState,     setSiteState]     = useState<{
     phase: 'idle' | 'scanning' | 'scanned' | 'running' | 'done' | 'error';
     total: number; comFoto: number; done: number; ok: number; errors: number;
     statusMsg: string; fatalError: string;
-  }>({ phase: 'idle', total: 0, comFoto: 0, done: 0, ok: 0, errors: 0, statusMsg: '', fatalError: '' });
+    pecaStatus: Record<string, 'pending' | 'ok' | 'error'>;
+  }>({ phase: 'idle', total: 0, comFoto: 0, done: 0, ok: 0, errors: 0, statusMsg: '', fatalError: '', pecaStatus: {} });
   const { open, openModal, closeModal, state, execute, isRunning } = useAtualizarPreco();
   const { state: dupState,   scan: dupScan, remover: dupRemover, reset: dupReset } = useDuplicatas();
   const { state: zerarState, confirm: zerarConfirm, zerar, reset: zerarReset } = useZerarLeilao();
@@ -492,28 +495,34 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   const siteLeilao = siteFile?.codigoPlatforma ?? '';
   const siteNome   = siteFile?.leilao?.nome ?? '';
   const sitePct    = siteState.comFoto > 0 ? Math.round(siteState.done / siteState.comFoto * 100) : 0;
-  const [sitePecas, setSitePecas] = useState<{ pieceId: string; lote: number }[]>([]);
+  const [sitePecas, setSitePecas] = useState<SitePeca[]>([]);
 
   async function siteScan() {
     if (!siteLeilao || !siteNome) return;
-    setSiteState(s => ({ ...s, phase: 'scanning', statusMsg: '' }));
+    setSiteState(s => ({ ...s, phase: 'scanning', statusMsg: '', pecaStatus: {} }));
+    setSitePecas([]);
     try {
       const res  = await fetch(`/api/leilao/ativar-site?leilao=${siteLeilao}&nome=${encodeURIComponent(siteNome)}`);
-      const data = await res.json() as { total?: number; comFoto?: number; pecas?: { pieceId: string; lote: number }[]; error?: string };
+      const data = await res.json() as { total?: number; comFoto?: number; pecas?: SitePeca[]; error?: string };
       if (data.error) { setSiteState(s => ({ ...s, phase: 'error', fatalError: data.error! })); return; }
-      setSitePecas(data.pecas ?? []);
-      setSiteState(s => ({ ...s, phase: 'scanned', total: data.total ?? 0, comFoto: data.comFoto ?? 0 }));
+      const pecas = data.pecas ?? [];
+      setSitePecas(pecas);
+      setSiteState(s => ({ ...s, phase: 'scanned', total: data.total ?? 0, comFoto: pecas.length }));
+      if (pecas.length > 0) setSiteModalOpen(true);
     } catch (e) {
       setSiteState(s => ({ ...s, phase: 'error', fatalError: e instanceof Error ? e.message : 'Erro' }));
     }
   }
 
-  async function siteExecutar() {
-    if (sitePecas.length === 0 || !siteLeilao || !siteNome) return;
-    setSiteState(s => ({ ...s, phase: 'running', done: 0, ok: 0, errors: 0, statusMsg: '' }));
+  async function siteExecutar(selected: SitePeca[]) {
+    if (selected.length === 0 || !siteLeilao || !siteNome) return;
+    const initStatus: Record<string, 'pending' | 'ok' | 'error'> = {};
+    for (const p of selected) initStatus[p.pieceId] = 'pending';
+    setSiteState(s => ({ ...s, phase: 'running', done: 0, ok: 0, errors: 0, statusMsg: '', pecaStatus: initStatus }));
+
     const CHUNK = 7;
-    for (let i = 0; i < sitePecas.length; i += CHUNK) {
-      const chunk = sitePecas.slice(i, i + CHUNK);
+    for (let i = 0; i < selected.length; i += CHUNK) {
+      const chunk = selected.slice(i, i + CHUNK);
       try {
         const res = await fetch('/api/leilao/ativar-site', {
           method: 'POST',
@@ -534,13 +543,22 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
             if (!line.startsWith('data: ')) continue;
             let ev: Record<string, unknown>;
             try { ev = JSON.parse(line.slice(6)); } catch { continue; }
-            if (ev.type === 'status')   setSiteState(s => ({ ...s, statusMsg: ev.message as string }));
-            if (ev.type === 'progress') setSiteState(s => ({
-              ...s, done: ev.done as number,
-              ok:     s.ok + (ev.success ? 1 : 0),
-              errors: s.errors + (ev.success ? 0 : 1),
-            }));
-            if (ev.type === 'done') setSiteState(s => ({ ...s, ok: ev.ok as number, errors: ev.errors as number }));
+            if (ev.type === 'status') {
+              setSiteState(s => ({ ...s, statusMsg: ev.message as string }));
+            } else if (ev.type === 'progress') {
+              const lote    = ev.lote as number;
+              const success = ev.success as boolean;
+              const peca    = chunk.find(p => p.lote === lote);
+              setSiteState(s => ({
+                ...s,
+                done:   ev.done as number,
+                ok:     s.ok + (success ? 1 : 0),
+                errors: s.errors + (success ? 0 : 1),
+                pecaStatus: peca
+                  ? { ...s.pecaStatus, [peca.pieceId]: success ? 'ok' : 'error' }
+                  : s.pecaStatus,
+              }));
+            }
           }
         }
       } catch { /* continua próximo chunk */ }
@@ -862,37 +880,56 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
         <div className="p-3 flex flex-col gap-2.5">
           <BaseSelect
             value={siteBase}
-            onChange={v => { setSiteBase(v); setSiteState({ phase: 'idle', total: 0, comFoto: 0, done: 0, ok: 0, errors: 0, statusMsg: '', fatalError: '' }); setSitePecas([]); }}
+            onChange={v => { setSiteBase(v); setSiteState({ phase: 'idle', total: 0, comFoto: 0, done: 0, ok: 0, errors: 0, statusMsg: '', fatalError: '', pecaStatus: {} }); setSitePecas([]); }}
             uploadedFiles={uploadedFiles}
           />
-          <button
-            onClick={() => {
-              if (!siteLeilao || !siteNome) return;
-              if (siteState.phase === 'idle' || siteState.phase === 'error') siteScan();
-              else if (siteState.phase === 'scanned' && siteState.comFoto > 0) siteExecutar();
-              else siteScan();
-            }}
-            disabled={!siteBase || siteState.phase === 'scanning' || siteState.phase === 'running'}
-            className={[
-              'w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
-              siteState.phase === 'scanned' && siteState.comFoto > 0
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                : 'border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04]',
-            ].join(' ')}
-          >
-            {siteState.phase === 'scanning' || siteState.phase === 'running'
-              ? <Loader2 size={12} className="animate-spin" />
-              : siteState.phase === 'scanned' && siteState.comFoto > 0
-                ? <CheckCircle2 size={12} />
-                : <Zap size={12} />}
-            {siteState.phase === 'idle'     && 'Escanear'}
-            {siteState.phase === 'scanning' && 'Escaneando...'}
-            {siteState.phase === 'scanned'  && siteState.comFoto === 0 && 'Escanear novamente'}
-            {siteState.phase === 'scanned'  && siteState.comFoto > 0   && `Ativar ${siteState.comFoto} peças`}
-            {siteState.phase === 'running'  && `Ativando... ${sitePct}%`}
-            {siteState.phase === 'done'     && 'Escanear novamente'}
-            {siteState.phase === 'error'    && 'Tentar novamente'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                if (!siteLeilao || !siteNome) return;
+                if (siteState.phase === 'idle' || siteState.phase === 'error') {
+                  siteScan();
+                } else if (siteState.phase === 'scanned' && siteState.comFoto > 0) {
+                  setSiteModalOpen(true);
+                } else if (siteState.phase === 'running' || siteState.phase === 'done') {
+                  setSiteModalOpen(true);
+                } else {
+                  siteScan();
+                }
+              }}
+              disabled={!siteBase || siteState.phase === 'scanning'}
+              className={[
+                'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+                (siteState.phase === 'scanned' && siteState.comFoto > 0) || siteState.phase === 'running' || siteState.phase === 'done'
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  : 'border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04]',
+              ].join(' ')}
+            >
+              {siteState.phase === 'scanning'
+                ? <Loader2 size={12} className="animate-spin" />
+                : (siteState.phase === 'scanned' && siteState.comFoto > 0) || siteState.phase === 'running' || siteState.phase === 'done'
+                  ? <CheckCircle2 size={12} />
+                  : <Zap size={12} />}
+              {siteState.phase === 'idle'     && 'Escanear'}
+              {siteState.phase === 'scanning' && 'Escaneando...'}
+              {siteState.phase === 'scanned'  && siteState.comFoto === 0 && 'Escanear novamente'}
+              {siteState.phase === 'scanned'  && siteState.comFoto > 0   && `Ver peças (${siteState.comFoto})`}
+              {siteState.phase === 'running'  && 'Ver progresso'}
+              {siteState.phase === 'done'     && 'Ver resultado'}
+              {siteState.phase === 'error'    && 'Tentar novamente'}
+            </button>
+
+            {(siteState.phase === 'done' || siteState.phase === 'scanned') && (
+              <button
+                onClick={() => { setSiteState({ phase: 'idle', total: 0, comFoto: 0, done: 0, ok: 0, errors: 0, statusMsg: '', fatalError: '', pecaStatus: {} }); setSitePecas([]); if (siteLeilao && siteNome) siteScan(); }}
+                disabled={!siteBase}
+                title="Escanear novamente"
+                className="flex items-center justify-center px-3 py-2 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
+              >
+                <Zap size={12} />
+              </button>
+            )}
+          </div>
 
           {siteState.phase === 'scanned' && siteState.comFoto === 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
@@ -1058,6 +1095,22 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
         }));
         reuphExecutar(reuphLeilao, reuphNome, comFlag);
       }}
+    />
+
+    <AtivarSiteModal
+      open={siteModalOpen}
+      pecas={sitePecas}
+      leilaoNome={siteNome}
+      codigoPlatforma={siteLeilao}
+      phase={siteState.phase}
+      done={siteState.done}
+      ok={siteState.ok}
+      errors={siteState.errors}
+      statusMsg={siteState.statusMsg}
+      fatalError={siteState.fatalError}
+      pecaStatus={siteState.pecaStatus}
+      onClose={() => { if (siteState.phase !== 'running') setSiteModalOpen(false); }}
+      onExecute={(selected) => siteExecutar(selected)}
     />
     </>
   );
