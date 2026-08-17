@@ -139,7 +139,7 @@ async function ativarSite(cookie: string, pieceId: string, codigoPlatforma: stri
   fields.set('Site',      siteCheckValue);
   fields.set('Botao',     'Gravar');
   fields.set('NumLeilao', codigoPlatforma);
-  if (!fields.has('ID')) fields.set('ID', pieceId);
+  fields.set('ID', pieceId); // sempre força o ID correto — hidden input pode estar em branco no HTML
 
   const params = new URLSearchParams();
   for (const [k, v] of fields) params.append(k, v);

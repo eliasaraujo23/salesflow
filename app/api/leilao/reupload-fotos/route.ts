@@ -255,6 +255,7 @@ async function setSite(cookie: string, pieceId: string, codigoPlatforma: string,
   }
   fields.set('Botao',    'Gravar');
   fields.set('NumLeilao', codigoPlatforma);
+  fields.set('ID', pieceId); // sempre força o ID correto — hidden input pode estar em branco no HTML
 
   const params = new URLSearchParams();
   for (const [k, v] of fields) params.append(k, v);
@@ -264,12 +265,13 @@ async function setSite(cookie: string, pieceId: string, codigoPlatforma: string,
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Cookie': cookie, 'User-Agent': UA,
-      'Referer': `${BASE}/cad_peca.asp`,
+      'Referer': `${BASE}/cad_peca.asp?ID=${pieceId}`,
       'X-Requested-With': 'XMLHttpRequest',
     },
     body: params.toString(), redirect: 'follow', signal: AbortSignal.timeout(30_000),
   });
   const text = await res.text();
+  console.log(`[reupload-fotos] setSite lote=${lote} pieceId=${pieceId} Site=${siteValue} resposta: ${text.slice(0, 120)}`);
   if (!text.startsWith('1|')) throw new Error(text.replace(/<[^>]+>/g, '').trim().slice(0, 120));
 }
 

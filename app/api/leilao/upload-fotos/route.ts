@@ -394,6 +394,7 @@ async function activateSite(
   fields.set('Site',      siteCheckValue);
   fields.set('Botao',     'Gravar');
   fields.set('NumLeilao', codigoPlatforma);
+  fields.set('ID',        pieceId); // sempre força o ID correto — hidden input pode estar em branco no HTML
 
   const params = new URLSearchParams();
   for (const [k, v] of fields) params.append(k, v);
