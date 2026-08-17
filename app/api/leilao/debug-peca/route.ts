@@ -28,8 +28,17 @@ export async function GET(req: Request) {
   if (n.startsWith('BRUNO'))   { user = process.env.LEILOESBR_USER_BARAUJO ?? ''; pass = process.env.LEILOESBR_PASS_BARAUJO ?? ''; }
 
   const cookie = await login(user, pass, leilao);
-  const res    = await fetch(`${BASE}/cad_peca.asp?ID=${pieceId}`, {
-    headers: { 'Cookie': cookie, 'User-Agent': UA },
+
+  // Método correto: POST com tipo=3 e ID — como o painel JS faz
+  const res = await fetch(`${BASE}/cad_peca.asp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookie, 'User-Agent': UA,
+      'X-Requested-With': 'XMLHttpRequest',
+      'Referer': `${BASE}/listar_pecas.asp`,
+    },
+    body: new URLSearchParams({ tipo: '3', ID: pieceId }).toString(),
     redirect: 'follow',
   });
   const html = await res.text();
@@ -40,35 +49,27 @@ export async function GET(req: Request) {
     const tag   = m[0];
     const name  = tag.match(/name=["']([^"']+)["']/i)?.[1];
     const type  = (tag.match(/type=["']?([^"'\s>]+)/i)?.[1] ?? 'text').toLowerCase();
-    const value = tag.match(/value=["']([^"']*)["']/i)?.[1] ?? '(sem value)';
+    const value = tag.match(/value=["']([^"']*)["']/i)?.[1] ?? '';
     if (name) fields[`INPUT[${type}]:${name}`] = value;
   }
   for (const m of html.matchAll(/<select[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/select>/gi)) {
-    const inner   = m[2];
-    const selOpt  = inner.match(/<option[^>]+selected[^>]*value=["']([^"']*)["']/i)?.[1]
-                 ?? inner.match(/<option[^>]+value=["']([^"']*)["'][^>]*selected/i)?.[1] ?? '(nenhum selected)';
-    fields[`SELECT:${m[1]}`] = selOpt;
+    const inner    = m[2];
+    const selOpt   = inner.match(/<option[^>]+selected[^>]*value=["']([^"']*)["']/i)?.[1]
+                  ?? inner.match(/<option[^>]+value=["']([^"']*)["'][^>]*selected/i)?.[1] ?? '(nenhum)';
+    const firstOpt = inner.match(/<option[^>]+value=["']([^"']*)["']/i)?.[1] ?? '';
+    fields[`SELECT:${m[1]}`] = selOpt + ' (first=' + firstOpt + ')';
   }
   for (const m of html.matchAll(/<textarea[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/textarea>/gi)) {
-    fields[`TEXTAREA:${m[1]}`] = m[2].slice(0, 80);
+    fields[`TEXTAREA:${m[1]}`] = m[2].slice(0, 200);
   }
 
-  // Busca o HTML completo e extrai trechos relevantes
-  const formMatch   = html.match(/<form[\s\S]*?<\/form>/i);
-  const ajaxCalls   = [...html.matchAll(/\$\.ajax\([\s\S]{0,300}?\)/gi)].map(m => m[0]);
-  const fetchCalls  = [...html.matchAll(/fetch\(['"`][^'"`]+['"`]/gi)].map(m => m[0]);
-  const aspUrls     = [...html.matchAll(/['"`]([^'"`]*\.asp[^'"`]*?)['"`]/gi)].map(m => m[1]);
-  const scriptSrcs  = [...html.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m => m[1]);
+  // Encontra scripts JS incluídos neste fragmento
+  const scriptSrcs = [...html.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m => m[1]);
 
   return Response.json({
     fields,
-    formHtml:   formMatch?.[0]?.slice(0, 5000) ?? '(sem form)',
-    ajaxCalls,
-    fetchCalls,
-    aspUrls:    [...new Set(aspUrls)],
     scriptSrcs,
-    totalLen:   html.length,
-    // HTML completo para inspecionar
-    html: html,
+    totalLen: html.length,
+    html,     // HTML completo do fragmento do formulário
   });
 }
