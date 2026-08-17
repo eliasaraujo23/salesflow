@@ -90,68 +90,93 @@ function parsePecas(html: string): PecaParaAtivar[] {
   return result;
 }
 
-// Ativa Site da peça via round-trip completo do formulário
-async function ativarSite(cookie: string, pieceId: string, codigoPlatforma: string): Promise<void> {
-  const getRes = await fetch(`${BASE}/cad_peca.asp?ID=${pieceId}`, {
-    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_pecas.asp` },
+// Campos conhecidos que o gravacadpeca envia — todos obrigatórios para não apagar dados
+// Fonte: ficha-peca.js do painel leiloesbr
+const PECA_FIELD_IDS = [
+  'ID', 'ID_Cliente', 'ID_Leilao', 'NumLeilao', 'ID_Tipo', 'ID_Artista',
+  'Item', 'Carteado', 'Valor_Contratado', 'Taxa', 'Taxa_Leiloeiro',
+  'Peca', 'Descricao', 'Descricao_2', 'Lote', 'Extra', 'Dia',
+  'Dt_Nota', 'ID_Comprador', 'Dt_Acerto', 'Valor_Venda', 'Cartela',
+  'Nota', 'ID_COld', 'Site', 'Destaque', 'Incremento', 'Dt_Venda',
+  'oldCartela', 'Botao',
+];
+
+// Carrega o formulário real da peça via POST tipo=3 (como o JS do painel faz)
+async function loadPecaForm(cookie: string, pieceId: string): Promise<string> {
+  const res = await fetch(`${BASE}/cad_peca.asp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookie, 'User-Agent': UA,
+      'X-Requested-With': 'XMLHttpRequest',
+      'Referer': `${BASE}/listar_pecas.asp`,
+    },
+    body: new URLSearchParams({ tipo: '3', ID: pieceId }).toString(),
     redirect: 'follow', signal: AbortSignal.timeout(30_000),
   });
-  const html = await getRes.text();
+  return res.text();
+}
 
+// Extrai campos do HTML do formulário (retornado pelo tipo=3)
+function extractFormFields(html: string): Map<string, string> {
   const fields = new Map<string, string>();
 
   for (const m of html.matchAll(/<input[^>]+>/gi)) {
-    const tag      = m[0];
-    const type     = (tag.match(/type=["']?([^"'\s>]+)/i)?.[1] ?? 'text').toLowerCase();
-    if (type === 'submit' || type === 'button' || type === 'image') continue;
-    const name     = tag.match(/name=["']([^"']+)["']/i)?.[1];
+    const tag  = m[0];
+    const type = (tag.match(/type=["']?([^"'\s>]+)/i)?.[1] ?? 'text').toLowerCase();
+    if (type === 'submit' || type === 'button' || type === 'image' || type === 'file') continue;
+    const name = tag.match(/name=["']([^"']+)["']/i)?.[1];
     if (!name) continue;
-    // Checkboxes: só inclui se estiver checked, e o valor é sempre '1' quando marcado
     if (type === 'checkbox') {
       const checked = /\bchecked\b/i.test(tag);
-      if (checked) fields.set(name, tag.match(/value=["']([^"']*)["']/i)?.[1] ?? '1');
-      // Se não checked, não seta — o POST não envia campos unchecked
+      if (checked) fields.set(name, tag.match(/value=["']([^"']*)["']/i)?.[1] ?? 'on');
+      // checkbox desmarcado = ausente no POST
       continue;
     }
-    const value = tag.match(/value=["']([^"']*)["']/i)?.[1] ?? '';
-    fields.set(name, value);
+    fields.set(name, tag.match(/value=["']([^"']*)["']/i)?.[1] ?? '');
   }
 
   for (const m of html.matchAll(/<select[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/select>/gi)) {
-    const name    = m[1];
-    const inner   = m[2];
-    const selOpt  = inner.match(/<option[^>]+selected[^>]*value=["']([^"']*)["']/i)
-                 ?? inner.match(/<option[^>]+value=["']([^"']*)["'][^>]*selected/i);
-    const firstOpt = inner.match(/<option[^>]+value=["']([^"']*)["']/i);
-    fields.set(name, selOpt?.[1] ?? firstOpt?.[1] ?? '');
+    const inner    = m[2];
+    const selected = inner.match(/<option[^>]+selected[^>]*value=["']([^"']*)["']/i)?.[1]
+                  ?? inner.match(/<option[^>]+value=["']([^"']*)["'][^>]*selected/i)?.[1];
+    const first    = inner.match(/<option[^>]+value=["']([^"']*)["']/i)?.[1] ?? '';
+    fields.set(m[1], selected ?? first);
   }
 
   for (const m of html.matchAll(/<textarea[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/textarea>/gi)) {
     fields.set(m[1], m[2]);
   }
 
-  // Checkbox Site: o valor que o browser envia quando marcado depende do atributo value no HTML
-  // Se não tem value explícito, browser envia "on". Extraímos o value real do HTML.
-  const siteCheckMatch = html.match(/<input[^>]*name=["']?Site["']?[^>]*>/i);
-  const siteCheckValue = siteCheckMatch
-    ? (siteCheckMatch[0].match(/value=["']([^"']+)["']/i)?.[1] ?? 'on')
-    : 'on';
-  fields.set('Site',      siteCheckValue);
-  fields.set('Botao',     'Gravar');
+  return fields;
+}
+
+// Ativa Site da peça carregando o formulário real (tipo=3) e regravando com Site ativo
+async function ativarSite(cookie: string, pieceId: string, codigoPlatforma: string): Promise<void> {
+  const html   = await loadPecaForm(cookie, pieceId);
+  const fields = extractFormFields(html);
+
+  console.log(`[ativar-site] tipo=3 pieceId=${pieceId} campos encontrados=[${[...fields.keys()].join(',')}]`);
+
+  if (fields.size < 3) {
+    throw new Error(`Formulário não carregou (${fields.size} campos). HTML: ${html.slice(0, 200)}`);
+  }
+
+  // Garante campos obrigatórios
+  fields.set('ID',        pieceId);
   fields.set('NumLeilao', codigoPlatforma);
-  fields.set('ID', pieceId); // sempre força o ID correto — hidden input pode estar em branco no HTML
+  fields.set('Site',      'on');  // checkbox marcado
+  fields.set('Botao',     'Gravar');
 
   const params = new URLSearchParams();
   for (const [k, v] of fields) params.append(k, v);
-
-  console.log(`[ativar-site] POST cad_peca.asp pieceId=${pieceId} fields=[${[...fields.keys()].join(',')}] Site=${fields.get('Site')} ID=${fields.get('ID')}`);
 
   const res = await fetch(`${BASE}/cad_peca.asp`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Cookie': cookie, 'User-Agent': UA,
-      'Referer': `${BASE}/cad_peca.asp?ID=${pieceId}`,
+      'Referer': `${BASE}/cad_peca.asp`,
       'X-Requested-With': 'XMLHttpRequest',
     },
     body: params.toString(), redirect: 'follow', signal: AbortSignal.timeout(30_000),

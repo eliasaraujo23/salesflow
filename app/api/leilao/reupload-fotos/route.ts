@@ -205,57 +205,64 @@ async function uploadExtras(cookie: string, pieceId: string, numLeilao: string, 
   return ok;
 }
 
-// Grava Site=valor (1=ativo, 0=inativo) sem alterar nenhum outro campo.
-// Lê o HTML do formulário e reposta TODOS os campos existentes, trocando só Site.
+// Grava Site=valor carregando o formulário real via POST tipo=3 (como o JS do painel faz)
 async function setSite(cookie: string, pieceId: string, codigoPlatforma: string, lote: number, siteValue: '0' | '1'): Promise<void> {
-  const getRes = await fetch(`${BASE}/cad_peca.asp?ID=${pieceId}`, {
-    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_pecas.asp` },
+  // Carrega formulário real da peça — mesmo método que o painel usa (editaPeca)
+  const formRes = await fetch(`${BASE}/cad_peca.asp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookie, 'User-Agent': UA,
+      'X-Requested-With': 'XMLHttpRequest',
+      'Referer': `${BASE}/listar_pecas.asp`,
+    },
+    body: new URLSearchParams({ tipo: '3', ID: pieceId }).toString(),
     redirect: 'follow', signal: AbortSignal.timeout(30_000),
   });
-  const html = await getRes.text();
+  const html = await formRes.text();
 
-  // Coleta TODOS os campos do formulário preservando seus valores originais
   const fields = new Map<string, string>();
 
-  // inputs (text, hidden, number, date, etc.) — captura name e value
   for (const m of html.matchAll(/<input[^>]+>/gi)) {
     const tag  = m[0];
     const type = (tag.match(/type=["']?([^"'\s>]+)/i)?.[1] ?? 'text').toLowerCase();
-    if (type === 'submit' || type === 'button' || type === 'image') continue;
-    const name  = tag.match(/name=["']([^"']+)["']/i)?.[1];
-    const value = tag.match(/value=["']([^"']*)["']/i)?.[1] ?? '';
-    if (name) fields.set(name, value);
+    if (type === 'submit' || type === 'button' || type === 'image' || type === 'file') continue;
+    const name = tag.match(/name=["']([^"']+)["']/i)?.[1];
+    if (!name) continue;
+    if (type === 'checkbox') {
+      if (/\bchecked\b/i.test(tag)) fields.set(name, tag.match(/value=["']([^"']*)["']/i)?.[1] ?? 'on');
+      continue;
+    }
+    fields.set(name, tag.match(/value=["']([^"']*)["']/i)?.[1] ?? '');
   }
 
-  // selects — captura o option com selected
   for (const m of html.matchAll(/<select[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/select>/gi)) {
-    const name    = m[1];
-    const inner   = m[2];
-    const selOpt  = inner.match(/<option[^>]+selected[^>]*value=["']([^"']*)["']/i)
-                 ?? inner.match(/<option[^>]+value=["']([^"']*)["'][^>]*selected/i);
-    const firstOpt = inner.match(/<option[^>]+value=["']([^"']*)["']/i);
-    fields.set(name, selOpt?.[1] ?? firstOpt?.[1] ?? '');
+    const inner    = m[2];
+    const selected = inner.match(/<option[^>]+selected[^>]*value=["']([^"']*)["']/i)?.[1]
+                  ?? inner.match(/<option[^>]+value=["']([^"']*)["'][^>]*selected/i)?.[1];
+    const first    = inner.match(/<option[^>]+value=["']([^"']*)["']/i)?.[1] ?? '';
+    fields.set(m[1], selected ?? first);
   }
 
-  // textareas — preserva conteúdo completo incluindo HTML entities e quebras de linha
   for (const m of html.matchAll(/<textarea[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/textarea>/gi)) {
-    fields.set(m[1], m[2]); // não faz trim — preserva espaços/newlines originais
+    fields.set(m[1], m[2]);
   }
 
-  // Checkbox Site: extrai o value real do HTML (pode ser 'on', '1', etc.)
-  // Quando ativando (siteValue='1'), usamos esse value; quando desativando ('0'), omitimos o campo
-  const siteCheckMatch = html.match(/<input[^>]*name=["']?Site["']?[^>]*>/i);
-  const siteCheckValue = siteCheckMatch
-    ? (siteCheckMatch[0].match(/value=["']([^"']+)["']/i)?.[1] ?? 'on')
-    : 'on';
+  console.log(`[reupload-fotos] setSite tipo=3 lote=${lote} pieceId=${pieceId} campos=[${[...fields.keys()].join(',')}]`);
+
+  if (fields.size < 3) {
+    throw new Error(`Formulário não carregou (${fields.size} campos). Resp: ${html.slice(0, 150)}`);
+  }
+
+  // Aplica mudança de Site e campos obrigatórios
+  fields.set('ID',        pieceId);
+  fields.set('NumLeilao', codigoPlatforma);
+  fields.set('Botao',     'Gravar');
   if (siteValue === '1') {
-    fields.set('Site', siteCheckValue);
+    fields.set('Site', 'on');
   } else {
     fields.delete('Site'); // checkbox desmarcado = ausente no POST
   }
-  fields.set('Botao',    'Gravar');
-  fields.set('NumLeilao', codigoPlatforma);
-  fields.set('ID', pieceId); // sempre força o ID correto — hidden input pode estar em branco no HTML
 
   const params = new URLSearchParams();
   for (const [k, v] of fields) params.append(k, v);
@@ -265,13 +272,13 @@ async function setSite(cookie: string, pieceId: string, codigoPlatforma: string,
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Cookie': cookie, 'User-Agent': UA,
-      'Referer': `${BASE}/cad_peca.asp?ID=${pieceId}`,
+      'Referer': `${BASE}/cad_peca.asp`,
       'X-Requested-With': 'XMLHttpRequest',
     },
     body: params.toString(), redirect: 'follow', signal: AbortSignal.timeout(30_000),
   });
   const text = await res.text();
-  console.log(`[reupload-fotos] setSite lote=${lote} pieceId=${pieceId} Site=${siteValue} resposta: ${text.slice(0, 120)}`);
+  console.log(`[reupload-fotos] setSite resposta lote=${lote}: ${text.slice(0, 120)}`);
   if (!text.startsWith('1|')) throw new Error(text.replace(/<[^>]+>/g, '').trim().slice(0, 120));
 }
 

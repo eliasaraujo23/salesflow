@@ -351,50 +351,63 @@ async function uploadExtras(
 
 // ─── Activate Site ────────────────────────────────────────────────────────────
 
-// Lê o formulário atual da peça e reposta tudo com Site=1, sem apagar nenhum campo.
+// Carrega formulário real via POST tipo=3 e regrava com Site=on (ativo)
 async function activateSite(
   cookie:          string,
   pieceId:         string,
   codigoPlatforma: string,
 ): Promise<void> {
-  const getRes = await fetch(`${BASE}/cad_peca.asp?ID=${pieceId}`, {
-    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_pecas.asp` },
+  // Carrega o formulário real da peça (mesmo método que o JS do painel usa)
+  const formRes = await fetch(`${BASE}/cad_peca.asp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookie, 'User-Agent': UA,
+      'X-Requested-With': 'XMLHttpRequest',
+      'Referer': `${BASE}/listar_pecas.asp`,
+    },
+    body: new URLSearchParams({ tipo: '3', ID: pieceId }).toString(),
     redirect: 'follow', signal: AbortSignal.timeout(30_000),
   });
-  const html = await getRes.text();
+  const html = await formRes.text();
 
   const fields = new Map<string, string>();
 
   for (const m of html.matchAll(/<input[^>]+>/gi)) {
     const tag  = m[0];
     const type = (tag.match(/type=["']?([^"'\s>]+)/i)?.[1] ?? 'text').toLowerCase();
-    if (type === 'submit' || type === 'button' || type === 'image') continue;
-    const name  = tag.match(/name=["']([^"']+)["']/i)?.[1];
-    const value = tag.match(/value=["']([^"']*)["']/i)?.[1] ?? '';
-    if (name) fields.set(name, value);
+    if (type === 'submit' || type === 'button' || type === 'image' || type === 'file') continue;
+    const name = tag.match(/name=["']([^"']+)["']/i)?.[1];
+    if (!name) continue;
+    if (type === 'checkbox') {
+      if (/\bchecked\b/i.test(tag)) fields.set(name, tag.match(/value=["']([^"']*)["']/i)?.[1] ?? 'on');
+      continue;
+    }
+    fields.set(name, tag.match(/value=["']([^"']*)["']/i)?.[1] ?? '');
   }
 
   for (const m of html.matchAll(/<select[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/select>/gi)) {
-    const name    = m[1];
-    const inner   = m[2];
-    const selOpt  = inner.match(/<option[^>]+selected[^>]*value=["']([^"']*)["']/i)
-                 ?? inner.match(/<option[^>]+value=["']([^"']*)["'][^>]*selected/i);
-    const firstOpt = inner.match(/<option[^>]+value=["']([^"']*)["']/i);
-    fields.set(name, selOpt?.[1] ?? firstOpt?.[1] ?? '');
+    const inner    = m[2];
+    const selected = inner.match(/<option[^>]+selected[^>]*value=["']([^"']*)["']/i)?.[1]
+                  ?? inner.match(/<option[^>]+value=["']([^"']*)["'][^>]*selected/i)?.[1];
+    const first    = inner.match(/<option[^>]+value=["']([^"']*)["']/i)?.[1] ?? '';
+    fields.set(m[1], selected ?? first);
   }
 
   for (const m of html.matchAll(/<textarea[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/textarea>/gi)) {
     fields.set(m[1], m[2]);
   }
 
-  const siteCheckMatch = html.match(/<input[^>]*name=["']?Site["']?[^>]*>/i);
-  const siteCheckValue = siteCheckMatch
-    ? (siteCheckMatch[0].match(/value=["']([^"']+)["']/i)?.[1] ?? 'on')
-    : 'on';
-  fields.set('Site',      siteCheckValue);
-  fields.set('Botao',     'Gravar');
+  console.log(`[upload-fotos] activateSite tipo=3 pieceId=${pieceId} campos=[${[...fields.keys()].join(',')}]`);
+
+  if (fields.size < 3) {
+    throw new Error(`Formulário não carregou (${fields.size} campos). Resp: ${html.slice(0, 150)}`);
+  }
+
+  fields.set('ID',        pieceId);
   fields.set('NumLeilao', codigoPlatforma);
-  fields.set('ID',        pieceId); // sempre força o ID correto — hidden input pode estar em branco no HTML
+  fields.set('Site',      'on');
+  fields.set('Botao',     'Gravar');
 
   const params = new URLSearchParams();
   for (const [k, v] of fields) params.append(k, v);
@@ -411,6 +424,7 @@ async function activateSite(
     body: params.toString(), redirect: 'follow', signal: AbortSignal.timeout(30_000),
   });
   const text = await res.text();
+  console.log(`[upload-fotos] activateSite resposta pieceId=${pieceId}: ${text.slice(0, 120)}`);
   if (!text.startsWith('1|')) throw new Error(text.replace(/<[^>]+>/g, '').trim().slice(0, 120));
 }
 
