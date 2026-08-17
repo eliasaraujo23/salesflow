@@ -144,24 +144,25 @@ function useReuploads() {
     }
   }
 
-  async function executar(leilao: string, nome: string) {
-    if (pecasSem.length === 0) return;
+  async function executar(leilao: string, nome: string, pecasSelecionadas?: ScannedPeca[]) {
+    const lista = pecasSelecionadas ?? pecasSem;
+    if (lista.length === 0) return;
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
 
-    // Inicializa status de todas as peças como pending
+    // Inicializa status de todas as peças selecionadas como pending
     const initStatus: Record<string, PecaStatus> = {};
-    for (const p of pecasSem) initStatus[p.pieceId] = 'pending';
+    for (const p of lista) initStatus[p.pieceId] = 'pending';
 
     setState(s => ({
       ...s, phase: 'running', done: 0, uploaded: 0, activated: 0, deactivated: 0,
-      errors: 0, statusMsg: '', pecaStatus: initStatus,
+      errors: 0, statusMsg: '', semFoto: lista.length, pecaStatus: initStatus,
     }));
 
     const CHUNK = 30;
     const chunks: ScannedPeca[][] = [];
-    for (let i = 0; i < pecasSem.length; i += CHUNK) chunks.push(pecasSem.slice(i, i + CHUNK));
+    for (let i = 0; i < lista.length; i += CHUNK) chunks.push(lista.slice(i, i + CHUNK));
 
     for (let ci = 0; ci < chunks.length; ci++) {
       if (ctrl.signal.aborted) break;
@@ -897,7 +898,7 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
       codigoPlatforma={reuphFile?.codigoPlatforma ?? undefined}
       isRunning={reuphState.phase === 'running'}
       onClose={reuphCloseModal}
-      onExecute={() => reuphExecutar(reuphLeilao, reuphNome)}
+      onExecute={(selected) => reuphExecutar(reuphLeilao, reuphNome, selected)}
     />
     </>
   );
