@@ -87,6 +87,7 @@ interface ExecuteParams {
   codigoPlatforma: string;
   nome:            string;
   pecas:           PecaParaCadastrar[];
+  ativarSite?:     boolean;
 }
 
 export function useCadastrarPecas() {
@@ -94,7 +95,7 @@ export function useCadastrarPecas() {
   const [state, setState] = useState<CadastrarPecasState>(INITIAL);
   const abortRef = useRef<AbortController | null>(null);
 
-  const execute = useCallback(async ({ codigoPlatforma, nome, pecas }: ExecuteParams) => {
+  const execute = useCallback(async ({ codigoPlatforma, nome, pecas, ativarSite = true }: ExecuteParams) => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -286,7 +287,7 @@ export function useCadastrarPecas() {
           const res = await fetch('/api/leilao/upload-fotos', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ codigoPlatforma, nome, pecas: photoChunk }),
+            body:    JSON.stringify({ codigoPlatforma, nome, pecas: photoChunk, ativarSite }),
             signal:  ctrl.signal,
           });
 

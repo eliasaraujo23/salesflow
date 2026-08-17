@@ -426,9 +426,10 @@ export async function POST(req: Request) {
     codigoPlatforma: string;
     nome:            string;
     pecas:           PecaForPhotos[];
+    ativarSite?:     boolean;
   };
 
-  const { codigoPlatforma, nome, pecas } = body;
+  const { codigoPlatforma, nome, pecas, ativarSite = true } = body;
   if (!codigoPlatforma || !nome || !Array.isArray(pecas) || pecas.length === 0) {
     return new Response('Payload inválido', { status: 400 });
   }
@@ -509,15 +510,17 @@ export async function POST(req: Request) {
           await send({ type: 'photoProgress', lote: peca.lote, slot: 'extra', success: extrasOk > 0, count: extrasOk });
         }
 
-        // Ativar Site após foto(s)
-        await send({ type: 'status', message: `Lote ${peca.lote}: ativando Site...` });
-        let siteOk = false;
-        let siteErr = '';
-        try {
-          await activateSite(pieceCookie, pieceId, codigoPlatforma);
-          siteOk = true;
-        } catch (e) { siteErr = e instanceof Error ? e.message : 'Erro site'; }
-        await send({ type: 'siteProgress', lote: peca.lote, success: siteOk, error: siteErr || undefined });
+        // Ativar Site após foto(s) — só se não for brecho
+        if (ativarSite && mainOk) {
+          await send({ type: 'status', message: `Lote ${peca.lote}: ativando Site...` });
+          let siteOk = false;
+          let siteErr = '';
+          try {
+            await activateSite(pieceCookie, pieceId, codigoPlatforma);
+            siteOk = true;
+          } catch (e) { siteErr = e instanceof Error ? e.message : 'Erro site'; }
+          await send({ type: 'siteProgress', lote: peca.lote, success: siteOk, error: siteErr || undefined });
+        }
       }
 
       await send({ type: 'done' });

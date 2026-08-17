@@ -280,9 +280,10 @@ export async function POST(req: Request) {
     codigoPlatforma: string;
     nome:            string;
     pecas:           PecaReupload[];
+    ativarSite?:     boolean;
   };
 
-  const { codigoPlatforma, nome, pecas } = body;
+  const { codigoPlatforma, nome, pecas, ativarSite = true } = body;
   if (!codigoPlatforma || !nome || !Array.isArray(pecas) || pecas.length === 0) {
     return new Response('Payload inválido', { status: 400 });
   }
@@ -353,15 +354,17 @@ export async function POST(req: Request) {
             await send({ type: 'photoProgress', lote, slot: 'extra', success: extrasOk > 0, count: extrasOk });
           }
 
-          // ── Ativar Site ────────────────────────────────────────────────────
-          await send({ type: 'status', message: `Lote ${lote}: ativando Site...` });
-          let siteOk = false;
-          let siteErr = '';
-          try {
-            await setSite(pieceCookie, pieceId, codigoPlatforma, lote, '1');
-            siteOk = true;
-          } catch (e) { siteErr = e instanceof Error ? e.message : 'Erro site'; }
-          await send({ type: 'siteProgress', lote, success: siteOk, action: 'ativar', error: siteErr || undefined });
+          // ── Ativar Site — só se não for brecho ────────────────────────────
+          if (ativarSite) {
+            await send({ type: 'status', message: `Lote ${lote}: ativando Site...` });
+            let siteOk = false;
+            let siteErr = '';
+            try {
+              await setSite(pieceCookie, pieceId, codigoPlatforma, lote, '1');
+              siteOk = true;
+            } catch (e) { siteErr = e instanceof Error ? e.message : 'Erro site'; }
+            await send({ type: 'siteProgress', lote, success: siteOk, action: 'ativar', error: siteErr || undefined });
+          }
 
         } else {
           // ── Sem imagem no R2 — desativar Site ─────────────────────────────

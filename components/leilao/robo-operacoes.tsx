@@ -15,6 +15,7 @@ import { fetchImageKeys } from '@/lib/actions/fetch-image-keys';
 import { useAtualizarPreco } from '@/lib/hooks/use-atualizar-preco';
 import { AtualizarPrecoModal } from '@/components/leilao/atualizar-preco-modal';
 import { ReuploadsModal } from '@/components/leilao/reuploads-modal';
+import { useBreachos } from '@/hooks/use-breachos';
 
 interface Props {
   basePieces:    LeilaoBaseRow[];
@@ -144,7 +145,7 @@ function useReuploads() {
     }
   }
 
-  async function executar(leilao: string, nome: string, pecasSelecionadas?: ScannedPeca[]) {
+  async function executar(leilao: string, nome: string, pecasSelecionadas?: ScannedPeca[], ativarSite = true) {
     const lista = pecasSelecionadas ?? pecasSem;
     if (lista.length === 0) return;
     abortRef.current?.abort();
@@ -179,7 +180,7 @@ function useReuploads() {
         const res = await fetch('/api/leilao/reupload-fotos', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ codigoPlatforma: leilao, nome, pecas: chunk }),
+          body:    JSON.stringify({ codigoPlatforma: leilao, nome, pecas: chunk, ativarSite }),
           signal:  ctrl.signal,
         });
         if (!res.ok || !res.body) continue;
@@ -404,10 +405,12 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   const { state: dupState,   scan: dupScan, remover: dupRemover, reset: dupReset } = useDuplicatas();
   const { state: zerarState, confirm: zerarConfirm, zerar, reset: zerarReset } = useZerarLeilao();
   const { state: reuphState, pecasSem: reuphPecas, modalOpen: reuphModalOpen, openModal: reuphOpenModal, closeModal: reuphCloseModal, scan: reuphScan, executar: reuphExecutar, reset: reuphReset } = useReuploads();
+  const { breachos } = useBreachos();
 
   const reuphFile      = uploadedFiles.find(f => f.filename === reuphBase);
   const reuphLeilao    = reuphFile?.codigoPlatforma ?? '';
   const reuphNome      = reuphFile?.leilao?.nome ?? '';
+  const reuphEhBrecho  = breachos.some(b => reuphNome.toUpperCase().includes(b.nome.toUpperCase()));
   const isRunningReuph = reuphState.phase === 'scanning' || reuphState.phase === 'running';
   const reuphPct       = reuphState.semFoto > 0 ? Math.round(reuphState.done / reuphState.semFoto * 100) : 0;
 
@@ -911,7 +914,7 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
       codigoPlatforma={reuphFile?.codigoPlatforma ?? undefined}
       isRunning={reuphState.phase === 'running'}
       onClose={reuphCloseModal}
-      onExecute={(selected) => reuphExecutar(reuphLeilao, reuphNome, selected)}
+      onExecute={(selected) => reuphExecutar(reuphLeilao, reuphNome, selected, !reuphEhBrecho)}
     />
     </>
   );
