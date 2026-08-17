@@ -161,10 +161,30 @@ export async function GET(req: Request): Promise<NextResponse> {
       listarTodas(cookie, leilao),
     ]);
 
-    // Modo debug: mostra contagem total e quantas têm is-color9 (sem foto)
+    // Modo debug: mostra HTML raw das células de ícone de uma linha específica (por lote)
+    // Use &lote=23 para inspecionar uma peça específica
+    const debugLote = searchParams.get('lote');
     if (debug) {
       const allDataRows = [...todasHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
         .filter(m => m[1].includes('<td'));
+
+      if (debugLote) {
+        // Encontra a linha com esse lote específico
+        const targetRow = allDataRows.find(m => {
+          const cells = [...m[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(c => cleanCell(c[1]));
+          return cells[2] === debugLote;
+        });
+        if (!targetRow) return NextResponse.json({ error: `Lote ${debugLote} não encontrado` });
+        const cells = [...targetRow[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(c => c[1]);
+        return NextResponse.json({
+          firstCellsClean: cells.slice(0, 4).map(c => cleanCell(c)),
+          // Raw das células dos ícones (últimas 4)
+          iconCellsRaw: cells.slice(-4),
+          hasColor9: targetRow[1].includes('is-color9'),
+          hasColor10: targetRow[1].includes('is-color10'),
+        });
+      }
+
       const semFotoRows = allDataRows.filter(m => m[1].includes('is-color9'));
       const sample = semFotoRows.slice(0, 3).map(m => {
         const cells = [...m[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(c => cleanCell(c[1]));
