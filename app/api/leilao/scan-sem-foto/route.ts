@@ -184,29 +184,25 @@ export async function GET(req: Request): Promise<NextResponse> {
       listarSemFoto(cookie, leilao),
     ]);
 
-    // Modo debug: compara contagem Ft=0 vs sem filtro + células das primeiras 3 rows
+    // Modo debug: retorna HTML raw das últimas 3 células de 5 linhas para inspecionar ícones de foto
     if (debug) {
-      const semFotoAllRows = [...semFotoHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
-        .filter(m => m[1].includes('<td'));
-      const semFotoSample = semFotoAllRows
-        .slice(0, 3)
-        .map(m => [...m[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(c => cleanCell(c[1])));
       const allHtml = await listarTodas(cookie, leilao);
-      const allAllRows = [...allHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
+      const allDataRows = [...allHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
         .filter(m => m[1].includes('<td'));
-      const allSample = allAllRows
-        .slice(0, 3)
-        .map(m => [...m[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(c => cleanCell(c[1])));
-      return NextResponse.json({
-        // Contagens totais — se iguais, Ft=0 não está filtrando
-        semFotoTotalRows: semFotoAllRows.length,
-        allTotalRows:     allAllRows.length,
-        ftFilterWorks:    semFotoAllRows.length < allAllRows.length,
-        // Amostras das primeiras 3 linhas de cada
-        semFotoSample,
-        allSample,
-        xlsRowCount: [...xlsHtml.matchAll(/<\/tr>/gi)].length,
+      const totalRows = allDataRows.length;
+      // Pega 5 linhas espalhadas (início, meio, fim)
+      const indices = [0, 1, Math.floor(totalRows / 2), totalRows - 2, totalRows - 1].filter(i => i >= 0 && i < totalRows);
+      const rowSamples = indices.map(i => {
+        const cells = [...allDataRows[i][1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(c => c[1]);
+        return {
+          index: i,
+          // Últimas 4 células (onde ficam os ícones de foto, editar, etc.)
+          lastCellsRaw: cells.slice(-4),
+          // Primeiras 4 células (ID, comitente, lote, etc.)
+          firstCellsClean: cells.slice(0, 4).map(c => cleanCell(c)),
+        };
       });
+      return NextResponse.json({ totalRows, rowSamples });
     }
 
     const loteRef     = parseXls(xlsHtml);           // lote → ref (todas as peças)
