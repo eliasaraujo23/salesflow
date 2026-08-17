@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import {
-  useReactTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel,
+  useReactTable, getCoreRowModel, getSortedRowModel,
   createColumnHelper, flexRender, type SortingState,
 } from '@tanstack/react-table';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
@@ -73,18 +73,27 @@ const COLUMNS = [
 export function PendenciasTable({ rows, globalFilter, filtro }: Props) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'preco_avista', desc: false }]);
 
-  const filtered = filtro === 'todos'
-    ? rows
-    : rows.filter(r => r.pendencias.includes(filtro));
+  const filtered = (() => {
+    let result = filtro === 'todos' ? rows : rows.filter(r => r.pendencias.includes(filtro));
+    if (globalFilter.trim()) {
+      const q = globalFilter.trim().toLowerCase();
+      result = result.filter(r =>
+        r.referencia.toLowerCase().includes(q) ||
+        (r.produto ?? '').toLowerCase().includes(q) ||
+        (r.destino ?? '').toLowerCase().includes(q) ||
+        (r.descricao_jewel ?? '').toLowerCase().includes(q),
+      );
+    }
+    return result;
+  })();
 
   const table = useReactTable({
     data:              filtered,
     columns:           COLUMNS,
-    state:             { sorting, globalFilter },
+    state:             { sorting },
     onSortingChange:   setSorting,
     getCoreRowModel:   getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
   });
 
   return (
