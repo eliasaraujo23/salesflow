@@ -160,7 +160,7 @@ function useReuploads() {
       errors: 0, statusMsg: '', semFoto: lista.length, pecaStatus: initStatus,
     }));
 
-    const CHUNK = 30;
+    const CHUNK = 7; // Hobby plan: 60s limit; ~7 peças × ~7s = ~50s por chunk
     const chunks: ScannedPeca[][] = [];
     for (let i = 0; i < lista.length; i += CHUNK) chunks.push(lista.slice(i, i + CHUNK));
 
@@ -193,7 +193,7 @@ function useReuploads() {
 
         outer: while (true) {
           const readP   = reader.read();
-          const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 4 * 60 * 1000));
+          const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 55 * 1000));
           const { done, value } = await Promise.race([readP, timeout]);
           if (done) break;
 
