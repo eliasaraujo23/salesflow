@@ -558,28 +558,6 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
     <>
     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
 
-      {/* Upload Imagens */}
-      <div className="rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
-        <div className="px-3 py-2.5 rounded-t-xl bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-white/[0.06]">
-          <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">Upload Imagens</span>
-          <p className="text-[10px] text-zinc-400 mt-0.5">Gera lista de referências — imagens buscadas pelo banco</p>
-        </div>
-        <div className="p-3 flex flex-col gap-2.5">
-          <BaseSelect value={imgBase} onChange={setImgBase} uploadedFiles={uploadedFiles} />
-          <button
-            onClick={handleUploadImagens}
-            disabled={!imgBase || imgRefs.length === 0 || loadingImagem}
-            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 dark:disabled:text-zinc-500 text-xs font-semibold transition-colors"
-          >
-            <Download size={13} />
-            {loadingImagem
-              ? 'Buscando imagens...'
-              : `Baixar CSV — Upload Imagens${imgRefs.length > 0 ? ` (${imgRefs.length})` : ''}`
-            }
-          </button>
-        </div>
-      </div>
-
       {/* Atualizar Preço */}
       <div className="rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
         <div className="px-3 py-2.5 rounded-t-xl bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-white/[0.06]">
