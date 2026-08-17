@@ -99,45 +99,51 @@ function parseXls(html: string): Map<number, string> {
   return map;
 }
 
-// Parse listagem completa: extrai lote → pieceId apenas das peças SEM foto principal.
-// Detecta ausência de foto principal pelo data-func do botão de câmera principal:
-//   Com foto:    data-func="subirimgpeca|ID|ID.jpg"  (tem .jpg)
-//   Sem foto:    data-func="subirimgpeca|ID"          (sem .jpg)
-// Não usa is-color9 pois o botão de extras também usa essa classe e causaria falsos positivos.
-function parseLotePieceId(html: string): Map<number, string> {
-  const map  = new Map<number, string>();
+interface PieceInfo { pieceId: string; temPrincipal: boolean; temExtra: boolean; }
+
+// Parse listagem completa: detecta peças sem foto principal e/ou sem extras.
+// data-func="subirimgpeca|ID|ID.jpg" → tem principal
+// data-func="subirimgpeca|ID"        → sem principal
+// data-func="geremimgpeca|ID" com is-color9 → sem extras
+// data-func="geremimgpeca|ID" com is-color10 → tem extras
+function parsePieceInfo(html: string): Map<number, PieceInfo> {
+  const map  = new Map<number, PieceInfo>();
   const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'));
 
   for (const row of rows) {
     const inner = row[1];
 
-    // Verifica se o botão principal de câmera NÃO tem .jpg no data-func
-    // data-func="subirimgpeca|ID" → sem foto principal
-    // data-func="subirimgpeca|ID|ID.jpg" → tem foto principal
-    const mainCamMatch = inner.match(/data-func="subirimgpeca\|(\d+)([^"]*?)"/i);
-    if (!mainCamMatch) continue;
-    const hasFoto = mainCamMatch[2].includes('.jpg');
-    if (hasFoto) continue; // já tem foto principal — ignora
+    const mainMatch  = inner.match(/data-func="subirimgpeca\|(\d+)([^"]*)"/i);
+    if (!mainMatch) continue;
+
+    const temPrincipal = mainMatch[2].includes('.jpg');
+
+    // Detecta extras: procura o botão geremimgpeca e sua classe
+    const extraMatch   = inner.match(/class="([^"]*?)\s+is-tabletool\s+is-extraimg[^"]*"[^>]*data-func="geremimgpeca/i)
+                      ?? inner.match(/data-func="geremimgpeca[^"]*"[^>]*class="([^"]*)"/i);
+    const extraClass   = extraMatch?.[1] ?? '';
+    const temExtra     = extraClass.includes('is-color10');
+
+    // Só inclui peças que estão incompletas (sem principal OU sem extra)
+    if (temPrincipal && temExtra) continue;
 
     const cells = [...inner.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
-
     const pieceId = (cells[0] ?? '').trim();
     if (!/^\d{6,9}$/.test(pieceId)) continue;
-
     const lote = parseInt(cells[2] ?? '', 10);
     if (!lote || lote > 9999) continue;
 
-    map.set(lote, pieceId);
+    map.set(lote, { pieceId, temPrincipal, temExtra });
   }
   return map;
 }
 
 export interface PecaSemFoto {
-  lote:       number;
-  ref:        string;
-  pieceId:    string;
-  nFotos:     number; // -1 = desconhecido
-  siteAtivo:  boolean;
+  lote:          number;
+  ref:           string;
+  pieceId:       string;
+  temPrincipal:  boolean;
+  temExtra:      boolean;
 }
 
 export interface ScanSemFotoResult {
@@ -204,13 +210,13 @@ export async function GET(req: Request): Promise<NextResponse> {
       });
     }
 
-    const loteRef     = parseXls(xlsHtml);            // lote → ref (todas as peças)
-    const lotePieceId = parseLotePieceId(todasHtml);  // lote → pieceId (só is-color9 = sem foto)
+    const loteRef   = parseXls(xlsHtml);           // lote → ref (todas as peças)
+    const pieceInfo = parsePieceInfo(todasHtml);   // lote → { pieceId, temPrincipal, temExtra }
 
     const semFoto: PecaSemFoto[] = [];
-    for (const [lote, pieceId] of lotePieceId) {
+    for (const [lote, info] of pieceInfo) {
       const ref = loteRef.get(lote) ?? '';
-      semFoto.push({ lote, ref, pieceId, nFotos: 0, siteAtivo: false });
+      semFoto.push({ lote, ref, pieceId: info.pieceId, temPrincipal: info.temPrincipal, temExtra: info.temExtra });
     }
     semFoto.sort((a, b) => a.lote - b.lote);
 

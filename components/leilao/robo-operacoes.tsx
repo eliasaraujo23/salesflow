@@ -120,7 +120,7 @@ const REUPH_INIT: ReuphState = {
   statusMsg: '', fatalError: '', pecaStatus: {},
 };
 
-export interface ScannedPeca { lote: number; ref: string; pieceId: string; }
+export interface ScannedPeca { lote: number; ref: string; pieceId: string; temPrincipal: boolean; temExtra: boolean; }
 
 function useReuploads() {
   const [state,    setState]    = useState<ReuphState>(REUPH_INIT);
@@ -694,40 +694,53 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
             uploadedFiles={uploadedFiles}
           />
 
-          <button
-            onClick={() => {
-              if (!reuphLeilao || !reuphNome) return;
-              if (reuphState.phase === 'idle' || reuphState.phase === 'error') {
-                reuphScan(reuphLeilao, reuphNome);
-              } else if (reuphState.phase === 'scanned' && reuphState.semFoto > 0) {
-                reuphOpenModal();
-              } else if (reuphState.phase === 'running' || reuphState.phase === 'done') {
-                reuphOpenModal();
-              } else {
-                reuphReset();
-              }
-            }}
-            disabled={!reuphBase || reuphState.phase === 'scanning'}
-            className={[
-              'w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
-              (reuphState.phase === 'scanned' && reuphState.semFoto > 0) || reuphState.phase === 'running' || reuphState.phase === 'done'
-                ? 'bg-violet-600 hover:bg-violet-700 text-white'
-                : 'border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04]',
-            ].join(' ')}
-          >
-            {reuphState.phase === 'scanning'
-              ? <Loader2 size={12} className="animate-spin" />
-              : (reuphState.phase === 'scanned' && reuphState.semFoto > 0) || reuphState.phase === 'running' || reuphState.phase === 'done'
-                ? <Camera size={12} />
-                : <Zap size={12} />}
-            {reuphState.phase === 'idle'     && 'Escanear'}
-            {reuphState.phase === 'scanning' && 'Escaneando...'}
-            {reuphState.phase === 'scanned'  && reuphState.semFoto === 0 && 'Escanear novamente'}
-            {reuphState.phase === 'scanned'  && reuphState.semFoto > 0   && `Ver peças (${reuphState.semFoto})`}
-            {reuphState.phase === 'running'  && 'Ver progresso'}
-            {reuphState.phase === 'done'     && 'Ver resultado'}
-            {reuphState.phase === 'error'    && 'Tentar novamente'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                if (!reuphLeilao || !reuphNome) return;
+                if (reuphState.phase === 'idle' || reuphState.phase === 'error') {
+                  reuphScan(reuphLeilao, reuphNome);
+                } else if (reuphState.phase === 'scanned' && reuphState.semFoto > 0) {
+                  reuphOpenModal();
+                } else if (reuphState.phase === 'running' || reuphState.phase === 'done') {
+                  reuphOpenModal();
+                } else {
+                  reuphScan(reuphLeilao, reuphNome);
+                }
+              }}
+              disabled={!reuphBase || reuphState.phase === 'scanning'}
+              className={[
+                'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+                (reuphState.phase === 'scanned' && reuphState.semFoto > 0) || reuphState.phase === 'running' || reuphState.phase === 'done'
+                  ? 'bg-violet-600 hover:bg-violet-700 text-white'
+                  : 'border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04]',
+              ].join(' ')}
+            >
+              {reuphState.phase === 'scanning'
+                ? <Loader2 size={12} className="animate-spin" />
+                : (reuphState.phase === 'scanned' && reuphState.semFoto > 0) || reuphState.phase === 'running' || reuphState.phase === 'done'
+                  ? <Camera size={12} />
+                  : <Zap size={12} />}
+              {reuphState.phase === 'idle'     && 'Escanear'}
+              {reuphState.phase === 'scanning' && 'Escaneando...'}
+              {reuphState.phase === 'scanned'  && reuphState.semFoto === 0 && 'Escanear novamente'}
+              {reuphState.phase === 'scanned'  && reuphState.semFoto > 0   && `Ver peças (${reuphState.semFoto})`}
+              {reuphState.phase === 'running'  && 'Ver progresso'}
+              {reuphState.phase === 'done'     && 'Ver resultado'}
+              {reuphState.phase === 'error'    && 'Tentar novamente'}
+            </button>
+
+            {(reuphState.phase === 'done' || reuphState.phase === 'scanned') && (
+              <button
+                onClick={() => { reuphReset(); if (reuphLeilao && reuphNome) reuphScan(reuphLeilao, reuphNome); }}
+                disabled={!reuphBase}
+                title="Escanear novamente"
+                className="flex items-center justify-center px-3 py-2 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
+              >
+                <Zap size={12} />
+              </button>
+            )}
+          </div>
 
           {reuphState.phase === 'scanned' && reuphState.semFoto === 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-xs font-semibold text-emerald-700 dark:text-emerald-400">

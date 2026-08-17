@@ -99,6 +99,7 @@ export function ReuploadsModal({ open, state, pecas, leilaoNome, codigoPlatforma
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-8">#</th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-16">Lote</th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500">Referência</th>
+                <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-20">Fotos</th>
                 <th className="sticky top-0 z-10 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08] font-semibold text-zinc-500 w-28">Status</th>
               </tr>
             </thead>
@@ -135,6 +136,12 @@ export function ReuploadsModal({ open, state, pecas, leilaoNome, codigoPlatforma
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] text-zinc-400 tabular-nums">{i + 1}</td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] tabular-nums font-semibold text-zinc-600 dark:text-zinc-300">{p.lote}</td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] font-mono font-semibold text-zinc-700 dark:text-zinc-200">{p.ref}</td>
+                    <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04]">
+                      <span className="flex items-center gap-1 text-[10px]">
+                        <span className={p.temPrincipal ? 'text-emerald-500' : 'text-red-400'}>P</span>
+                        <span className={p.temExtra     ? 'text-emerald-500' : 'text-red-400'}>E</span>
+                      </span>
+                    </td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04]">
                       {status === 'pending' && <span className="text-zinc-300 dark:text-zinc-600">—</span>}
                       {status === 'running' && (

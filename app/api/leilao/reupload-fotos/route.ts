@@ -277,9 +277,11 @@ async function setSite(cookie: string, pieceId: string, codigoPlatforma: string,
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 interface PecaReupload {
-  lote:    number;
-  ref:     string;
-  pieceId: string;
+  lote:         number;
+  ref:          string;
+  pieceId:      string;
+  temPrincipal: boolean;
+  temExtra:     boolean;
 }
 
 export async function POST(req: Request) {
@@ -320,36 +322,40 @@ export async function POST(req: Request) {
       await send({ type: 'start', total: pecas.length });
 
       for (const peca of pecas) {
-        const { pieceId, lote, ref } = peca;
+        const { pieceId, lote, ref, temPrincipal } = peca;
         const imgKeys   = imageMap.get(ref);
         const mainKey   = imgKeys?.principal ?? null;
         const extraKeys = imgKeys?.extras ?? [];
-        const hasImage  = !!mainKey;
+        const hasR2     = !!mainKey;
 
         let pieceCookie = cookie;
         try { pieceCookie = await loadUploadPage(cookie, pieceId); } catch { /* non-fatal */ }
 
-        if (hasImage) {
-          // ── Upload foto principal ───────────────────────────────────────────
-          let mainOk = false;
-          let mainErr = '';
-          await send({ type: 'status', message: `Lote ${lote}: enviando foto principal...` });
-          try {
-            const buf = await downloadImage(mainKey);
-            pieceCookie = await uploadPrincipal(pieceCookie, pieceId, codigoPlatforma, buf);
-            mainOk = true;
-          } catch (e) { mainErr = e instanceof Error ? e.message : 'Erro foto'; }
-          await send({ type: 'photoProgress', lote, slot: 'main', success: mainOk, error: mainErr || undefined });
+        if (hasR2) {
+          // ── Upload foto principal (só se ainda não tem) ────────────────────
+          if (!temPrincipal) {
+            let mainOk = false;
+            let mainErr = '';
+            await send({ type: 'status', message: `Lote ${lote}: enviando foto principal...` });
+            try {
+              const buf = await downloadImage(mainKey);
+              pieceCookie = await uploadPrincipal(pieceCookie, pieceId, codigoPlatforma, buf);
+              mainOk = true;
+            } catch (e) { mainErr = e instanceof Error ? e.message : 'Erro foto'; }
+            await send({ type: 'photoProgress', lote, slot: 'main', success: mainOk, error: mainErr || undefined });
+          }
 
-          // ── Upload extras ──────────────────────────────────────────────────
-          let extrasOk = 0;
+          // ── Upload extras (só os slots livres) ─────────────────────────────
           if (extraKeys.length > 0) {
-            await send({ type: 'status', message: `Lote ${lote}: enviando ${extraKeys.length} foto(s) extra...` });
+            await send({ type: 'status', message: `Lote ${lote}: enviando foto(s) extra...` });
+            let extrasOk = 0;
             try {
               const { cookie: gc, slots } = await getAvailableSlots(pieceCookie, pieceId);
               pieceCookie = gc;
-              const bufs = await Promise.all(extraKeys.map(k => downloadImage(k)));
-              extrasOk   = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs, slots);
+              if (slots.length > 0) {
+                const bufs = await Promise.all(extraKeys.map(k => downloadImage(k)));
+                extrasOk   = await uploadExtras(pieceCookie, pieceId, codigoPlatforma, bufs, slots);
+              }
             } catch (e) {
               console.error(`[reupload-fotos] Lote ${lote} extras ERRO:`, e instanceof Error ? e.message : e);
             }
