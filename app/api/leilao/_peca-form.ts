@@ -110,10 +110,16 @@ export function extractPecaFields(html: string): Map<string, string> {
 }
 
 // Grava a peça com os campos fornecidos
+// Lança erro se ID estiver ausente ou vazio — sem ID o servidor cria uma peça nova em vez de editar
 export async function gravarPeca(
   cookie: string,
   fields: Map<string, string>,
 ): Promise<string> {
+  const id = fields.get('ID') ?? '';
+  if (!id || !/^\d{6,9}$/.test(id)) {
+    throw new Error(`gravarPeca bloqueado: campo ID inválido ou ausente ("${id}"). Nenhuma gravação enviada.`);
+  }
+
   const params = new URLSearchParams();
   for (const [k, v] of fields) params.append(k, v);
 
