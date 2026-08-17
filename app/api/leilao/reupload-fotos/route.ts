@@ -371,7 +371,10 @@ export async function POST(req: Request) {
           try {
             await setSite(pieceCookie, pieceId, codigoPlatforma, lote, deveSite as '0' | '1');
             siteOk = true;
-          } catch (e) { siteErr = e instanceof Error ? e.message : 'Erro site'; }
+          } catch (e) {
+            siteErr = e instanceof Error ? e.message : 'Erro site';
+            console.error(`[reupload-fotos] setSite ERRO lote ${lote} pieceId ${pieceId}:`, siteErr);
+          }
           await send({ type: 'siteProgress', lote, success: siteOk, action: acao, error: siteErr || undefined });
         }
       }

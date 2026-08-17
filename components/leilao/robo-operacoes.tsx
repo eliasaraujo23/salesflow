@@ -400,7 +400,13 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   const [precoBase,     setPrecoBase]     = useState('');
   const [dupBase,       setDupBase]       = useState('');
   const [zerarBase,     setZerarBase]     = useState('');
-  const [reuphBase,  setReuphBase]  = useState('');
+  const [reuphBase,     setReuphBase]     = useState('');
+  const [siteBase,      setSiteBase]      = useState('');
+  const [siteState,     setSiteState]     = useState<{
+    phase: 'idle' | 'scanning' | 'scanned' | 'running' | 'done' | 'error';
+    total: number; comFoto: number; done: number; ok: number; errors: number;
+    statusMsg: string; fatalError: string;
+  }>({ phase: 'idle', total: 0, comFoto: 0, done: 0, ok: 0, errors: 0, statusMsg: '', fatalError: '' });
   const { open, openModal, closeModal, state, execute, isRunning } = useAtualizarPreco();
   const { state: dupState,   scan: dupScan, remover: dupRemover, reset: dupReset } = useDuplicatas();
   const { state: zerarState, confirm: zerarConfirm, zerar, reset: zerarReset } = useZerarLeilao();
@@ -480,6 +486,66 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
     // Com diff: baixa só as divergentes. Sem diff data (null): baixa tudo.
     const refs = (priceDiffs && priceDiffs.length > 0) ? priceDiffs.map(d => d.ref) : precoRefs;
     downloadCsv(generateCsvAtualizarPreco(refs, priceMap), `atualizar_preco_${num}.csv`);
+  }
+
+  const siteFile   = uploadedFiles.find(f => f.filename === siteBase);
+  const siteLeilao = siteFile?.codigoPlatforma ?? '';
+  const siteNome   = siteFile?.leilao?.nome ?? '';
+  const sitePct    = siteState.comFoto > 0 ? Math.round(siteState.done / siteState.comFoto * 100) : 0;
+  const [sitePecas, setSitePecas] = useState<{ pieceId: string; lote: number }[]>([]);
+
+  async function siteScan() {
+    if (!siteLeilao || !siteNome) return;
+    setSiteState(s => ({ ...s, phase: 'scanning', statusMsg: '' }));
+    try {
+      const res  = await fetch(`/api/leilao/ativar-site?leilao=${siteLeilao}&nome=${encodeURIComponent(siteNome)}`);
+      const data = await res.json() as { total?: number; comFoto?: number; pecas?: { pieceId: string; lote: number }[]; error?: string };
+      if (data.error) { setSiteState(s => ({ ...s, phase: 'error', fatalError: data.error! })); return; }
+      setSitePecas(data.pecas ?? []);
+      setSiteState(s => ({ ...s, phase: 'scanned', total: data.total ?? 0, comFoto: data.comFoto ?? 0 }));
+    } catch (e) {
+      setSiteState(s => ({ ...s, phase: 'error', fatalError: e instanceof Error ? e.message : 'Erro' }));
+    }
+  }
+
+  async function siteExecutar() {
+    if (sitePecas.length === 0 || !siteLeilao || !siteNome) return;
+    setSiteState(s => ({ ...s, phase: 'running', done: 0, ok: 0, errors: 0, statusMsg: '' }));
+    const CHUNK = 7;
+    for (let i = 0; i < sitePecas.length; i += CHUNK) {
+      const chunk = sitePecas.slice(i, i + CHUNK);
+      try {
+        const res = await fetch('/api/leilao/ativar-site', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codigoPlatforma: siteLeilao, nome: siteNome, pecas: chunk }),
+        });
+        if (!res.ok || !res.body) continue;
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        let buf = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const parts = buf.split('\n\n'); buf = parts.pop() ?? '';
+          for (const part of parts) {
+            const line = part.trim();
+            if (!line.startsWith('data: ')) continue;
+            let ev: Record<string, unknown>;
+            try { ev = JSON.parse(line.slice(6)); } catch { continue; }
+            if (ev.type === 'status')   setSiteState(s => ({ ...s, statusMsg: ev.message as string }));
+            if (ev.type === 'progress') setSiteState(s => ({
+              ...s, done: ev.done as number,
+              ok:     s.ok + (ev.success ? 1 : 0),
+              errors: s.errors + (ev.success ? 0 : 1),
+            }));
+            if (ev.type === 'done') setSiteState(s => ({ ...s, ok: ev.ok as number, errors: ev.errors as number }));
+          }
+        }
+      } catch { /* continua próximo chunk */ }
+    }
+    setSiteState(s => ({ ...s, phase: 'done', statusMsg: '' }));
   }
 
   const imgRefs       = refsPerFile.get(imgBase) ?? [];
@@ -804,6 +870,88 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400">
               <XCircle size={13} />
               <span>{reuphState.fatalError}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Ativar Site */}
+      <div className="rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
+        <div className="px-3 py-2.5 rounded-t-xl bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-white/[0.06]">
+          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Ativar Site</span>
+          <p className="text-[10px] text-zinc-400 mt-0.5">Detecta peças com Site desativado que já têm foto e ativa</p>
+        </div>
+        <div className="p-3 flex flex-col gap-2.5">
+          <BaseSelect
+            value={siteBase}
+            onChange={v => { setSiteBase(v); setSiteState({ phase: 'idle', total: 0, comFoto: 0, done: 0, ok: 0, errors: 0, statusMsg: '', fatalError: '' }); setSitePecas([]); }}
+            uploadedFiles={uploadedFiles}
+          />
+          <button
+            onClick={() => {
+              if (!siteLeilao || !siteNome) return;
+              if (siteState.phase === 'idle' || siteState.phase === 'error') siteScan();
+              else if (siteState.phase === 'scanned' && siteState.comFoto > 0) siteExecutar();
+              else siteScan();
+            }}
+            disabled={!siteBase || siteState.phase === 'scanning' || siteState.phase === 'running'}
+            className={[
+              'w-full flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+              siteState.phase === 'scanned' && siteState.comFoto > 0
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                : 'border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04]',
+            ].join(' ')}
+          >
+            {siteState.phase === 'scanning' || siteState.phase === 'running'
+              ? <Loader2 size={12} className="animate-spin" />
+              : siteState.phase === 'scanned' && siteState.comFoto > 0
+                ? <CheckCircle2 size={12} />
+                : <Zap size={12} />}
+            {siteState.phase === 'idle'     && 'Escanear'}
+            {siteState.phase === 'scanning' && 'Escaneando...'}
+            {siteState.phase === 'scanned'  && siteState.comFoto === 0 && 'Escanear novamente'}
+            {siteState.phase === 'scanned'  && siteState.comFoto > 0   && `Ativar ${siteState.comFoto} peças`}
+            {siteState.phase === 'running'  && `Ativando... ${sitePct}%`}
+            {siteState.phase === 'done'     && 'Escanear novamente'}
+            {siteState.phase === 'error'    && 'Tentar novamente'}
+          </button>
+
+          {siteState.phase === 'scanned' && siteState.comFoto === 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+              <CheckCircle2 size={13} />
+              <span>Todas as peças com foto já estão ativas</span>
+            </div>
+          )}
+          {siteState.phase === 'scanned' && siteState.comFoto > 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-xs font-semibold text-amber-700 dark:text-amber-400">
+              <AlertTriangle size={13} />
+              <span>{siteState.comFoto} com foto e Site desativado · {siteState.total - siteState.comFoto} sem foto</span>
+            </div>
+          )}
+          {siteState.phase === 'running' && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                <div className="flex items-center gap-2">
+                  <Loader2 size={11} className="animate-spin shrink-0 text-emerald-500" />
+                  <span className="truncate max-w-[140px]">{siteState.statusMsg || `${siteState.done} de ${siteState.comFoto}`}</span>
+                </div>
+                <span className="tabular-nums font-semibold text-emerald-500">{sitePct}%</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950 overflow-hidden">
+                <div className="h-full rounded-full bg-emerald-500 transition-all duration-300" style={{ width: `${sitePct}%` }} />
+              </div>
+            </div>
+          )}
+          {siteState.phase === 'done' && (
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${siteState.errors === 0 ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400' : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400'}`}>
+              {siteState.errors === 0 ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+              <span>{siteState.ok} Site{siteState.ok !== 1 ? 's' : ''} ativado{siteState.ok !== 1 ? 's' : ''}{siteState.errors > 0 && ` · ${siteState.errors} com erro`}</span>
+            </div>
+          )}
+          {siteState.phase === 'error' && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400">
+              <XCircle size={13} />
+              <span>{siteState.fatalError}</span>
             </div>
           )}
         </div>
