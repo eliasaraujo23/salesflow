@@ -18,7 +18,7 @@ import {
 import { fetchRefsDetail } from '@/lib/actions/fetch-refs-detail';
 import { useCadastrarPecas, buildPecasParaCadastrar } from '@/lib/hooks/use-cadastrar-pecas';
 import { CadastrarPecasModal } from '@/components/leilao/cadastrar-pecas-modal';
-import { useBreachos } from '@/hooks/use-breachos';
+import { useLeilaoRegras } from '@/lib/hooks/use-leilao-regras';
 import { useTransferirPecas } from '@/lib/hooks/use-transferir-pecas';
 import { TransferirPecasModal } from '@/components/leilao/transferir-pecas-modal';
 import { useVerificarRefs } from '@/lib/hooks/use-verificar-refs';
@@ -65,7 +65,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   const [leilaoTipo,       setLeilaoTipo]       = useState<'NORMAL' | 'TOP'>('NORMAL');
   const [loadingExcluidas, setLoadingExcluidas] = useState(false);
   const { open: cadastrarOpen, openModal: openCadastrar, closeModal: closeCadastrar, state: cadastrarState, execute: executeCadastrar, isRunning: cadastrarRunning } = useCadastrarPecas();
-  const { breachos } = useBreachos();
+  const { regras } = useLeilaoRegras();
   const { open: transferirOpen, openModal: openTransferir, closeModal: closeTransferir, state: transferirState, execute: executeTransferir, isRunning: transferirRunning } = useTransferirPecas();
   const { state: verificarState, verificar: verificarRefs, reset: resetVerificar } = useVerificarRefs();
   // refsJaNoDestino vem do hook verificarRefs (busca por Descricao no leiloesbr)
@@ -441,13 +441,15 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
           isRunning={cadastrarRunning}
           onExecute={(selected) => {
             if (!novoLeilao || !novoLeilaoSel || selected.length === 0) return;
-            const nomeUp   = novoLeilaoSel.nome.toUpperCase();
-            const ehBrecho = breachos.some(b => nomeUp.includes(b.nome.toUpperCase()));
+            const destExcluidos = new Set(regras.map(r => r.destino.toLowerCase()));
+            const refDest = new Map(basePieces.map(p => [p.referencia.toUpperCase(), p.destino ?? '']));
             executeCadastrar({
               codigoPlatforma: novoLeilao,
               nome:            novoLeilaoSel.nome,
-              pecas:           selected,
-              ativarSite:      !ehBrecho,
+              pecas: selected.map(p => ({
+                ...p,
+                ativarSite: !destExcluidos.has((refDest.get(p.referencia.toUpperCase()) ?? '').toLowerCase()),
+              })),
             });
           }}
         />

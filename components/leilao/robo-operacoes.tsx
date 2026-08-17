@@ -15,7 +15,7 @@ import { fetchImageKeys } from '@/lib/actions/fetch-image-keys';
 import { useAtualizarPreco } from '@/lib/hooks/use-atualizar-preco';
 import { AtualizarPrecoModal } from '@/components/leilao/atualizar-preco-modal';
 import { ReuploadsModal } from '@/components/leilao/reuploads-modal';
-import { useBreachos } from '@/hooks/use-breachos';
+import { useLeilaoRegras } from '@/lib/hooks/use-leilao-regras';
 
 interface Props {
   basePieces:    LeilaoBaseRow[];
@@ -121,7 +121,7 @@ const REUPH_INIT: ReuphState = {
   statusMsg: '', fatalError: '', pecaStatus: {},
 };
 
-export interface ScannedPeca { lote: number; ref: string; pieceId: string; temPrincipal: boolean; temExtra: boolean; }
+export interface ScannedPeca { lote: number; ref: string; pieceId: string; temPrincipal: boolean; temExtra: boolean; ativarSite?: boolean; }
 
 function useReuploads() {
   const [state,    setState]    = useState<ReuphState>(REUPH_INIT);
@@ -145,7 +145,7 @@ function useReuploads() {
     }
   }
 
-  async function executar(leilao: string, nome: string, pecasSelecionadas?: ScannedPeca[], ativarSite = true) {
+  async function executar(leilao: string, nome: string, pecasSelecionadas?: ScannedPeca[]) {
     const lista = pecasSelecionadas ?? pecasSem;
     if (lista.length === 0) return;
     abortRef.current?.abort();
@@ -180,7 +180,7 @@ function useReuploads() {
         const res = await fetch('/api/leilao/reupload-fotos', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ codigoPlatforma: leilao, nome, pecas: chunk, ativarSite }),
+          body:    JSON.stringify({ codigoPlatforma: leilao, nome, pecas: chunk }),
           signal:  ctrl.signal,
         });
         if (!res.ok || !res.body) continue;
@@ -405,12 +405,23 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   const { state: dupState,   scan: dupScan, remover: dupRemover, reset: dupReset } = useDuplicatas();
   const { state: zerarState, confirm: zerarConfirm, zerar, reset: zerarReset } = useZerarLeilao();
   const { state: reuphState, pecasSem: reuphPecas, modalOpen: reuphModalOpen, openModal: reuphOpenModal, closeModal: reuphCloseModal, scan: reuphScan, executar: reuphExecutar, reset: reuphReset } = useReuploads();
-  const { breachos } = useBreachos();
+  const { regras } = useLeilaoRegras();
 
-  const reuphFile      = uploadedFiles.find(f => f.filename === reuphBase);
-  const reuphLeilao    = reuphFile?.codigoPlatforma ?? '';
-  const reuphNome      = reuphFile?.leilao?.nome ?? '';
-  const reuphEhBrecho  = breachos.some(b => reuphNome.toUpperCase().includes(b.nome.toUpperCase()));
+  const reuphFile   = uploadedFiles.find(f => f.filename === reuphBase);
+  const reuphLeilao = reuphFile?.codigoPlatforma ?? '';
+  const reuphNome   = reuphFile?.leilao?.nome ?? '';
+
+  // Set de destinos excluídos (case-insensitive) — peças com esses destinos não ativam Site
+  const destinosExcluidos = useMemo(
+    () => new Set(regras.map(r => r.destino.toLowerCase())),
+    [regras],
+  );
+
+  // Mapa ref → destino vindo da base do sistema
+  const refDestinoMap = useMemo(
+    () => new Map(basePieces.map(p => [p.referencia.toUpperCase(), p.destino ?? ''])),
+    [basePieces],
+  );
   const isRunningReuph = reuphState.phase === 'scanning' || reuphState.phase === 'running';
   const reuphPct       = reuphState.semFoto > 0 ? Math.round(reuphState.done / reuphState.semFoto * 100) : 0;
 
@@ -914,7 +925,13 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
       codigoPlatforma={reuphFile?.codigoPlatforma ?? undefined}
       isRunning={reuphState.phase === 'running'}
       onClose={reuphCloseModal}
-      onExecute={(selected) => reuphExecutar(reuphLeilao, reuphNome, selected, !reuphEhBrecho)}
+      onExecute={(selected) => {
+        const comFlag = selected.map(p => ({
+          ...p,
+          ativarSite: !destinosExcluidos.has((refDestinoMap.get(p.ref.toUpperCase()) ?? '').toLowerCase()),
+        }));
+        reuphExecutar(reuphLeilao, reuphNome, comFlag);
+      }}
     />
     </>
   );

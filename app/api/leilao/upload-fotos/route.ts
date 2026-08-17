@@ -419,6 +419,7 @@ interface PecaForPhotos {
   preco_contratado:  number;
   descricao:         string;
   segunda_descricao: string;
+  ativarSite?:       boolean; // false = destino excluído; default true
 }
 
 export async function POST(req: Request) {
@@ -426,10 +427,9 @@ export async function POST(req: Request) {
     codigoPlatforma: string;
     nome:            string;
     pecas:           PecaForPhotos[];
-    ativarSite?:     boolean;
   };
 
-  const { codigoPlatforma, nome, pecas, ativarSite = true } = body;
+  const { codigoPlatforma, nome, pecas } = body;
   if (!codigoPlatforma || !nome || !Array.isArray(pecas) || pecas.length === 0) {
     return new Response('Payload inválido', { status: 400 });
   }
@@ -510,8 +510,8 @@ export async function POST(req: Request) {
           await send({ type: 'photoProgress', lote: peca.lote, slot: 'extra', success: extrasOk > 0, count: extrasOk });
         }
 
-        // Ativar Site após foto(s) — só se não for brecho
-        if (ativarSite && mainOk) {
+        // Ativar Site após foto(s) — só se destino não estiver excluído
+        if ((peca.ativarSite ?? true) && mainOk) {
           await send({ type: 'status', message: `Lote ${peca.lote}: ativando Site...` });
           let siteOk = false;
           let siteErr = '';

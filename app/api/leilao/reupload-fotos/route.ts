@@ -273,6 +273,7 @@ interface PecaReupload {
   pieceId:      string;
   temPrincipal: boolean;
   temExtra:     boolean;
+  ativarSite?:  boolean; // false = destino excluído (comodato, parceiro); default true
 }
 
 export async function POST(req: Request) {
@@ -280,10 +281,9 @@ export async function POST(req: Request) {
     codigoPlatforma: string;
     nome:            string;
     pecas:           PecaReupload[];
-    ativarSite?:     boolean;
   };
 
-  const { codigoPlatforma, nome, pecas, ativarSite = true } = body;
+  const { codigoPlatforma, nome, pecas } = body;
   if (!codigoPlatforma || !nome || !Array.isArray(pecas) || pecas.length === 0) {
     return new Response('Payload inválido', { status: 400 });
   }
@@ -314,7 +314,7 @@ export async function POST(req: Request) {
       await send({ type: 'start', total: pecas.length });
 
       for (const peca of pecas) {
-        const { pieceId, lote, ref, temPrincipal } = peca;
+        const { pieceId, lote, ref, temPrincipal, ativarSite = true } = peca;
         const imgKeys   = imageMap.get(ref);
         const mainKey   = imgKeys?.principal ?? null;
         const extraKeys = imgKeys?.extras ?? [];
