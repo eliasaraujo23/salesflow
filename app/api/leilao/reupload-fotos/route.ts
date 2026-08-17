@@ -259,9 +259,9 @@ async function setSite(cookie: string, pieceId: string, codigoPlatforma: string,
   fields.set('NumLeilao', codigoPlatforma);
   fields.set('Botao',     'Gravar');
   if (siteValue === '1') {
-    fields.set('Site', 'on');
+    fields.set('Site', '1');  // painel envia 1 quando marcado (vsite=1)
   } else {
-    fields.delete('Site'); // checkbox desmarcado = ausente no POST
+    fields.set('Site', '0');  // painel envia 0 quando desmarcado (vsite=0)
   }
 
   const params = new URLSearchParams();

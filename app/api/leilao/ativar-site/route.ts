@@ -165,7 +165,7 @@ async function ativarSite(cookie: string, pieceId: string, codigoPlatforma: stri
   // Garante campos obrigatórios
   fields.set('ID',        pieceId);
   fields.set('NumLeilao', codigoPlatforma);
-  fields.set('Site',      'on');  // checkbox marcado
+  fields.set('Site',      '1');   // painel envia 1 quando marcado (vsite=1)
   fields.set('Botao',     'Gravar');
 
   const params = new URLSearchParams();

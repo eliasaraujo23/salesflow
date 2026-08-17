@@ -406,7 +406,7 @@ async function activateSite(
 
   fields.set('ID',        pieceId);
   fields.set('NumLeilao', codigoPlatforma);
-  fields.set('Site',      'on');
+  fields.set('Site',      '1');   // painel envia 1 quando marcado (vsite=1)
   fields.set('Botao',     'Gravar');
 
   const params = new URLSearchParams();
