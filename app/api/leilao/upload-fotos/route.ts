@@ -3,6 +3,7 @@ export const maxDuration = 300;
 import sharp               from 'sharp';
 import { Pool }            from 'pg';
 import { getPresignedUrl } from '@/lib/r2';
+import { loadPecaFormHtml, extractPecaFields, gravarPeca } from '../_peca-form';
 
 const BASE           = 'https://www.leiloesbr.com.br/painel_lbr';
 const UA             = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
@@ -351,52 +352,9 @@ async function uploadExtras(
 
 // ─── Activate Site ────────────────────────────────────────────────────────────
 
-// Carrega formulário real via POST tipo=3 e regrava com Site=on (ativo)
-async function activateSite(
-  cookie:          string,
-  pieceId:         string,
-  codigoPlatforma: string,
-): Promise<void> {
-  // Carrega o formulário real da peça (mesmo método que o JS do painel usa)
-  const formRes = await fetch(`${BASE}/cad_peca.asp`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Cookie': cookie, 'User-Agent': UA,
-      'X-Requested-With': 'XMLHttpRequest',
-      'Referer': `${BASE}/listar_pecas.asp`,
-    },
-    body: new URLSearchParams({ tipo: '3', ID: pieceId }).toString(),
-    redirect: 'follow', signal: AbortSignal.timeout(30_000),
-  });
-  const html = await formRes.text();
-
-  const fields = new Map<string, string>();
-
-  for (const m of html.matchAll(/<input[^>]+>/gi)) {
-    const tag  = m[0];
-    const type = (tag.match(/type=["']?([^"'\s>]+)/i)?.[1] ?? 'text').toLowerCase();
-    if (type === 'submit' || type === 'button' || type === 'image' || type === 'file') continue;
-    const name = tag.match(/name=["']([^"']+)["']/i)?.[1];
-    if (!name) continue;
-    if (type === 'checkbox') {
-      if (/\bchecked\b/i.test(tag)) fields.set(name, tag.match(/value=["']([^"']*)["']/i)?.[1] ?? 'on');
-      continue;
-    }
-    fields.set(name, tag.match(/value=["']([^"']*)["']/i)?.[1] ?? '');
-  }
-
-  for (const m of html.matchAll(/<select[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/select>/gi)) {
-    const inner    = m[2];
-    const selected = inner.match(/<option[^>]+selected[^>]*value=["']([^"']*)["']/i)?.[1]
-                  ?? inner.match(/<option[^>]+value=["']([^"']*)["'][^>]*selected/i)?.[1];
-    const first    = inner.match(/<option[^>]+value=["']([^"']*)["']/i)?.[1] ?? '';
-    fields.set(m[1], selected ?? first);
-  }
-
-  for (const m of html.matchAll(/<textarea[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/textarea>/gi)) {
-    fields.set(m[1], m[2]);
-  }
+async function activateSite(cookie: string, pieceId: string, codigoPlatforma: string): Promise<void> {
+  const html   = await loadPecaFormHtml(cookie, pieceId);
+  const fields = extractPecaFields(html);
 
   console.log(`[upload-fotos] activateSite tipo=3 pieceId=${pieceId} campos=[${[...fields.keys()].join(',')}]`);
 
@@ -404,26 +362,12 @@ async function activateSite(
     throw new Error(`Formulário não carregou (${fields.size} campos). Resp: ${html.slice(0, 150)}`);
   }
 
-  fields.set('ID',        pieceId);
+  fields.set('ID',        fields.get('ID') || pieceId);
   fields.set('NumLeilao', codigoPlatforma);
-  fields.set('Site',      '1');   // painel envia 1 quando marcado (vsite=1)
+  fields.set('Site',      '1');
   fields.set('Botao',     'Gravar');
 
-  const params = new URLSearchParams();
-  for (const [k, v] of fields) params.append(k, v);
-
-  const res = await fetch(`${BASE}/cad_peca.asp`, {
-    method: 'POST',
-    headers: {
-      'Content-Type':     'application/x-www-form-urlencoded',
-      'Cookie':           cookie,
-      'User-Agent':       UA,
-      'Referer':          `${BASE}/cad_peca.asp`,
-      'X-Requested-With': 'XMLHttpRequest',
-    },
-    body: params.toString(), redirect: 'follow', signal: AbortSignal.timeout(30_000),
-  });
-  const text = await res.text();
+  const text = await gravarPeca(cookie, fields);
   console.log(`[upload-fotos] activateSite resposta pieceId=${pieceId}: ${text.slice(0, 120)}`);
   if (!text.startsWith('1|')) throw new Error(text.replace(/<[^>]+>/g, '').trim().slice(0, 120));
 }

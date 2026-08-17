@@ -1,5 +1,7 @@
 export const maxDuration = 300;
 
+import { loadPecaFormHtml, extractPecaFields, gravarPeca } from '../_peca-form';
+
 const BASE = 'https://www.leiloesbr.com.br/painel_lbr';
 const UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 
@@ -90,98 +92,23 @@ function parsePecas(html: string): PecaParaAtivar[] {
   return result;
 }
 
-// Campos conhecidos que o gravacadpeca envia — todos obrigatórios para não apagar dados
-// Fonte: ficha-peca.js do painel leiloesbr
-const PECA_FIELD_IDS = [
-  'ID', 'ID_Cliente', 'ID_Leilao', 'NumLeilao', 'ID_Tipo', 'ID_Artista',
-  'Item', 'Carteado', 'Valor_Contratado', 'Taxa', 'Taxa_Leiloeiro',
-  'Peca', 'Descricao', 'Descricao_2', 'Lote', 'Extra', 'Dia',
-  'Dt_Nota', 'ID_Comprador', 'Dt_Acerto', 'Valor_Venda', 'Cartela',
-  'Nota', 'ID_COld', 'Site', 'Destaque', 'Incremento', 'Dt_Venda',
-  'oldCartela', 'Botao',
-];
-
-// Carrega o formulário real da peça via POST tipo=3 (como o JS do painel faz)
-async function loadPecaForm(cookie: string, pieceId: string): Promise<string> {
-  const res = await fetch(`${BASE}/cad_peca.asp`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Cookie': cookie, 'User-Agent': UA,
-      'X-Requested-With': 'XMLHttpRequest',
-      'Referer': `${BASE}/listar_pecas.asp`,
-    },
-    body: new URLSearchParams({ tipo: '3', ID: pieceId }).toString(),
-    redirect: 'follow', signal: AbortSignal.timeout(30_000),
-  });
-  return res.text();
-}
-
-// Extrai campos do HTML do formulário (retornado pelo tipo=3)
-function extractFormFields(html: string): Map<string, string> {
-  const fields = new Map<string, string>();
-
-  for (const m of html.matchAll(/<input[^>]+>/gi)) {
-    const tag  = m[0];
-    const type = (tag.match(/type=["']?([^"'\s>]+)/i)?.[1] ?? 'text').toLowerCase();
-    if (type === 'submit' || type === 'button' || type === 'image' || type === 'file') continue;
-    const name = tag.match(/name=["']([^"']+)["']/i)?.[1];
-    if (!name) continue;
-    if (type === 'checkbox') {
-      const checked = /\bchecked\b/i.test(tag);
-      if (checked) fields.set(name, tag.match(/value=["']([^"']*)["']/i)?.[1] ?? 'on');
-      // checkbox desmarcado = ausente no POST
-      continue;
-    }
-    fields.set(name, tag.match(/value=["']([^"']*)["']/i)?.[1] ?? '');
-  }
-
-  for (const m of html.matchAll(/<select[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/select>/gi)) {
-    const inner    = m[2];
-    const selected = inner.match(/<option[^>]+selected[^>]*value=["']([^"']*)["']/i)?.[1]
-                  ?? inner.match(/<option[^>]+value=["']([^"']*)["'][^>]*selected/i)?.[1];
-    const first    = inner.match(/<option[^>]+value=["']([^"']*)["']/i)?.[1] ?? '';
-    fields.set(m[1], selected ?? first);
-  }
-
-  for (const m of html.matchAll(/<textarea[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/textarea>/gi)) {
-    fields.set(m[1], m[2]);
-  }
-
-  return fields;
-}
-
-// Ativa Site da peça carregando o formulário real (tipo=3) e regravando com Site ativo
+// Ativa Site da peça: carrega formulário real (tipo=3), altera Site=1, regrava
 async function ativarSite(cookie: string, pieceId: string, codigoPlatforma: string): Promise<void> {
-  const html   = await loadPecaForm(cookie, pieceId);
-  const fields = extractFormFields(html);
+  const html   = await loadPecaFormHtml(cookie, pieceId);
+  const fields = extractPecaFields(html);
 
-  console.log(`[ativar-site] tipo=3 pieceId=${pieceId} campos encontrados=[${[...fields.keys()].join(',')}]`);
+  console.log(`[ativar-site] tipo=3 pieceId=${pieceId} campos=[${[...fields.keys()].join(',')}]`);
 
   if (fields.size < 3) {
     throw new Error(`Formulário não carregou (${fields.size} campos). HTML: ${html.slice(0, 200)}`);
   }
 
-  // Garante campos obrigatórios
-  fields.set('ID',        pieceId);
+  fields.set('ID',        fields.get('ID') || pieceId);
   fields.set('NumLeilao', codigoPlatforma);
-  fields.set('Site',      '1');   // painel envia 1 quando marcado (vsite=1)
+  fields.set('Site',      '1');
   fields.set('Botao',     'Gravar');
 
-  const params = new URLSearchParams();
-  for (const [k, v] of fields) params.append(k, v);
-
-  const res = await fetch(`${BASE}/cad_peca.asp`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Cookie': cookie, 'User-Agent': UA,
-      'Referer': `${BASE}/cad_peca.asp`,
-      'X-Requested-With': 'XMLHttpRequest',
-    },
-    body: params.toString(), redirect: 'follow', signal: AbortSignal.timeout(30_000),
-  });
-  const text = await res.text();
+  const text = await gravarPeca(cookie, fields);
   console.log(`[ativar-site] resposta pieceId=${pieceId}: ${text.slice(0, 200)}`);
   if (!text.startsWith('1|')) throw new Error(text.replace(/<[^>]+>/g, '').trim().slice(0, 120));
 }
