@@ -104,6 +104,8 @@ export async function POST(req: Request) {
     return Response.json({ error: `Formulário não carregou (${fields.size} campos)`, htmlPreview: html.slice(0, 300) }, { status: 500 });
   }
 
+  // Garante que o ID da peça está sempre presente — sem isso o servidor cria uma peça nova
+  fields.set('ID', pieceId);
   for (const [k, v] of Object.entries(patch)) fields.set(k, v);
   fields.set('Botao', 'Gravar');
 
