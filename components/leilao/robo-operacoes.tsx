@@ -551,7 +551,7 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
               const peca    = chunk.find(p => p.lote === lote);
               setSiteState(s => ({
                 ...s,
-                done:   ev.done as number,
+                done:   s.done + 1,
                 ok:     s.ok + (success ? 1 : 0),
                 errors: s.errors + (success ? 0 : 1),
                 pecaStatus: peca
