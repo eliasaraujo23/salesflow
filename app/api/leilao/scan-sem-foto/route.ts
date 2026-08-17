@@ -52,35 +52,7 @@ async function exportXls(cookie: string, numLeilao: string): Promise<string> {
   return res.text();
 }
 
-// Busca a listagem AJAX filtrando por Ft=0 (sem foto principal)
-// Ft=0 faz o servidor retornar apenas peças sem foto — evita parsear coluna numérica
-async function listarSemFoto(cookie: string, numLeilao: string): Promise<string> {
-  const res = await fetch(`${BASE}/listar_pecas.asp`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-      'Cookie': cookie, 'User-Agent': UA,
-      'Origin': 'https://www.leiloesbr.com.br',
-      'Referer': `${BASE}/listar_pecas.asp?Listar=on&Leilao=${numLeilao}`,
-      'Accept': 'text/html, */*; q=0.01',
-      'X-Requested-With': 'XMLHttpRequest',
-    },
-    body: new URLSearchParams({
-      Listar: 'on', Leilao: numLeilao,
-      Peca: '', Lotel: '', LoteF: '', Cartela: '', Cart: '', Descricao: '',
-      Dia: '', Item: '', IdT: '', Nota: '',
-      DtNI: '', DtNF: '', DtSI: '', DtSF: '', DtAI: '', DtAF: '',
-      ID_Clil: '', ID_ClIF: '', Extra: '', TaxaL: '',
-      Site: '', Ft: '0', Gbl: '', Dv: '', DESTAQUE_O: '',
-      PVendal: '', PVendaF: '', Avall: '', AvalF: '',
-      saida: '', order: '', Botao: 'Pesquisar', Tipo: '1',
-    }).toString(),
-    redirect: 'follow', signal: AbortSignal.timeout(30_000),
-  });
-  return res.text();
-}
-
-// Busca listagem completa (sem filtro de foto) — usada só para debug
+// Busca listagem completa de todas as peças do leilão
 async function listarTodas(cookie: string, numLeilao: string): Promise<string> {
   const res = await fetch(`${BASE}/listar_pecas.asp`, {
     method: 'POST',
@@ -127,15 +99,20 @@ function parseXls(html: string): Map<number, string> {
   return map;
 }
 
-// Parse listagem AJAX filtrada por Ft=0 (sem foto): extrai lote → pieceId
-// O servidor já filtrou — todas as linhas retornadas são peças sem foto
-// Colunas: 0=ID(6-9d), 1=Comitente, 2=Lote(≤9999), ...
+// Parse listagem completa: extrai lote → pieceId apenas das peças SEM foto principal.
+// Detecta ausência de foto pela classe "is-color9" no ícone de câmera principal.
+// Com foto: class="is-color10 ..." | Sem foto: class="is-color9 ..."
 function parseLotePieceId(html: string): Map<number, string> {
   const map  = new Map<number, string>();
   const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'));
 
   for (const row of rows) {
-    const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+    const inner = row[1];
+
+    // Só processa linhas onde o ícone principal é "is-color9" (sem foto)
+    if (!inner.includes('is-color9')) continue;
+
+    const cells = [...inner.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
 
     const pieceId = (cells[0] ?? '').trim();
     if (!/^\d{6,9}$/.test(pieceId)) continue;
@@ -178,35 +155,30 @@ export async function GET(req: Request): Promise<NextResponse> {
   try {
     const cookie = await login(creds.user, creds.pass, leilao);
 
-    // Busca XLS (lote→ref) e listagem filtrada Ft=0 (lote→pieceId de peças sem foto) em paralelo
-    const [xlsHtml, semFotoHtml] = await Promise.all([
+    // Busca XLS (lote→ref) e listagem completa em paralelo
+    const [xlsHtml, todasHtml] = await Promise.all([
       exportXls(cookie, leilao),
-      listarSemFoto(cookie, leilao),
+      listarTodas(cookie, leilao),
     ]);
 
-    // Modo debug: retorna HTML raw das últimas 3 células de 5 linhas para inspecionar ícones de foto
+    // Modo debug: mostra contagem total e quantas têm is-color9 (sem foto)
     if (debug) {
-      const allHtml = await listarTodas(cookie, leilao);
-      const allDataRows = [...allHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
+      const allDataRows = [...todasHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
         .filter(m => m[1].includes('<td'));
-      const totalRows = allDataRows.length;
-      // Pega 5 linhas espalhadas (início, meio, fim)
-      const indices = [0, 1, Math.floor(totalRows / 2), totalRows - 2, totalRows - 1].filter(i => i >= 0 && i < totalRows);
-      const rowSamples = indices.map(i => {
-        const cells = [...allDataRows[i][1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(c => c[1]);
-        return {
-          index: i,
-          // Últimas 4 células (onde ficam os ícones de foto, editar, etc.)
-          lastCellsRaw: cells.slice(-4),
-          // Primeiras 4 células (ID, comitente, lote, etc.)
-          firstCellsClean: cells.slice(0, 4).map(c => cleanCell(c)),
-        };
+      const semFotoRows = allDataRows.filter(m => m[1].includes('is-color9'));
+      const sample = semFotoRows.slice(0, 3).map(m => {
+        const cells = [...m[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(c => cleanCell(c[1]));
+        return { pieceId: cells[0], lote: cells[2], desc: cells[3]?.slice(0, 60) };
       });
-      return NextResponse.json({ totalRows, rowSamples });
+      return NextResponse.json({
+        totalRows:    allDataRows.length,
+        semFotoRows:  semFotoRows.length,
+        sample,
+      });
     }
 
-    const loteRef     = parseXls(xlsHtml);           // lote → ref (todas as peças)
-    const lotePieceId = parseLotePieceId(semFotoHtml); // lote → pieceId (só sem foto, filtrado pelo servidor)
+    const loteRef     = parseXls(xlsHtml);            // lote → ref (todas as peças)
+    const lotePieceId = parseLotePieceId(todasHtml);  // lote → pieceId (só is-color9 = sem foto)
 
     const semFoto: PecaSemFoto[] = [];
     for (const [lote, pieceId] of lotePieceId) {
