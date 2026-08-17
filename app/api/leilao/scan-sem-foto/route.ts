@@ -52,8 +52,36 @@ async function exportXls(cookie: string, numLeilao: string): Promise<string> {
   return res.text();
 }
 
-// Busca a listagem AJAX — colunas: 0=ID, 1=Comitente, 2=Lote, 3=Peça, 4=Valor, 5=N°fotos
-async function listarPecas(cookie: string, numLeilao: string): Promise<string> {
+// Busca a listagem AJAX filtrando por Ft=0 (sem foto principal)
+// Ft=0 faz o servidor retornar apenas peças sem foto — evita parsear coluna numérica
+async function listarSemFoto(cookie: string, numLeilao: string): Promise<string> {
+  const res = await fetch(`${BASE}/listar_pecas.asp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      'Cookie': cookie, 'User-Agent': UA,
+      'Origin': 'https://www.leiloesbr.com.br',
+      'Referer': `${BASE}/listar_pecas.asp?Listar=on&Leilao=${numLeilao}`,
+      'Accept': 'text/html, */*; q=0.01',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: new URLSearchParams({
+      Listar: 'on', Leilao: numLeilao,
+      Peca: '', Lotel: '', LoteF: '', Cartela: '', Cart: '', Descricao: '',
+      Dia: '', Item: '', IdT: '', Nota: '',
+      DtNI: '', DtNF: '', DtSI: '', DtSF: '', DtAI: '', DtAF: '',
+      ID_Clil: '', ID_ClIF: '', Extra: '', TaxaL: '',
+      Site: '', Ft: '0', Gbl: '', Dv: '', DESTAQUE_O: '',
+      PVendal: '', PVendaF: '', Avall: '', AvalF: '',
+      saida: '', order: '', Botao: 'Pesquisar', Tipo: '1',
+    }).toString(),
+    redirect: 'follow', signal: AbortSignal.timeout(30_000),
+  });
+  return res.text();
+}
+
+// Busca listagem completa (sem filtro de foto) — usada só para debug
+async function listarTodas(cookie: string, numLeilao: string): Promise<string> {
   const res = await fetch(`${BASE}/listar_pecas.asp`, {
     method: 'POST',
     headers: {
@@ -99,34 +127,23 @@ function parseXls(html: string): Map<number, string> {
   return map;
 }
 
-// Parse listagem AJAX: extrai lote → { pieceId, nFotos, siteAtivo }
-// Colunas: 0=ID(6-9d), 1=Comitente, 2=Lote(≤9999), 3=Peça, 4=Valor, 5=N°fotos
-// Site ativo: célula contém texto "Sim" ou checkbox checked
-function parseListagem(html: string): Map<number, { pieceId: string; nFotos: number; siteAtivo: boolean }> {
-  const map  = new Map<number, { pieceId: string; nFotos: number; siteAtivo: boolean }>();
+// Parse listagem AJAX filtrada por Ft=0 (sem foto): extrai lote → pieceId
+// O servidor já filtrou — todas as linhas retornadas são peças sem foto
+// Colunas: 0=ID(6-9d), 1=Comitente, 2=Lote(≤9999), ...
+function parseLotePieceId(html: string): Map<number, string> {
+  const map  = new Map<number, string>();
   const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'));
 
   for (const row of rows) {
-    const rawCells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)];
-    const cells    = rawCells.map(m => cleanCell(m[1]));
+    const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
 
-    // Coluna 0: ID interno (6-9 dígitos)
     const pieceId = (cells[0] ?? '').trim();
     if (!/^\d{6,9}$/.test(pieceId)) continue;
 
-    // Coluna 2: lote (número ≤ 9999)
     const lote = parseInt(cells[2] ?? '', 10);
     if (!lote || lote > 9999) continue;
 
-    // Coluna 5: número de fotos (0 = sem foto)
-    const nFotos = parseInt(cells[5] ?? '', 10);
-    const nFotosVal = isNaN(nFotos) ? -1 : nFotos;
-
-    // Site ativo: procura "Sim" no HTML bruto da linha ou checked em algum checkbox
-    const rowHtml  = row[0];
-    const siteAtivo = /checked/i.test(rowHtml) || /\bsim\b/i.test(cells.slice(6).join(' '));
-
-    map.set(lote, { pieceId, nFotos: nFotosVal, siteAtivo });
+    map.set(lote, pieceId);
   }
   return map;
 }
@@ -161,41 +178,43 @@ export async function GET(req: Request): Promise<NextResponse> {
   try {
     const cookie = await login(creds.user, creds.pass, leilao);
 
-    const [xlsHtml, listHtml] = await Promise.all([
+    // Busca XLS (lote→ref) e listagem filtrada Ft=0 (lote→pieceId de peças sem foto) em paralelo
+    const [xlsHtml, semFotoHtml] = await Promise.all([
       exportXls(cookie, leilao),
-      listarPecas(cookie, leilao),
+      listarSemFoto(cookie, leilao),
     ]);
 
-    // Modo debug: retorna as primeiras 5 linhas parseadas com todas as células
+    // Modo debug: retorna células brutas das primeiras 5 rows + preview do XLS
     if (debug) {
-      const rows = [...listHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
+      const rows = [...semFotoHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
         .filter(m => m[1].includes('<td'))
         .slice(0, 5)
         .map(m => [...m[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(c => cleanCell(c[1])));
-      const xlsRows = [...xlsHtml.matchAll(/<\/tr>/gi)].length;
-      return NextResponse.json({ listRows: rows, xlsRowCount: xlsRows, listLen: listHtml.length });
+      const allHtml = await listarTodas(cookie, leilao);
+      const allRows = [...allHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
+        .filter(m => m[1].includes('<td'))
+        .slice(0, 3)
+        .map(m => [...m[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(c => cleanCell(c[1])));
+      return NextResponse.json({
+        semFotoRows: rows,
+        semFotoCount: rows.length,
+        allRows,
+        xlsRowCount: [...xlsHtml.matchAll(/<\/tr>/gi)].length,
+      });
     }
 
-    const loteRef  = parseXls(xlsHtml);
-    const loteInfo = parseListagem(listHtml);
+    const loteRef     = parseXls(xlsHtml);           // lote → ref (todas as peças)
+    const lotePieceId = parseLotePieceId(semFotoHtml); // lote → pieceId (só sem foto, filtrado pelo servidor)
 
     const semFoto: PecaSemFoto[] = [];
-    for (const [lote, ref] of loteRef) {
-      const info = loteInfo.get(lote);
-      if (!info || info.nFotos === 0) {
-        semFoto.push({
-          lote,
-          ref,
-          pieceId:   info?.pieceId   ?? '',
-          nFotos:    info?.nFotos    ?? -1,
-          siteAtivo: info?.siteAtivo ?? false,
-        });
-      }
+    for (const [lote, pieceId] of lotePieceId) {
+      const ref = loteRef.get(lote) ?? '';
+      semFoto.push({ lote, ref, pieceId, nFotos: 0, siteAtivo: false });
     }
     semFoto.sort((a, b) => a.lote - b.lote);
 
     return NextResponse.json({
-      total:   loteRef.size,
+      total:   loteRef.size,  // total de peças no leilão (pelo XLS)
       semFoto: semFoto.length,
       pecas:   semFoto,
     } satisfies ScanSemFotoResult);
