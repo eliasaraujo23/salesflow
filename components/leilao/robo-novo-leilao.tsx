@@ -58,6 +58,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   const [novoLeilaoSel,    setNovoLeilaoSel]    = useState<Leilao | null>(null);
   const [novoOpen,              setNovoOpen]              = useState(false);
   const [startLote,             setStartLote]             = useState(1);
+  const [limitQtd,              setLimitQtd]              = useState<number | ''>('' );
   const [transferStartLote,     setTransferStartLote]     = useState(1);
   const [countPecasDestino,     setCountPecasDestino]     = useState(0);
   const [fetchingUltimoLote,    setFetchingUltimoLote]    = useState(false);
@@ -136,6 +137,11 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
     [basePieces, allActiveRefs, leilaoTipo],
   );
 
+  const pecasParaCadastrar = useMemo(
+    () => limitQtd === '' ? newPieces : newPieces.slice(0, Math.max(1, limitQtd)),
+    [newPieces, limitQtd],
+  );
+
   const priceMap = useMemo(() => {
     const map = new Map<string, LeilaoBaseRow>();
     for (const p of basePieces) map.set(p.referencia.toUpperCase(), p);
@@ -203,9 +209,9 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   }, [oldFile, unsoldRefs, priceMap, refsJaNoDestino, vagasDestino]);
 
   function handleDownloadCadastrar() {
-    if (newPieces.length === 0) return;
+    if (pecasParaCadastrar.length === 0) return;
     downloadCsv(
-      generateCsvCadastrar(newPieces, startLote),
+      generateCsvCadastrar(pecasParaCadastrar, startLote),
       `cadastrar_pecas_leilao_${novoLeilao || 'novo'}.csv`,
     );
   }
@@ -327,7 +333,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
                   — Selecionar —
                 </button>
                 {[...leiloes]
-                  .filter(l => l.codigoPlatforma)
+                  .filter(l => l.codigoPlatforma && l.status !== 'finalizado')
                   .sort((a, b) => Number(a.codigoPlatforma) - Number(b.codigoPlatforma))
                   .map(l => (
                     <button
@@ -386,7 +392,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
                 ))}
               </div>
             </div>
-            {/* Stat */}
+            {/* Stat + inputs */}
             <div className="flex items-center gap-4">
               <Stat value={newPieces.length} label="peças disponíveis" color="indigo" />
               <div className="w-px h-8 bg-zinc-100 dark:bg-white/[0.06]" />
@@ -399,7 +405,26 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
                     onChange={e => setStartLote(Math.max(1, Number(e.target.value)))}
                     className="w-16 pl-2 pr-2 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-indigo-400 transition-colors"
                   />
-                  <span className="text-[10px] text-zinc-400 whitespace-nowrap">até {startLote + newPieces.length - 1}</span>
+                  <span className="text-[10px] text-zinc-400 whitespace-nowrap">até {startLote + pecasParaCadastrar.length - 1}</span>
+                </div>
+              </div>
+              <div className="w-px h-8 bg-zinc-100 dark:bg-white/[0.06]" />
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Quantidade</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number" min={1} max={newPieces.length}
+                    value={limitQtd}
+                    placeholder={String(newPieces.length)}
+                    onChange={e => {
+                      const v = e.target.value;
+                      if (v === '') { setLimitQtd(''); return; }
+                      const n = Math.min(Math.max(1, Number(v)), newPieces.length);
+                      setLimitQtd(n);
+                    }}
+                    className="w-16 pl-2 pr-2 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-indigo-400 transition-colors"
+                  />
+                  <span className="text-[10px] text-zinc-400 whitespace-nowrap">de {newPieces.length}</span>
                 </div>
               </div>
             </div>
@@ -408,7 +433,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
             <div className="flex gap-2">
               <button
                 onClick={handleDownloadCadastrar}
-                disabled={newPieces.length === 0}
+                disabled={pecasParaCadastrar.length === 0}
                 className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium transition-colors"
               >
                 <Download size={12} />
@@ -416,11 +441,11 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
               </button>
               <button
                 onClick={openCadastrar}
-                disabled={newPieces.length === 0 || !novoLeilao || !novoLeilaoSel}
+                disabled={pecasParaCadastrar.length === 0 || !novoLeilao || !novoLeilaoSel}
                 className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 dark:disabled:text-zinc-500 text-xs font-semibold transition-colors"
               >
                 <Zap size={12} />
-                {newPieces.length > 0 ? `Executar (${newPieces.length})` : 'Executar'}
+                {pecasParaCadastrar.length > 0 ? `Executar (${pecasParaCadastrar.length})` : 'Executar'}
               </button>
             </div>
             {!novoLeilao && newPieces.length > 0 && (
@@ -434,7 +459,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
         <CadastrarPecasModal
           open={cadastrarOpen}
           state={cadastrarState}
-          pecas={buildPecasParaCadastrar(newPieces, startLote)}
+          pecas={buildPecasParaCadastrar(pecasParaCadastrar, startLote)}
           leilaoNome={novoLeilaoSel?.nome}
           codigoPlatforma={novoLeilao || undefined}
           onClose={closeCadastrar}
