@@ -100,8 +100,10 @@ function parseXls(html: string): Map<number, string> {
 }
 
 // Parse listagem completa: extrai lote → pieceId apenas das peças SEM foto principal.
-// Detecta ausência de foto pela classe "is-color9" no ícone de câmera principal.
-// Com foto: class="is-color10 ..." | Sem foto: class="is-color9 ..."
+// Detecta ausência de foto principal pelo data-func do botão de câmera principal:
+//   Com foto:    data-func="subirimgpeca|ID|ID.jpg"  (tem .jpg)
+//   Sem foto:    data-func="subirimgpeca|ID"          (sem .jpg)
+// Não usa is-color9 pois o botão de extras também usa essa classe e causaria falsos positivos.
 function parseLotePieceId(html: string): Map<number, string> {
   const map  = new Map<number, string>();
   const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'));
@@ -109,8 +111,13 @@ function parseLotePieceId(html: string): Map<number, string> {
   for (const row of rows) {
     const inner = row[1];
 
-    // Só processa linhas onde o ícone principal é "is-color9" (sem foto)
-    if (!inner.includes('is-color9')) continue;
+    // Verifica se o botão principal de câmera NÃO tem .jpg no data-func
+    // data-func="subirimgpeca|ID" → sem foto principal
+    // data-func="subirimgpeca|ID|ID.jpg" → tem foto principal
+    const mainCamMatch = inner.match(/data-func="subirimgpeca\|(\d+)([^"]*?)"/i);
+    if (!mainCamMatch) continue;
+    const hasFoto = mainCamMatch[2].includes('.jpg');
+    if (hasFoto) continue; // já tem foto principal — ignora
 
     const cells = [...inner.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
 
