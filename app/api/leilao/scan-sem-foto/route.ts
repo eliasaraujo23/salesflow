@@ -184,21 +184,27 @@ export async function GET(req: Request): Promise<NextResponse> {
       listarSemFoto(cookie, leilao),
     ]);
 
-    // Modo debug: retorna células brutas das primeiras 5 rows + preview do XLS
+    // Modo debug: compara contagem Ft=0 vs sem filtro + células das primeiras 3 rows
     if (debug) {
-      const rows = [...semFotoHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
-        .filter(m => m[1].includes('<td'))
-        .slice(0, 5)
+      const semFotoAllRows = [...semFotoHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
+        .filter(m => m[1].includes('<td'));
+      const semFotoSample = semFotoAllRows
+        .slice(0, 3)
         .map(m => [...m[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(c => cleanCell(c[1])));
       const allHtml = await listarTodas(cookie, leilao);
-      const allRows = [...allHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
-        .filter(m => m[1].includes('<td'))
+      const allAllRows = [...allHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)]
+        .filter(m => m[1].includes('<td'));
+      const allSample = allAllRows
         .slice(0, 3)
         .map(m => [...m[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(c => cleanCell(c[1])));
       return NextResponse.json({
-        semFotoRows: rows,
-        semFotoCount: rows.length,
-        allRows,
+        // Contagens totais — se iguais, Ft=0 não está filtrando
+        semFotoTotalRows: semFotoAllRows.length,
+        allTotalRows:     allAllRows.length,
+        ftFilterWorks:    semFotoAllRows.length < allAllRows.length,
+        // Amostras das primeiras 3 linhas de cada
+        semFotoSample,
+        allSample,
         xlsRowCount: [...xlsHtml.matchAll(/<\/tr>/gi)].length,
       });
     }
