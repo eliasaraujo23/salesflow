@@ -205,60 +205,51 @@ async function uploadExtras(cookie: string, pieceId: string, numLeilao: string, 
   return ok;
 }
 
-// Grava peça com Site=valor (1=ativo, 0=inativo).
-// Usa apenas os campos mínimos que o cad_peca.asp precisa.
+// Grava Site=valor (1=ativo, 0=inativo) sem alterar nenhum outro campo.
+// Lê o HTML do formulário e reposta TODOS os campos existentes, trocando só Site.
 async function setSite(cookie: string, pieceId: string, codigoPlatforma: string, lote: number, siteValue: '0' | '1'): Promise<void> {
-  // Primeiro lê os dados atuais da peça para não sobrescrever nada
   const getRes = await fetch(`${BASE}/cad_peca.asp?ID=${pieceId}`, {
     headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_pecas.asp` },
     redirect: 'follow', signal: AbortSignal.timeout(30_000),
   });
   const html = await getRes.text();
 
-  // Extrai os campos do formulário via regex
-  function extractField(name: string): string {
-    const m = html.match(new RegExp(`name=["']?${name}["']?[^>]*value=["']([^"']*?)["']`, 'i'))
-           ?? html.match(new RegExp(`value=["']([^"']*?)["'][^>]*name=["']?${name}["']?`, 'i'));
-    return m?.[1] ?? '';
-  }
-  function extractTextarea(name: string): string {
-    const m = html.match(new RegExp(`<textarea[^>]*name=["']?${name}["']?[^>]*>([\\s\\S]*?)<\\/textarea>`, 'i'));
-    return m?.[1]?.trim() ?? '';
+  // Coleta TODOS os campos do formulário preservando seus valores originais
+  const fields = new Map<string, string>();
+
+  // inputs (text, hidden, number, date, etc.) — captura name e value
+  for (const m of html.matchAll(/<input[^>]+>/gi)) {
+    const tag  = m[0];
+    const type = (tag.match(/type=["']?([^"'\s>]+)/i)?.[1] ?? 'text').toLowerCase();
+    if (type === 'submit' || type === 'button' || type === 'image') continue;
+    const name  = tag.match(/name=["']([^"']+)["']/i)?.[1];
+    const value = tag.match(/value=["']([^"']*)["']/i)?.[1] ?? '';
+    if (name) fields.set(name, value);
   }
 
-  const params = new URLSearchParams({
-    ID:               pieceId,
-    ID_Peca:          extractField('ID_Peca'),
-    ID_Cliente:       IDC,
-    ID_Leilao:        codigoPlatforma,
-    NumLeilao:        codigoPlatforma,
-    ID_Tipo:          extractField('ID_Tipo') || ID_TIPO_JOIAS,
-    ID_Artista:       extractField('ID_Artista'),
-    Item:             String(lote),
-    Item_O:           String(lote),
-    Peca:             extractField('Peca'),
-    Lote:             String(lote),
-    Extra:            extractField('Extra'),
-    Dia:              extractField('Dia') || '1',
-    oldcartela:       '',
-    Cartela:          extractField('Cartela'),
-    Nota:             extractField('Nota'),
-    Carteado:         extractField('Carteado') || '0',
-    Valor_Contratado: extractField('Valor_Contratado') || '0',
-    Valor_Venda:      extractField('Valor_Venda') || '0',
-    Taxa:             extractField('Taxa') || '25',
-    Taxa_Leiloeiro:   extractField('Taxa_Leiloeiro') || '5',
-    Descricao:        extractTextarea('Descricao'),
-    Descricao_2:      extractTextarea('Descricao_2'),
-    Incremento:       extractField('Incremento'),
-    Dt_Nota:          extractField('Dt_Nota'),
-    Dt_Acerto:        extractField('Dt_Acerto'),
-    Site:             siteValue,
-    Destaque:         extractField('Destaque'),
-    dtVenda:          extractField('dtVenda'),
-    oldCartela:       '',
-    Botao:            'Gravar',
-  });
+  // selects — captura o option com selected
+  for (const m of html.matchAll(/<select[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/select>/gi)) {
+    const name    = m[1];
+    const inner   = m[2];
+    const selOpt  = inner.match(/<option[^>]+selected[^>]*value=["']([^"']*)["']/i)
+                 ?? inner.match(/<option[^>]+value=["']([^"']*)["'][^>]*selected/i);
+    const firstOpt = inner.match(/<option[^>]+value=["']([^"']*)["']/i);
+    fields.set(name, selOpt?.[1] ?? firstOpt?.[1] ?? '');
+  }
+
+  // textareas — preserva conteúdo completo incluindo HTML entities e quebras de linha
+  for (const m of html.matchAll(/<textarea[^>]*name=["']([^"']+)["'][^>]*>([\s\S]*?)<\/textarea>/gi)) {
+    fields.set(m[1], m[2]); // não faz trim — preserva espaços/newlines originais
+  }
+
+  // checkboxes — Site é o único que nos importa; os outros podem estar ausentes no POST se desmarcados
+  // Sobrescreve apenas Site com o valor desejado
+  fields.set('Site',     siteValue);
+  fields.set('Botao',    'Gravar');
+  fields.set('NumLeilao', codigoPlatforma);
+
+  const params = new URLSearchParams();
+  for (const [k, v] of fields) params.append(k, v);
 
   const res = await fetch(`${BASE}/cad_peca.asp`, {
     method: 'POST',
