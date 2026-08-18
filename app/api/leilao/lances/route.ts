@@ -96,8 +96,14 @@ export async function GET(req: Request): Promise<NextResponse> {
       const lote = parseInt(cells[2] ?? '', 10);
       if (!lote) continue;
 
-      // Parse valor: "R$ 790.00" → 790
-      const parseVal = (s: string) => parseFloat(s.replace(/[R$\s]/g, '')) || 0;
+      // Parse valor: "R$ 790.00" ou "R$ 1.690,00"
+      const parseVal = (s: string) => {
+        const clean = s.replace(/R\$\s*/g, '').trim();
+        // Se tem vírgula: formato pt-BR (1.690,00) → remove pontos de milhar, troca vírgula por ponto
+        if (clean.includes(',')) return parseFloat(clean.replace(/\./g, '').replace(',', '.')) || 0;
+        // Se não tem vírgula: formato com ponto decimal (790.00)
+        return parseFloat(clean) || 0;
+      };
 
       lances.push({
         cliente:       clienteRaw.replace(/\D/g, ''),   // só o número do cliente
