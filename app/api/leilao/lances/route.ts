@@ -81,6 +81,9 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     const html = await res.text();
 
+    // Debug: log cells of first data row
+    let debugDone = false;
+
     // Parse table rows — skip header rows
     const lances: Lance[] = [];
     const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
@@ -94,6 +97,11 @@ export async function GET(req: Request): Promise<NextResponse> {
 
       const lote = parseInt(cells[2] ?? '', 10);
       if (!lote) continue;
+
+      if (!debugDone) {
+        console.log('[lances] cells:', cells);
+        debugDone = true;
+      }
 
       // Parse valor: "790.00" (ponto decimal, sem separador de milhar)
       const parseVal = (s: string) => parseFloat(s.trim()) || 0;
