@@ -352,10 +352,33 @@ async function uploadExtras(
       redirect: 'follow',
       signal:  AbortSignal.timeout(60_000),
     });
+    // Captura todos os Set-Cookie do cluster PHP (mesma lógica da principal)
+    const setCookieRaw = (res.headers as Headers & { getSetCookie?(): string[] }).getSetCookie?.() ?? [];
+    const allNewCookies = setCookieRaw.map(c => c.split(';')[0]).join('; ');
+    const extraCookie = allNewCookies ? `${activeCookie}; ${allNewCookies}` : activeCookie;
     activeCookie = mergeCookies(activeCookie, res);
+
     const text = await res.text();
-    console.log(`[upload-fotos] extra[${i + 1}/${count}] slot=${slot} status=${res.status} resp="${text.slice(0, 200)}"`);
-    if (res.ok && !text.includes('"error"')) ok++;
+    console.log(`[upload-fotos] extra[${i + 1}/${count}] slot=${slot} status=${res.status} set-cookies=${setCookieRaw.length} resp="${text.slice(0, 200)}"`);
+
+    if (res.ok && !text.includes('"error"')) {
+      ok++;
+      // Transfere para CDN via s3enviaimagem.asp — igual à principal, mas index=slot
+      const s3Res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Cookie': extraCookie, 'User-Agent': UA,
+          'Referer': `${BASE}/cad_peca.asp`,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: new URLSearchParams({ idpeca: pieceId, index: String(slot) }).toString(),
+        redirect: 'follow', signal: AbortSignal.timeout(30_000),
+      });
+      const s3Text = await s3Res.text();
+      console.log(`[upload-fotos] extra[${i + 1}/${count}] s3 slot=${slot} status=${s3Res.status} resp="${s3Text.trim()}"`);
+      activeCookie = mergeCookies(extraCookie, s3Res);
+    }
 
     if (i < count - 1) await new Promise(r => setTimeout(r, 300));
   }
