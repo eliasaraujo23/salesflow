@@ -412,6 +412,7 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   const [dupBase,       setDupBase]       = useState('');
   const [zerarBase,     setZerarBase]     = useState('');
   const [reuphBase,     setReuphBase]     = useState('');
+  const [reuphLotesManual, setReuphLotesManual] = useState('');
   const [cdnBase,       setCdnBase]       = useState('');
   const [siteBase,      setSiteBase]      = useState('');
   const [siteModalOpen, setSiteModalOpen] = useState(false);
@@ -886,6 +887,47 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
               <span>{reuphState.fatalError}</span>
             </div>
           )}
+
+          {/* Modo manual: reupload por lotes específicos */}
+          <div className="border-t border-zinc-100 dark:border-white/[0.06] pt-2.5 flex flex-col gap-2">
+            <p className="text-[10px] text-zinc-400">Lotes específicos (ex: <span className="font-mono">4, 14, 17, 21</span>)</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={reuphLotesManual}
+                onChange={e => setReuphLotesManual(e.target.value)}
+                placeholder="4, 14, 17, 21, 26..."
+                disabled={isRunningReuph}
+                className="flex-1 px-3 py-2 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 focus:outline-none focus:border-violet-400 disabled:opacity-40 transition-colors"
+              />
+              <button
+                onClick={async () => {
+                  if (!reuphLeilao || !reuphNome || !reuphLotesManual.trim()) return;
+                  const lotes = reuphLotesManual.split(/[\s,;]+/).map(s => parseInt(s.trim(), 10)).filter(n => n > 0);
+                  if (lotes.length === 0) return;
+                  reuphReset();
+                  // Busca pieceIds dos lotes informados
+                  const params = new URLSearchParams({ leilao: reuphLeilao, nome: reuphNome, lotes: lotes.join(',') });
+                  try {
+                    const res  = await fetch(`/api/leilao/scan-sem-foto?${params}`);
+                    const data = await res.json() as { pecas?: ScannedPeca[]; error?: string };
+                    if (data.error || !data.pecas?.length) return;
+                    const comFlag = data.pecas.map(p => ({
+                      ...p,
+                      ativarSite: !destinosExcluidos.has((refDestinoMap.get(p.ref.toUpperCase()) ?? '').toLowerCase()),
+                    }));
+                    reuphExecutar(reuphLeilao, reuphNome, comFlag);
+                    reuphOpenModal();
+                  } catch { /* ignore */ }
+                }}
+                disabled={!reuphBase || !reuphLotesManual.trim() || isRunningReuph}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg bg-violet-600 hover:bg-violet-700 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 font-semibold transition-colors"
+              >
+                <Camera size={11} />
+                Enviar
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
