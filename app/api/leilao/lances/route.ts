@@ -69,17 +69,20 @@ export async function GET(req: Request): Promise<NextResponse> {
     const res = await fetch(`${BASE}/modulos/listar-lances/listarlances.asp`, {
       method:  'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Cookie':        cookie,
-        'User-Agent':    UA,
-        'Referer':       `${BASE}/default.asp`,
+        'Content-Type':     'application/x-www-form-urlencoded',
+        'Cookie':            cookie,
+        'User-Agent':        UA,
+        'Referer':           `${BASE}/listar_lances.asp`,
+        'X-Requested-With': 'XMLHttpRequest',
       },
       body:    new URLSearchParams({ DCLI: '', Lotel: '', LoteF: '', diaf: '', s: 'on' }).toString(),
       redirect: 'follow',
       signal:   AbortSignal.timeout(30_000),
     });
+    console.log('[lances] listarlances.asp status:', res.status, 'content-type:', res.headers.get('content-type'));
 
     const html = await res.text();
+    console.log('[lances] html length:', html.length, 'sample:', html.slice(0, 400));
 
     // Debug: log cells of first data row
     let debugDone = false;
