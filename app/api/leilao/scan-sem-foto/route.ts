@@ -181,10 +181,15 @@ export async function GET(req: Request): Promise<NextResponse> {
   const nome     = searchParams.get('nome')?.trim() ?? '';
   const debug    = searchParams.get('debug') === '1';
   const checkCdn = searchParams.get('checkCdn') === '1';
-  // Modo lotes manuais: retorna info de lotes específicos independente de ter foto
+  // Modo manual: lotes específicos (ex: ?lotes=4,14,17)
   const lotesParam = searchParams.get('lotes')?.trim() ?? '';
   const lotesManual = lotesParam
     ? new Set(lotesParam.split(',').map(s => parseInt(s.trim(), 10)).filter(n => n > 0))
+    : null;
+  // Modo manual: referências específicas (ex: ?refs=T12345,M5625)
+  const refsParam = searchParams.get('refs')?.trim() ?? '';
+  const refsManual = refsParam
+    ? new Set(refsParam.split(',').map(s => s.trim().toUpperCase()).filter(Boolean))
     : null;
 
   if (!leilao || !nome)
@@ -304,10 +309,20 @@ export async function GET(req: Request): Promise<NextResponse> {
       }
     }
 
-    // Modo lotes manuais: retorna os lotes especificados independente de ter foto
-    if (lotesManual) {
+    // Modo manual por lotes ou referências
+    if (lotesManual || refsManual) {
+      // Mapa inverso ref → lote (construído sob demanda)
+      const refLoteMap = refsManual ? new Map<string, number>() : null;
+      if (refLoteMap) {
+        for (const [lote, ref] of loteRef) refLoteMap.set(ref.toUpperCase(), lote);
+      }
+
+      const lotesAlvo: Set<number> = lotesManual
+        ? lotesManual
+        : new Set([...refsManual!].map(r => refLoteMap!.get(r)).filter((n): n is number => n !== undefined));
+
       const pecasManual: PecaSemFoto[] = [];
-      for (const lote of lotesManual) {
+      for (const lote of lotesAlvo) {
         const pieceId = loteIdAll.get(lote);
         if (!pieceId) continue;
         const ref  = loteRef.get(lote) ?? '';

@@ -15,6 +15,7 @@ import { fetchImageKeys } from '@/lib/actions/fetch-image-keys';
 import { useAtualizarPreco } from '@/lib/hooks/use-atualizar-preco';
 import { AtualizarPrecoModal } from '@/components/leilao/atualizar-preco-modal';
 import { ReuploadsModal } from '@/components/leilao/reuploads-modal';
+import { TagInput } from '@/components/leilao/tag-input';
 import { AtivarSiteModal, type SitePeca } from '@/components/leilao/ativar-site-modal';
 import { useLeilaoRegras } from '@/lib/hooks/use-leilao-regras';
 
@@ -412,7 +413,8 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   const [dupBase,       setDupBase]       = useState('');
   const [zerarBase,     setZerarBase]     = useState('');
   const [reuphBase,     setReuphBase]     = useState('');
-  const [reuphLotesManual, setReuphLotesManual] = useState('');
+  const [reuphManualTags, setReuphManualTags] = useState<string[]>([]);
+  const [reuphManualMode, setReuphManualMode] = useState<'lote' | 'ref'>('lote');
   const [cdnBase,       setCdnBase]       = useState('');
   const [siteBase,      setSiteBase]      = useState('');
   const [siteModalOpen, setSiteModalOpen] = useState(false);
@@ -888,45 +890,66 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
             </div>
           )}
 
-          {/* Modo manual: reupload por lotes específicos */}
+          {/* Modo manual: reupload por lotes ou referências */}
           <div className="border-t border-zinc-100 dark:border-white/[0.06] pt-2.5 flex flex-col gap-2">
-            <p className="text-[10px] text-zinc-400">Lotes específicos (ex: <span className="font-mono">4, 14, 17, 21</span>)</p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={reuphLotesManual}
-                onChange={e => setReuphLotesManual(e.target.value)}
-                placeholder="4, 14, 17, 21, 26..."
-                disabled={isRunningReuph}
-                className="flex-1 px-3 py-2 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 focus:outline-none focus:border-violet-400 disabled:opacity-40 transition-colors"
-              />
-              <button
-                onClick={async () => {
-                  if (!reuphLeilao || !reuphNome || !reuphLotesManual.trim()) return;
-                  const lotes = reuphLotesManual.split(/[\s,;]+/).map(s => parseInt(s.trim(), 10)).filter(n => n > 0);
-                  if (lotes.length === 0) return;
-                  reuphReset();
-                  // Busca pieceIds dos lotes informados
-                  const params = new URLSearchParams({ leilao: reuphLeilao, nome: reuphNome, lotes: lotes.join(',') });
-                  try {
-                    const res  = await fetch(`/api/leilao/scan-sem-foto?${params}`);
-                    const data = await res.json() as { pecas?: ScannedPeca[]; error?: string };
-                    if (data.error || !data.pecas?.length) return;
-                    const comFlag = data.pecas.map(p => ({
-                      ...p,
-                      ativarSite: !destinosExcluidos.has((refDestinoMap.get(p.ref.toUpperCase()) ?? '').toLowerCase()),
-                    }));
-                    reuphExecutar(reuphLeilao, reuphNome, comFlag);
-                    reuphOpenModal();
-                  } catch { /* ignore */ }
-                }}
-                disabled={!reuphBase || !reuphLotesManual.trim() || isRunningReuph}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg bg-violet-600 hover:bg-violet-700 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 font-semibold transition-colors"
-              >
-                <Camera size={11} />
-                Enviar
-              </button>
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-zinc-400">Reupload por</p>
+              <div className="flex rounded-md overflow-hidden border border-zinc-200 dark:border-white/[0.10] text-[10px] font-semibold">
+                {(['lote', 'ref'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => { setReuphManualMode(mode); setReuphManualTags([]); }}
+                    className={[
+                      'px-2.5 py-1 transition-colors',
+                      reuphManualMode === mode
+                        ? 'bg-violet-600 text-white'
+                        : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04]',
+                    ].join(' ')}
+                  >
+                    {mode === 'lote' ? 'Lote' : 'Referência'}
+                  </button>
+                ))}
+              </div>
             </div>
+            <TagInput
+              tags={reuphManualTags}
+              onChange={setReuphManualTags}
+              placeholder={reuphManualMode === 'lote' ? '4, 14, 17, 21...' : 'T12345, M5625...'}
+              hint="Digite e pressione Enter · Cole várias de uma vez"
+              disabled={isRunningReuph}
+              validate={reuphManualMode === 'lote'
+                ? (v) => /^\d+$/.test(v) && parseInt(v, 10) > 0
+                : undefined}
+            />
+            <button
+              onClick={async () => {
+                if (!reuphLeilao || !reuphNome || reuphManualTags.length === 0) return;
+                reuphReset();
+                const params = new URLSearchParams({ leilao: reuphLeilao, nome: reuphNome });
+                if (reuphManualMode === 'lote') {
+                  params.set('lotes', reuphManualTags.join(','));
+                } else {
+                  params.set('refs', reuphManualTags.join(','));
+                }
+                try {
+                  const res  = await fetch(`/api/leilao/scan-sem-foto?${params}`);
+                  const data = await res.json() as { pecas?: ScannedPeca[]; error?: string };
+                  if (data.error || !data.pecas?.length) return;
+                  const comFlag = data.pecas.map(p => ({
+                    ...p,
+                    ativarSite: !destinosExcluidos.has((refDestinoMap.get(p.ref.toUpperCase()) ?? '').toLowerCase()),
+                  }));
+                  reuphExecutar(reuphLeilao, reuphNome, comFlag);
+                  reuphOpenModal();
+                } catch { /* ignore */ }
+              }}
+              disabled={!reuphBase || reuphManualTags.length === 0 || isRunningReuph}
+              className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-violet-600 hover:bg-violet-700 disabled:bg-zinc-200 dark:disabled:bg-zinc-700 disabled:cursor-not-allowed text-white disabled:text-zinc-400 transition-colors"
+            >
+              <Camera size={11} />
+              Reupload {reuphManualTags.length > 0 ? `(${reuphManualTags.length})` : ''}
+            </button>
           </div>
         </div>
       </div>
