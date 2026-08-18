@@ -248,6 +248,7 @@ export function Topbar({ title, subtitle, onMobileMenu }: TopbarProps) {
                 { label: 'Base Sistema',  href: '/leilao/base-sistema' },
                 { label: 'Pendências',    href: '/leilao/pendencias' },
                 { label: 'Robô',          href: '/leilao/robo' },
+                { label: 'Lances',        href: '/leilao/lances' },
                 { label: 'Conferências',  href: '/leilao/conferencias' },
                 { label: 'Regras',        href: '/leilao/regras' },
               ].map(tab => {
