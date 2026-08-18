@@ -152,21 +152,23 @@ export interface ScanSemFotoResult {
   pecas:   PecaSemFoto[];
 }
 
-// Verifica diretamente no CDN se a foto existe
-// Usa redirect:'manual' para detectar redirects para placeholder (que retornam 302 → outra URL)
+// Verifica diretamente no CDN se a foto é um JPEG real (não placeholder/broken)
+// Baixa apenas os primeiros 3 bytes para checar a assinatura JPEG (FF D8 FF)
 async function cdnHasFoto(numLeilao: string, pieceId: string): Promise<boolean> {
   try {
     const url = `https://www.leiloesbr.com.br/imagens/img_g/${numLeilao}/${pieceId}.jpg`;
     const res = await fetch(url, {
-      method: 'HEAD',
+      method: 'GET',
+      headers: { 'Range': 'bytes=0-2' }, // pede só os primeiros 3 bytes
       signal: AbortSignal.timeout(8_000),
-      redirect: 'manual', // não segue redirect — se redireciona, não tem foto real
+      redirect: 'follow',
     });
-    // 200 direto = tem foto; 301/302/404 = sem foto ou placeholder
-    if (res.status !== 200) return false;
-    const cl = parseInt(res.headers.get('content-length') ?? '0');
-    // Foto real deve ter pelo menos 5KB; placeholder/broken seria menor
-    return cl > 5000;
+    if (!res.ok && res.status !== 206) return false;
+    const buf = await res.arrayBuffer();
+    if (buf.byteLength < 2) return false;
+    const bytes = new Uint8Array(buf);
+    // Assinatura JPEG: FF D8 FF
+    return bytes[0] === 0xFF && bytes[1] === 0xD8;
   } catch {
     return false;
   }
