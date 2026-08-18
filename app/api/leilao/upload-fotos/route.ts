@@ -281,13 +281,33 @@ async function uploadPrincipal(
     redirect: 'follow',
     signal: AbortSignal.timeout(60_000),
   });
-  const updatedCookie = mergeCookies(cookie, res);
+
+  // Captura todos os Set-Cookie da resposta (cluster ASP tem múltiplos ASPSESSIONID)
+  const setCookieRaw = res.headers.getSetCookie?.() ?? [];
+  const allNewCookies = setCookieRaw.map(c => c.split(';')[0]).join('; ');
+  const updatedCookie = allNewCookies ? `${cookie}; ${allNewCookies}` : cookie;
+  console.log(`[upload-fotos] principal set-cookies=${setCookieRaw.length} cookie-len=${updatedCookie.length}`);
 
   const text = await res.text();
   console.log(`[upload-fotos] principal resp status=${res.status}: ${text.slice(0, 120)}`);
   if (!res.ok) throw new Error(`principal HTTP ${res.status}: ${text.slice(0, 100)}`);
 
-  return updatedCookie;
+  // Envia s3enviaimagem.asp com todos os cookies do cluster para que encontre a foto temporária
+  const s3Res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': updatedCookie, 'User-Agent': UA,
+      'Referer': `${BASE}/cad_peca.asp`,
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: new URLSearchParams({ idpeca: pieceId, index: '0' }).toString(),
+    redirect: 'follow', signal: AbortSignal.timeout(30_000),
+  });
+  const s3Text = await s3Res.text();
+  console.log(`[upload-fotos] principal s3 status=${s3Res.status} resp="${s3Text.trim()}"`);
+
+  return mergeCookies(updatedCookie, s3Res);
 }
 
 // Upload extras via img_pecas_extras.php, um POST por arquivo.
