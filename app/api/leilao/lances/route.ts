@@ -81,6 +81,10 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     const html = await res.text();
 
+    // Debug: log sample of raw HTML to understand value format
+    const sampleRow = html.match(/<tr[^>]*>[\s\S]*?<td[\s\S]*?<\/tr>/i)?.[0] ?? '';
+    console.log('[lances] sample row HTML:', sampleRow.slice(0, 600));
+
     // Parse table rows — skip header rows
     const lances: Lance[] = [];
     const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
