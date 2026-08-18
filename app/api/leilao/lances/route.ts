@@ -79,13 +79,8 @@ export async function GET(req: Request): Promise<NextResponse> {
       redirect: 'follow',
       signal:   AbortSignal.timeout(30_000),
     });
-    console.log('[lances] listarlances.asp status:', res.status, 'content-type:', res.headers.get('content-type'));
 
     const html = await res.text();
-    console.log('[lances] html length:', html.length, 'sample:', html.slice(0, 400));
-
-    // Debug: log cells of first data row
-    let debugDone = false;
 
     // Parse table rows — skip header rows
     const lances: Lance[] = [];
@@ -101,13 +96,8 @@ export async function GET(req: Request): Promise<NextResponse> {
       const lote = parseInt(cells[2] ?? '', 10);
       if (!lote) continue;
 
-      if (!debugDone) {
-        console.log('[lances] cells:', cells);
-        debugDone = true;
-      }
-
-      // Parse valor: "790.00" (ponto decimal, sem separador de milhar)
-      const parseVal = (s: string) => parseFloat(s.trim()) || 0;
+      // Parse valor: "R$ 790.00" → 790
+      const parseVal = (s: string) => parseFloat(s.replace(/[R$\s]/g, '')) || 0;
 
       lances.push({
         cliente:       clienteRaw.replace(/\D/g, ''),   // só o número do cliente
