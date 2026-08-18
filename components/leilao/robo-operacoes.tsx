@@ -130,11 +130,13 @@ function useReuploads() {
   const [modalOpen, setModalOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  async function scan(leilao: string, nome: string) {
+  async function scan(leilao: string, nome: string, checkCdn = false) {
     setState({ ...REUPH_INIT, phase: 'scanning' });
     setPecasSem([]);
     try {
-      const res  = await fetch(`/api/leilao/scan-sem-foto?leilao=${leilao}&nome=${encodeURIComponent(nome)}`);
+      const params = new URLSearchParams({ leilao, nome });
+      if (checkCdn) params.set('checkCdn', '1');
+      const res  = await fetch(`/api/leilao/scan-sem-foto?${params}`);
       const data = await res.json() as { total?: number; semFoto?: number; pecas?: ScannedPeca[]; error?: string };
       if (data.error) { setState(s => ({ ...s, phase: 'error', fatalError: data.error! })); return; }
       const pecas = (data.pecas ?? []).filter(p => !!p.pieceId);
@@ -277,6 +279,14 @@ function useReuploads() {
   return { state, pecasSem, modalOpen, openModal, closeModal, scan, executar, reset };
 }
 
+// CDN Check: igual ao Reupload mas faz scan com checkCdn=true
+// Detecta peças que o painel diz "tem foto" mas o CDN público não tem (upload com bug antigo)
+function useCdnCheck() {
+  const inner = useReuploads();
+  function scan(leilao: string, nome: string) { return inner.scan(leilao, nome, true); }
+  return { ...inner, scan };
+}
+
 // ─── Duplicatas ───────────────────────────────────────────────────────────────
 
 type DupPhase = 'idle' | 'scanning' | 'scanned' | 'running' | 'done' | 'error';
@@ -402,6 +412,7 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   const [dupBase,       setDupBase]       = useState('');
   const [zerarBase,     setZerarBase]     = useState('');
   const [reuphBase,     setReuphBase]     = useState('');
+  const [cdnBase,       setCdnBase]       = useState('');
   const [siteBase,      setSiteBase]      = useState('');
   const [siteModalOpen, setSiteModalOpen] = useState(false);
   const [siteState,     setSiteState]     = useState<{
@@ -414,11 +425,16 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   const { state: dupState,   scan: dupScan, remover: dupRemover, reset: dupReset } = useDuplicatas();
   const { state: zerarState, confirm: zerarConfirm, zerar, reset: zerarReset } = useZerarLeilao();
   const { state: reuphState, pecasSem: reuphPecas, modalOpen: reuphModalOpen, openModal: reuphOpenModal, closeModal: reuphCloseModal, scan: reuphScan, executar: reuphExecutar, reset: reuphReset } = useReuploads();
+  const { state: cdnState, pecasSem: cdnPecas, modalOpen: cdnModalOpen, openModal: cdnOpenModal, closeModal: cdnCloseModal, scan: cdnScan, executar: cdnExecutar, reset: cdnReset } = useCdnCheck();
   const { regras } = useLeilaoRegras();
 
   const reuphFile   = uploadedFiles.find(f => f.filename === reuphBase);
   const reuphLeilao = reuphFile?.codigoPlatforma ?? '';
   const reuphNome   = reuphFile?.leilao?.nome ?? '';
+
+  const cdnFile   = uploadedFiles.find(f => f.filename === cdnBase);
+  const cdnLeilao = cdnFile?.codigoPlatforma ?? '';
+  const cdnNome   = cdnFile?.leilao?.nome ?? '';
 
   // Set de destinos excluídos (case-insensitive) — peças com esses destinos não ativam Site
   const destinosExcluidos = useMemo(
@@ -433,6 +449,8 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   );
   const isRunningReuph = reuphState.phase === 'scanning' || reuphState.phase === 'running';
   const reuphPct       = reuphState.semFoto > 0 ? Math.round(reuphState.done / reuphState.semFoto * 100) : 0;
+  const isRunningCdn   = cdnState.phase === 'scanning' || cdnState.phase === 'running';
+  const cdnPct         = cdnState.semFoto > 0 ? Math.round(cdnState.done / cdnState.semFoto * 100) : 0;
 
   const priceMap = useMemo(
     () => new Map<string, LeilaoBaseRow>(basePieces.map(p => [p.referencia.toUpperCase(), p])),
@@ -871,6 +889,125 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
         </div>
       </div>
 
+      {/* Verificar Fotos no CDN */}
+      <div className="rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
+        <div className="px-3 py-2.5 rounded-t-xl bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-white/[0.06]">
+          <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">Verificar Fotos no CDN</span>
+          <p className="text-[10px] text-zinc-400 mt-0.5">Detecta peças que o painel diz &quot;tem foto&quot; mas a foto não aparece no site público — causado pelo bug de upload anterior</p>
+        </div>
+        <div className="p-3 flex flex-col gap-2.5">
+          <BaseSelect
+            value={cdnBase}
+            onChange={v => { setCdnBase(v); cdnReset(); }}
+            uploadedFiles={uploadedFiles}
+          />
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                if (!cdnLeilao || !cdnNome) return;
+                if (cdnState.phase === 'idle' || cdnState.phase === 'error') {
+                  cdnScan(cdnLeilao, cdnNome);
+                } else if (cdnState.phase === 'scanned' && cdnState.semFoto > 0) {
+                  cdnOpenModal();
+                } else if (cdnState.phase === 'running' || cdnState.phase === 'done') {
+                  cdnOpenModal();
+                } else {
+                  cdnScan(cdnLeilao, cdnNome);
+                }
+              }}
+              disabled={!cdnBase || cdnState.phase === 'scanning'}
+              className={[
+                'flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+                (cdnState.phase === 'scanned' && cdnState.semFoto > 0) || cdnState.phase === 'running' || cdnState.phase === 'done'
+                  ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                  : 'border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04]',
+              ].join(' ')}
+            >
+              {cdnState.phase === 'scanning'
+                ? <Loader2 size={12} className="animate-spin" />
+                : (cdnState.phase === 'scanned' && cdnState.semFoto > 0) || cdnState.phase === 'running' || cdnState.phase === 'done'
+                  ? <Camera size={12} />
+                  : <Zap size={12} />}
+              {cdnState.phase === 'idle'     && 'Verificar CDN'}
+              {cdnState.phase === 'scanning' && 'Verificando CDN...'}
+              {cdnState.phase === 'scanned'  && cdnState.semFoto === 0 && 'Verificar novamente'}
+              {cdnState.phase === 'scanned'  && cdnState.semFoto > 0   && `Reenviar (${cdnState.semFoto})`}
+              {cdnState.phase === 'running'  && 'Ver progresso'}
+              {cdnState.phase === 'done'     && 'Ver resultado'}
+              {cdnState.phase === 'error'    && 'Tentar novamente'}
+            </button>
+
+            {(cdnState.phase === 'done' || cdnState.phase === 'scanned') && (
+              <button
+                onClick={() => { cdnReset(); if (cdnLeilao && cdnNome) cdnScan(cdnLeilao, cdnNome); }}
+                disabled={!cdnBase}
+                title="Verificar novamente"
+                className="flex items-center justify-center px-3 py-2 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-40 transition-colors"
+              >
+                <Zap size={12} />
+              </button>
+            )}
+          </div>
+
+          {cdnState.phase === 'scanned' && cdnState.semFoto === 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+              <CheckCircle2 size={13} />
+              <span>Todas as {cdnState.total} peças têm foto no CDN</span>
+            </div>
+          )}
+          {cdnState.phase === 'scanned' && cdnState.semFoto > 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-50 dark:bg-orange-950/30 text-xs font-semibold text-orange-700 dark:text-orange-400">
+              <AlertTriangle size={13} />
+              <span>{cdnState.semFoto} de {cdnState.total} sem foto no CDN</span>
+            </div>
+          )}
+
+          {cdnState.phase === 'scanning' && (
+            <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+              <Loader2 size={11} className="animate-spin shrink-0 text-orange-500" />
+              <span>Verificando fotos no CDN — pode levar alguns minutos...</span>
+            </div>
+          )}
+
+          {cdnState.phase === 'running' && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                <div className="flex items-center gap-2">
+                  <Loader2 size={11} className="animate-spin shrink-0 text-orange-500" />
+                  <span className="truncate max-w-[130px]">{cdnState.statusMsg || `${cdnState.done} de ${cdnState.semFoto}`}</span>
+                </div>
+                <span className="tabular-nums font-semibold text-orange-500">{cdnPct}%</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-orange-100 dark:bg-orange-950 overflow-hidden">
+                <div className="h-full rounded-full bg-orange-500 transition-all duration-300" style={{ width: `${cdnPct}%` }} />
+              </div>
+            </div>
+          )}
+
+          {cdnState.phase === 'done' && (
+            <div className={`flex items-start gap-2 px-3 py-2 rounded-lg text-xs font-semibold ${
+              cdnState.errors === 0
+                ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
+                : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400'
+            }`}>
+              {cdnState.errors === 0 ? <CheckCircle2 size={13} className="shrink-0 mt-0.5" /> : <AlertTriangle size={13} className="shrink-0 mt-0.5" />}
+              <span>
+                {cdnState.uploaded} foto{cdnState.uploaded !== 1 ? 's' : ''} corrigida{cdnState.uploaded !== 1 ? 's' : ''}
+                {cdnState.errors > 0 && ` · ${cdnState.errors} com erro`}
+              </span>
+            </div>
+          )}
+
+          {cdnState.phase === 'error' && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400">
+              <XCircle size={13} />
+              <span>{cdnState.fatalError}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Ativar Site */}
       <div className="rounded-xl border border-zinc-200 dark:border-white/[0.08] overflow-visible">
         <div className="px-3 py-2.5 rounded-t-xl bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-white/[0.06]">
@@ -1094,6 +1231,23 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
           ativarSite: !destinosExcluidos.has((refDestinoMap.get(p.ref.toUpperCase()) ?? '').toLowerCase()),
         }));
         reuphExecutar(reuphLeilao, reuphNome, comFlag);
+      }}
+    />
+
+    <ReuploadsModal
+      open={cdnModalOpen}
+      state={cdnState}
+      pecas={cdnPecas}
+      leilaoNome={cdnFile?.leilao?.nome}
+      codigoPlatforma={cdnFile?.codigoPlatforma ?? undefined}
+      isRunning={cdnState.phase === 'running'}
+      onClose={cdnCloseModal}
+      onExecute={(selected) => {
+        const comFlag = selected.map(p => ({
+          ...p,
+          ativarSite: !destinosExcluidos.has((refDestinoMap.get(p.ref.toUpperCase()) ?? '').toLowerCase()),
+        }));
+        cdnExecutar(cdnLeilao, cdnNome, comFlag);
       }}
     />
 

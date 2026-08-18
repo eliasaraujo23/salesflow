@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const BASE = 'https://leiloesbr.com.br/painel_lbr';
 const UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
@@ -152,11 +152,32 @@ export interface ScanSemFotoResult {
   pecas:   PecaSemFoto[];
 }
 
+// Verifica diretamente no CDN se a foto existe (HEAD request)
+// Retorna true se a foto está acessível no CDN público
+async function cdnHasFoto(numLeilao: string, pieceId: string): Promise<boolean> {
+  try {
+    const url = `https://www.leiloesbr.com.br/imagens/img_g/${numLeilao}/${pieceId}.jpg`;
+    const res = await fetch(url, {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(8_000),
+      redirect: 'follow',
+    });
+    // 200 = tem foto; 404 ou redirect para placeholder = sem foto
+    if (!res.ok) return false;
+    // Alguns servidores retornam 200 com imagem placeholder — verifica pelo Content-Length
+    const cl = parseInt(res.headers.get('content-length') ?? '0');
+    return cl > 5000; // placeholder costuma ser < 2KB
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(req: Request): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
-  const leilao = searchParams.get('leilao')?.trim() ?? '';
-  const nome   = searchParams.get('nome')?.trim() ?? '';
-  const debug  = searchParams.get('debug') === '1';
+  const leilao   = searchParams.get('leilao')?.trim() ?? '';
+  const nome     = searchParams.get('nome')?.trim() ?? '';
+  const debug    = searchParams.get('debug') === '1';
+  const checkCdn = searchParams.get('checkCdn') === '1';
 
   if (!leilao || !nome)
     return NextResponse.json({ error: 'Parâmetros: leilao, nome' }, { status: 400 });
@@ -213,18 +234,84 @@ export async function GET(req: Request): Promise<NextResponse> {
     const loteRef   = parseXls(xlsHtml);           // lote → ref (todas as peças)
     const pieceInfo = parsePieceInfo(todasHtml);   // lote → { pieceId, temPrincipal, temExtra }
 
-    const semFoto: PecaSemFoto[] = [];
-    for (const [lote, info] of pieceInfo) {
-      const ref = loteRef.get(lote) ?? '';
-      semFoto.push({ lote, ref, pieceId: info.pieceId, temPrincipal: info.temPrincipal, temExtra: info.temExtra });
+    // Modo checkCdn: verifica TODAS as peças ativas no CDN (não só as que o painel diz sem foto)
+    // Útil para detectar peças que foram cadastradas com bug (painel diz "tem foto" mas CDN não tem)
+    let cdnSemFoto = new Set<string>(); // pieceIds sem foto no CDN
+    if (checkCdn) {
+      // Pega todas as peças que o painel diz que TEM principal
+      const pecasComPrincipalNoPainel: { pieceId: string; lote: number }[] = [];
+      // Também verifica peças que não estão em pieceInfo (painel diz "completo" = não aparece no scan normal)
+      for (const [lote, ref] of loteRef) {
+        const info = pieceInfo.get(lote);
+        // Se não está no pieceInfo, o painel acha que está completo — precisa checar CDN
+        if (!info || info.temPrincipal) {
+          // Precisa do pieceId — está em pieceInfo se incompleto, mas se "completo" não temos o pieceId
+          // Para peças "completas" segundo o painel, precisamos do pieceId do HTML
+          const infoOrUndef = info;
+          if (infoOrUndef) {
+            pecasComPrincipalNoPainel.push({ pieceId: infoOrUndef.pieceId, lote });
+          }
+        }
+      }
+
+      // Também coleta pieceIds de TODAS as linhas do HTML (incluindo as "completas")
+      const allPieceIds: { pieceId: string; lote: number }[] = [];
+      for (const row of [...todasHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'))) {
+        const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+        const pieceId = (cells[0] ?? '').trim();
+        if (!/^\d{6,9}$/.test(pieceId)) continue;
+        const lote = parseInt(cells[2] ?? '', 10);
+        if (!lote || lote > 9999) continue;
+        allPieceIds.push({ pieceId, lote });
+      }
+
+      // Verifica CDN em batches de 20 paralelos
+      const BATCH = 20;
+      for (let i = 0; i < allPieceIds.length; i += BATCH) {
+        const batch = allPieceIds.slice(i, i + BATCH);
+        const results = await Promise.all(
+          batch.map(async ({ pieceId }) => ({ pieceId, ok: await cdnHasFoto(leilao, pieceId) }))
+        );
+        for (const { pieceId, ok } of results) {
+          if (!ok) cdnSemFoto.add(pieceId);
+        }
+      }
     }
+
+    const semFoto: PecaSemFoto[] = [];
+
+    if (checkCdn) {
+      // Retorna todas as peças sem foto no CDN (independente do que o painel diz)
+      for (const row of [...todasHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'))) {
+        const cells   = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+        const pieceId = (cells[0] ?? '').trim();
+        if (!/^\d{6,9}$/.test(pieceId)) continue;
+        const lote = parseInt(cells[2] ?? '', 10);
+        if (!lote || lote > 9999) continue;
+        if (!cdnSemFoto.has(pieceId)) continue;
+        const info = pieceInfo.get(lote);
+        const ref  = loteRef.get(lote) ?? '';
+        semFoto.push({
+          lote, ref, pieceId,
+          temPrincipal: false, // CDN não tem = sem foto real
+          temExtra:     info?.temExtra ?? false,
+        });
+      }
+    } else {
+      for (const [lote, info] of pieceInfo) {
+        const ref = loteRef.get(lote) ?? '';
+        semFoto.push({ lote, ref, pieceId: info.pieceId, temPrincipal: info.temPrincipal, temExtra: info.temExtra });
+      }
+    }
+
     semFoto.sort((a, b) => a.lote - b.lote);
 
     return NextResponse.json({
-      total:   loteRef.size,  // total de peças no leilão (pelo XLS)
+      total:   loteRef.size,
       semFoto: semFoto.length,
       pecas:   semFoto,
-    } satisfies ScanSemFotoResult);
+      cdnCheck: checkCdn,
+    } satisfies ScanSemFotoResult & { cdnCheck?: boolean });
 
   } catch (err) {
     return NextResponse.json(
