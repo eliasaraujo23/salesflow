@@ -277,7 +277,14 @@ function useReuploads() {
   function closeModal() { if (state.phase !== 'running') { setModalOpen(false); } }
   function reset()      { abortRef.current?.abort(); setState(REUPH_INIT); setPecasSem([]); setModalOpen(false); }
 
-  return { state, pecasSem, modalOpen, openModal, closeModal, scan, executar, reset };
+  // Preenche peças manualmente (sem scan) e abre o modal para confirmação
+  function carregarManual(pecas: ScannedPeca[]) {
+    setState({ ...REUPH_INIT, phase: 'scanned', semFoto: pecas.length, total: pecas.length });
+    setPecasSem(pecas);
+    setModalOpen(true);
+  }
+
+  return { state, pecasSem, modalOpen, openModal, closeModal, scan, executar, reset, carregarManual };
 }
 
 // CDN Check: igual ao Reupload mas faz scan com checkCdn=true
@@ -427,7 +434,7 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
   const { open, openModal, closeModal, state, execute, isRunning } = useAtualizarPreco();
   const { state: dupState,   scan: dupScan, remover: dupRemover, reset: dupReset } = useDuplicatas();
   const { state: zerarState, confirm: zerarConfirm, zerar, reset: zerarReset } = useZerarLeilao();
-  const { state: reuphState, pecasSem: reuphPecas, modalOpen: reuphModalOpen, openModal: reuphOpenModal, closeModal: reuphCloseModal, scan: reuphScan, executar: reuphExecutar, reset: reuphReset } = useReuploads();
+  const { state: reuphState, pecasSem: reuphPecas, modalOpen: reuphModalOpen, openModal: reuphOpenModal, closeModal: reuphCloseModal, scan: reuphScan, executar: reuphExecutar, reset: reuphReset, carregarManual: reuphCarregarManual } = useReuploads();
   const { state: cdnState, pecasSem: cdnPecas, modalOpen: cdnModalOpen, openModal: cdnOpenModal, closeModal: cdnCloseModal, scan: cdnScan, executar: cdnExecutar, reset: cdnReset } = useCdnCheck();
   const { regras } = useLeilaoRegras();
 
@@ -936,12 +943,13 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
                   const res  = await fetch(`/api/leilao/scan-sem-foto?${params}`);
                   const data = await res.json() as { pecas?: ScannedPeca[]; error?: string };
                   if (data.error || !data.pecas?.length) return;
+                  // forceReupload=true: peças manuais podem ter foto corrompida (temPrincipal=true mas CDN quebrado)
                   const comFlag = data.pecas.map(p => ({
                     ...p,
+                    temPrincipal: false,  // força reenvio mesmo que o painel diga "tem foto"
                     ativarSite: !destinosExcluidos.has((refDestinoMap.get(p.ref.toUpperCase()) ?? '').toLowerCase()),
                   }));
-                  reuphExecutar(reuphLeilao, reuphNome, comFlag);
-                  reuphOpenModal();
+                  reuphCarregarManual(comFlag);
                 } catch { /* ignore */ }
               }}
               disabled={!reuphBase || reuphManualTags.length === 0 || isRunningReuph}

@@ -67,8 +67,8 @@ export function ReuploadsModal({ open, state, pecas, leilaoNome, codigoPlatforma
             <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Reupload de Fotos</h2>
             <p className="text-[11px] text-zinc-400 mt-0.5">
               {leilaoNome && codigoPlatforma
-                ? `${leilaoNome} · N°${codigoPlatforma} · ${pecas.length} peça${pecas.length !== 1 ? 's' : ''} sem foto`
-                : `${pecas.length} peça${pecas.length !== 1 ? 's' : ''} sem foto`}
+                ? `${leilaoNome} · N°${codigoPlatforma} · ${pecas.length} peça${pecas.length !== 1 ? 's' : ''}`
+                : `${pecas.length} peça${pecas.length !== 1 ? 's' : ''}`}
             </p>
           </div>
           <button
