@@ -81,10 +81,6 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     const html = await res.text();
 
-    // Debug: log sample of raw HTML to understand value format
-    const sampleRow = html.match(/<tr[^>]*>[\s\S]*?<td[\s\S]*?<\/tr>/i)?.[0] ?? '';
-    console.log('[lances] sample row HTML:', sampleRow.slice(0, 600));
-
     // Parse table rows — skip header rows
     const lances: Lance[] = [];
     const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
@@ -99,11 +95,8 @@ export async function GET(req: Request): Promise<NextResponse> {
       const lote = parseInt(cells[2] ?? '', 10);
       if (!lote) continue;
 
-      // Parse valor: "R$ 1.690,00" → 1690.00
-      const parseVal = (s: string) => {
-        const cleaned = s.replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.').trim();
-        return parseFloat(cleaned) || 0;
-      };
+      // Parse valor: "790.00" (ponto decimal, sem separador de milhar)
+      const parseVal = (s: string) => parseFloat(s.trim()) || 0;
 
       lances.push({
         cliente:       clienteRaw.replace(/\D/g, ''),   // só o número do cliente
