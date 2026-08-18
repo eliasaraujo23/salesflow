@@ -195,18 +195,26 @@ async function downloadImage(key: string): Promise<Buffer> {
   throw new Error(`Imagem não encontrada: ${key}`);
 }
 
-// Mescla Set-Cookie da resposta ao cookie ativo (mantém PHPSESSID entre chamadas PHP)
+// Mescla Set-Cookie da resposta ao cookie ativo (mantém PHPSESSID e todos os ASPSESSIONID do cluster)
 function mergeCookies(existing: string, res: Response): string {
-  const raw = res.headers.get('set-cookie');
-  if (!raw) return existing;
+  // getSetCookie() retorna cada Set-Cookie como item separado (padrão Fetch API)
+  const setCookieList: string[] = (res.headers as Headers & { getSetCookie?(): string[] }).getSetCookie?.() ?? [];
+  // Fallback para get() caso getSetCookie não esteja disponível
+  if (setCookieList.length === 0) {
+    const raw = res.headers.get('set-cookie');
+    if (raw) {
+      for (const part of raw.split(/,(?=\s*\w+=)/)) setCookieList.push(part.trim());
+    }
+  }
+  if (setCookieList.length === 0) return existing;
+
   const map = new Map<string, string>();
   for (const pair of existing.split(';')) {
     const idx = pair.indexOf('=');
     if (idx > 0) map.set(pair.slice(0, idx).trim(), pair.slice(idx + 1).trim());
   }
-  // Set-Cookie pode conter vírgula no valor; separamos por padrão "nome=valor;"
-  for (const part of raw.split(/,(?=\s*\w+=)/)) {
-    const kv = part.trim().split(';')[0];
+  for (const header of setCookieList) {
+    const kv  = header.split(';')[0].trim();
     const idx = kv.indexOf('=');
     if (idx > 0) map.set(kv.slice(0, idx).trim(), kv.slice(idx + 1).trim());
   }
@@ -346,7 +354,7 @@ async function uploadExtras(
     });
     activeCookie = mergeCookies(activeCookie, res);
     const text = await res.text();
-    console.log(`[upload-fotos] extra[${i + 1}/${count}] slot=${slot} status=${res.status}`);
+    console.log(`[upload-fotos] extra[${i + 1}/${count}] slot=${slot} status=${res.status} resp="${text.slice(0, 200)}"`);
     if (res.ok && !text.includes('"error"')) ok++;
 
     if (i < count - 1) await new Promise(r => setTimeout(r, 300));
