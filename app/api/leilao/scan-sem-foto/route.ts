@@ -154,23 +154,24 @@ export interface ScanSemFotoResult {
 
 // Verifica diretamente no CDN se a foto é um JPEG real (não placeholder/broken)
 // Baixa apenas os primeiros 3 bytes para checar a assinatura JPEG (FF D8 FF)
-async function cdnHasFoto(numLeilao: string, pieceId: string): Promise<boolean> {
+// Resultado possível: 'jpeg' = foto real, 'nofile' = 404/sem arquivo, 'unknown' = erro/timeout
+async function cdnCheckFoto(numLeilao: string, pieceId: string): Promise<'jpeg' | 'nofile' | 'unknown'> {
   try {
     const url = `https://www.leiloesbr.com.br/imagens/img_g/${numLeilao}/${pieceId}.jpg`;
     const res = await fetch(url, {
       method: 'GET',
-      headers: { 'Range': 'bytes=0-2' }, // pede só os primeiros 3 bytes
+      headers: { 'Range': 'bytes=0-2' },
       signal: AbortSignal.timeout(8_000),
       redirect: 'follow',
     });
-    if (!res.ok && res.status !== 206) return false;
+    if (res.status === 404) return 'nofile';
+    if (!res.ok && res.status !== 206) return 'unknown';
     const buf = await res.arrayBuffer();
-    if (buf.byteLength < 2) return false;
+    if (buf.byteLength < 2) return 'unknown';
     const bytes = new Uint8Array(buf);
-    // Assinatura JPEG: FF D8 FF
-    return bytes[0] === 0xFF && bytes[1] === 0xD8;
-  } catch {
-    return false;
+    return (bytes[0] === 0xFF && bytes[1] === 0xD8) ? 'jpeg' : 'nofile';
+  } catch (e) {
+    return 'unknown';
   }
 }
 
@@ -259,15 +260,22 @@ export async function GET(req: Request): Promise<NextResponse> {
 
       // Verifica CDN em batches de 20 paralelos
       const BATCH = 20;
+      let unknownCount = 0;
       for (let i = 0; i < allPieceIds.length; i += BATCH) {
         const batch   = allPieceIds.slice(i, i + BATCH);
         const results = await Promise.all(
-          batch.map(async ({ pieceId }) => ({ pieceId, ok: await cdnHasFoto(leilao, pieceId) }))
+          batch.map(async ({ pieceId }) => ({ pieceId, result: await cdnCheckFoto(leilao, pieceId) }))
         );
-        for (const { pieceId, ok } of results) {
-          if (!ok) cdnSemFoto.add(pieceId);
+        // Log do primeiro batch para diagnóstico
+        if (i === 0) {
+          console.log(`[scan-sem-foto] CDN sample batch[0]:`, results.slice(0, 5).map(r => `${r.pieceId}=${r.result}`).join(' '));
+        }
+        for (const { pieceId, result } of results) {
+          if (result === 'nofile') cdnSemFoto.add(pieceId);
+          if (result === 'unknown') unknownCount++;
         }
       }
+      console.log(`[scan-sem-foto] CDN done: semFoto=${cdnSemFoto.size} unknown=${unknownCount} total=${allPieceIds.length}`);
     }
 
     const semFoto: PecaSemFoto[] = [];
