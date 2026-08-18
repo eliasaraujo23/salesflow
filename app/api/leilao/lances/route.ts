@@ -96,12 +96,22 @@ export async function GET(req: Request): Promise<NextResponse> {
       const lote = parseInt(cells[2] ?? '', 10);
       if (!lote) continue;
 
-      // Parse valor: "R$ 790.00" ou "R$ 1.690,00"
+      // Parse valor: "R$ 790.00" ou "R$ 1.690.00" (último ponto = decimal, demais = milhar)
       const parseVal = (s: string) => {
         const clean = s.replace(/R\$\s*/g, '').trim();
-        // Se tem vírgula: formato pt-BR (1.690,00) → remove pontos de milhar, troca vírgula por ponto
-        if (clean.includes(',')) return parseFloat(clean.replace(/\./g, '').replace(',', '.')) || 0;
-        // Se não tem vírgula: formato com ponto decimal (790.00)
+        const lastDot = clean.lastIndexOf('.');
+        const lastComma = clean.lastIndexOf(',');
+        if (lastComma > lastDot) {
+          // pt-BR: 1.690,00 → remove pontos, troca vírgula por ponto
+          return parseFloat(clean.replace(/\./g, '').replace(',', '.')) || 0;
+        }
+        // Formato com ponto decimal: remove pontos de milhar (todos exceto o último)
+        const parts = clean.split('.');
+        if (parts.length > 2) {
+          // Ex: "1.690.00" → inteiro="1690" decimal="00"
+          const decimal = parts.pop()!;
+          return parseFloat(parts.join('') + '.' + decimal) || 0;
+        }
         return parseFloat(clean) || 0;
       };
 
