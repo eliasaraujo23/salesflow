@@ -181,6 +181,11 @@ export async function GET(req: Request): Promise<NextResponse> {
   const nome     = searchParams.get('nome')?.trim() ?? '';
   const debug    = searchParams.get('debug') === '1';
   const checkCdn = searchParams.get('checkCdn') === '1';
+  // Modo lotes manuais: retorna info de lotes específicos independente de ter foto
+  const lotesParam = searchParams.get('lotes')?.trim() ?? '';
+  const lotesManual = lotesParam
+    ? new Set(lotesParam.split(',').map(s => parseInt(s.trim(), 10)).filter(n => n > 0))
+    : null;
 
   if (!leilao || !nome)
     return NextResponse.json({ error: 'Parâmetros: leilao, nome' }, { status: 400 });
@@ -297,6 +302,20 @@ export async function GET(req: Request): Promise<NextResponse> {
         const ref = loteRef.get(lote) ?? '';
         semFoto.push({ lote, ref, pieceId: info.pieceId, temPrincipal: info.temPrincipal, temExtra: info.temExtra });
       }
+    }
+
+    // Modo lotes manuais: retorna os lotes especificados independente de ter foto
+    if (lotesManual) {
+      const pecasManual: PecaSemFoto[] = [];
+      for (const lote of lotesManual) {
+        const pieceId = loteIdAll.get(lote);
+        if (!pieceId) continue;
+        const ref  = loteRef.get(lote) ?? '';
+        const info = pieceInfo.get(lote);
+        pecasManual.push({ lote, ref, pieceId, temPrincipal: info?.temPrincipal ?? true, temExtra: info?.temExtra ?? false });
+      }
+      pecasManual.sort((a, b) => a.lote - b.lote);
+      return NextResponse.json({ total: loteRef.size, semFoto: pecasManual.length, pecas: pecasManual } satisfies ScanSemFotoResult);
     }
 
     semFoto.sort((a, b) => a.lote - b.lote);
