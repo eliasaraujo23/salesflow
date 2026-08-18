@@ -282,30 +282,12 @@ async function uploadPrincipal(
     signal: AbortSignal.timeout(60_000),
   });
   const updatedCookie = mergeCookies(cookie, res);
-  console.log(`[upload-fotos] principal set-cookie=${res.headers.get('set-cookie')?.slice(0, 120)}`);
-  console.log(`[upload-fotos] principal cookie-para-s3=${updatedCookie.slice(0, 200)}`);
 
   const text = await res.text();
   console.log(`[upload-fotos] principal resp status=${res.status}: ${text.slice(0, 120)}`);
   if (!res.ok) throw new Error(`principal HTTP ${res.status}: ${text.slice(0, 100)}`);
 
-  console.log(`[upload-fotos] principal POST s3enviaimagem.asp pieceId=${pieceId}`);
-  const s3Res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Cookie': updatedCookie, 'User-Agent': UA,
-      'Referer': `${BASE}/cad_peca.asp`,
-      'X-Requested-With': 'XMLHttpRequest',
-    },
-    body: new URLSearchParams({ idpeca: pieceId, index: '0', tipo: '0' }).toString(),
-    redirect: 'follow',
-    signal: AbortSignal.timeout(30_000),
-  });
-  const s3Cookie = mergeCookies(updatedCookie, s3Res);
-  const s3Text = await s3Res.text();
-  console.log(`[upload-fotos] principal s3 status=${s3Res.status}: ${s3Text.slice(0, 120)}`);
-  return s3Cookie;
+  return updatedCookie;
 }
 
 // Upload extras via img_pecas_extras.php, um POST por arquivo.

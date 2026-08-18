@@ -170,13 +170,7 @@ async function uploadPrincipal(cookie: string, pieceId: string, numLeilao: strin
   const updatedCookie = mergeCookies(cookie, res);
   const text = await res.text();
   if (!res.ok) throw new Error(`principal HTTP ${res.status}: ${text.slice(0, 100)}`);
-  const s3Res = await fetch(`${BASE}/ajax/s3enviaimagem.asp`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': updatedCookie, 'User-Agent': UA, 'Referer': `${BASE}/cad_peca.asp`, 'X-Requested-With': 'XMLHttpRequest' },
-    body: new URLSearchParams({ idpeca: pieceId, index: '0', tipo: '0' }).toString(),
-    redirect: 'follow', signal: AbortSignal.timeout(30_000),
-  });
-  return mergeCookies(updatedCookie, s3Res);
+  return updatedCookie;
 }
 
 async function uploadExtras(cookie: string, pieceId: string, numLeilao: string, buffers: Buffer[], freeSlots: number[]): Promise<number> {
