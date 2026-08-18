@@ -8,7 +8,7 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
 });
 
-const PRODUTOS_EXCL = ['TARRACHA', 'COMPLEMENTO'];
+const PRODUTOS_EXCL = ['TARRAXA', 'COMPLEMENTO'];
 
 const TR = (col: string) =>
   `translate(UPPER(${col}), 'ÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ', 'AAAAEEEIIIOOOOUUUC')`;
