@@ -96,25 +96,9 @@ export async function GET(req: Request): Promise<NextResponse> {
       const lote = parseInt(cells[2] ?? '', 10);
       if (!lote) continue;
 
-      console.log('[lances] raw cells[7]:', JSON.stringify(cells[7]));
-      // Parse valor: "R$ 790.00" ou "R$ 1.690.00" (último ponto = decimal, demais = milhar)
-      const parseVal = (s: string) => {
-        const clean = s.replace(/R\$\s*/g, '').trim();
-        const lastDot = clean.lastIndexOf('.');
-        const lastComma = clean.lastIndexOf(',');
-        if (lastComma > lastDot) {
-          // pt-BR: 1.690,00 → remove pontos, troca vírgula por ponto
-          return parseFloat(clean.replace(/\./g, '').replace(',', '.')) || 0;
-        }
-        // Formato com ponto decimal: remove pontos de milhar (todos exceto o último)
-        const parts = clean.split('.');
-        if (parts.length > 2) {
-          // Ex: "1.690.00" → inteiro="1690" decimal="00"
-          const decimal = parts.pop()!;
-          return parseFloat(parts.join('') + '.' + decimal) || 0;
-        }
-        return parseFloat(clean) || 0;
-      };
+      // Parse valor: "R$ 790.00" ou "R$ 1,690.00" (vírgula = milhar, ponto = decimal)
+      const parseVal = (s: string) =>
+        parseFloat(s.replace(/R\$\s*/g, '').replace(/,/g, '').trim()) || 0;
 
       lances.push({
         cliente:       clienteRaw.replace(/\D/g, ''),   // só o número do cliente
