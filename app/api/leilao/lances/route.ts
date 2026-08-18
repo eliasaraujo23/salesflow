@@ -96,6 +96,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       const lote = parseInt(cells[2] ?? '', 10);
       if (!lote) continue;
 
+      console.log('[lances] raw cells[7]:', JSON.stringify(cells[7]));
       // Parse valor: "R$ 790.00" ou "R$ 1.690.00" (último ponto = decimal, demais = milhar)
       const parseVal = (s: string) => {
         const clean = s.replace(/R\$\s*/g, '').trim();
