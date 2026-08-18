@@ -232,43 +232,33 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
 
     const loteRef   = parseXls(xlsHtml);           // lote → ref (todas as peças)
-    const pieceInfo = parsePieceInfo(todasHtml);   // lote → { pieceId, temPrincipal, temExtra }
+    const pieceInfo = parsePieceInfo(todasHtml);   // lote → { pieceId, temPrincipal, temExtra } (só incompletas)
 
-    // Modo checkCdn: verifica TODAS as peças ativas no CDN (não só as que o painel diz sem foto)
-    // Útil para detectar peças que foram cadastradas com bug (painel diz "tem foto" mas CDN não tem)
-    let cdnSemFoto = new Set<string>(); // pieceIds sem foto no CDN
+    // lote → pieceId de TODAS as linhas do HTML (incluindo as "completas" que o parsePieceInfo ignora)
+    const loteIdAll = new Map<number, string>();
+    for (const row of [...todasHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'))) {
+      const cells   = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+      const pieceId = (cells[0] ?? '').trim();
+      if (!/^\d{6,9}$/.test(pieceId)) continue;
+      const lote    = parseInt(cells[2] ?? '', 10);
+      if (!lote || lote > 9999) continue;
+      loteIdAll.set(lote, pieceId);
+    }
+
+    // Modo checkCdn: verifica TODAS as peças do XLS no CDN diretamente
+    // Necessário porque o painel engana — mostra botão colorido mesmo sem foto no CDN (bug de upload antigo)
+    const cdnSemFoto = new Set<string>(); // pieceIds sem foto no CDN
     if (checkCdn) {
-      // Pega todas as peças que o painel diz que TEM principal
-      const pecasComPrincipalNoPainel: { pieceId: string; lote: number }[] = [];
-      // Também verifica peças que não estão em pieceInfo (painel diz "completo" = não aparece no scan normal)
-      for (const [lote, ref] of loteRef) {
-        const info = pieceInfo.get(lote);
-        // Se não está no pieceInfo, o painel acha que está completo — precisa checar CDN
-        if (!info || info.temPrincipal) {
-          // Precisa do pieceId — está em pieceInfo se incompleto, mas se "completo" não temos o pieceId
-          // Para peças "completas" segundo o painel, precisamos do pieceId do HTML
-          const infoOrUndef = info;
-          if (infoOrUndef) {
-            pecasComPrincipalNoPainel.push({ pieceId: infoOrUndef.pieceId, lote });
-          }
-        }
-      }
-
-      // Também coleta pieceIds de TODAS as linhas do HTML (incluindo as "completas")
       const allPieceIds: { pieceId: string; lote: number }[] = [];
-      for (const row of [...todasHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'))) {
-        const cells = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
-        const pieceId = (cells[0] ?? '').trim();
-        if (!/^\d{6,9}$/.test(pieceId)) continue;
-        const lote = parseInt(cells[2] ?? '', 10);
-        if (!lote || lote > 9999) continue;
-        allPieceIds.push({ pieceId, lote });
+      for (const [lote] of loteRef) {
+        const pieceId = loteIdAll.get(lote);
+        if (pieceId) allPieceIds.push({ pieceId, lote });
       }
 
       // Verifica CDN em batches de 20 paralelos
       const BATCH = 20;
       for (let i = 0; i < allPieceIds.length; i += BATCH) {
-        const batch = allPieceIds.slice(i, i + BATCH);
+        const batch   = allPieceIds.slice(i, i + BATCH);
         const results = await Promise.all(
           batch.map(async ({ pieceId }) => ({ pieceId, ok: await cdnHasFoto(leilao, pieceId) }))
         );
@@ -282,12 +272,7 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     if (checkCdn) {
       // Retorna todas as peças sem foto no CDN (independente do que o painel diz)
-      for (const row of [...todasHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'))) {
-        const cells   = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
-        const pieceId = (cells[0] ?? '').trim();
-        if (!/^\d{6,9}$/.test(pieceId)) continue;
-        const lote = parseInt(cells[2] ?? '', 10);
-        if (!lote || lote > 9999) continue;
+      for (const [lote, pieceId] of loteIdAll) {
         if (!cdnSemFoto.has(pieceId)) continue;
         const info = pieceInfo.get(lote);
         const ref  = loteRef.get(lote) ?? '';
@@ -306,12 +291,15 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     semFoto.sort((a, b) => a.lote - b.lote);
 
+    console.log(`[scan-sem-foto] leilao=${leilao} xlsTotal=${loteRef.size} htmlTotal=${loteIdAll.size} cdnCheck=${checkCdn} semFoto=${semFoto.length}`);
+
     return NextResponse.json({
       total:   loteRef.size,
       semFoto: semFoto.length,
       pecas:   semFoto,
       cdnCheck: checkCdn,
-    } satisfies ScanSemFotoResult & { cdnCheck?: boolean });
+      _debug: checkCdn ? { xlsTotal: loteRef.size, htmlTotal: loteIdAll.size } : undefined,
+    } satisfies ScanSemFotoResult & { cdnCheck?: boolean; _debug?: unknown });
 
   } catch (err) {
     return NextResponse.json(
