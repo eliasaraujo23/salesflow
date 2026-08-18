@@ -75,7 +75,7 @@ export async function GET(req: Request): Promise<NextResponse> {
         'Referer':           `${BASE}/listar_lances.asp`,
         'X-Requested-With': 'XMLHttpRequest',
       },
-      body:    new URLSearchParams({ DCLI: '', Lotel: '', LoteF: '', diaf: '', s: 'on' }).toString(),
+      body:    new URLSearchParams({ IDCli: '', IDCom: '', LoteI: '', LoteF: '', Listar: 'on' }).toString(),
       redirect: 'follow',
       signal:   AbortSignal.timeout(30_000),
     });
