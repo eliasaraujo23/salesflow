@@ -282,6 +282,8 @@ async function uploadPrincipal(
     signal: AbortSignal.timeout(60_000),
   });
   const updatedCookie = mergeCookies(cookie, res);
+  console.log(`[upload-fotos] principal set-cookie=${res.headers.get('set-cookie')?.slice(0, 120)}`);
+  console.log(`[upload-fotos] principal cookie-para-s3=${updatedCookie.slice(0, 200)}`);
 
   const text = await res.text();
   console.log(`[upload-fotos] principal resp status=${res.status}: ${text.slice(0, 120)}`);
