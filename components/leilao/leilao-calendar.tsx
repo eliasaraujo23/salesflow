@@ -123,7 +123,7 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: P
     return [...leiloes]
       .filter(l => {
         if (!l.dataInicio || !l.dataFim) return false;
-        if (!VISIBLE_STATUSES.has(l.status)) return false;
+        if (!VISIBLE_STATUSES.has(l.status ?? '')) return false;
         const start = parseISO(l.dataInicio);
         const end   = parseISO(l.dataFim);
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
@@ -135,7 +135,7 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: P
   // Leilões com status visível mas sem data — precisam de data para aparecer no calendário
   const semData = useMemo(() => {
     return [...leiloes]
-      .filter(l => VISIBLE_STATUSES.has(l.status) && (!l.dataInicio || !l.dataFim))
+      .filter(l => VISIBLE_STATUSES.has(l.status ?? '') && (!l.dataInicio || !l.dataFim))
       .sort((a, b) => Number(b.codigoPlatforma ?? 0) - Number(a.codigoPlatforma ?? 0));
   }, [leiloes]);
 
@@ -208,7 +208,7 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: P
           {/* Weeks */}
           <div className="flex-1 flex flex-col divide-y divide-zinc-200 dark:divide-white/[0.08] overflow-auto">
             {weeks.map((week, wi) => {
-              const segments = getSegments(week, leiloes.filter(l => VISIBLE_STATUSES.has(l.status)));
+              const segments = getSegments(week, leiloes.filter(l => VISIBLE_STATUSES.has(l.status ?? '')));
               return (
                 <div key={wi} className="flex-1 flex flex-col min-h-[90px] relative">
                   {/* Vertical column lines — hide dividers inside event spans */}
