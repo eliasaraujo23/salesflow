@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import { Upload, X, Eye, EyeOff } from 'lucide-react';
+import { X, Eye, EyeOff } from 'lucide-react';
 import type { Leilao, LeilaoStatus } from '@/lib/hooks/use-leiloes';
 
 const STATUS_BADGE: Record<Exclude<LeilaoStatus, 'finalizado'>, { label: string; className: string }> = {
@@ -96,18 +96,22 @@ export function parseLeiloesBr(text: string): { refs: string[]; vendidos: string
 }
 
 interface Props {
-  uploaded:        UploadedFile[];
-  excludedFiles:   Set<string>;
-  leiloes:         Leilao[];
-  onAdd:           (file: UploadedFile, refs: string[]) => void;
-  onRemove:        (filename: string) => void;
-  onToggleExclude: (filename: string) => void;
+  uploaded:         UploadedFile[];
+  excludedFiles:    Set<string>;
+  leiloes:          Leilao[];
+  onAdd:            (file: UploadedFile, refs: string[]) => void;
+  onRemove:         (filename: string) => void;
+  onToggleExclude:  (filename: string) => void;
+  triggerUploadRef?: React.RefObject<(() => void) | null>;
 }
 
 export function BaseSistemaUpload({
-  uploaded, excludedFiles, leiloes, onAdd, onRemove, onToggleExclude,
+  uploaded, excludedFiles, leiloes, onAdd, onRemove, onToggleExclude, triggerUploadRef,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Expõe o trigger para o pai
+  if (triggerUploadRef) triggerUploadRef.current = () => inputRef.current?.click();
 
   function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     Array.from(e.target.files ?? []).forEach(file => {
@@ -182,48 +186,34 @@ export function BaseSistemaUpload({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-start justify-between gap-3">
-        {filtered.length > 0 ? (
-        <div className="flex gap-6 items-start flex-1">
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".csv,.txt,.tsv"
+        multiple
+        className="hidden"
+        onChange={handleFiles}
+      />
+
+      {filtered.length > 0 && (
+        <div className="grid grid-cols-2 gap-4">
           {/* Coluna ETERNNO */}
-          {eternno.length > 0 && (
-            <div className="flex flex-col gap-1.5 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400" style={{ color: '#16a34a' }}>Eternno</p>
+          <div className="flex flex-col gap-1.5">
+            {eternno.length > 0 && <>
+              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#0d9488' }}>Eternno</p>
               {eternno.map(renderChip)}
-            </div>
-          )}
+            </>}
+            {outros.map(renderChip)}
+          </div>
           {/* Coluna BRUNO */}
-          {bruno.length > 0 && (
-            <div className="flex flex-col gap-1.5 flex-1">
+          <div className="flex flex-col gap-1.5">
+            {bruno.length > 0 && <>
               <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#ea580c' }}>Bruno Araújo</p>
               {bruno.map(renderChip)}
-            </div>
-          )}
-          {/* Outros (sem cor definida) */}
-          {outros.length > 0 && (
-            <div className="flex flex-col gap-1.5 flex-1">
-              {outros.map(renderChip)}
-            </div>
-          )}
+            </>}
+          </div>
         </div>
-        ) : <div className="flex-1" />}
-
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".csv,.txt,.tsv"
-          multiple
-          className="hidden"
-          onChange={handleFiles}
-        />
-        <button
-          onClick={() => inputRef.current?.click()}
-          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] text-xs font-medium transition-colors"
-        >
-          <Upload size={12} />
-          {uploaded.length > 0 ? 'Adicionar mais' : 'Carregar bases ativas (CSV)'}
-        </button>
-      </div>
+      )}
     </div>
   );
 }
