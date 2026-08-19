@@ -186,18 +186,40 @@ async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
     });
   }
 
-  // Troca leilão ativo via trocar_leilao.asp (mesma sessão, redirect:manual)
-  // Concorrência 2 — sessão compartilhada, não pode trocar muito rápido
-  const tasks = leiloes.map(l => () => fetchFicha(cookie, l.codigoPlatforma));
-  const fichas = await pLimit(tasks, 2);
+  // Pré-filtro por título: só busca ficha dos leilões do mês atual e próximo
+  // Evita 124 requests desnecessários para leilões históricos
+  const now      = new Date();
+  const MESES: Record<string, number> = {
+    janeiro:1, fevereiro:2, março:3, abril:4, maio:5, junho:6,
+    julho:7, agosto:8, setembro:9, outubro:10, novembro:11, dezembro:12,
+  };
+  function tituloNoRange(titulo: string): boolean {
+    // Extrai "Agosto de 2026" ou "Setembro2026" do título
+    const m = titulo.match(/([a-záéíóúãâêôç]+)\s*(?:de\s*)?(\d{4})/i);
+    if (!m) return false;
+    const mes = MESES[m[1].toLowerCase()];
+    const ano = parseInt(m[2]);
+    if (!mes || !ano) return false;
+    const lYM    = ano * 100 + mes;
+    const thisYM = now.getFullYear() * 100 + (now.getMonth() + 1);
+    const nextM  = now.getMonth() === 11 ? 1 : now.getMonth() + 2;
+    const nextY  = now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
+    const nextYM = nextY * 100 + nextM;
+    return lYM === thisYM || lYM === nextYM;
+  }
+
+  const candidatos = leiloes.filter(l => tituloNoRange(l.observacao));
+
+  const tasks = candidatos.map(l => () => fetchFicha(cookie, l.codigoPlatforma));
+  const fichas = await pLimit(tasks, 3);
   fichas.forEach((f, idx) => {
-    leiloes[idx].status     = f.status;
-    leiloes[idx].dataInicio = f.dataInicio;
-    leiloes[idx].dataFim    = f.dataFim;
-    if (f._debug) leiloes[idx]._debug = f._debug;
+    candidatos[idx].status     = f.status;
+    candidatos[idx].dataInicio = f.dataInicio;
+    candidatos[idx].dataFim    = f.dataFim;
+    if (f._debug) candidatos[idx]._debug = f._debug;
   });
 
-  return leiloes;
+  return candidatos;
 }
 
 // ─── Rota POST — retorna lista de leilões de todas as contas ──────────────────
