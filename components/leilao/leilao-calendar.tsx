@@ -7,17 +7,13 @@ import {
   eachDayOfInterval, isToday,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import type { Leilao } from '@/lib/hooks/use-leiloes';
 
 interface Props {
-  leiloes:  Leilao[];
-  onAdd:    (date?: string) => void;
-  onEdit:   (leilao: Leilao) => void;
-  onUpdate: (leilao: Leilao) => void;
-  onCreate: (leilao: Omit<Leilao, 'id'>) => void;
-  onRemove: (id: string) => void;
+  leiloes: Leilao[];
+  onAdd:   (date?: string) => void;
+  onEdit:  (leilao: Leilao) => void;
 }
 
 const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -67,79 +63,11 @@ function getSegments(week: Date[], leiloes: Leilao[]): EventSegment[] {
   return segments.sort((a, b) => a.colStart - b.colStart);
 }
 
-export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate, onRemove }: Props) {
+export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
   const [currentDate, setCurrentDate] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
-  const [syncing, setSyncing] = useState(false);
-
-  async function handleSync() {
-    setSyncing(true);
-    try {
-      const res  = await fetch('/api/leilao/sync-ficha', { method: 'POST' });
-      const data = await res.json() as {
-        leiloes?: Array<{ codigoPlatforma: string; nome: string; numero: string; status: string; dataInicio: string; dataFim: string; cor: string; observacao: string }>;
-        error?: string;
-      };
-      if (data.error) { toast.error(data.error); return; }
-
-      const IMPORT_STATUSES = new Set(['convite_catalogo', 'venda_pos_leilao']);
-      const todosRemotos = data.leiloes ?? [];
-      const ativos = todosRemotos.filter(r => IMPORT_STATUSES.has(r.status));
-      const ativosSet = new Set(ativos.map(r => r.codigoPlatforma));
-
-      // Mapa dos leilões existentes por codigoPlatforma
-      const existMap = new Map(leiloes.filter(l => l.codigoPlatforma).map(l => [l.codigoPlatforma, l]));
-
-      // Remove leilões locais que vieram da plataforma mas não estão mais ativos
-      // (não remove os criados manualmente — só remove os que têm codigoPlatforma reconhecido)
-      const remotosConhecidos = new Set(todosRemotos.map(r => r.codigoPlatforma));
-      let removidos = 0;
-      for (const [codigo, l] of existMap) {
-        if (remotosConhecidos.has(codigo) && !ativosSet.has(codigo)) {
-          onRemove(l.id);
-          removidos++;
-        }
-      }
-
-      let criados = 0, atualizados = 0;
-      for (const r of ativos) {
-        const existente = existMap.get(r.codigoPlatforma);
-        if (existente) {
-          onUpdate({
-            ...existente,
-            nome:       r.nome,
-            cor:        r.cor,
-            dataInicio: r.dataInicio || existente.dataInicio,
-            dataFim:    r.dataFim    || existente.dataFim,
-            status:     (r.status as Leilao['status']) || existente.status,
-            observacao: r.observacao || existente.observacao,
-          });
-          atualizados++;
-        } else {
-          onCreate({
-            codigoPlatforma: r.codigoPlatforma,
-            nome:            r.nome,
-            numero:          r.numero,
-            status:          (r.status as Leilao['status']) || 'convite_catalogo',
-            dataInicio:      r.dataInicio,
-            dataFim:         r.dataFim,
-            cor:             r.cor,
-            observacao:      r.observacao,
-          });
-          criados++;
-        }
-      }
-
-      const partes = [];
-      if (criados)    partes.push(`${criados} criado${criados !== 1 ? 's' : ''}`);
-      if (removidos)  partes.push(`${removidos} removido${removidos !== 1 ? 's' : ''}`);
-      if (atualizados) partes.push(`${atualizados} atualizado${atualizados !== 1 ? 's' : ''}`);
-      toast.success(partes.length ? partes.join(', ') : 'Cronograma já está atualizado');
-    } catch { toast.error('Erro ao sincronizar'); }
-    finally { setSyncing(false); }
-  }
 
   const year  = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -199,14 +127,6 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate, onR
           </button>
           <button onClick={nextMonth} className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-white/[0.06] text-zinc-500 transition-colors">
             <ChevronRight size={16} />
-          </button>
-          <button
-            onClick={handleSync}
-            disabled={syncing}
-            className="ml-2 flex items-center gap-1.5 px-3 py-1.5 border border-zinc-200 dark:border-white/[0.12] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06] rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-            Sincronizar
           </button>
           <button
             onClick={() => onAdd()}

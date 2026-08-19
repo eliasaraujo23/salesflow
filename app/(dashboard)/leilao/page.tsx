@@ -76,7 +76,7 @@ export default function LeilaoPage() {
           </button>
         </div>
       )}
-      <LeilaoCalendar leiloes={leiloes} onAdd={handleAdd} onEdit={handleEdit} onUpdate={update} onCreate={add} onRemove={remove} />
+      <LeilaoCalendar leiloes={leiloes} onAdd={handleAdd} onEdit={handleEdit} />
       <LeilaoModal
         open={modalOpen}
         onClose={handleClose}
