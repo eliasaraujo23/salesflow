@@ -20,6 +20,7 @@ interface Props {
 }
 
 const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const VISIBLE_STATUSES = new Set(['convite', 'convite_catalogo', 'venda_pos_leilao']);
 
 function buildWeeks(year: number, month: number): Date[][] {
   const monthStart = new Date(year, month, 1);
@@ -126,12 +127,20 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: P
     return [...leiloes]
       .filter(l => {
         if (!l.dataInicio || !l.dataFim) return false;
+        if (!VISIBLE_STATUSES.has(l.status)) return false;
         const start = parseISO(l.dataInicio);
         const end   = parseISO(l.dataFim);
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
         return !isBefore(end, today) && !isAfter(start, horizon);
       })
       .sort((a, b) => a.dataInicio.localeCompare(b.dataInicio));
+  }, [leiloes]);
+
+  // Leilões com status visível mas sem data — precisam de data para aparecer no calendário
+  const semData = useMemo(() => {
+    return [...leiloes]
+      .filter(l => VISIBLE_STATUSES.has(l.status) && (!l.dataInicio || !l.dataFim))
+      .sort((a, b) => Number(b.codigoPlatforma ?? 0) - Number(a.codigoPlatforma ?? 0));
   }, [leiloes]);
 
   function prevMonth() { setCurrentDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1)); }
@@ -203,7 +212,7 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: P
           {/* Weeks */}
           <div className="flex-1 flex flex-col divide-y divide-zinc-200 dark:divide-white/[0.08] overflow-auto">
             {weeks.map((week, wi) => {
-              const segments = getSegments(week, leiloes);
+              const segments = getSegments(week, leiloes.filter(l => VISIBLE_STATUSES.has(l.status)));
               return (
                 <div key={wi} className="flex-1 flex flex-col min-h-[90px] relative">
                   {/* Vertical column lines — hide dividers inside event spans */}
@@ -292,12 +301,45 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: P
 
         {/* ── Upcoming sidebar ────────────────────────────────── */}
         <div className="w-56 shrink-0 flex flex-col border border-zinc-200 dark:border-white/[0.08] rounded-xl bg-white dark:bg-zinc-900 overflow-hidden">
-          <div className="px-4 py-3 border-b border-zinc-200 dark:border-white/[0.08]">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Próximos 60 dias</p>
-          </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto flex flex-col">
+
+            {/* Sem data — precisam de data cadastrada */}
+            {semData.length > 0 && (
+              <div className="flex flex-col">
+                <div className="px-3 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-100 dark:border-amber-900/40 sticky top-0 z-10">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-amber-500">
+                    Sem data · {semData.length}
+                  </span>
+                </div>
+                <div className="flex flex-col divide-y divide-zinc-100 dark:divide-white/[0.04]">
+                  {semData.map(l => (
+                    <button
+                      key={l.id}
+                      onClick={() => onEdit(l)}
+                      className="flex items-start gap-2.5 px-3 py-2.5 text-left hover:bg-zinc-50 dark:hover:bg-white/[0.03] transition-colors"
+                    >
+                      <span className="mt-0.5 w-2.5 h-2.5 rounded-full shrink-0" style={{ background: l.cor }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">
+                          N° {l.codigoPlatforma || '—'}
+                        </p>
+                        <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+                          #{l.numero} · {l.nome}
+                        </p>
+                        <p className="text-[10px] text-amber-500 mt-0.5">Definir datas</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Próximos 60 dias */}
+            <div className="px-4 py-3 border-b border-zinc-200 dark:border-white/[0.08] sticky top-0 z-10 bg-white dark:bg-zinc-900">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Próximos 60 dias</p>
+            </div>
             {upcoming.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full gap-2 px-4 text-center">
+              <div className="flex flex-col items-center justify-center flex-1 gap-2 px-4 text-center py-6">
                 <p className="text-xs text-zinc-400">Nenhum leilão próximo</p>
                 <button
                   onClick={() => onAdd()}
@@ -364,7 +406,7 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: P
                 })()}
               </div>
             )}
-          </div>
+          </div>{/* flex-1 overflow-y-auto */}
         </div>
       </div>
     </div>
