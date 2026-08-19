@@ -198,19 +198,27 @@ export async function POST(): Promise<NextResponse> {
     if (todos.length === 0)
       return NextResponse.json({ error: 'Nenhum leilão encontrado nas contas' }, { status: 500 });
 
-    // Filtra só mês atual e próximo (por dataFim); sem data passa pra não perder nada
+    // Filtra só mês atual e próximo (por dataFim)
     const now       = new Date();
     const thisYM    = now.getFullYear() * 100 + now.getMonth();
     const nextYM    = now.getMonth() === 11
       ? (now.getFullYear() + 1) * 100 + 0
       : now.getFullYear() * 100 + now.getMonth() + 1;
 
-    const filtrados = todos.filter(l => {
-      if (!l.dataFim) return false; // sem data = ficha não lida ou leilão sem data cadastrada
+    const comData   = todos.filter(l => !!l.dataFim);
+    const filtrados = comData.filter(l => {
       const [y, m] = l.dataFim.split('-').map(Number);
       const lYM = y * 100 + (m - 1);
       return lYM === thisYM || lYM === nextYM;
     });
+
+    // Se filtrou tudo, retorna diagnóstico em vez de erro genérico
+    if (filtrados.length === 0) {
+      const sample = comData.slice(0, 3).map(l => ({ num: l.codigoPlatforma, dataFim: l.dataFim, status: l.status }));
+      return NextResponse.json({
+        error: `Nenhum leilão no mês atual/próximo. Total: ${todos.length}, com data: ${comData.length}. Exemplos: ${JSON.stringify(sample)}`,
+      }, { status: 500 });
+    }
 
     return NextResponse.json({ leiloes: filtrados });
   } catch (e) {
