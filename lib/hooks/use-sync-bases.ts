@@ -20,10 +20,15 @@ export function useSyncBases(leiloes: Leilao[], onSyncComplete?: () => void) {
 
   const sync = useCallback(async () => {
     const today    = new Date().toISOString().slice(0, 10); // yyyy-MM-dd
-    // Inclui leilões sem data (dataFim vazio) pois podem ser recém-importados sem datas preenchidas
-    const eligible = leiloes.filter(l => l.codigoPlatforma?.trim() && (l.dataFim >= today || !l.dataFim));
+    const SYNC_STATUSES = new Set(['convite_catalogo', 'venda_pos_leilao']);
+    // Só sincroniza leilões que o usuário configurou manualmente (status ativo + data preenchida)
+    const eligible = leiloes.filter(l =>
+      l.codigoPlatforma?.trim() &&
+      SYNC_STATUSES.has(l.status ?? '') &&
+      l.dataFim && l.dataFim >= today,
+    );
     if (eligible.length === 0) {
-      toast.error('Nenhum leilão tem N° leiloes.br cadastrado');
+      toast.error('Nenhum leilão ativo com data cadastrada para sincronizar');
       return;
     }
 
