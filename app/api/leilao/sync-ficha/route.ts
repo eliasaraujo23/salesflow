@@ -98,9 +98,8 @@ function parseFicha(html: string): { status: string; dataInicio: string; dataFim
   };
 }
 
-async function fetchFicha(cookie: string, num: string): Promise<{ status: string; dataInicio: string; dataFim: string }> {
+async function fetchFicha(cookie: string, num: string): Promise<{ status: string; dataInicio: string; dataFim: string; _debug?: string }> {
   try {
-    // Troca o leilão ativo na sessão antes de acessar a ficha
     const newCookie = await trocarLeilao(cookie, num);
     const res = await fetch(`${BASE}/cadleilao.asp?Leilao=${encodeURIComponent(num)}`, {
       headers: { 'Cookie': newCookie, 'User-Agent': UA, 'Referer': `${BASE}/default.asp` },
@@ -108,9 +107,15 @@ async function fetchFicha(cookie: string, num: string): Promise<{ status: string
       signal: AbortSignal.timeout(15_000),
     });
     const html = await res.text();
-    return parseFicha(html);
-  } catch {
-    return { status: '', dataInicio: '', dataFim: '' };
+    const parsed = parseFicha(html);
+    // debug: guarda snippet se não achou datas
+    if (!parsed.dataFim) {
+      const snippet = html.slice(0, 300).replace(/\s+/g, ' ');
+      return { ...parsed, _debug: snippet };
+    }
+    return parsed;
+  } catch (e) {
+    return { status: '', dataInicio: '', dataFim: '', _debug: String(e) };
   }
 }
 
@@ -138,6 +143,7 @@ interface LeilaoRemoto {
   dataFim:         string;
   cor:             string;
   observacao:      string;
+  _debug?:         string;
 }
 
 async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
@@ -193,6 +199,7 @@ async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
     leiloes[idx].status     = f.status;
     leiloes[idx].dataInicio = f.dataInicio;
     leiloes[idx].dataFim    = f.dataFim;
+    if (f._debug) leiloes[idx]._debug = f._debug;
   });
 
   return leiloes;
@@ -232,9 +239,11 @@ export async function POST(): Promise<NextResponse> {
 
     // Se filtrou tudo, retorna diagnóstico em vez de erro genérico
     if (filtrados.length === 0) {
-      const sample = comData.slice(0, 3).map(l => ({ num: l.codigoPlatforma, dataFim: l.dataFim, status: l.status }));
+      // Pega debug do primeiro leilão sem data
+      const semData = todos.filter(l => !l.dataFim) as (LeilaoRemoto & { _debug?: string })[];
+      const debugSnippet = semData[0]?._debug ?? '(sem debug)';
       return NextResponse.json({
-        error: `Nenhum leilão no mês atual/próximo. Total: ${todos.length}, com data: ${comData.length}. Exemplos: ${JSON.stringify(sample)}`,
+        error: `Nenhum leilão no mês atual/próximo. Total: ${todos.length}, com data: ${comData.length}. HTML snippet: ${debugSnippet}`,
       }, { status: 500 });
     }
 
