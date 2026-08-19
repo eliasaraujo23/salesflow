@@ -55,12 +55,13 @@ export default function LeilaoPage() {
     handleClose();
   }
 
+
   const modalInitial: Partial<Leilao> | undefined = editing
     ?? (defaultDate ? { dataInicio: defaultDate, dataFim: defaultDate } : undefined);
 
   return (
     <div className="h-full overflow-hidden p-3 sm:p-6 flex flex-col">
-      <LeilaoCalendar leiloes={leiloes} onAdd={handleAdd} onEdit={handleEdit} onUpdate={update} onCreate={add} />
+      <LeilaoCalendar leiloes={leiloes} onAdd={handleAdd} onEdit={handleEdit} onUpdate={update} onCreate={add} onRemove={remove} />
       <LeilaoModal
         open={modalOpen}
         onClose={handleClose}

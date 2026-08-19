@@ -17,6 +17,7 @@ interface Props {
   onEdit:   (leilao: Leilao) => void;
   onUpdate: (leilao: Leilao) => void;
   onCreate: (leilao: Omit<Leilao, 'id'>) => void;
+  onRemove: (id: string) => void;
 }
 
 const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -66,7 +67,7 @@ function getSegments(week: Date[], leiloes: Leilao[]): EventSegment[] {
   return segments.sort((a, b) => a.colStart - b.colStart);
 }
 
-export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: Props) {
+export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate, onRemove }: Props) {
   const [currentDate, setCurrentDate] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -83,16 +84,29 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: P
       };
       if (data.error) { toast.error(data.error); return; }
 
-      const remotos = data.leiloes ?? [];
+      const IMPORT_STATUSES = new Set(['convite_catalogo', 'venda_pos_leilao']);
+      const todosRemotos = data.leiloes ?? [];
+      const ativos = todosRemotos.filter(r => IMPORT_STATUSES.has(r.status));
+      const ativosSet = new Set(ativos.map(r => r.codigoPlatforma));
 
       // Mapa dos leilões existentes por codigoPlatforma
       const existMap = new Map(leiloes.filter(l => l.codigoPlatforma).map(l => [l.codigoPlatforma, l]));
 
+      // Remove leilões locais que vieram da plataforma mas não estão mais ativos
+      // (não remove os criados manualmente — só remove os que têm codigoPlatforma reconhecido)
+      const remotosConhecidos = new Set(todosRemotos.map(r => r.codigoPlatforma));
+      let removidos = 0;
+      for (const [codigo, l] of existMap) {
+        if (remotosConhecidos.has(codigo) && !ativosSet.has(codigo)) {
+          onRemove(l.id);
+          removidos++;
+        }
+      }
+
       let criados = 0, atualizados = 0;
-      for (const r of remotos) {
+      for (const r of ativos) {
         const existente = existMap.get(r.codigoPlatforma);
         if (existente) {
-          // Atualiza tipo (nome), cor, datas e status vindos da plataforma
           onUpdate({
             ...existente,
             nome:       r.nome,
@@ -120,6 +134,7 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: P
 
       const partes = [];
       if (criados)    partes.push(`${criados} criado${criados !== 1 ? 's' : ''}`);
+      if (removidos)  partes.push(`${removidos} removido${removidos !== 1 ? 's' : ''}`);
       if (atualizados) partes.push(`${atualizados} atualizado${atualizados !== 1 ? 's' : ''}`);
       toast.success(partes.length ? partes.join(', ') : 'Cronograma já está atualizado');
     } catch { toast.error('Erro ao sincronizar'); }
