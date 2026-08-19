@@ -16,6 +16,7 @@ interface Props {
   onAdd:    (date?: string) => void;
   onEdit:   (leilao: Leilao) => void;
   onUpdate: (leilao: Leilao) => void;
+  onCreate: (leilao: Omit<Leilao, 'id'>) => void;
 }
 
 const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -62,7 +63,7 @@ function getSegments(week: Date[], leiloes: Leilao[]): EventSegment[] {
   return segments.sort((a, b) => a.colStart - b.colStart);
 }
 
-export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate }: Props) {
+export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: Props) {
   const [currentDate, setCurrentDate] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -70,30 +71,47 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate }: Props) {
   const [syncing, setSyncing] = useState(false);
 
   async function handleSync() {
-    const comCodigo = leiloes.filter(l => l.codigoPlatforma?.trim());
-    if (comCodigo.length === 0) { toast.error('Nenhum leilão com código da plataforma'); return; }
-
     setSyncing(true);
-    let ok = 0, fail = 0;
+    try {
+      const res  = await fetch('/api/leilao/sync-ficha', { method: 'POST' });
+      const data = await res.json() as {
+        leiloes?: Array<{ codigoPlatforma: string; nome: string; numero: string; status: string; dataInicio: string; dataFim: string; cor: string }>;
+        error?: string;
+      };
+      if (data.error) { toast.error(data.error); return; }
 
-    await Promise.all(comCodigo.map(async l => {
-      try {
-        const params = new URLSearchParams({ leilao: l.codigoPlatforma, nome: l.nome });
-        const res  = await fetch(`/api/leilao/sync-ficha?${params}`);
-        const data = await res.json() as { status?: string; dataInicio?: string; dataFim?: string; error?: string };
-        if (data.error) { fail++; return; }
-        const patch: Partial<Leilao> = {};
-        if (data.status    && data.status    !== l.status)    patch.status    = data.status    as Leilao['status'];
-        if (data.dataInicio && data.dataInicio !== l.dataInicio) patch.dataInicio = data.dataInicio;
-        if (data.dataFim    && data.dataFim    !== l.dataFim)   patch.dataFim   = data.dataFim;
-        if (Object.keys(patch).length > 0) onUpdate({ ...l, ...patch });
-        ok++;
-      } catch { fail++; }
-    }));
+      const remotos = data.leiloes ?? [];
+      const STATUS_VISIVEIS = new Set(['convite', 'convite_catalogo', 'venda_pos_leilao']);
 
-    setSyncing(false);
-    if (fail === 0) toast.success(`${ok} leilão${ok !== 1 ? 'es' : ''} sincronizado${ok !== 1 ? 's' : ''}`);
-    else            toast.warning(`${ok} sincronizados, ${fail} com erro`);
+      // Mapa dos leilões existentes por codigoPlatforma
+      const existMap = new Map(leiloes.filter(l => l.codigoPlatforma).map(l => [l.codigoPlatforma, l]));
+
+      let criados = 0, atualizados = 0;
+      for (const r of remotos) {
+        const existente = existMap.get(r.codigoPlatforma);
+        if (existente) {
+          // Atualizar sempre — status, datas, nome
+          onUpdate({
+            ...existente,
+            status:     r.status as Leilao['status'],
+            dataInicio: r.dataInicio || existente.dataInicio,
+            dataFim:    r.dataFim    || existente.dataFim,
+            nome:       r.nome,
+          });
+          atualizados++;
+        } else if (STATUS_VISIVEIS.has(r.status)) {
+          // Criar novo diretamente no Firestore
+          onCreate({ codigoPlatforma: r.codigoPlatforma, nome: r.nome, numero: r.numero, status: r.status as Leilao['status'], dataInicio: r.dataInicio, dataFim: r.dataFim, cor: r.cor, observacao: '' });
+          criados++;
+        }
+      }
+
+      const partes = [];
+      if (criados)    partes.push(`${criados} criado${criados !== 1 ? 's' : ''}`);
+      if (atualizados) partes.push(`${atualizados} atualizado${atualizados !== 1 ? 's' : ''}`);
+      toast.success(partes.length ? partes.join(', ') : 'Cronograma já está atualizado');
+    } catch { toast.error('Erro ao sincronizar'); }
+    finally { setSyncing(false); }
   }
 
   const year  = currentDate.getFullYear();
