@@ -60,6 +60,7 @@ export interface FichaResult {
   dataInicio:      string; // yyyy-MM-dd
   dataFim:         string; // yyyy-MM-dd
   rawStatus:       string;
+  _html?:          string; // só usado internamente para debug
 }
 
 async function fetchFicha(numLeilao: string, nome: string): Promise<FichaResult> {
@@ -68,17 +69,16 @@ async function fetchFicha(numLeilao: string, nome: string): Promise<FichaResult>
 
   const cookie = await login(creds.user, creds.pass, numLeilao);
 
-  const res = await fetch(`${BASE}/ficha_leilao.asp`, {
-    method:  'POST',
+  // Carregar a ficha: GET cad_leilao.asp?Num=XXXXX
+  const res = await fetch(`${BASE}/cad_leilao.asp?Num=${encodeURIComponent(numLeilao)}`, {
+    method:  'GET',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Cookie':        cookie,
-      'User-Agent':    UA,
-      'Referer':       `${BASE}/ficha_leilao.asp`,
+      'Cookie':     cookie,
+      'User-Agent': UA,
+      'Referer':    `${BASE}/cad_leilao.asp`,
     },
-    body:    new URLSearchParams({ NumLeilao: numLeilao }).toString(),
     redirect: 'follow',
-    signal:  AbortSignal.timeout(20_000),
+    signal:   AbortSignal.timeout(20_000),
   });
 
   const html = await res.text();
@@ -104,20 +104,23 @@ async function fetchFicha(numLeilao: string, nome: string): Promise<FichaResult>
     dataInicio:      dtInicioMatch ? parseDate(dtInicioMatch[1]) : '',
     dataFim:         dtFimMatch    ? parseDate(dtFimMatch[1])    : '',
     rawStatus,
+    _html:           html,
   };
 }
 
-// GET /api/leilao/sync-ficha?leilao=63382&nome=ETERNNO
+// GET /api/leilao/sync-ficha?leilao=63382&nome=ETERNNO[&debug=1]
 export async function GET(req: Request): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
   const leilao = searchParams.get('leilao')?.trim() ?? '';
   const nome   = searchParams.get('nome')?.trim()   ?? '';
+  const debug  = searchParams.get('debug') === '1';
 
   if (!leilao || !nome)
     return NextResponse.json({ error: 'Parâmetros: leilao, nome' }, { status: 400 });
 
   try {
     const ficha = await fetchFicha(leilao, nome);
+    if (debug) return new NextResponse((ficha as unknown as { _html?: string })._html ?? JSON.stringify(ficha), { headers: { 'Content-Type': 'text/html' } });
     return NextResponse.json(ficha);
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Erro interno' }, { status: 500 });
