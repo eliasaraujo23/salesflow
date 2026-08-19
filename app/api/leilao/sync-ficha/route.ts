@@ -61,7 +61,7 @@ function parseDate(raw: string): string {
 
 async function fetchFicha(cookie: string, num: string): Promise<{ status: string; dataInicio: string; dataFim: string }> {
   try {
-    const res = await fetch(`${BASE}/cad_leilao.asp?Num=${encodeURIComponent(num)}`, {
+    const res = await fetch(`${BASE}/cadleilao.asp?Leilao=${encodeURIComponent(num)}`, {
       headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_leiloes.asp` },
       redirect: 'follow',
       signal: AbortSignal.timeout(15_000),
@@ -232,7 +232,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     const leilao = searchParams.get('leilao')?.trim() ?? '';
     if (!leilao) return NextResponse.json({ error: 'Parâmetro: leilao ou lista=1' }, { status: 400 });
 
-    const res = await fetch(`${BASE}/cad_leilao.asp?Num=${encodeURIComponent(leilao)}`, {
+    const res = await fetch(`${BASE}/cadleilao.asp?Leilao=${encodeURIComponent(leilao)}`, {
       headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_leiloes.asp` },
       redirect: 'follow',
       signal: AbortSignal.timeout(20_000),
