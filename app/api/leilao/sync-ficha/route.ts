@@ -86,8 +86,8 @@ async function fetchFicha(cookie: string, num: string): Promise<{ status: string
     }
     return {
       status:     rawStatus ? mapStatus(rawStatus) : 'convite_catalogo',
-      dataInicio: parseDate(extractInputValue('DtInicio')),
-      dataFim:    parseDate(extractInputValue('DtFim')),
+      dataInicio: parseDate(extractInputValue('Dt_I')),
+      dataFim:    parseDate(extractInputValue('Dt_F')),
     };
   } catch {
     return { status: 'convite_catalogo', dataInicio: '', dataFim: '' };
