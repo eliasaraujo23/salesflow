@@ -92,18 +92,14 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: P
       for (const r of remotos) {
         const existente = existMap.get(r.codigoPlatforma);
         if (existente) {
-          // Atualizar sempre — status, datas, nome
-          onUpdate({
-            ...existente,
-            status:     r.status as Leilao['status'],
-            dataInicio: r.dataInicio || existente.dataInicio,
-            dataFim:    r.dataFim    || existente.dataFim,
-            nome:       r.nome,
-          });
+          // Não sobrescreve status local — preserva o que o usuário definiu
+          // Só atualiza nome (sem datas pois o sync não as tem)
+          onUpdate({ ...existente, nome: r.nome });
           atualizados++;
-        } else if (STATUS_VISIVEIS.has(r.status)) {
-          // Criar novo diretamente no Firestore
-          onCreate({ codigoPlatforma: r.codigoPlatforma, nome: r.nome, numero: r.numero, status: r.status as Leilao['status'], dataInicio: r.dataInicio, dataFim: r.dataFim, cor: r.cor, observacao: '' });
+        } else {
+          // Só não cria se o usuário já tem marcado como finalizado localmente
+          // (não há como saber o status real sem consulta individual)
+          onCreate({ codigoPlatforma: r.codigoPlatforma, nome: r.nome, numero: r.numero, status: 'convite_catalogo', dataInicio: '', dataFim: '', cor: r.cor, observacao: '' });
           criados++;
         }
       }

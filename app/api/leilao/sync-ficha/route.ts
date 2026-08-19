@@ -93,9 +93,12 @@ async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
     const seqMatch = titulo.match(/^#?(\d+)[ºª°]/);
     const numero   = seqMatch ? seqMatch[1] : num;
 
+    // Nome curto: só o prefixo da conta (ex: "ETERNNO", "BRUNO TOP")
+    // O título completo vai em observacao para referência
+    const nomeBase = titulo.replace(/\s*-\s*(Janeiro|Fevereiro|Março|Abril|Maio|Junho|Julho|Agosto|Setembro|Outubro|Novembro|Dezembro).*$/i, '').trim();
     leiloes.push({
       codigoPlatforma: num,
-      nome:            `${conta.prefixo} ${titulo}`.trim(),
+      nome:            nomeBase,
       numero,
       status:          'convite_catalogo',
       dataInicio:      '',
@@ -104,8 +107,7 @@ async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
     });
   }
 
-  // Retorna só os 6 mais recentes (~3 meses, lista vem do mais novo para o mais antigo)
-  return leiloes.slice(0, 6);
+  return leiloes;
 }
 
 // ─── Rota POST — retorna lista de leilões de todas as contas ──────────────────

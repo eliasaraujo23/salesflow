@@ -124,33 +124,17 @@ export function BaseSistemaUpload({
   }
 
   const seen = new Set<string>();
-  const sorted = [...uploaded].filter(f => {
+  const filtered = [...uploaded].filter(f => {
     if (seen.has(f.filename)) return false;
     seen.add(f.filename);
-    // oculta leilões finalizados
     if (f.leilao?.status === 'finalizado') return false;
     return true;
-  }).sort((a, b) => {
-    // Agrupa por nome base (sem "TOP"), descendente p/ ETERNNO antes de BRUNO
-    const baseA = (a.leilao?.nome ?? 'ZZZ').replace(/\s+TOP$/i, '').trim().toUpperCase();
-    const baseB = (b.leilao?.nome ?? 'ZZZ').replace(/\s+TOP$/i, '').trim().toUpperCase();
-    if (baseA !== baseB) return baseB.localeCompare(baseA);
-    // Dentro do grupo: normal antes de TOP
-    const topA = /TOP$/i.test(a.leilao?.nome ?? '') ? 1 : 0;
-    const topB = /TOP$/i.test(b.leilao?.nome ?? '') ? 1 : 0;
-    if (topA !== topB) return topA - topB;
-    // Por N° da leiloes.br crescente
-    return Number(a.codigoPlatforma ?? 0) - Number(b.codigoPlatforma ?? 0);
-  });
+  }).sort((a, b) => Number(b.codigoPlatforma ?? 0) - Number(a.codigoPlatforma ?? 0));
 
-  // Agrupa por nome-base (sem "TOP"), mantendo ordem do sort
-  const groups = sorted.reduce<{ key: string; items: typeof sorted }[]>((acc, f) => {
-    const key = (f.leilao?.nome ?? '—').replace(/\s+TOP$/i, '').trim().toUpperCase();
-    const last = acc[acc.length - 1];
-    if (last?.key === key) last.items.push(f);
-    else acc.push({ key, items: [f] });
-    return acc;
-  }, []);
+  // Separa por conta: ETERNNO (verde) vs BRUNO (laranja), resto em "outros"
+  const eternno = filtered.filter(f => f.leilao?.cor === '#16a34a');
+  const bruno   = filtered.filter(f => f.leilao?.cor === '#ea580c');
+  const outros  = filtered.filter(f => f.leilao?.cor !== '#16a34a' && f.leilao?.cor !== '#ea580c');
 
   const chipClass = (excluded: boolean) =>
     `flex items-center gap-3 px-3 py-2 rounded-lg border text-xs transition-all ${
@@ -159,80 +143,70 @@ export function BaseSistemaUpload({
         : 'border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-zinc-900'
     }`;
 
+  function renderChip(f: typeof filtered[number]) {
+    const excluded = excludedFiles.has(f.filename);
+    const cor      = f.leilao?.cor ?? '#71717a';
+    const label    = f.leilao ? f.leilao.nome : f.codigoPlatforma ? '(sem cadastro)' : f.filename;
+    return (
+      <div key={f.filename} className={chipClass(excluded)}>
+        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: excluded ? '#a1a1aa' : cor }} />
+        <span className={`font-bold tabular-nums shrink-0 ${excluded ? 'text-zinc-400' : 'text-zinc-800 dark:text-zinc-100'}`}>
+          N°{f.codigoPlatforma ?? '—'}
+        </span>
+        {f.leilao && (
+          <span className={`shrink-0 tabular-nums text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+            excluded ? 'bg-zinc-100 dark:bg-zinc-700 text-zinc-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+          }`}>
+            #{f.leilao.numero}
+          </span>
+        )}
+        <span className={`flex-1 truncate ${excluded ? 'text-zinc-400' : 'text-zinc-600 dark:text-zinc-400'}`}>{label}</span>
+        {f.leilao?.status && f.leilao.status !== 'finalizado' && !excluded && (
+          <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${STATUS_BADGE[f.leilao.status].className}`}>
+            {STATUS_BADGE[f.leilao.status].label}
+          </span>
+        )}
+        <span className={`shrink-0 tabular-nums ${excluded ? 'text-zinc-400' : 'text-zinc-500 dark:text-zinc-500'}`}>{f.count} peças</span>
+        {f.vendidos.length > 0 && (
+          <span className="shrink-0 text-[10px] text-emerald-600 dark:text-emerald-400 tabular-nums">{f.vendidos.length} vendidas</span>
+        )}
+        <button onClick={() => onToggleExclude(f.filename)} title={excluded ? 'Incluir' : 'Excluir'}
+          className={`shrink-0 p-1 rounded transition-colors ${excluded ? 'text-zinc-400 hover:text-zinc-600' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'}`}>
+          {excluded ? <EyeOff size={13} /> : <Eye size={13} />}
+        </button>
+        <button onClick={() => onRemove(f.filename)} title="Remover"
+          className="shrink-0 p-1 rounded text-zinc-300 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+          <X size={13} />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-start justify-between gap-3">
-        {sorted.length > 0 ? (
-        <div className="flex flex-wrap gap-x-6 gap-y-2 items-start flex-1">
-          {groups.map(group => (
-            <div key={group.key} className="flex flex-col gap-1.5">
-              {group.items.map(f => {
-            const excluded = excludedFiles.has(f.filename);
-            const cor      = f.leilao?.cor ?? '#71717a';
-            const label    = f.leilao
-              ? `${f.leilao.nome}`
-              : f.codigoPlatforma
-              ? `(sem cadastro)`
-              : f.filename;
-
-            return (
-              <div
-                key={f.filename}
-                className={chipClass(excluded)}
-              >
-                <span
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                  style={{ background: excluded ? '#a1a1aa' : cor }}
-                />
-                <span className={`font-bold tabular-nums shrink-0 ${excluded ? 'text-zinc-400' : 'text-zinc-800 dark:text-zinc-100'}`}>
-                  N°{f.codigoPlatforma ?? '—'}
-                </span>
-                {f.leilao && (
-                  <span className={`shrink-0 tabular-nums text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                    excluded ? 'bg-zinc-100 dark:bg-zinc-700 text-zinc-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
-                  }`}>
-                    #{f.leilao.numero}
-                  </span>
-                )}
-                <span className={`flex-1 truncate ${excluded ? 'text-zinc-400' : 'text-zinc-600 dark:text-zinc-400'}`}>
-                  {label}
-                </span>
-                {f.leilao?.status && f.leilao.status !== 'finalizado' && !excluded && (
-                  <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${STATUS_BADGE[f.leilao.status].className}`}>
-                    {STATUS_BADGE[f.leilao.status].label}
-                  </span>
-                )}
-                <span className={`shrink-0 tabular-nums ${excluded ? 'text-zinc-400' : 'text-zinc-500 dark:text-zinc-500'}`}>
-                  {f.count} peças
-                </span>
-                {f.vendidos.length > 0 && (
-                  <span className="shrink-0 text-[10px] text-emerald-600 dark:text-emerald-400 tabular-nums">
-                    {f.vendidos.length} vendidas
-                  </span>
-                )}
-                <button
-                  onClick={() => onToggleExclude(f.filename)}
-                  title={excluded ? 'Incluir na cross-referência' : 'Excluir da cross-referência'}
-                  className={`shrink-0 p-1 rounded transition-colors ${
-                    excluded
-                      ? 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
-                      : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
-                  }`}
-                >
-                  {excluded ? <EyeOff size={13} /> : <Eye size={13} />}
-                </button>
-                <button
-                  onClick={() => onRemove(f.filename)}
-                  title="Remover"
-                  className="shrink-0 p-1 rounded text-zinc-300 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-                >
-                  <X size={13} />
-                </button>
-              </div>
-            );
-          })}
+        {filtered.length > 0 ? (
+        <div className="flex gap-6 items-start flex-1">
+          {/* Coluna ETERNNO */}
+          {eternno.length > 0 && (
+            <div className="flex flex-col gap-1.5 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400" style={{ color: '#16a34a' }}>Eternno</p>
+              {eternno.map(renderChip)}
             </div>
-          ))}
+          )}
+          {/* Coluna BRUNO */}
+          {bruno.length > 0 && (
+            <div className="flex flex-col gap-1.5 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#ea580c' }}>Bruno Araújo</p>
+              {bruno.map(renderChip)}
+            </div>
+          )}
+          {/* Outros (sem cor definida) */}
+          {outros.length > 0 && (
+            <div className="flex flex-col gap-1.5 flex-1">
+              {outros.map(renderChip)}
+            </div>
+          )}
         </div>
         ) : <div className="flex-1" />}
 
