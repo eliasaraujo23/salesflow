@@ -120,7 +120,12 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   try {
     const ficha = await fetchFicha(leilao, nome);
-    if (debug) return new NextResponse((ficha as unknown as { _html?: string })._html ?? JSON.stringify(ficha), { headers: { 'Content-Type': 'text/html' } });
+    if (debug) {
+    const raw = (ficha as unknown as { _html?: string })._html ?? '';
+    // Mostrar só os últimos 20KB para ver a seção lateral (Status/datas)
+    const tail = raw.length > 20000 ? raw.slice(-20000) : raw;
+    return new NextResponse(`<pre>${tail.replace(/</g, '&lt;')}</pre>`, { headers: { 'Content-Type': 'text/html' } });
+  }
     return NextResponse.json(ficha);
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Erro interno' }, { status: 500 });
