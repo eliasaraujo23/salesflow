@@ -129,12 +129,14 @@ export function BaseSistemaUpload({
     seen.add(f.filename);
     if (f.leilao?.status === 'finalizado') return false;
     return true;
-  }).sort((a, b) => Number(b.codigoPlatforma ?? 0) - Number(a.codigoPlatforma ?? 0));
+  }).sort((a, b) => Number(a.codigoPlatforma ?? 0) - Number(b.codigoPlatforma ?? 0));
 
-  // Separa por conta: ETERNNO (verde) vs BRUNO (laranja), resto em "outros"
-  const eternno = filtered.filter(f => f.leilao?.cor === '#16a34a');
-  const bruno   = filtered.filter(f => f.leilao?.cor === '#ea580c');
-  const outros  = filtered.filter(f => f.leilao?.cor !== '#16a34a' && f.leilao?.cor !== '#ea580c');
+  // Separa por conta: ETERNNO vs BRUNO, resto em "outros"
+  const isEternno = (cor?: string) => cor === '#0d9488' || cor === '#2563eb' || cor === '#16a34a';
+  const isBruno   = (cor?: string) => cor === '#ea580c' || cor === '#d97706';
+  const eternno = filtered.filter(f => isEternno(f.leilao?.cor));
+  const bruno   = filtered.filter(f => isBruno(f.leilao?.cor));
+  const outros  = filtered.filter(f => !isEternno(f.leilao?.cor) && !isBruno(f.leilao?.cor));
 
   const chipClass = (excluded: boolean) =>
     `flex items-center gap-3 px-3 py-2 rounded-lg border text-xs transition-all ${
@@ -161,11 +163,7 @@ export function BaseSistemaUpload({
           </span>
         )}
         <span className={`flex-1 truncate ${excluded ? 'text-zinc-400' : 'text-zinc-600 dark:text-zinc-400'}`}>{label}</span>
-        {f.leilao?.status && f.leilao.status !== 'finalizado' && !excluded && (
-          <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${STATUS_BADGE[f.leilao.status].className}`}>
-            {STATUS_BADGE[f.leilao.status].label}
-          </span>
-        )}
+
         <span className={`shrink-0 tabular-nums ${excluded ? 'text-zinc-400' : 'text-zinc-500 dark:text-zinc-500'}`}>{f.count} peças</span>
         {f.vendidos.length > 0 && (
           <span className="shrink-0 text-[10px] text-emerald-600 dark:text-emerald-400 tabular-nums">{f.vendidos.length} vendidas</span>
