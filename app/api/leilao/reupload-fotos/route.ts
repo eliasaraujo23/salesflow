@@ -1,6 +1,6 @@
 export const maxDuration = 300;
 
-import sharp               from 'sharp';
+import { Jimp }            from 'jimp';
 import { Pool }            from 'pg';
 import { getPresignedUrl } from '@/lib/r2';
 import { loadPecaFormHtml, extractPecaFields, gravarPeca } from '../_peca-form';
@@ -109,12 +109,13 @@ async function queryImageKeys(refs: string[]): Promise<Map<string, ImageKeys>> {
 
 async function processImage(buf: ArrayBuffer): Promise<Buffer> {
   const maxBytes = 1.8 * 1024 * 1024;
-  const pipeline = sharp(Buffer.from(buf)).rotate().resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true });
+  const img = await Jimp.read(Buffer.from(buf));
+  img.scaleToFit({ w: 1200, h: 1200 });
   let quality = 90;
   let out: Buffer;
   do {
     if (quality < 20) throw new Error('Não foi possível comprimir a imagem.');
-    out = await pipeline.clone().jpeg({ quality, progressive: true, mozjpeg: true }).toBuffer();
+    out = await img.getBuffer('image/jpeg', { quality });
     quality -= 10;
   } while (out.byteLength > maxBytes);
   return out;
