@@ -145,20 +145,31 @@ export async function POST(): Promise<NextResponse> {
   }
 }
 
-// GET mantido para debug da ficha individual
+// GET: debug — ?lista=1 mostra HTML bruto do listar_leiloes.asp
 export async function GET(req: Request): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
-  const debug = searchParams.get('debug') === '1';
-  const leilao = searchParams.get('leilao')?.trim() ?? '';
-
-  if (!leilao) return NextResponse.json({ error: 'Parâmetro: leilao' }, { status: 400 });
-
-  // Debug: mostrar HTML bruto da ficha para inspecionar campos
   const conta = getContas()[0];
   if (!conta) return NextResponse.json({ error: 'Sem credenciais' }, { status: 500 });
 
   try {
     const cookie = await login(conta.user, conta.pass);
+
+    // ?lista=1 — HTML bruto da listagem
+    if (searchParams.get('lista') === '1') {
+      const res  = await fetch(`${BASE}/listar_leiloes.asp`, {
+        headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_leiloes.asp` },
+        redirect: 'follow',
+        signal:   AbortSignal.timeout(25_000),
+      });
+      const html = await res.text();
+      const snippet = html.length > 30000 ? html.slice(0, 30000) : html;
+      return new NextResponse(`<pre>${snippet.replace(/</g, '&lt;')}</pre>`, { headers: { 'Content-Type': 'text/html' } });
+    }
+
+    // ?leilao=XXXXX — ficha individual
+    const leilao = searchParams.get('leilao')?.trim() ?? '';
+    if (!leilao) return NextResponse.json({ error: 'Parâmetro: leilao ou lista=1' }, { status: 400 });
+
     const res = await fetch(`${BASE}/cad_leilao.asp?Num=${encodeURIComponent(leilao)}`, {
       headers: { 'Cookie': cookie, 'User-Agent': UA },
       redirect: 'follow',
@@ -166,12 +177,11 @@ export async function GET(req: Request): Promise<NextResponse> {
     });
     const html = await res.text();
 
-    if (debug) {
+    if (searchParams.get('debug') === '1') {
       const tail = html.length > 20000 ? html.slice(-20000) : html;
       return new NextResponse(`<pre>${tail.replace(/</g, '&lt;')}</pre>`, { headers: { 'Content-Type': 'text/html' } });
     }
 
-    // Extrair campos
     const statusMatch = html.match(/<select[^>]+name=["']?Status["']?[^>]*>([\s\S]*?)<\/select>/i);
     let rawStatus = '';
     if (statusMatch) {
