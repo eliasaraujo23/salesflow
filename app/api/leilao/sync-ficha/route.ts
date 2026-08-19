@@ -73,12 +73,21 @@ async function fetchFicha(cookie: string, num: string): Promise<{ status: string
       const opt = statusMatch[1].match(/<option[^>]+selected[^>]*>([\s\S]*?)<\/option>/i);
       if (opt) rawStatus = cleanHtml(opt[1]);
     }
-    const dtInicioMatch = html.match(/name=["']?DtInicio["']?[^>]+value=["']([^"']+)["']/i);
-    const dtFimMatch    = html.match(/name=["']?DtFim["']?[^>]+value=["']([^"']+)["']/i);
+    // Pega value de input independente da ordem dos atributos (value pode vir antes ou depois de name)
+    function extractInputValue(fieldName: string): string {
+      // Caso 1: name antes do value
+      const re1 = new RegExp(`name=["']?${fieldName}["']?[^>]*value=["']([^"']*?)["']`, 'i');
+      const m1  = html.match(re1);
+      if (m1?.[1]) return m1[1];
+      // Caso 2: value antes do name
+      const re2 = new RegExp(`value=["']([^"']*?)["'][^>]*name=["']?${fieldName}["']?`, 'i');
+      const m2  = html.match(re2);
+      return m2?.[1] ?? '';
+    }
     return {
       status:     rawStatus ? mapStatus(rawStatus) : 'convite_catalogo',
-      dataInicio: dtInicioMatch ? parseDate(dtInicioMatch[1]) : '',
-      dataFim:    dtFimMatch    ? parseDate(dtFimMatch[1])    : '',
+      dataInicio: parseDate(extractInputValue('DtInicio')),
+      dataFim:    parseDate(extractInputValue('DtFim')),
     };
   } catch {
     return { status: 'convite_catalogo', dataInicio: '', dataFim: '' };
