@@ -57,42 +57,60 @@ function parseDate(raw: string): string {
   return `${m[3]}-${m[2]}-${m[1]}`;
 }
 
-// ─── Buscar ficha individual (datas + status) ─────────────────────────────────
+// ─── Trocar leilão ativo na sessão e buscar ficha ────────────────────────────
 
-async function fetchFicha(conta: Conta, num: string): Promise<{ status: string; dataInicio: string; dataFim: string }> {
+async function trocarLeilao(cookie: string, num: string): Promise<string> {
+  // A plataforma troca o leilão ativo via POST para default.asp com NumLeilao
+  const res = await fetch(`${BASE}/default.asp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': cookie,
+      'User-Agent': UA,
+      'Referer': `${BASE}/listar_trocar_leilao.asp`,
+    },
+    body: new URLSearchParams({ NumLeilao: num, Trocar: 'Trocar' }).toString(),
+    redirect: 'manual',
+  });
+  // Pega novo cookie se a sessão foi atualizada
+  const newCookie = (res.headers.get('set-cookie') ?? '').match(/ASPSESSIONID\w+=\w+/i)?.[0];
+  return newCookie ?? cookie;
+}
+
+function parseFicha(html: string): { status: string; dataInicio: string; dataFim: string } {
+  const statusMatch = html.match(/<select[^>]+name=["']?Status["']?[^>]*>([\s\S]*?)<\/select>/i);
+  let rawStatus = '';
+  if (statusMatch) {
+    const opt = statusMatch[1].match(/<option[^>]+selected[^>]*>([\s\S]*?)<\/option>/i);
+    if (opt) rawStatus = cleanHtml(opt[1]);
+  }
+  function extractVal(fieldName: string): string {
+    const r1 = new RegExp(`name=["']?${fieldName}["']?[^>]*value=["']([^"']*?)["']`, 'i');
+    const m1 = html.match(r1);
+    if (m1?.[1]) return m1[1];
+    const r2 = new RegExp(`value=["']([^"']*?)["'][^>]*name=["']?${fieldName}["']?`, 'i');
+    return html.match(r2)?.[1] ?? '';
+  }
+  return {
+    status:     rawStatus ? mapStatus(rawStatus) : '',
+    dataInicio: parseDate(extractVal('Dt_I')),
+    dataFim:    parseDate(extractVal('Dt_F')),
+  };
+}
+
+async function fetchFicha(cookie: string, num: string): Promise<{ status: string; dataInicio: string; dataFim: string }> {
   try {
-    // Login com o número do próprio leilão — cadleilao.asp só abre com a sessão do leilão correto
-    const cookie = await login(conta.user, conta.pass, num);
+    // Troca o leilão ativo na sessão antes de acessar a ficha
+    const newCookie = await trocarLeilao(cookie, num);
     const res = await fetch(`${BASE}/cadleilao.asp?Leilao=${encodeURIComponent(num)}`, {
-      headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/default.asp` },
+      headers: { 'Cookie': newCookie, 'User-Agent': UA, 'Referer': `${BASE}/default.asp` },
       redirect: 'follow',
       signal: AbortSignal.timeout(15_000),
     });
     const html = await res.text();
-    const statusMatch = html.match(/<select[^>]+name=["']?Status["']?[^>]*>([\s\S]*?)<\/select>/i);
-    let rawStatus = '';
-    if (statusMatch) {
-      const opt = statusMatch[1].match(/<option[^>]+selected[^>]*>([\s\S]*?)<\/option>/i);
-      if (opt) rawStatus = cleanHtml(opt[1]);
-    }
-    // Pega value de input independente da ordem dos atributos (value pode vir antes ou depois de name)
-    function extractInputValue(fieldName: string): string {
-      // Caso 1: name antes do value
-      const re1 = new RegExp(`name=["']?${fieldName}["']?[^>]*value=["']([^"']*?)["']`, 'i');
-      const m1  = html.match(re1);
-      if (m1?.[1]) return m1[1];
-      // Caso 2: value antes do name
-      const re2 = new RegExp(`value=["']([^"']*?)["'][^>]*name=["']?${fieldName}["']?`, 'i');
-      const m2  = html.match(re2);
-      return m2?.[1] ?? '';
-    }
-    return {
-      status:     rawStatus ? mapStatus(rawStatus) : 'convite_catalogo',
-      dataInicio: parseDate(extractInputValue('Dt_I')),
-      dataFim:    parseDate(extractInputValue('Dt_F')),
-    };
+    return parseFicha(html);
   } catch {
-    return { status: 'convite_catalogo', dataInicio: '', dataFim: '' };
+    return { status: '', dataInicio: '', dataFim: '' };
   }
 }
 
@@ -168,9 +186,9 @@ async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
   }
 
   // Busca datas e status de cada leilão em paralelo (concorrência 5)
-  // Cada ficha precisa de login próprio com o número do leilão
-  const tasks = leiloes.map(l => () => fetchFicha(conta, l.codigoPlatforma));
-  const fichas = await pLimit(tasks, 5);
+  // Reusa o mesmo cookie de sessão — troca o leilão ativo antes de cada ficha
+  const tasks = leiloes.map(l => () => fetchFicha(cookie, l.codigoPlatforma));
+  const fichas = await pLimit(tasks, 3);
   fichas.forEach((f, idx) => {
     leiloes[idx].status     = f.status;
     leiloes[idx].dataInicio = f.dataInicio;
