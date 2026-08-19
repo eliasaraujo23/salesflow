@@ -31,12 +31,10 @@ export default function LeilaoPage() {
   }
 
   function handleSave(values: LeilaoFormValues & { cor: string }) {
-    const { status, ...rest } = values;
     const normalized = {
-      ...rest,
+      ...values,
       numero:          values.numero          ?? '',
       codigoPlatforma: values.codigoPlatforma ?? '',
-      ...(status ? { status } : {}),
     };
     if (editing) {
       update({ ...editing, ...normalized });

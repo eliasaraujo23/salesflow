@@ -45,7 +45,7 @@ const schema = z.object({
   dataFim:          z.string().min(1, 'Selecione o período'),
   codigoPlatforma:  z.string().optional(),
   observacao:       z.string().optional(),
-  status:           z.enum(['captando','convite','convite_catalogo','venda_pos_leilao','finalizado']).optional(),
+  status:           z.enum(['captando','convite','convite_catalogo','venda_pos_leilao','finalizado']),
 }).refine(d => d.dataFim >= d.dataInicio, {
   message: 'Data fim deve ser ≥ data início',
   path: ['dataFim'],
@@ -67,7 +67,7 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
     formState: { errors },
   } = useForm<LeilaoFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { numero: '', nome: '', dataInicio: '', dataFim: '', observacao: '', status: undefined },
+    defaultValues: { numero: '', nome: '', dataInicio: '', dataFim: '', observacao: '', status: 'convite_catalogo' },
   });
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -82,7 +82,7 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
         dataFim:         initial?.dataFim         ?? '',
         codigoPlatforma: initial?.codigoPlatforma ?? '',
         observacao:      initial?.observacao      ?? '',
-        status:          initial?.status          ?? undefined,
+        status:          initial?.status          ?? 'convite_catalogo',
       });
       setDateRange(
         initial?.dataInicio
@@ -198,16 +198,14 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
 
           {/* Status de publicação */}
           <div className="flex flex-col gap-1.5">
-            <Label className="text-zinc-700 dark:text-zinc-200">
-              Status de publicação <span className="font-normal text-zinc-400 dark:text-zinc-500">(opcional)</span>
-            </Label>
+            <Label className="text-zinc-700 dark:text-zinc-200">Status de publicação</Label>
             <Controller
               name="status"
               control={control}
               render={({ field }) => (
-                <Select value={field.value ?? ''} onValueChange={v => field.onChange(v || undefined)}>
+                <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Não definido" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {STATUS_LEILAO.map(s => (
