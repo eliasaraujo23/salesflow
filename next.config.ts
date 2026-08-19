@@ -9,6 +9,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ['jimp'],
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },
