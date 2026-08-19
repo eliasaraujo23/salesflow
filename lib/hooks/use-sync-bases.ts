@@ -38,6 +38,7 @@ export function useSyncBases(leiloes: Leilao[], onSyncComplete?: () => void) {
             codigoPlatforma: l.codigoPlatforma,
             nome:            l.nome,
             numero:          l.numero,
+            cor:             l.cor,
           })),
         }),
       });

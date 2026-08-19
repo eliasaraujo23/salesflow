@@ -2,14 +2,16 @@ import { NextResponse } from 'next/server';
 
 const BASE = 'https://leiloesbr.com.br/painel_lbr';
 
-function getCreds(nome: string): { user: string; pass: string } | null {
-  const n = nome.toUpperCase();
-  if (n.startsWith('ETERNNO')) {
+function getCreds(nome: string, cor?: string): { user: string; pass: string } | null {
+  // Detecta por cor primeiro (mais confiável), depois por nome como fallback
+  const isEternno = cor === '#16a34a' || nome.toUpperCase().startsWith('ETERNNO');
+  const isBruno   = cor === '#ea580c' || nome.toUpperCase().startsWith('BRUNO');
+  if (isEternno) {
     const user = process.env.LEILOESBR_USER_ETERNNO;
     const pass = process.env.LEILOESBR_PASS_ETERNNO;
     return user && pass ? { user, pass } : null;
   }
-  if (n.startsWith('BRUNO')) {
+  if (isBruno) {
     const user = process.env.LEILOESBR_USER_BARAUJO;
     const pass = process.env.LEILOESBR_PASS_BARAUJO;
     return user && pass ? { user, pass } : null;
@@ -123,6 +125,7 @@ interface LeilaoInput {
   codigoPlatforma: string;
   nome:            string;
   numero:          string;
+  cor?:            string;
 }
 
 export interface SyncResult {
@@ -147,7 +150,7 @@ export async function POST(req: Request) {
 
   const settled = await Promise.allSettled(
     eligible.map(async (l): Promise<SyncResult> => {
-      const creds = getCreds(l.nome);
+      const creds = getCreds(l.nome, l.cor);
       if (!creds) {
         return { codigoPlatforma: l.codigoPlatforma, nome: l.nome, numero: l.numero, skipped: true, reason: 'Sem credenciais para este tipo de leilão' };
       }
