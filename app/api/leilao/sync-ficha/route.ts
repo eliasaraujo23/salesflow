@@ -253,21 +253,42 @@ export async function GET(req: Request): Promise<NextResponse> {
       return new NextResponse(`<pre>${tail.replace(/</g, '&lt;')}</pre>`, { headers: { 'Content-Type': 'text/html' } });
     }
 
+    // ?parse=1 — mostra resultado do parser + trechos relevantes do HTML
+    function extractVal(name: string): string {
+      const r1 = new RegExp(`name=["']?${name}["']?[^>]*value=["']([^"']*?)["']`, 'i');
+      const m1 = html.match(r1);
+      if (m1?.[1]) return m1[1];
+      const r2 = new RegExp(`value=["']([^"']*?)["'][^>]*name=["']?${name}["']?`, 'i');
+      return html.match(r2)?.[1] ?? '';
+    }
+    const dtI = extractVal('Dt_I');
+    const dtF = extractVal('Dt_F');
     const statusMatch = html.match(/<select[^>]+name=["']?Status["']?[^>]*>([\s\S]*?)<\/select>/i);
     let rawStatus = '';
     if (statusMatch) {
       const opt = statusMatch[1].match(/<option[^>]+selected[^>]*>([\s\S]*?)<\/option>/i);
       if (opt) rawStatus = cleanHtml(opt[1]);
     }
-    const dtInicioMatch = html.match(/name=["']?DtInicio["']?[^>]+value=["']([^"']+)["']/i);
-    const dtFimMatch    = html.match(/name=["']?DtFim["']?[^>]+value=["']([^"']+)["']/i);
+
+    if (searchParams.get('parse') === '1') {
+      // Extrai trecho do HTML em torno de Dt_I para diagnóstico
+      const idx = html.search(/Dt_I/i);
+      const snippet = idx >= 0 ? html.slice(Math.max(0, idx - 100), idx + 200) : '(Dt_I não encontrado no HTML)';
+      return NextResponse.json({
+        htmlLength: html.length,
+        dt_i_raw: dtI, dt_f_raw: dtF,
+        dataInicio: parseDate(dtI), dataFim: parseDate(dtF),
+        rawStatus, status: rawStatus ? mapStatus(rawStatus) : '',
+        snippet,
+      });
+    }
 
     return NextResponse.json({
       codigoPlatforma: leilao,
       rawStatus,
       status:    rawStatus ? mapStatus(rawStatus) : '',
-      dataInicio: dtInicioMatch ? parseDate(dtInicioMatch[1]) : '',
-      dataFim:    dtFimMatch    ? parseDate(dtFimMatch[1])    : '',
+      dataInicio: parseDate(dtI),
+      dataFim:    parseDate(dtF),
     });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Erro' }, { status: 500 });
