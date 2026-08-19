@@ -60,15 +60,16 @@ function parseDate(raw: string): string {
 // ─── Trocar leilão ativo na sessão e buscar ficha ────────────────────────────
 
 async function trocarLeilao(cookie: string, num: string): Promise<string> {
-  // Troca o leilão ativo via GET — igual ao que o dropdown do painel faz
-  const res = await fetch(`${BASE}/default.asp?NumLeilao=${encodeURIComponent(num)}`, {
+  // Endpoint real que o painel usa ao selecionar um leilão no dropdown
+  // Faz GET → 302 → default.asp com o leilão ativo na sessão
+  const res = await fetch(`${BASE}/trocar_leilao.asp?Md=&Id=${encodeURIComponent(num)}`, {
     method: 'GET',
     headers: {
       'Cookie': cookie,
       'User-Agent': UA,
       'Referer': `${BASE}/listar_trocar_leilao.asp`,
     },
-    redirect: 'manual',
+    redirect: 'follow',
   });
   const newCookie = (res.headers.get('set-cookie') ?? '').match(/ASPSESSIONID\w+=\w+/i)?.[0];
   return newCookie ?? cookie;
