@@ -64,9 +64,10 @@ function ResumoCard({ leilao, selected, onClick }: ResumoCardProps) {
 
   useEffect(() => { load(); }, [load]);
 
-  const volume   = lances?.reduce((s, r) => s + r.valor, 0) ?? 0;
-  const lotes    = new Set(lances?.map(r => r.lote) ?? []).size;
-  const vencendo = lances?.filter(r => r.status.toLowerCase().includes('vencendo')).length ?? 0;
+  const vencendoRows = lances?.filter(r => r.status.toLowerCase().includes('vencendo')) ?? [];
+  const volume       = vencendoRows.reduce((s, r) => s + r.valor, 0);
+  const lotes        = new Set(lances?.map(r => r.lote) ?? []).size;
+  const vencendo     = vencendoRows.length;
 
   return (
     <button
@@ -120,7 +121,7 @@ function ResumoCard({ leilao, selected, onClick }: ResumoCardProps) {
             </p>
           </div>
           <div>
-            <p className="text-[9px] text-zinc-400 uppercase tracking-wide">Volume</p>
+            <p className="text-[9px] text-zinc-400 uppercase tracking-wide">Vol. vencendo</p>
             <p className="text-sm font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{fmtBRL(volume)}</p>
           </div>
         </div>
@@ -194,10 +195,11 @@ export function LancesPanel({ leiloes }: Props) {
     });
   }, [lances, search, sortKey, sortDir]);
 
-  const totalLances = filtered.length;
-  const totalValor  = filtered.reduce((s, r) => s + r.valor, 0);
-  const vencendo    = filtered.filter(r => r.status.toLowerCase().includes('vencendo')).length;
-  const uniqueLotes = new Set(filtered.map(r => r.lote)).size;
+  const totalLances  = filtered.length;
+  const vencendoFilt = filtered.filter(r => r.status.toLowerCase().includes('vencendo'));
+  const totalVol     = vencendoFilt.reduce((s, r) => s + r.valor, 0);
+  const vencendo     = vencendoFilt.length;
+  const uniqueLotes  = new Set(filtered.map(r => r.lote)).size;
 
   function SortIcon({ col }: { col: SortKey }) {
     if (sortKey !== col) return <ChevronsUpDown size={10} className="opacity-30" />;
@@ -283,7 +285,7 @@ export function LancesPanel({ leiloes }: Props) {
                   { label: 'Lotes',    value: uniqueLotes },
                   { label: 'Lances',   value: totalLances },
                   { label: 'Vencendo', value: vencendo, highlight: true },
-                  { label: 'Volume',   value: fmtBRL(totalValor) },
+                  { label: 'Vol. vencendo', value: fmtBRL(totalVol) },
                 ].map(k => (
                   <div key={k.label} className="rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-zinc-900 px-4 py-3 flex flex-col gap-0.5">
                     <span className="text-[10px] text-zinc-400 uppercase tracking-wide">{k.label}</span>
