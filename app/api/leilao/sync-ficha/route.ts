@@ -60,19 +60,16 @@ function parseDate(raw: string): string {
 // ─── Trocar leilão ativo na sessão e buscar ficha ────────────────────────────
 
 async function trocarLeilao(cookie: string, num: string): Promise<string> {
-  // A plataforma troca o leilão ativo via POST para default.asp com NumLeilao
-  const res = await fetch(`${BASE}/default.asp`, {
-    method: 'POST',
+  // Troca o leilão ativo via GET — igual ao que o dropdown do painel faz
+  const res = await fetch(`${BASE}/default.asp?NumLeilao=${encodeURIComponent(num)}`, {
+    method: 'GET',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
       'Cookie': cookie,
       'User-Agent': UA,
       'Referer': `${BASE}/listar_trocar_leilao.asp`,
     },
-    body: new URLSearchParams({ NumLeilao: num, Trocar: 'Trocar' }).toString(),
     redirect: 'manual',
   });
-  // Pega novo cookie se a sessão foi atualizada
   const newCookie = (res.headers.get('set-cookie') ?? '').match(/ASPSESSIONID\w+=\w+/i)?.[0];
   return newCookie ?? cookie;
 }
