@@ -196,27 +196,6 @@ export function LeilaoModal({ open, onClose, onSave, onDelete, initial }: Props)
             <Input id="observacao" placeholder="Notas sobre este leilão..." className="text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400" {...register('observacao')} />
           </div>
 
-          {/* Status de publicação */}
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-zinc-700 dark:text-zinc-200">Status de publicação</Label>
-            <Controller
-              name="status"
-              control={control}
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUS_LEILAO.map(s => (
-                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
-
           <DialogFooter className="mt-1 flex items-center justify-between gap-2">
             {initial?.id ? (
               <button
