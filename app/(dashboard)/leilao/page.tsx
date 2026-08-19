@@ -57,23 +57,8 @@ export default function LeilaoPage() {
   const modalInitial: Partial<Leilao> | undefined = editing
     ?? (defaultDate ? { dataInicio: defaultDate, dataFim: defaultDate } : undefined);
 
-  function handleClearAll() {
-    if (!confirm(`Apagar todos os ${leiloes.length} leilões do Firestore?`)) return;
-    leiloes.forEach(l => remove(l.id));
-    // Limpa localStorage legado para evitar que a migração os restaure
-    try { localStorage.removeItem('goldtech_leiloes_v1'); } catch {}
-    toast.success(`${leiloes.length} leilões removidos`);
-  }
-
   return (
     <div className="h-full overflow-hidden p-3 sm:p-6 flex flex-col">
-      {leiloes.length > 0 && (
-        <div className="flex justify-end mb-2">
-          <button onClick={handleClearAll} className="text-xs text-red-500 hover:underline">
-            🗑 Apagar todos ({leiloes.length})
-          </button>
-        </div>
-      )}
       <LeilaoCalendar leiloes={leiloes} onAdd={handleAdd} onEdit={handleEdit} />
       <LeilaoModal
         open={modalOpen}
