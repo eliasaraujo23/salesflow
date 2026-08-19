@@ -157,10 +157,25 @@ export async function GET(req: Request): Promise<NextResponse> {
   try {
     const cookie = await login(conta.user, conta.pass, conta.numLeilao);
 
-    // ?lista=1 — HTML bruto da listagem
+    // ?lista=1 — chama o endpoint AJAX que o JS usa para buscar a listagem
     if (searchParams.get('lista') === '1') {
-      const res  = await fetch(`${BASE}/listar_leiloes.asp`, {
-        headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_leiloes.asp` },
+      // O JS faz GET para listar_leiloes.asp?Listar=on com os filtros em branco
+      const url = `${BASE}/listar_leiloes.asp?Listar=on&Numero=&Site=&Datafim=&Datafim2=&order=`;
+      const res  = await fetch(url, {
+        headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_leiloes.asp`, 'X-Requested-With': 'XMLHttpRequest' },
+        redirect: 'follow',
+        signal:   AbortSignal.timeout(25_000),
+      });
+      const html = await res.text();
+      const snippet = html.length > 30000 ? html.slice(0, 30000) : html;
+      return new NextResponse(`<pre>${snippet.replace(/</g, '&lt;')}</pre>`, { headers: { 'Content-Type': 'text/html' } });
+    }
+
+    // ?modulo=1 — tenta o endpoint do módulo AJAX diretamente
+    if (searchParams.get('modulo') === '1') {
+      const url = `${BASE}/modulos/listar-leiloes/listar-leiloes.asp?Listar=on&Numero=&Site=&Datafim=&Datafim2=&order=`;
+      const res  = await fetch(url, {
+        headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_leiloes.asp`, 'X-Requested-With': 'XMLHttpRequest' },
         redirect: 'follow',
         signal:   AbortSignal.timeout(25_000),
       });
