@@ -46,8 +46,10 @@ function getSegments(week: Date[], leiloes: Leilao[]): EventSegment[] {
   const segments: EventSegment[] = [];
 
   for (const l of leiloes) {
+    if (!l.dataInicio || !l.dataFim) continue;
     const start = parseISO(l.dataInicio);
     const end   = parseISO(l.dataFim);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
     if (isBefore(weekEnd, start) || isBefore(end, weekStart)) continue;
     const clippedStart = isBefore(start, weekStart) ? weekStart : start;
     const clippedEnd   = isAfter(end,   weekEnd)    ? weekEnd   : end;
@@ -127,8 +129,11 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: P
     horizon.setDate(horizon.getDate() + 60);
     return [...leiloes]
       .filter(l => {
+        if (!l.dataInicio || !l.dataFim) return false;
         const start = parseISO(l.dataInicio);
-        return !isBefore(parseISO(l.dataFim), today) && !isAfter(start, horizon);
+        const end   = parseISO(l.dataFim);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
+        return !isBefore(end, today) && !isAfter(start, horizon);
       })
       .sort((a, b) => a.dataInicio.localeCompare(b.dataInicio));
   }, [leiloes]);
