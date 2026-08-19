@@ -229,8 +229,9 @@ export function LancesPanel({ leiloes }: Props) {
 
       {/* Cards de resumo — excluir finalizados, agrupar por casa, ordem cronológica */}
       {(() => {
+        const VISIVEIS: string[] = ['convite_catalogo', 'venda_pos_leilao'];
         const ativos = leiloes
-          .filter(l => l.status !== 'finalizado')
+          .filter(l => VISIVEIS.includes(l.status ?? ''))
           .sort((a, b) => a.dataInicio.localeCompare(b.dataInicio));
 
         if (ativos.length === 0) return (
