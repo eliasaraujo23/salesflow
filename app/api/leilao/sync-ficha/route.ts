@@ -7,29 +7,32 @@ const UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
-interface Conta { user: string; pass: string; prefixo: string; cor: string }
+interface Conta { user: string; pass: string; prefixo: string; cor: string; numLeilao: string }
 
 function getContas(): Conta[] {
   const contas: Conta[] = [];
   const eu = process.env.LEILOESBR_USER_ETERNNO;
   const ep = process.env.LEILOESBR_PASS_ETERNNO;
-  if (eu && ep) contas.push({ user: eu, pass: ep, prefixo: 'ETERNNO', cor: '#16a34a' });
+  const en = process.env.LEILOESBR_NUM_ETERNNO ?? '';
+  if (eu && ep) contas.push({ user: eu, pass: ep, prefixo: 'ETERNNO', cor: '#16a34a', numLeilao: en });
   const bu = process.env.LEILOESBR_USER_BARAUJO;
   const bp = process.env.LEILOESBR_PASS_BARAUJO;
-  if (bu && bp) contas.push({ user: bu, pass: bp, prefixo: 'BRUNO',   cor: '#ea580c' });
+  const bn = process.env.LEILOESBR_NUM_BARAUJO ?? '';
+  if (bu && bp) contas.push({ user: bu, pass: bp, prefixo: 'BRUNO',   cor: '#ea580c', numLeilao: bn });
   return contas;
 }
 
-async function login(user: string, pass: string): Promise<string> {
-  const initRes  = await fetch(`${BASE}/default.asp?Log=off`, { headers: { 'User-Agent': UA }, redirect: 'follow' });
+async function login(user: string, pass: string, numLeilao: string): Promise<string> {
+  const initRes   = await fetch(`${BASE}/default.asp?Log=off`, { headers: { 'User-Agent': UA }, redirect: 'follow' });
   const sessionId = (initRes.headers.get('set-cookie') ?? '').match(/ASPSESSIONID\w+=\w+/i)?.[0] ?? '';
   const loginRes  = await fetch(`${BASE}/default.asp`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': sessionId, 'User-Agent': UA },
-    body:    new URLSearchParams({ Login: user, Senha: pass, NumLeilao: '', Acessar: 'Acessar' }).toString(),
+    body:    new URLSearchParams({ Login: user, Senha: pass, NumLeilao: numLeilao, Acessar: 'Acessar' }).toString(),
     redirect: 'manual',
   });
-  return (loginRes.headers.get('set-cookie') ?? '').match(/ASPSESSIONID\w+=\w+/i)?.[0] ?? sessionId;
+  const newCookie = (loginRes.headers.get('set-cookie') ?? '').match(/ASPSESSIONID\w+=\w+/i)?.[0];
+  return newCookie ?? sessionId;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -67,7 +70,7 @@ interface LeilaoRemoto {
 }
 
 async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
-  const cookie = await login(conta.user, conta.pass);
+  const cookie = await login(conta.user, conta.pass, conta.numLeilao);
 
   // listar_leiloes.asp — tabela com todos os leilões da conta
   const res = await fetch(`${BASE}/listar_leiloes.asp`, {
@@ -152,7 +155,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   if (!conta) return NextResponse.json({ error: 'Sem credenciais' }, { status: 500 });
 
   try {
-    const cookie = await login(conta.user, conta.pass);
+    const cookie = await login(conta.user, conta.pass, conta.numLeilao);
 
     // ?lista=1 — HTML bruto da listagem
     if (searchParams.get('lista') === '1') {
@@ -171,7 +174,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     if (!leilao) return NextResponse.json({ error: 'Parâmetro: leilao ou lista=1' }, { status: 400 });
 
     const res = await fetch(`${BASE}/cad_leilao.asp?Num=${encodeURIComponent(leilao)}`, {
-      headers: { 'Cookie': cookie, 'User-Agent': UA },
+      headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_leiloes.asp` },
       redirect: 'follow',
       signal: AbortSignal.timeout(20_000),
     });
