@@ -64,10 +64,16 @@ function ResumoCard({ leilao, selected, onClick }: ResumoCardProps) {
 
   useEffect(() => { load(); }, [load]);
 
-  const vencendoRows = lances?.filter(r => r.status.toLowerCase().includes('vencendo')) ?? [];
-  const volume       = vencendoRows.reduce((s, r) => s + r.valor, 0);
-  const lotes        = new Set(lances?.map(r => r.lote) ?? []).size;
-  const vencendo     = vencendoRows.length;
+  // Para cada lote, pegar só o lance de maior valor (o vencedor atual)
+  const melhorPorLote = Object.values(
+    (lances ?? []).reduce<Record<number, Lance>>((acc, r) => {
+      if (!acc[r.lote] || r.valor > acc[r.lote].valor) acc[r.lote] = r;
+      return acc;
+    }, {})
+  );
+  const lotes    = new Set(lances?.map(r => r.lote) ?? []).size;
+  const vencendo = melhorPorLote.filter(r => r.status.toLowerCase().includes('vencendo')).length;
+  const volume   = melhorPorLote.reduce((s, r) => s + r.valor, 0);
 
   return (
     <button
@@ -195,11 +201,18 @@ export function LancesPanel({ leiloes }: Props) {
     });
   }, [lances, search, sortKey, sortDir]);
 
-  const totalLances    = filtered.length;
-  const vencendoFilt   = filtered.filter(r => r.status.toLowerCase().includes('vencendo'));
-  const totalVol       = vencendoFilt.reduce((s, r) => s + r.valor, 0);
-  const vencendo       = vencendoFilt.length;
-  const uniqueLotes    = new Set(filtered.map(r => r.lote)).size;
+  const totalLances = filtered.length;
+  const uniqueLotes = new Set(filtered.map(r => r.lote)).size;
+
+  // Para cada lote, pegar só o lance de maior valor (o vencedor atual)
+  const melhorPorLoteDet = Object.values(
+    filtered.reduce<Record<number, Lance>>((acc, r) => {
+      if (!acc[r.lote] || r.valor > acc[r.lote].valor) acc[r.lote] = r;
+      return acc;
+    }, {})
+  );
+  const vencendo = melhorPorLoteDet.filter(r => r.status.toLowerCase().includes('vencendo')).length;
+  const totalVol = melhorPorLoteDet.reduce((s, r) => s + r.valor, 0);
 
   function SortIcon({ col }: { col: SortKey }) {
     if (sortKey !== col) return <ChevronsUpDown size={10} className="opacity-30" />;
