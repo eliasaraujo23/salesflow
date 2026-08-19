@@ -177,19 +177,7 @@ async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
     leiloes[idx].dataFim    = f.dataFim;
   });
 
-  // Filtra só mês atual e próximo mês (por dataFim)
-  const now       = new Date();
-  const thisMonth = now.getFullYear() * 100 + now.getMonth();       // ex: 202608
-  const nextMonth = now.getMonth() === 11
-    ? (now.getFullYear() + 1) * 100 + 0
-    : now.getFullYear() * 100 + now.getMonth() + 1;
-
-  return leiloes.filter(l => {
-    if (!l.dataFim) return false; // sem data = não importa
-    const [y, m] = l.dataFim.split('-').map(Number);
-    const lMonth = y * 100 + (m - 1);
-    return lMonth === thisMonth || lMonth === nextMonth;
-  });
+  return leiloes;
 }
 
 // ─── Rota POST — retorna lista de leilões de todas as contas ──────────────────
@@ -210,7 +198,21 @@ export async function POST(): Promise<NextResponse> {
     if (todos.length === 0)
       return NextResponse.json({ error: 'Nenhum leilão encontrado nas contas' }, { status: 500 });
 
-    return NextResponse.json({ leiloes: todos });
+    // Filtra só mês atual e próximo (por dataFim); sem data passa pra não perder nada
+    const now       = new Date();
+    const thisYM    = now.getFullYear() * 100 + now.getMonth();
+    const nextYM    = now.getMonth() === 11
+      ? (now.getFullYear() + 1) * 100 + 0
+      : now.getFullYear() * 100 + now.getMonth() + 1;
+
+    const filtrados = todos.filter(l => {
+      if (!l.dataFim) return true; // sem data: mantém (pode ser falha de leitura)
+      const [y, m] = l.dataFim.split('-').map(Number);
+      const lYM = y * 100 + (m - 1);
+      return lYM === thisYM || lYM === nextYM;
+    });
+
+    return NextResponse.json({ leiloes: filtrados });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Erro interno' }, { status: 500 });
   }
