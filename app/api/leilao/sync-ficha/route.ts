@@ -14,7 +14,7 @@ function getContas(): Conta[] {
   const eu = process.env.LEILOESBR_USER_ETERNNO;
   const ep = process.env.LEILOESBR_PASS_ETERNNO;
   const en = process.env.LEILOESBR_NUM_ETERNNO ?? '';
-  if (eu && ep) contas.push({ user: eu, pass: ep, prefixo: 'ETERNNO', cor: '#16a34a', numLeilao: en });
+  if (eu && ep) contas.push({ user: eu, pass: ep, prefixo: 'ETERNNO', cor: '#0d9488', numLeilao: en });
   const bu = process.env.LEILOESBR_USER_BARAUJO;
   const bp = process.env.LEILOESBR_PASS_BARAUJO;
   const bn = process.env.LEILOESBR_NUM_BARAUJO ?? '';
@@ -67,6 +67,7 @@ interface LeilaoRemoto {
   dataInicio:      string;
   dataFim:         string;
   cor:             string;
+  observacao:      string;
 }
 
 async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
@@ -95,15 +96,22 @@ async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
 
     // Nome curto: só o prefixo da conta (ex: "ETERNNO", "BRUNO TOP")
     // O título completo vai em observacao para referência
-    const nomeBase = titulo.replace(/\s*-\s*(Janeiro|Fevereiro|Março|Abril|Maio|Junho|Julho|Agosto|Setembro|Outubro|Novembro|Dezembro).*$/i, '').trim();
+    const isTop = /alto\s*luxo|top/i.test(titulo);
+    const tipo  = isTop ? `${conta.prefixo} TOP` : conta.prefixo;
+
+    // Cores conforme TIPOS_LEILAO no modal
+    const COR_TOP: Record<string, string> = { ETERNNO: '#2563eb', BRUNO: '#d97706', '24K': '#db2777' };
+    const cor = isTop ? (COR_TOP[conta.prefixo] ?? conta.cor) : conta.cor;
+
     leiloes.push({
       codigoPlatforma: num,
-      nome:            nomeBase,
+      nome:            tipo,
       numero,
       status:          'convite_catalogo',
       dataInicio:      '',
       dataFim:         '',
-      cor:             conta.cor,
+      cor,
+      observacao:      titulo,
     });
   }
 

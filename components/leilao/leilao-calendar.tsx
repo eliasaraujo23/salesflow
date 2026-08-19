@@ -78,13 +78,12 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: P
     try {
       const res  = await fetch('/api/leilao/sync-ficha', { method: 'POST' });
       const data = await res.json() as {
-        leiloes?: Array<{ codigoPlatforma: string; nome: string; numero: string; status: string; dataInicio: string; dataFim: string; cor: string }>;
+        leiloes?: Array<{ codigoPlatforma: string; nome: string; numero: string; status: string; dataInicio: string; dataFim: string; cor: string; observacao: string }>;
         error?: string;
       };
       if (data.error) { toast.error(data.error); return; }
 
       const remotos = data.leiloes ?? [];
-      const STATUS_VISIVEIS = new Set(['convite', 'convite_catalogo', 'venda_pos_leilao']);
 
       // Mapa dos leilões existentes por codigoPlatforma
       const existMap = new Map(leiloes.filter(l => l.codigoPlatforma).map(l => [l.codigoPlatforma, l]));
@@ -93,14 +92,11 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: P
       for (const r of remotos) {
         const existente = existMap.get(r.codigoPlatforma);
         if (existente) {
-          // Não sobrescreve status local — preserva o que o usuário definiu
-          // Só atualiza nome (sem datas pois o sync não as tem)
-          onUpdate({ ...existente, nome: r.nome });
+          // Não sobrescreve status nem datas locais — só atualiza tipo (nome) e cor
+          onUpdate({ ...existente, nome: r.nome, cor: r.cor, observacao: r.observacao || existente.observacao });
           atualizados++;
         } else {
-          // Só não cria se o usuário já tem marcado como finalizado localmente
-          // (não há como saber o status real sem consulta individual)
-          onCreate({ codigoPlatforma: r.codigoPlatforma, nome: r.nome, numero: r.numero, status: 'convite_catalogo', dataInicio: '', dataFim: '', cor: r.cor, observacao: '' });
+          onCreate({ codigoPlatforma: r.codigoPlatforma, nome: r.nome, numero: r.numero, status: 'convite_catalogo', dataInicio: '', dataFim: '', cor: r.cor, observacao: r.observacao });
           criados++;
         }
       }

@@ -4,8 +4,8 @@ const BASE = 'https://leiloesbr.com.br/painel_lbr';
 
 function getCreds(nome: string, cor?: string): { user: string; pass: string } | null {
   // Detecta por cor primeiro (mais confiável), depois por nome como fallback
-  const isEternno = cor === '#16a34a' || nome.toUpperCase().startsWith('ETERNNO');
-  const isBruno   = cor === '#ea580c' || nome.toUpperCase().startsWith('BRUNO');
+  const isEternno = cor === '#16a34a' || cor === '#0d9488' || cor === '#2563eb' || nome.toUpperCase().startsWith('ETERNNO');
+  const isBruno   = cor === '#ea580c' || cor === '#d97706' || nome.toUpperCase().startsWith('BRUNO');
   if (isEternno) {
     const user = process.env.LEILOESBR_USER_ETERNNO;
     const pass = process.env.LEILOESBR_PASS_ETERNNO;
