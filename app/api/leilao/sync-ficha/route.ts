@@ -57,7 +57,21 @@ function parseDate(raw: string): string {
   return `${m[3]}-${m[2]}-${m[1]}`;
 }
 
-// ─── Buscar ficha individual (login dedicado por leilão) ─────────────────────
+// ─── Trocar leilão ativo e buscar ficha ──────────────────────────────────────
+
+async function trocarLeilao(cookie: string, num: string): Promise<string> {
+  // trocar_leilao.asp?A=Md&Id=NUM → 302 → default.asp (troca o leilão ativo na sessão)
+  // Usamos redirect:'manual' para capturar o Set-Cookie do 302 antes de seguir
+  const res = await fetch(`${BASE}/trocar_leilao.asp?A=Md&Id=${encodeURIComponent(num)}`, {
+    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_trocar_leilao.asp` },
+    redirect: 'manual',
+    signal: AbortSignal.timeout(10_000),
+  });
+  // Pega novo cookie do 302 se houver; senão mantém o atual
+  const setCookie = res.headers.get('set-cookie') ?? '';
+  const newCookie = setCookie.match(/ASPSESSIONID\w+=\w+/i)?.[0];
+  return newCookie ?? cookie;
+}
 
 function parseFicha(html: string): { status: string; dataInicio: string; dataFim: string } {
   const statusMatch = html.match(/<select[^>]+name=["']?Status["']?[^>]*>([\s\S]*?)<\/select>/i);
@@ -80,14 +94,11 @@ function parseFicha(html: string): { status: string; dataInicio: string; dataFim
   };
 }
 
-async function fetchFicha(conta: Conta, num: string): Promise<{ status: string; dataInicio: string; dataFim: string; _debug?: string }> {
+async function fetchFicha(cookie: string, num: string): Promise<{ status: string; dataInicio: string; dataFim: string; _debug?: string }> {
   try {
-    // Login dedicado com NumLeilao já preenchido — garante sessão no leilão certo
-    const cookie = await login(conta.user, conta.pass, num);
-
-    // Após login com NumLeilao=num, a sessão já está no leilão correto
+    const sessionCookie = await trocarLeilao(cookie, num);
     const res = await fetch(`${BASE}/cadleilao.asp?Leilao=${encodeURIComponent(num)}`, {
-      headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/default.asp` },
+      headers: { 'Cookie': sessionCookie, 'User-Agent': UA, 'Referer': `${BASE}/default.asp` },
       redirect: 'follow',
       signal: AbortSignal.timeout(20_000),
     });
@@ -175,10 +186,10 @@ async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
     });
   }
 
-  // Login individual por leilão — cada um abre sessão própria com NumLeilao correto
-  // Concorrência 3 para não sobrecarregar o servidor
-  const tasks = leiloes.map(l => () => fetchFicha(conta, l.codigoPlatforma));
-  const fichas = await pLimit(tasks, 3);
+  // Troca leilão ativo via trocar_leilao.asp (mesma sessão, redirect:manual)
+  // Concorrência 2 — sessão compartilhada, não pode trocar muito rápido
+  const tasks = leiloes.map(l => () => fetchFicha(cookie, l.codigoPlatforma));
+  const fichas = await pLimit(tasks, 2);
   fichas.forEach((f, idx) => {
     leiloes[idx].status     = f.status;
     leiloes[idx].dataInicio = f.dataInicio;
