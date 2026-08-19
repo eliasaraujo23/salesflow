@@ -59,10 +59,12 @@ function parseDate(raw: string): string {
 
 // ─── Buscar ficha individual (datas + status) ─────────────────────────────────
 
-async function fetchFicha(cookie: string, num: string): Promise<{ status: string; dataInicio: string; dataFim: string }> {
+async function fetchFicha(conta: Conta, num: string): Promise<{ status: string; dataInicio: string; dataFim: string }> {
   try {
+    // Login com o número do próprio leilão — cadleilao.asp só abre com a sessão do leilão correto
+    const cookie = await login(conta.user, conta.pass, num);
     const res = await fetch(`${BASE}/cadleilao.asp?Leilao=${encodeURIComponent(num)}`, {
-      headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_leiloes.asp` },
+      headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/default.asp` },
       redirect: 'follow',
       signal: AbortSignal.timeout(15_000),
     });
@@ -165,9 +167,10 @@ async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
     });
   }
 
-  // Busca datas e status de cada leilão em paralelo (concorrência 8)
-  const tasks = leiloes.map(l => () => fetchFicha(cookie, l.codigoPlatforma));
-  const fichas = await pLimit(tasks, 8);
+  // Busca datas e status de cada leilão em paralelo (concorrência 5)
+  // Cada ficha precisa de login próprio com o número do leilão
+  const tasks = leiloes.map(l => () => fetchFicha(conta, l.codigoPlatforma));
+  const fichas = await pLimit(tasks, 5);
   fichas.forEach((f, idx) => {
     leiloes[idx].status     = f.status;
     leiloes[idx].dataInicio = f.dataInicio;
