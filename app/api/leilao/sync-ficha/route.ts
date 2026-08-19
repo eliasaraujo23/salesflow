@@ -206,7 +206,7 @@ export async function POST(): Promise<NextResponse> {
       : now.getFullYear() * 100 + now.getMonth() + 1;
 
     const filtrados = todos.filter(l => {
-      if (!l.dataFim) return true; // sem data: mantém (pode ser falha de leitura)
+      if (!l.dataFim) return false; // sem data = ficha não lida ou leilão sem data cadastrada
       const [y, m] = l.dataFim.split('-').map(Number);
       const lYM = y * 100 + (m - 1);
       return lYM === thisYM || lYM === nextYM;
