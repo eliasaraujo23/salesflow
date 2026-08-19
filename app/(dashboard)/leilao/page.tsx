@@ -60,7 +60,7 @@ export default function LeilaoPage() {
 
   return (
     <div className="h-full overflow-hidden p-3 sm:p-6 flex flex-col">
-      <LeilaoCalendar leiloes={leiloes} onAdd={handleAdd} onEdit={handleEdit} />
+      <LeilaoCalendar leiloes={leiloes} onAdd={handleAdd} onEdit={handleEdit} onUpdate={update} />
       <LeilaoModal
         open={modalOpen}
         onClose={handleClose}

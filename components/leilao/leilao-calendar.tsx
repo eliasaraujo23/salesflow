@@ -7,13 +7,15 @@ import {
   eachDayOfInterval, isToday,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import type { Leilao } from '@/lib/hooks/use-leiloes';
 
 interface Props {
-  leiloes: Leilao[];
-  onAdd:  (date?: string) => void;
-  onEdit: (leilao: Leilao) => void;
+  leiloes:  Leilao[];
+  onAdd:    (date?: string) => void;
+  onEdit:   (leilao: Leilao) => void;
+  onUpdate: (leilao: Leilao) => void;
 }
 
 const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -60,11 +62,39 @@ function getSegments(week: Date[], leiloes: Leilao[]): EventSegment[] {
   return segments.sort((a, b) => a.colStart - b.colStart);
 }
 
-export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
+export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate }: Props) {
   const [currentDate, setCurrentDate] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
+  const [syncing, setSyncing] = useState(false);
+
+  async function handleSync() {
+    const comCodigo = leiloes.filter(l => l.codigoPlatforma?.trim());
+    if (comCodigo.length === 0) { toast.error('Nenhum leilão com código da plataforma'); return; }
+
+    setSyncing(true);
+    let ok = 0, fail = 0;
+
+    await Promise.all(comCodigo.map(async l => {
+      try {
+        const params = new URLSearchParams({ leilao: l.codigoPlatforma, nome: l.nome });
+        const res  = await fetch(`/api/leilao/sync-ficha?${params}`);
+        const data = await res.json() as { status?: string; dataInicio?: string; dataFim?: string; error?: string };
+        if (data.error) { fail++; return; }
+        const patch: Partial<Leilao> = {};
+        if (data.status    && data.status    !== l.status)    patch.status    = data.status    as Leilao['status'];
+        if (data.dataInicio && data.dataInicio !== l.dataInicio) patch.dataInicio = data.dataInicio;
+        if (data.dataFim    && data.dataFim    !== l.dataFim)   patch.dataFim   = data.dataFim;
+        if (Object.keys(patch).length > 0) onUpdate({ ...l, ...patch });
+        ok++;
+      } catch { fail++; }
+    }));
+
+    setSyncing(false);
+    if (fail === 0) toast.success(`${ok} leilão${ok !== 1 ? 'es' : ''} sincronizado${ok !== 1 ? 's' : ''}`);
+    else            toast.warning(`${ok} sincronizados, ${fail} com erro`);
+  }
 
   const year  = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -115,8 +145,16 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
             <ChevronRight size={16} />
           </button>
           <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="ml-2 flex items-center gap-1.5 px-3 py-1.5 border border-zinc-200 dark:border-white/[0.12] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06] rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+            Sincronizar
+          </button>
+          <button
             onClick={() => onAdd()}
-            className="ml-2 flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
           >
             <Plus size={14} />
             Novo Leilão
