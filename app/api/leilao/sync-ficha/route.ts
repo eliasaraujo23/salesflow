@@ -104,8 +104,8 @@ async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
     });
   }
 
-  // Retorna só os 10 mais recentes (lista vem do mais novo para o mais antigo)
-  return leiloes.slice(0, 10);
+  // Retorna só os 6 mais recentes (~3 meses, lista vem do mais novo para o mais antigo)
+  return leiloes.slice(0, 6);
 }
 
 // ─── Rota POST — retorna lista de leilões de todas as contas ──────────────────
