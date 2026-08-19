@@ -72,56 +72,40 @@ interface LeilaoRemoto {
 async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
   const cookie = await login(conta.user, conta.pass, conta.numLeilao);
 
-  // listar_leiloes.asp — tabela com todos os leilões da conta
-  const res = await fetch(`${BASE}/listar_leiloes.asp`, {
-    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_leiloes.asp` },
+  // listar_trocar_leilao.asp — lista completa usada pelo dropdown de seleção de leilão
+  const res = await fetch(`${BASE}/listar_trocar_leilao.asp`, {
+    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/default.asp` },
     redirect: 'follow',
     signal:   AbortSignal.timeout(25_000),
   });
   const html = await res.text();
 
   const leiloes: LeilaoRemoto[] = [];
-  // Cada linha da tabela: <tr> com células Num, Título, Status, DtInicio, DtFim
-  // Formato típico: link para cad_leilao.asp?Id=XXXXX com o número
-  const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-  for (const rowMatch of html.matchAll(rowRe)) {
-    const cells = [...rowMatch[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)]
-      .map(m => cleanHtml(m[1]));
-    if (cells.length < 3) continue;
 
-    // Número do leilão: primeira célula com só dígitos (5-6 chars)
-    const num = cells.find(c => /^\d{4,6}$/.test(c.trim()));
-    if (!num) continue;
+  // Formato: data-info="63873 - ETERNNO - 65º Leilão de Joias..."
+  const rowRe = /data-info="(\d+)\s*-\s*[^-]+-\s*([^"]+)"/gi;
+  for (const m of html.matchAll(rowRe)) {
+    const num   = m[1].trim();
+    const titulo = m[2].trim();
+    if (!num || !titulo) continue;
 
-    // Status: célula que contém palavras chave conhecidas
-    const statusRaw = cells.find(c => {
-      const cl = c.toLowerCase();
-      return cl.includes('convite') || cl.includes('captando') ||
-             cl.includes('finaliz') || cl.includes('venda');
-    }) ?? '';
-
-    // Datas: células no formato dd/mm/yyyy
-    const datas = cells.filter(c => /^\d{2}\/\d{2}\/\d{4}$/.test(c.trim()));
-
-    // Título: célula mais longa que não é data nem número
-    const titulo = cells.find(c => c.length > 10 && !/^\d+$/.test(c) && !/^\d{2}\//.test(c)) ?? '';
-
-    // Número sequencial (#XX) extraído do título
-    const seqMatch = titulo.match(/^(\d+)[ºª°]/);
-    const numero = seqMatch ? seqMatch[1] : num;
+    // Número sequencial extraído do título (ex: "65º" → "65")
+    const seqMatch = titulo.match(/^#?(\d+)[ºª°]/);
+    const numero   = seqMatch ? seqMatch[1] : num;
 
     leiloes.push({
-      codigoPlatforma: num.trim(),
+      codigoPlatforma: num,
       nome:            `${conta.prefixo} ${titulo}`.trim(),
       numero,
-      status:          mapStatus(statusRaw),
-      dataInicio:      datas[0] ? parseDate(datas[0]) : '',
-      dataFim:         datas[1] ? parseDate(datas[1]) : datas[0] ? parseDate(datas[0]) : '',
+      status:          'convite_catalogo',
+      dataInicio:      '',
+      dataFim:         '',
       cor:             conta.cor,
     });
   }
 
-  return leiloes;
+  // Retorna só os 10 mais recentes (lista vem do mais novo para o mais antigo)
+  return leiloes.slice(0, 10);
 }
 
 // ─── Rota POST — retorna lista de leilões de todas as contas ──────────────────
