@@ -92,11 +92,28 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit, onUpdate, onCreate }: P
       for (const r of remotos) {
         const existente = existMap.get(r.codigoPlatforma);
         if (existente) {
-          // Não sobrescreve status nem datas locais — só atualiza tipo (nome) e cor
-          onUpdate({ ...existente, nome: r.nome, cor: r.cor, observacao: r.observacao || existente.observacao });
+          // Atualiza tipo (nome), cor, datas e status vindos da plataforma
+          onUpdate({
+            ...existente,
+            nome:       r.nome,
+            cor:        r.cor,
+            dataInicio: r.dataInicio || existente.dataInicio,
+            dataFim:    r.dataFim    || existente.dataFim,
+            status:     (r.status as Leilao['status']) || existente.status,
+            observacao: r.observacao || existente.observacao,
+          });
           atualizados++;
         } else {
-          onCreate({ codigoPlatforma: r.codigoPlatforma, nome: r.nome, numero: r.numero, status: 'convite_catalogo', dataInicio: '', dataFim: '', cor: r.cor, observacao: r.observacao });
+          onCreate({
+            codigoPlatforma: r.codigoPlatforma,
+            nome:            r.nome,
+            numero:          r.numero,
+            status:          (r.status as Leilao['status']) || 'convite_catalogo',
+            dataInicio:      r.dataInicio,
+            dataFim:         r.dataFim,
+            cor:             r.cor,
+            observacao:      r.observacao,
+          });
           criados++;
         }
       }

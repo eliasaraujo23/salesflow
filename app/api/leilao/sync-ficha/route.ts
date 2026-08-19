@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const BASE = 'https://www.leiloesbr.com.br/painel_lbr';
 const UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
@@ -55,6 +55,47 @@ function parseDate(raw: string): string {
   const m = raw.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!m) return '';
   return `${m[3]}-${m[2]}-${m[1]}`;
+}
+
+// ─── Buscar ficha individual (datas + status) ─────────────────────────────────
+
+async function fetchFicha(cookie: string, num: string): Promise<{ status: string; dataInicio: string; dataFim: string }> {
+  try {
+    const res = await fetch(`${BASE}/cad_leilao.asp?Num=${encodeURIComponent(num)}`, {
+      headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_leiloes.asp` },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(15_000),
+    });
+    const html = await res.text();
+    const statusMatch = html.match(/<select[^>]+name=["']?Status["']?[^>]*>([\s\S]*?)<\/select>/i);
+    let rawStatus = '';
+    if (statusMatch) {
+      const opt = statusMatch[1].match(/<option[^>]+selected[^>]*>([\s\S]*?)<\/option>/i);
+      if (opt) rawStatus = cleanHtml(opt[1]);
+    }
+    const dtInicioMatch = html.match(/name=["']?DtInicio["']?[^>]+value=["']([^"']+)["']/i);
+    const dtFimMatch    = html.match(/name=["']?DtFim["']?[^>]+value=["']([^"']+)["']/i);
+    return {
+      status:     rawStatus ? mapStatus(rawStatus) : 'convite_catalogo',
+      dataInicio: dtInicioMatch ? parseDate(dtInicioMatch[1]) : '',
+      dataFim:    dtFimMatch    ? parseDate(dtFimMatch[1])    : '',
+    };
+  } catch {
+    return { status: 'convite_catalogo', dataInicio: '', dataFim: '' };
+  }
+}
+
+async function pLimit<T>(tasks: (() => Promise<T>)[], concurrency: number): Promise<T[]> {
+  const results: T[] = [];
+  let i = 0;
+  async function worker() {
+    while (i < tasks.length) {
+      const idx = i++;
+      results[idx] = await tasks[idx]();
+    }
+  }
+  await Promise.all(Array.from({ length: concurrency }, worker));
+  return results;
 }
 
 // ─── Buscar lista de leilões de uma conta ─────────────────────────────────────
@@ -114,6 +155,15 @@ async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
       observacao:      titulo,
     });
   }
+
+  // Busca datas e status de cada leilão em paralelo (concorrência 8)
+  const tasks = leiloes.map(l => () => fetchFicha(cookie, l.codigoPlatforma));
+  const fichas = await pLimit(tasks, 8);
+  fichas.forEach((f, idx) => {
+    leiloes[idx].status     = f.status;
+    leiloes[idx].dataInicio = f.dataInicio;
+    leiloes[idx].dataFim    = f.dataFim;
+  });
 
   return leiloes;
 }
