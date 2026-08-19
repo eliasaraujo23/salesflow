@@ -62,6 +62,8 @@ export default function LeilaoPage() {
   function handleClearAll() {
     if (!confirm(`Apagar todos os ${leiloes.length} leilões do Firestore?`)) return;
     leiloes.forEach(l => remove(l.id));
+    // Limpa localStorage legado para evitar que a migração os restaure
+    try { localStorage.removeItem('goldtech_leiloes_v1'); } catch {}
     toast.success(`${leiloes.length} leilões removidos`);
   }
 
