@@ -64,16 +64,9 @@ function ResumoCard({ leilao, selected, onClick }: ResumoCardProps) {
 
   useEffect(() => { load(); }, [load]);
 
-  // Para cada lote, pegar só o lance de maior valor (o vencedor atual)
-  const melhorPorLote = Object.values(
-    (lances ?? []).reduce<Record<number, Lance>>((acc, r) => {
-      if (!acc[r.lote] || r.valor > acc[r.lote].valor) acc[r.lote] = r;
-      return acc;
-    }, {})
-  );
+  const volume   = lances?.reduce((s, r) => s + r.valor, 0) ?? 0;
   const lotes    = new Set(lances?.map(r => r.lote) ?? []).size;
-  const vencendo = melhorPorLote.filter(r => r.status.toLowerCase().includes('vencendo')).length;
-  const volume   = melhorPorLote.reduce((s, r) => s + r.valor, 0);
+  const vencendo = lances?.filter(r => r.status.toLowerCase().includes('vencendo')).length ?? 0;
 
   return (
     <button
@@ -127,7 +120,7 @@ function ResumoCard({ leilao, selected, onClick }: ResumoCardProps) {
             </p>
           </div>
           <div>
-            <p className="text-[9px] text-zinc-400 uppercase tracking-wide">Vol. vencendo</p>
+            <p className="text-[9px] text-zinc-400 uppercase tracking-wide">Volume</p>
             <p className="text-sm font-bold tabular-nums text-zinc-800 dark:text-zinc-100">{fmtBRL(volume)}</p>
           </div>
         </div>
@@ -202,17 +195,9 @@ export function LancesPanel({ leiloes }: Props) {
   }, [lances, search, sortKey, sortDir]);
 
   const totalLances = filtered.length;
+  const totalValor  = filtered.reduce((s, r) => s + r.valor, 0);
+  const vencendo    = filtered.filter(r => r.status.toLowerCase().includes('vencendo')).length;
   const uniqueLotes = new Set(filtered.map(r => r.lote)).size;
-
-  // Para cada lote, pegar só o lance de maior valor (o vencedor atual)
-  const melhorPorLoteDet = Object.values(
-    filtered.reduce<Record<number, Lance>>((acc, r) => {
-      if (!acc[r.lote] || r.valor > acc[r.lote].valor) acc[r.lote] = r;
-      return acc;
-    }, {})
-  );
-  const vencendo = melhorPorLoteDet.filter(r => r.status.toLowerCase().includes('vencendo')).length;
-  const totalVol = melhorPorLoteDet.reduce((s, r) => s + r.valor, 0);
 
   function SortIcon({ col }: { col: SortKey }) {
     if (sortKey !== col) return <ChevronsUpDown size={10} className="opacity-30" />;
@@ -227,47 +212,24 @@ export function LancesPanel({ leiloes }: Props) {
         <p className="text-[11px] text-zinc-400">Resumo por leilão — clique para ver os detalhes</p>
       </div>
 
-      {/* Cards de resumo — excluir finalizados, agrupar por casa, ordem cronológica */}
-      {(() => {
-        const ativos = leiloes
-          .filter(l => l.status !== 'finalizado' && l.status !== 'captando')
-          .sort((a, b) => a.dataInicio.localeCompare(b.dataInicio));
-
-        if (ativos.length === 0) return (
-          <div className="flex flex-col items-center gap-2 py-10 text-zinc-400">
-            <TrendingUp size={28} className="opacity-30" />
-            <p className="text-xs">Nenhum leilão ativo</p>
-          </div>
-        );
-
-        const grupos: { label: string; items: Leilao[] }[] = [];
-        const eternno = ativos.filter(l => l.nome.toUpperCase().startsWith('ETERNNO'));
-        const bruno   = ativos.filter(l => l.nome.toUpperCase().startsWith('BRUNO'));
-        const outros  = ativos.filter(l => !l.nome.toUpperCase().startsWith('ETERNNO') && !l.nome.toUpperCase().startsWith('BRUNO'));
-        if (eternno.length) grupos.push({ label: 'Eternno', items: eternno });
-        if (bruno.length)   grupos.push({ label: 'Bruno Araújo', items: bruno });
-        if (outros.length)  grupos.push({ label: 'Outros', items: outros });
-
-        return (
-          <div className="flex flex-col gap-4">
-            {grupos.map(grupo => (
-              <div key={grupo.label} className="flex flex-col gap-2">
-                <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">{grupo.label}</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {grupo.items.map(l => (
-                    <ResumoCard
-                      key={l.id}
-                      leilao={l}
-                      selected={selectedId === l.id}
-                      onClick={() => handleCardClick(l.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        );
-      })()}
+      {/* Cards de resumo */}
+      {leiloes.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 py-10 text-zinc-400">
+          <TrendingUp size={28} className="opacity-30" />
+          <p className="text-xs">Nenhum leilão ativo</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {leiloes.map(l => (
+            <ResumoCard
+              key={l.id}
+              leilao={l}
+              selected={selectedId === l.id}
+              onClick={() => handleCardClick(l.id)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Detalhe do leilão selecionado */}
       {selectedId && (
@@ -318,10 +280,10 @@ export function LancesPanel({ leiloes }: Props) {
               {/* KPIs */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: 'Lotes',          value: uniqueLotes },
-                  { label: 'Lances',         value: totalLances },
-                  { label: 'Vencendo',       value: vencendo, highlight: true },
-                  { label: 'Vol. vencendo',  value: fmtBRL(totalVol) },
+                  { label: 'Lotes',    value: uniqueLotes },
+                  { label: 'Lances',   value: totalLances },
+                  { label: 'Vencendo', value: vencendo, highlight: true },
+                  { label: 'Volume',   value: fmtBRL(totalValor) },
                 ].map(k => (
                   <div key={k.label} className="rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-zinc-900 px-4 py-3 flex flex-col gap-0.5">
                     <span className="text-[10px] text-zinc-400 uppercase tracking-wide">{k.label}</span>
