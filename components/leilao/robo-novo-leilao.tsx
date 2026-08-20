@@ -16,7 +16,7 @@ import {
   type RefDetailExtra,
 } from '@/lib/leilao-csv';
 import { fetchRefsDetail } from '@/lib/actions/fetch-refs-detail';
-import { useCadastrarPecas, buildPecasParaCadastrar } from '@/lib/hooks/use-cadastrar-pecas';
+import { useCadastrarPecas, buildPecasParaCadastrar, loteParaDia } from '@/lib/hooks/use-cadastrar-pecas';
 import { CadastrarPecasModal } from '@/components/leilao/cadastrar-pecas-modal';
 import { useLeilaoRegras } from '@/lib/hooks/use-leilao-regras';
 import { useTransferirPecas } from '@/lib/hooks/use-transferir-pecas';
@@ -136,6 +136,15 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
     return () => ctrl.abort();
   }, [novoLeilao, novoLeilaoSel, syncKey]);
 
+  const numDias = useMemo(() => {
+    if (!novoLeilaoSel?.dataInicio || !novoLeilaoSel?.dataFim) return 3;
+    const msPerDay = 86_400_000;
+    const diff = Math.round(
+      (new Date(novoLeilaoSel.dataFim).getTime() - new Date(novoLeilaoSel.dataInicio).getTime()) / msPerDay
+    );
+    return Math.max(1, diff + 1);
+  }, [novoLeilaoSel]);
+
   const oldFile = uploadedFiles.find(f => f.codigoPlatforma === selectedOld);
   // Filtra refs inválidas que possam ter chegado de uploads antigos (ex: linhas de diamantes)
   const oldRefs = oldFile
@@ -223,7 +232,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   function handleDownloadCadastrar() {
     if (pecasParaCadastrar.length === 0) return;
     downloadCsv(
-      generateCsvCadastrar(pecasParaCadastrar, startLote),
+      generateCsvCadastrar(pecasParaCadastrar, startLote, numDias),
       `cadastrar_pecas_leilao_${novoLeilao || 'novo'}.csv`,
     );
   }
@@ -423,7 +432,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
                   {!fetchingStartLote && pecasParaCadastrar.length > 0 && (
                     <span className="text-[10px] text-zinc-400 whitespace-nowrap">
                       até {startLote + pecasParaCadastrar.length - 1}
-                      {' · '}D{startLote <= 200 ? '1' : startLote <= 400 ? '2' : '3'}
+                      {' · '}D{loteParaDia(startLote, numDias)}
                     </span>
                   )}
                 </div>
@@ -479,7 +488,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
         <CadastrarPecasModal
           open={cadastrarOpen}
           state={cadastrarState}
-          pecas={buildPecasParaCadastrar(pecasParaCadastrar, startLote)}
+          pecas={buildPecasParaCadastrar(pecasParaCadastrar, startLote, numDias)}
           leilaoNome={novoLeilaoSel?.nome}
           codigoPlatforma={novoLeilao || undefined}
           onClose={closeCadastrar}
@@ -493,6 +502,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
               nome:            novoLeilaoSel.nome,
               pecas: selected.map(p => ({
                 ...p,
+                dia: loteParaDia(p.lote, numDias),
                 ativarSite: !destExcluidos.has((refDest.get(p.referencia.toUpperCase()) ?? '').toLowerCase()),
               })),
             });

@@ -1,4 +1,5 @@
 import type { LeilaoBaseRow } from '@/lib/hooks/use-leilao-base';
+import { loteParaDia } from '@/lib/hooks/use-cadastrar-pecas';
 
 const PECA_MAX = 100;
 
@@ -14,16 +15,15 @@ function row(...fields: (string | number)[]): string {
 
 // Gera CSV para "Cadastrar Peças"
 // item;peca;lote;dia;preco_contratado;descricao;segunda_descricao
-export function generateCsvCadastrar(pieces: LeilaoBaseRow[], startLote: number): string {
+export function generateCsvCadastrar(pieces: LeilaoBaseRow[], startLote: number, numDias: number): string {
   const header = 'item;peca;lote;dia;preco_contratado;descricao;segunda_descricao';
   const rows = pieces.map((p, i) => {
     const lote     = startLote + i;
     const full     = sanitize(p.descricao_jewel ?? '');
-    const peca     = full.slice(0, PECA_MAX);          // máx 100 chars — limite do robô
+    const peca     = full.slice(0, PECA_MAX);
     const descFull = `${full} | REF: ${p.referencia}`;
     const preco    = Math.round(p.preco_avista ?? 0);
-    const dia = lote <= 200 ? 1 : lote <= 400 ? 2 : 3;
-    return row(lote, peca, lote, dia, preco, descFull, p.referencia);
+    return row(lote, peca, lote, loteParaDia(lote, numDias), preco, descFull, p.referencia);
   });
   return [header, ...rows].join('\n');
 }

@@ -3,6 +3,10 @@
 import { useState, useCallback, useRef } from 'react';
 import type { LeilaoBaseRow } from '@/lib/hooks/use-leilao-base';
 
+export function loteParaDia(lote: number, numDias: number): number {
+  return Math.min(numDias, Math.ceil(lote / 200));
+}
+
 const PECA_MAX = 100;
 
 function sanitize(s: string): string {
@@ -66,6 +70,7 @@ const CHUNK_SIZE = 50;
 export function buildPecasParaCadastrar(
   pieces:    LeilaoBaseRow[],
   startLote: number,
+  numDias:   number,
 ): PecaParaCadastrar[] {
   return pieces.map((p, i) => {
     const lote      = startLote + i;
@@ -76,7 +81,7 @@ export function buildPecasParaCadastrar(
       referencia:        p.referencia,
       lote,
       peca,
-      dia:               lote <= 200 ? 1 : lote <= 400 ? 2 : 3,
+      dia:               loteParaDia(lote, numDias),
       preco_contratado:  Math.round(p.preco_avista ?? 0),
       descricao,
       segunda_descricao: p.referencia,
