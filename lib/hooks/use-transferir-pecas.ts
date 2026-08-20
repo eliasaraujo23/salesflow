@@ -40,7 +40,7 @@ const INITIAL: TransferirPecasState = {
   chunkInfo:  '',
 };
 
-const CHUNK_SIZE = 50;
+const CHUNK_SIZE = 30;
 
 interface ExecuteParams {
   nome:          string;
