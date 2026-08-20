@@ -58,6 +58,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   const [novoLeilaoSel,    setNovoLeilaoSel]    = useState<Leilao | null>(null);
   const [novoOpen,              setNovoOpen]              = useState(false);
   const [startLote,             setStartLote]             = useState(1);
+  const [fetchingStartLote,     setFetchingStartLote]     = useState(false);
   const [limitQtd,              setLimitQtd]              = useState<number | ''>('' );
   const [transferStartLote,     setTransferStartLote]     = useState(1);
   const [countPecasDestino,     setCountPecasDestino]     = useState(0);
@@ -97,30 +98,41 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
   function clearNovoLeilao() {
     setNovoLeilao('');
     setNovoLeilaoSel(null);
+    setStartLote(1);
     setTransferStartLote(1);
     setCountPecasDestino(0);
     resetVerificar();
   }
 
-  // Ao selecionar leilão destino (ou após sync): detecta ultimoLote e reseta verificação
+  // Ao selecionar leilão novo (ou após sync): detecta ultimoLote para cadastrar + transferir
   useEffect(() => {
-    if (!novoLeilao || !novoLeilaoSel) return;
-    void syncKey; // re-dispara quando sync completar
+    if (!novoLeilao || !novoLeilaoSel) {
+      setStartLote(1);
+      setTransferStartLote(1);
+      setCountPecasDestino(0);
+      return;
+    }
+    void syncKey;
     const ctrl = new AbortController();
+    setFetchingStartLote(true);
     setFetchingUltimoLote(true);
     resetVerificar();
     fetch(`/api/leilao/ultimo-lote?leilao=${novoLeilao}&nome=${encodeURIComponent(novoLeilaoSel.nome)}`, { signal: ctrl.signal })
       .then(r => r.json())
       .then((data: { ultimoLote?: number; countPecas?: number; error?: string }) => {
         if (typeof data.ultimoLote === 'number') {
+          setStartLote(data.ultimoLote + 1);
           setTransferStartLote(data.ultimoLote + 1);
         }
         if (typeof data.countPecas === 'number') {
           setCountPecasDestino(data.countPecas);
         }
       })
-      .catch(() => { /* silencioso — usuário pode ajustar manualmente */ })
-      .finally(() => setFetchingUltimoLote(false));
+      .catch(() => {})
+      .finally(() => {
+        setFetchingStartLote(false);
+        setFetchingUltimoLote(false);
+      });
     return () => ctrl.abort();
   }, [novoLeilao, novoLeilaoSel, syncKey]);
 
@@ -397,15 +409,23 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
               <Stat value={newPieces.length} label="peças disponíveis" color="indigo" />
               <div className="w-px h-8 bg-zinc-100 dark:bg-white/[0.06]" />
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Lote inicial</label>
+                <label className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+                  Lote inicial{fetchingStartLote ? ' …' : ''}
+                </label>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="number" min={1}
-                    value={startLote}
-                    onChange={e => setStartLote(Math.max(1, Number(e.target.value)))}
-                    className="w-16 pl-2 pr-2 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 focus:outline-none focus:border-indigo-400 transition-colors"
-                  />
-                  <span className="text-[10px] text-zinc-400 whitespace-nowrap">até {startLote + pecasParaCadastrar.length - 1}</span>
+                  {fetchingStartLote ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+                  ) : (
+                    <span className="text-xs font-bold tabular-nums text-zinc-700 dark:text-zinc-200">
+                      {startLote}
+                    </span>
+                  )}
+                  {!fetchingStartLote && pecasParaCadastrar.length > 0 && (
+                    <span className="text-[10px] text-zinc-400 whitespace-nowrap">
+                      até {startLote + pecasParaCadastrar.length - 1}
+                      {' · '}D{startLote <= 200 ? '1' : startLote <= 400 ? '2' : '3'}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="w-px h-8 bg-zinc-100 dark:bg-white/[0.06]" />

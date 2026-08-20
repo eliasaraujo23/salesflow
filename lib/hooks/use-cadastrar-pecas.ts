@@ -76,7 +76,7 @@ export function buildPecasParaCadastrar(
       referencia:        p.referencia,
       lote,
       peca,
-      dia:               1,
+      dia:               lote <= 200 ? 1 : lote <= 400 ? 2 : 3,
       preco_contratado:  Math.round(p.preco_avista ?? 0),
       descricao,
       segunda_descricao: p.referencia,

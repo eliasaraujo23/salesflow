@@ -22,7 +22,8 @@ export function generateCsvCadastrar(pieces: LeilaoBaseRow[], startLote: number)
     const peca     = full.slice(0, PECA_MAX);          // máx 100 chars — limite do robô
     const descFull = `${full} | REF: ${p.referencia}`;
     const preco    = Math.round(p.preco_avista ?? 0);
-    return row(lote, peca, lote, 1, preco, descFull, p.referencia);
+    const dia = lote <= 200 ? 1 : lote <= 400 ? 2 : 3;
+    return row(lote, peca, lote, dia, preco, descFull, p.referencia);
   });
   return [header, ...rows].join('\n');
 }
