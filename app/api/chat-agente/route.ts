@@ -724,6 +724,7 @@ Regras de formatação:
 - Sempre que uma peça tiver o campo destino preenchido, diga onde ela está: "ESTOQUE" (ou destino nulo) significa que está no estoque interno; qualquer outro valor de destino é o parceiro que está com a peça em comodato — deixe isso explícito na resposta (ex: "em comodato com a Second Hand"), nunca omita.
 - Ao listar várias peças, use uma peça por parágrafo com a referência em negrito, sem numerar.
 - NUNCA mostre menos peças do que "itens_retornados" indica — se a ferramenta retornou 23 itens, liste as 23 (ou pelo menos deixe claro que são 23 e pergunte se quer ver todas antes de resumir). Omitir peças da resposta sem avisar é um erro grave.
+- Ao responder perguntas de estatística/agregação (média, total, contagem, faixa de preço via executar_sql), sempre inclua junto com o número um pequeno exemplo concreto — pelo menos 2 ou 3 referências reais com seus preços — para dar contexto ao número. Uma resposta que é só "média: R$ X" sem nenhuma referência concreta está incompleta.
 - Se a busca não encontrar nada, diga isso claramente e sugira reformular a pergunta.
 - Seja conciso: não repita a pergunta do usuário, não adicione avisos ou disclaimers.`;
 
