@@ -55,6 +55,9 @@ async function exportLoteRef(cookie: string, leilao: string): Promise<Map<string
   if (!res.ok) throw new Error(`Export falhou: HTTP ${res.status}`);
   const html = await res.text();
 
+  // Log primeiros 2000 chars do export para debug
+  console.log(`[excluir-peca] export html preview: ${html.slice(0, 2000)}`);
+
   const segments  = html.split(/<\/tr>/i);
   const headerSeg = segments[0] ?? '';
   const headers   = [...headerSeg.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/gi)].map(m => cleanCell(m[1]));
