@@ -61,21 +61,37 @@ async function findIdpecaByRef(cookie: string, leilao: string, referencia: strin
   const idxLote     = headers.findIndex(h => /^lote$/i.test(h));
   const idxRef      = headers.findIndex(h => /minidesc|mini|descri.o.2|segunda/i.test(h));
 
-  if (idxLote < 0 || idxRef < 0) throw new Error('Colunas não encontradas no export');
+  console.log(`[excluir-peca] export headers: ${JSON.stringify(headers)}`);
+  console.log(`[excluir-peca] idxLote=${idxLote} idxRef=${idxRef}`);
+
+  if (idxLote < 0) throw new Error('Coluna Lote não encontrada no export');
 
   const targetRef = referencia.toUpperCase();
   let   matchLote: string | null = null;
 
+  // Tenta todas as colunas de texto buscando a referência — não depende só de idxRef
+  const textIdxs = headers.map((_, i) => i).filter(i => i !== idxLote);
+
   for (const seg of segments.slice(1)) {
     const cells = [...seg.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
     if (cells.length === 0) continue;
-    if ((cells[idxRef] ?? '').toUpperCase() === targetRef) {
+    const found = textIdxs.some(i => (cells[i] ?? '').toUpperCase() === targetRef);
+    if (found) {
       matchLote = (cells[idxLote] ?? '').trim();
+      console.log(`[excluir-peca] ref="${referencia}" encontrada no lote=${matchLote}`);
       break;
     }
   }
 
-  if (!matchLote) return null;
+  if (!matchLote) {
+    // Log amostra para debug
+    const sample = segments.slice(1, 4).map(seg => {
+      const cells = [...seg.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
+      return cells;
+    });
+    console.log(`[excluir-peca] ref="${referencia}" nao encontrada. Amostra rows: ${JSON.stringify(sample)}`);
+    return null;
+  }
 
   // Listagem AJAX: lote → idpeca
   const listRes = await fetch(`${BASE}/listar_pecas.asp`, {
