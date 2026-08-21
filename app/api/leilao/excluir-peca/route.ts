@@ -46,57 +46,9 @@ function cleanCell(html: string): string {
   return html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').trim();
 }
 
-// Export XLS: lote → segunda_descricao (ref). Mesma lógica do remover-duplicatas.
-async function exportLoteRef(cookie: string, leilao: string): Promise<Map<string, string>> {
-  const res = await fetch(`${BASE}/ajax/exportalotes.asp?Leilao=${leilao}`, {
-    headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_pecas.asp` },
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error(`Export falhou: HTTP ${res.status}`);
-  const html = await res.text();
-
-  // Log primeiros 2000 chars do export para debug
-  console.log(`[excluir-peca] export html preview: ${html.slice(0, 2000)}`);
-
-  const segments  = html.split(/<\/tr>/i);
-  const headerSeg = segments[0] ?? '';
-  const headers   = [...headerSeg.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/gi)].map(m => cleanCell(m[1]));
-
-  const idxLote = headers.findIndex(h => /^lote$/i.test(h));
-  const idxRef  = headers.findIndex(h => /minidesc|mini|descri.o.2|segunda/i.test(h));
-
-  console.log(`[excluir-peca] export headers: ${JSON.stringify(headers)} idxLote=${idxLote} idxRef=${idxRef}`);
-
-  if (idxLote < 0) return new Map();
-
-  // Índice da coluna Descrição (descrição longa, contém "| REF: XXXXX" no final)
-  const idxDesc = headers.findIndex(h => /^descri/i.test(h) && !/mini|2/i.test(h));
-  console.log(`[excluir-peca] idxDesc=${idxDesc} idxRef=${idxRef}`);
-
-  const map = new Map<string, string>();
-  for (const seg of segments.slice(1)) {
-    const cells = [...seg.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
-    if (cells.length === 0) continue;
-    const lote = cells[idxLote]?.trim();
-    if (!lote) continue;
-
-    // Tenta MiniDescrição primeiro (segunda_descricao = ref pura)
-    let ref = idxRef >= 0 ? cells[idxRef]?.trim().toUpperCase() : '';
-
-    // Se vazio, extrai de "| REF: XXXXX" na Descrição longa
-    if (!ref && idxDesc >= 0) {
-      const desc = cells[idxDesc] ?? '';
-      const m = desc.match(/\|\s*REF:\s*([A-Z0-9]+)/i);
-      if (m) ref = m[1].toUpperCase();
-    }
-
-    if (lote && ref) map.set(lote, ref);
-  }
-  return map;
-}
-
-// Listagem AJAX: lote → idpeca. Mesma lógica do remover-duplicatas.
-async function listingLoteId(cookie: string, leilao: string): Promise<Map<string, string>> {
+// Busca idpeca no listar_pecas.asp filtrando pelo número do lote (mais preciso que busca por texto).
+async function findIdpecaByLote(cookie: string, leilao: string, lote: number): Promise<string | null> {
+  const loteStr = String(lote);
   const res = await fetch(`${BASE}/listar_pecas.asp`, {
     method: 'POST',
     headers: {
@@ -110,7 +62,7 @@ async function listingLoteId(cookie: string, leilao: string): Promise<Map<string
     },
     body: new URLSearchParams({
       Listar: 'on', Leilao: leilao,
-      Peca: '', Lotel: '', LoteF: '', Cartela: '', Cart: '',
+      Peca: '', Lotel: loteStr, LoteF: loteStr, Cartela: '', Cart: '',
       Descricao: '', Dia: '', Item: '', IdT: '', Nota: '',
       DtNI: '', DtNF: '', DtSI: '', DtSF: '', DtAI: '', DtAF: '',
       ID_Clil: '', ID_ClIF: '', Extra: '', TaxaL: '',
@@ -124,14 +76,15 @@ async function listingLoteId(cookie: string, leilao: string): Promise<Map<string
   });
   const html = await res.text();
   const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'));
-  const map  = new Map<string, string>();
+
+  console.log(`[excluir-peca] listar_pecas lote=${lote} rows=${rows.length}`);
+
   for (const row of rows) {
     const cells  = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
     const idpeca = cells[0]?.trim();
-    const lote   = cells[2]?.trim();
-    if (idpeca && lote && /^\d{6,9}$/.test(idpeca)) map.set(lote, idpeca);
+    if (idpeca && /^\d{6,9}$/.test(idpeca)) return idpeca;
   }
-  return map;
+  return null;
 }
 
 async function excluirPeca(cookie: string, idpeca: string): Promise<void> {
@@ -152,14 +105,14 @@ async function excluirPeca(cookie: string, idpeca: string): Promise<void> {
 }
 
 // POST /api/leilao/excluir-peca
-// Body: { leilao: string, nome: string, referencia: string }
+// Body: { leilao: string, nome: string, referencia: string, lote: number }
 export async function POST(req: Request) {
-  let body: { leilao?: string; nome?: string; referencia?: string };
+  let body: { leilao?: string; nome?: string; referencia?: string; lote?: number };
   try { body = await req.json(); } catch { return Response.json({ error: 'Body inválido' }, { status: 400 }); }
 
-  const { leilao, nome, referencia } = body;
-  if (!leilao || !nome || !referencia) {
-    return Response.json({ error: 'leilao, nome e referencia são obrigatórios' }, { status: 400 });
+  const { leilao, nome, referencia, lote } = body;
+  if (!leilao || !nome || !referencia || !lote) {
+    return Response.json({ error: 'leilao, nome, referencia e lote são obrigatórios' }, { status: 400 });
   }
 
   const creds = getCreds(nome);
@@ -168,36 +121,17 @@ export async function POST(req: Request) {
   try {
     const cookie = await loginLeiloesbr(creds.user, creds.pass, creds.numLeilao);
 
-    // Mesma lógica do remover-duplicatas: dois fetches em paralelo, cruza por lote
-    const [loteRefMap, loteIdMap] = await Promise.all([
-      exportLoteRef(cookie, leilao),
-      listingLoteId(cookie, leilao),
-    ]);
-
-    console.log(`[excluir-peca] loteRefMap=${loteRefMap.size} loteIdMap=${loteIdMap.size}`);
-
-    const targetRef = referencia.toUpperCase();
-    let   idpeca: string | null = null;
-
-    for (const [lote, ref] of loteRefMap) {
-      if (ref === targetRef) {
-        idpeca = loteIdMap.get(lote) ?? null;
-        console.log(`[excluir-peca] ref="${referencia}" → lote=${lote} → idpeca=${idpeca}`);
-        break;
-      }
-    }
+    console.log(`[excluir-peca] buscando lote=${lote} ref="${referencia}" no leilao N°${leilao}`);
+    const idpeca = await findIdpecaByLote(cookie, leilao, lote);
 
     if (!idpeca) {
-      // Busca parcial para debug — acha entradas que contém a ref como substring
-      const partial = [...loteRefMap.entries()].filter(([, r]) => r.includes(targetRef) || targetRef.includes(r)).slice(0, 5);
-      const sample  = [...loteRefMap.entries()].slice(0, 5);
-      console.log(`[excluir-peca] targetRef="${targetRef}" partial=${JSON.stringify(partial)} sample=${JSON.stringify(sample)}`);
       return Response.json(
-        { error: `Peça "${referencia}" não encontrada no leilão N°${leilao}` },
+        { error: `Lote ${lote} (${referencia}) não encontrado no leilão N°${leilao}` },
         { status: 404 },
       );
     }
 
+    console.log(`[excluir-peca] lote=${lote} ref="${referencia}" → idpeca=${idpeca} — excluindo`);
     await excluirPeca(cookie, idpeca);
     return Response.json({ success: true });
   } catch (err) {

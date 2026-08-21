@@ -92,6 +92,11 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
     const nome   = file.leilao?.nome;
     if (!leilao || !nome) return;
 
+    // Acha o lote da ref no CSV (índice base-1 na lista ordenada do arquivo)
+    const refs = refsPerFile.get(file.filename) ?? [];
+    const loteIdx = refs.findIndex(r => r.toUpperCase() === referencia.toUpperCase());
+    const lote = loteIdx >= 0 ? loteIdx + 1 : undefined;
+
     const key = excluirKey(file.filename, referencia);
     setExcluirStatus(m => new Map(m).set(key, 'loading'));
     setExcluirError(m => { const n = new Map(m); n.delete(key); return n; });
@@ -100,7 +105,7 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
       const res  = await fetch('/api/leilao/excluir-peca', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ leilao, nome, referencia }),
+        body:    JSON.stringify({ leilao, nome, referencia, lote }),
       });
       const data = await res.json() as { success?: boolean; error?: string };
       if (!res.ok || !data.success) {
@@ -383,10 +388,15 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
                         const key    = excluirKey(file.filename, issue.referencia);
                         const status = excluirStatus.get(key) ?? 'idle';
                         const errMsg = excluirError.get(key);
+                        const refs   = refsPerFile.get(file.filename) ?? [];
+                        const loteNum = refs.findIndex(r => r.toUpperCase() === issue.referencia.toUpperCase()) + 1;
                         return (
                           <div key={issue.referencia} className="flex flex-col">
                             <div className="flex items-center gap-3 px-4 py-2 hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
                               <span className="text-xs font-bold text-zinc-800 dark:text-zinc-100 tabular-nums w-20 shrink-0">{issue.referencia}</span>
+                              {loteNum > 0 && (
+                                <span className="text-[10px] text-zinc-400 tabular-nums shrink-0">L{loteNum}</span>
+                              )}
                               <span className={`text-[11px] font-semibold ${cfg.textCls} flex-1`}>{issueDetail(issue)}</span>
                               {status === 'done' ? (
                                 <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">
