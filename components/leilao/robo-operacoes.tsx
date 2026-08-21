@@ -18,6 +18,7 @@ import { ReuploadsModal } from '@/components/leilao/reuploads-modal';
 import { TagInput } from '@/components/leilao/tag-input';
 import { AtivarSiteModal, type SitePeca } from '@/components/leilao/ativar-site-modal';
 import { useLeilaoRegras } from '@/lib/hooks/use-leilao-regras';
+import { useFirebase } from '@/components/firebase-provider';
 
 interface Props {
   basePieces:    LeilaoBaseRow[];
@@ -406,6 +407,8 @@ function useDuplicatas() {
 }
 
 export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props) {
+  const { currentUser } = useFirebase();
+  const isAdmin = currentUser?.role === 'admin';
   const [imgBase,       setImgBase]       = useState('');
   const [loadingImagem, setLoadingImagem] = useState(false);
   const [precoBase,     setPrecoBase]     = useState('');
@@ -1054,6 +1057,13 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
           <p className="text-[10px] text-red-500 dark:text-red-500 mt-0.5">Remove <strong>todas</strong> as peças do leilão. Use para recomeçar do zero.</p>
         </div>
         <div className="p-3 flex flex-col gap-2.5">
+        {!isAdmin && (
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-zinc-100 dark:bg-zinc-800/60 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
+            <span>🔒</span>
+            <span>Acesso restrito a administradores</span>
+          </div>
+        )}
+        {isAdmin && (<>
           <BaseSelect
             value={zerarBase}
             onChange={v => { setZerarBase(v); zerarReset(); }}
@@ -1150,6 +1160,7 @@ export function RoboOperacoes({ basePieces, uploadedFiles, refsPerFile }: Props)
               <span>{zerarState.fatalError}</span>
             </div>
           )}
+        </>)}
         </div>
       </div>
 
