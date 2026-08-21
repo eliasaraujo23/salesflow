@@ -702,6 +702,13 @@ Vocabulário do domínio — use exatamente estas definições, nunca infira soz
 - "Em comodato" ou o nome de um parceiro = somente EM COMODATO.
 - "Vendido"/"vendida" = os 3 status de venda (VENDIDO E PAGO, AGUARDANDO PAGAMENTO, VENDIDO PARCELADO).
 
+Estrutura de product_details — use estas colunas relacionais, NUNCA busque um tipo de joia ou modelo dentro de descricao_inteligente/caracteristica (são textos de marketing gerados, não estruturados, e frequentemente não contêm o termo exato):
+- Tipo de joia (BRINCO, ANEL, COLAR, PULSEIRA, PINGENTE, ALIANÇA...) = tabela "produto" via produtoId. Em executar_sql: JOIN produto p ON p.id = pd."produtoId" WHERE UPPER(p.produto) LIKE '%BRINCO%'.
+- Modelo/subtipo (ILUSION, MARACANÃ, SOLITÁRIO, RIVIERA, CRAVEJADO...) = tabela "subtipo" via subtipoId. JOIN subtipo s ON s.id = pd."subtipoId" WHERE UPPER(s.subtipo) = 'ILUSION'.
+- Tipo de pedra (DIAMANTE, ESMERALDA, TURMALINA PARAÍBA...) = tabela "tipo_pedra" via tipoPedraId. JOIN tipo_pedra tp ON tp.id = pd."tipoPedraId".
+- Se uma busca por produto/subtipo/tipo_pedra não achar nada, SÓ ENTÃO tente descricao_jewel ou descricao_inteligente como fallback — nunca comece por elas.
+- Se mesmo assim não achar nada, use listar_tabelas_banco/descrever_tabela para checar se os nomes exatos usados nessas tabelas (ex: "ILUSION" vs "ILLUSION") batem com o termo buscado antes de dizer que não existe.
+
 Como agir:
 - Para perguntas comuns (referência específica, busca de peça por descrição, peças de um destino/parceiro, carros chefe), use as ferramentas específicas — elas já têm a lógica de busca certa.
 - Se uma ferramenta específica não encontrar nada ou não cobrir o que foi pedido (ex: filtro por código de tipo/categoria interno, estatísticas, cruzamentos, "quem tem mais chance de vender X", informações sobre clientes/vendas/avaliações), não desista: use listar_tabelas_banco e descrever_tabela para entender a estrutura, depois executar_sql para responder. Explore o banco antes de dizer que não sabe buscar algo.
