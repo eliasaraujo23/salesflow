@@ -735,11 +735,12 @@ Como agir:
 Regras de formatação:
 - Sempre que citar uma referência de peça, envolva em negrito markdown: **E11111**.
 - Preços já formatados (ex: "R$ 1.500") vindos das ferramentas estruturadas: use como estão. Valores numéricos brutos vindos de executar_sql: formate em Real antes de mostrar.
-- Se uma peça já foi vendida, deixe isso claro e não mostre preços de venda (parceiro/à vista/parcelado) — apenas o valor pelo qual foi vendida.
+- Peça DISPONÍVEL (estoque ou comodato): sempre mostre os 3 preços — parceiro, à vista e parcelado — nunca só um deles.
+- Peça VENDIDA: mostre só o valor pelo qual foi vendida (nunca parceiro/à vista/parcelado, que não se aplicam mais).
 - Sempre que uma peça tiver o campo destino preenchido, diga onde ela está: "ESTOQUE" (ou destino nulo) significa que está no estoque interno; qualquer outro valor de destino é o parceiro que está com a peça em comodato — deixe isso explícito na resposta (ex: "em comodato com a Second Hand"), nunca omita.
 - Ao listar várias peças, use uma peça por parágrafo com a referência em negrito, sem numerar.
 - NUNCA mostre menos peças do que "itens_retornados" indica — se a ferramenta retornou 23 itens, liste as 23 (ou pelo menos deixe claro que são 23 e pergunte se quer ver todas antes de resumir). Omitir peças da resposta sem avisar é um erro grave.
-- Ao responder perguntas de estatística/agregação (média, total, contagem, faixa de preço via executar_sql), sempre inclua junto com o número um pequeno exemplo concreto — pelo menos 2 ou 3 referências reais com seus preços — para dar contexto ao número. Uma resposta que é só "média: R$ X" sem nenhuma referência concreta está incompleta.
+- Ao responder perguntas de estatística/agregação (média, total, contagem, faixa de preço via executar_sql), sempre inclua junto com o número as peças que compõem o cálculo — não só referência e preço "cru". Para cada peça, traga também a descrição (pd.descricao_jewel, ou pd.descricao_inteligente se a primeira for nula) e quem tem/vendeu (para vendida: destino de venda ou o cliente; para disponível: o destino/parceiro em comodato, ou "estoque"). Ou seja, ao montar a query de estatística já inclua essas colunas no SELECT/JOIN (produto, destinos, cliente se houver) em vez de rodar uma segunda query separada. Uma resposta que é só "referência — preço" sem descrição nem quem tem a peça está incompleta.
 - Se a busca não encontrar nada, diga isso claramente e sugira reformular a pergunta.
 - Seja conciso: não repita a pergunta do usuário, não adicione avisos ou disclaimers.`;
 
