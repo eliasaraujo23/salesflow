@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { CheckCircle2, AlertTriangle, Download, RefreshCw, ChevronDown } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { CheckCircle2, AlertTriangle, Download, RefreshCw, ChevronDown, Trash2 } from 'lucide-react';
 import type { UploadedFileStored } from '@/lib/hooks/use-leilao-bases-storage';
 import type { ConferenciaIssue, ProblemaType } from '@/app/api/leilao/conferencia/route';
 import { fetchConferencia } from '@/lib/actions/fetch-conferencia';
@@ -80,6 +80,48 @@ function LeilaoHeader({ file }: { file: UploadedFileStored }) {
 }
 
 export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, activeDestinos }: Props) {
+  // key = `${filename}|${referencia}`, value = 'idle' | 'loading' | 'done' | 'error'
+  type ExcluirStatus = 'idle' | 'loading' | 'done' | 'error';
+  const [excluirStatus, setExcluirStatus] = useState<Map<string, ExcluirStatus>>(new Map());
+  const [excluirError,  setExcluirError]  = useState<Map<string, string>>(new Map());
+
+  const excluirKey = (filename: string, ref: string) => `${filename}|${ref}`;
+
+  const handleExcluir = useCallback(async (file: UploadedFileStored, referencia: string) => {
+    const leilao = file.codigoPlatforma;
+    const nome   = file.leilao?.nome;
+    if (!leilao || !nome) return;
+
+    const key = excluirKey(file.filename, referencia);
+    setExcluirStatus(m => new Map(m).set(key, 'loading'));
+    setExcluirError(m => { const n = new Map(m); n.delete(key); return n; });
+
+    try {
+      const res  = await fetch('/api/leilao/excluir-peca', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ leilao, nome, referencia }),
+      });
+      const data = await res.json() as { success?: boolean; error?: string };
+      if (!res.ok || !data.success) {
+        setExcluirStatus(m => new Map(m).set(key, 'error'));
+        setExcluirError(m => new Map(m).set(key, data.error ?? `HTTP ${res.status}`));
+        return;
+      }
+      setExcluirStatus(m => new Map(m).set(key, 'done'));
+      // Remove a peça dos results em memória para refletir a exclusão
+      setResults(prev => prev ? prev.map(r =>
+        r.file.filename !== file.filename ? r : {
+          ...r,
+          issues: r.issues.filter(i => i.referencia !== referencia),
+        }
+      ) : prev);
+    } catch (err) {
+      setExcluirStatus(m => new Map(m).set(key, 'error'));
+      setExcluirError(m => new Map(m).set(key, err instanceof Error ? err.message : 'Erro de rede'));
+    }
+  }, []);
+
   const [results,   setResults]   = useState<LeilaoResult[] | null>(() => {
     try {
       const raw = sessionStorage.getItem(SESSION_KEY);
@@ -337,12 +379,46 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
                           {cfg.label} — {grupo.length} peça{grupo.length !== 1 ? 's' : ''}
                         </span>
                       </div>
-                      {grupo.map(issue => (
-                        <div key={issue.referencia} className="flex items-center gap-3 px-4 py-2 hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
-                          <span className="text-xs font-bold text-zinc-800 dark:text-zinc-100 tabular-nums w-20 shrink-0">{issue.referencia}</span>
-                          <span className={`text-[11px] font-semibold ${cfg.textCls} flex-1`}>{issueDetail(issue)}</span>
-                        </div>
-                      ))}
+                      {grupo.map(issue => {
+                        const key    = excluirKey(file.filename, issue.referencia);
+                        const status = excluirStatus.get(key) ?? 'idle';
+                        const errMsg = excluirError.get(key);
+                        return (
+                          <div key={issue.referencia} className="flex flex-col">
+                            <div className="flex items-center gap-3 px-4 py-2 hover:bg-zinc-50 dark:hover:bg-white/[0.02]">
+                              <span className="text-xs font-bold text-zinc-800 dark:text-zinc-100 tabular-nums w-20 shrink-0">{issue.referencia}</span>
+                              <span className={`text-[11px] font-semibold ${cfg.textCls} flex-1`}>{issueDetail(issue)}</span>
+                              {status === 'done' ? (
+                                <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">
+                                  <CheckCircle2 size={11} /> Excluída
+                                </span>
+                              ) : status === 'loading' ? (
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <div className="w-3 h-3 rounded-full border-2 border-red-400 border-t-transparent animate-spin" />
+                                  <span className="text-[10px] text-red-500">Excluindo...</span>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => handleExcluir(file, issue.referencia)}
+                                  title="Excluir do leilão"
+                                  className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-700 dark:hover:text-red-400 transition-colors shrink-0"
+                                >
+                                  <Trash2 size={11} />
+                                  Excluir
+                                </button>
+                              )}
+                            </div>
+                            {status === 'loading' && (
+                              <div className="h-0.5 mx-4 mb-1 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                                <div className="h-full rounded-full bg-red-400 animate-pulse w-full" />
+                              </div>
+                            )}
+                            {status === 'error' && errMsg && (
+                              <p className="px-4 pb-1.5 text-[10px] text-red-500">{errMsg}</p>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })}
