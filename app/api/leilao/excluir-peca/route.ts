@@ -188,9 +188,10 @@ export async function POST(req: Request) {
     }
 
     if (!idpeca) {
-      // Log amostra para debug
-      const sample = [...loteRefMap.entries()].slice(0, 5);
-      console.log(`[excluir-peca] nao encontrada. Sample loteRef: ${JSON.stringify(sample)}`);
+      // Busca parcial para debug — acha entradas que contém a ref como substring
+      const partial = [...loteRefMap.entries()].filter(([, r]) => r.includes(targetRef) || targetRef.includes(r)).slice(0, 5);
+      const sample  = [...loteRefMap.entries()].slice(0, 5);
+      console.log(`[excluir-peca] targetRef="${targetRef}" partial=${JSON.stringify(partial)} sample=${JSON.stringify(sample)}`);
       return Response.json(
         { error: `Peça "${referencia}" não encontrada no leilão N°${leilao}` },
         { status: 404 },
