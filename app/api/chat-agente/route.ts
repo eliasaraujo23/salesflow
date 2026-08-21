@@ -58,13 +58,15 @@ async function queryRef(ref: string) {
          pd.preco_parceiro, pd.preco_avista, pd.preco_parcelado,
          pd.peso, pd.diamantes, pd.cts_diamantes, pd.pedra_colorida, pd.cts_pedra_colorida,
          pd.tamanho, pd.descricao_jewel, pd."statusProdutoId" AS status_id,
-         p.produto, s.subtipo, tp.tipo_pedra, l.lapidacao, d.destino
+         p.produto, s.subtipo, tp.tipo_pedra, l.lapidacao, d.destino,
+         f."valorTotal" AS valor_total_financeiro
        FROM product_details pd
        LEFT JOIN produto    p  ON p.id  = pd."produtoId"
        LEFT JOIN subtipo    s  ON s.id  = pd."subtipoId"
        LEFT JOIN tipo_pedra tp ON tp.id = pd."tipoPedraId"
        LEFT JOIN lapidacao  l  ON l.id  = pd."lapidacaoId"
        LEFT JOIN destinos   d  ON d.id  = pd."destinoId"
+       LEFT JOIN financeiro f  ON f.id  = pd."financeiroId"
        WHERE UPPER(pd.referencia) = $1
        LIMIT 1`,
       [ref.toUpperCase()],
@@ -73,6 +75,7 @@ async function queryRef(ref: string) {
     if (!row) return { encontrado: false as const };
 
     const vendida = row.status_id != null && STATUS_VENDIDA.includes(row.status_id);
+    const valorVenda = row.valor_total_financeiro ?? row.preco_cobrado;
     return {
       encontrado: true as const,
       referencia: row.referencia,
@@ -91,7 +94,8 @@ async function queryRef(ref: string) {
       vendida,
       destino: row.destino,
       custo: fmt(row.custo_real),
-      preco_cobrado: fmt(row.preco_cobrado),
+      // valor efetivamente pago (tabela financeiro), com fallback pro preço da ficha quando não houver acordo financeiro
+      preco_cobrado: fmt(valorVenda),
       preco_parceiro: vendida ? null : fmt(row.preco_parceiro),
       preco_avista: vendida ? null : fmt(row.preco_avista),
       preco_parcelado: vendida ? null : fmt(row.preco_parcelado),
@@ -309,6 +313,7 @@ async function buscarPorCriterios(
          pd.tamanho, pd.descricao_jewel, pd."statusProdutoId" AS status_id,
          pd.data_entrada,
          p.produto, s.subtipo, tp.tipo_pedra, d.destino,
+         f."valorTotal" AS valor_total_financeiro,
          COUNT(*) OVER () AS total_count,
          (SELECT 1 FROM leilao_image li WHERE li."productDetailsId" = pd.id LIMIT 1) AS tem_foto
        FROM product_details pd
@@ -316,6 +321,7 @@ async function buscarPorCriterios(
        LEFT JOIN subtipo    s  ON s.id  = pd."subtipoId"
        LEFT JOIN tipo_pedra tp ON tp.id = pd."tipoPedraId"
        LEFT JOIN destinos   d  ON d.id  = pd."destinoId"
+       LEFT JOIN financeiro f  ON f.id  = pd."financeiroId"
        WHERE ${statusFilter} AND ${kwConditions}${sizeClause}
        ORDER BY
          CASE WHEN (SELECT 1 FROM leilao_image li WHERE li."productDetailsId" = pd.id LIMIT 1) IS NOT NULL THEN 0 ELSE 1 END,
@@ -332,6 +338,7 @@ async function buscarPorCriterios(
       descricao_jewel: string | null; status_id: number | null;
       data_entrada: string | null; produto: string | null;
       subtipo: string | null; destino: string | null;
+      valor_total_financeiro: number | null;
       total_count: string | null;
     }>;
 
@@ -342,6 +349,7 @@ async function buscarPorCriterios(
       itens_retornados: rows.length,
       pecas: rows.map(r => {
         const vendida = r.status_id != null && STATUS_VENDIDA.includes(r.status_id);
+        const valorVenda = r.valor_total_financeiro ?? r.preco_cobrado;
         return {
           referencia: r.referencia,
           tipo: r.tipo,
@@ -353,7 +361,8 @@ async function buscarPorCriterios(
           vendida,
           destino: r.destino,
           custo: fmt(r.custo_real),
-          preco_cobrado: fmt(r.preco_cobrado),
+          // valor efetivamente pago (tabela financeiro), com fallback pro preço da ficha quando não houver acordo financeiro
+          preco_cobrado: fmt(valorVenda),
           preco_parceiro: vendida ? null : fmt(r.preco_parceiro),
           preco_avista: vendida ? null : fmt(r.preco_avista),
           preco_parcelado: vendida ? null : fmt(r.preco_parcelado),
@@ -411,12 +420,14 @@ async function buscarPorDestino(
          pd.referencia, pd.tipo, pd.custo_real, pd.preco_cobrado,
          pd.preco_parceiro, pd.preco_avista, pd.preco_parcelado,
          pd.descricao_jewel, pd."statusProdutoId" AS status_id,
-         p.produto, s.subtipo, tp.tipo_pedra
+         p.produto, s.subtipo, tp.tipo_pedra,
+         f."valorTotal" AS valor_total_financeiro
        FROM product_details pd
        LEFT JOIN produto    p  ON p.id  = pd."produtoId"
        LEFT JOIN subtipo    s  ON s.id  = pd."subtipoId"
        LEFT JOIN tipo_pedra tp ON tp.id = pd."tipoPedraId"
        LEFT JOIN destinos   d  ON d.id  = pd."destinoId"
+       LEFT JOIN financeiro f  ON f.id  = pd."financeiroId"
        WHERE ${statusFilter} AND LOWER(d.destino) = LOWER($1)${kwClause}
        ORDER BY pd.referencia
        LIMIT 50`,
@@ -429,6 +440,7 @@ async function buscarPorDestino(
       preco_avista: number | null; preco_parcelado: number | null;
       descricao_jewel: string | null; status_id: number | null;
       produto: string | null; subtipo: string | null; tipo_pedra: string | null;
+      valor_total_financeiro: number | null;
     }>;
 
     return {
@@ -438,6 +450,7 @@ async function buscarPorDestino(
       total: rows.length,
       pecas: rows.map(r => {
         const vendida = r.status_id != null && STATUS_VENDIDA.includes(r.status_id);
+        const valorVenda = r.valor_total_financeiro ?? r.preco_cobrado;
         return {
           referencia: r.referencia,
           tipo: r.tipo,
@@ -447,7 +460,8 @@ async function buscarPorDestino(
           descricao: r.descricao_jewel,
           vendida,
           custo: fmt(r.custo_real),
-          preco_cobrado: fmt(r.preco_cobrado),
+          // valor efetivamente pago (tabela financeiro), com fallback pro preço da ficha quando não houver acordo financeiro
+          preco_cobrado: fmt(valorVenda),
           preco_parceiro: vendida ? null : fmt(r.preco_parceiro),
           preco_avista: vendida ? null : fmt(r.preco_avista),
         };
@@ -708,6 +722,7 @@ Estrutura de product_details — use estas colunas relacionais, NUNCA busque um 
 - Tipo de pedra (DIAMANTE, ESMERALDA, TURMALINA PARAÍBA...) = tabela "tipo_pedra" via tipoPedraId. JOIN tipo_pedra tp ON tp.id = pd."tipoPedraId".
 - Se uma busca por produto/subtipo/tipo_pedra não achar nada, SÓ ENTÃO tente descricao_jewel ou descricao_inteligente como fallback — nunca comece por elas.
 - Se mesmo assim não achar nada, use listar_tabelas_banco/descrever_tabela para checar se os nomes exatos usados nessas tabelas (ex: "ILUSION" vs "ILLUSION") batem com o termo buscado antes de dizer que não existe.
+- Preço de uma peça VENDIDA (qualquer cálculo de média/total/soma de vendas) = SEMPRE o valor real pago, que fica na tabela "financeiro" (JOIN financeiro f ON f.id = pd."financeiroId"), coluna f."valorTotal" — é esse valor que aparece na aba Financeiro do sistema e é a fonte de verdade. pd.preco_cobrado é só o preço calculado/planejado na ficha do produto, pode divergir do que foi realmente cobrado — use-o SOMENTE como fallback (COALESCE(f."valorTotal", pd.preco_cobrado)) quando a peça não tiver financeiroId ou o financeiro não tiver valorTotal. NUNCA use preco_avista, preco_parcelado, preco_parceiro ou preco_combinado para "preço de venda" — são preços de tabela/proposta, só relevantes para peças ainda à venda (estoque/comodato).
 
 Como agir:
 - Para perguntas comuns (referência específica, busca de peça por descrição, peças de um destino/parceiro, carros chefe), use as ferramentas específicas — elas já têm a lógica de busca certa.
