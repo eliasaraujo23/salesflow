@@ -46,7 +46,7 @@ function cleanCell(html: string): string {
   return html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').trim();
 }
 
-// Igual ao remover-duplicatas: retorna mapa lote → ref (via export XLS)
+// Export XLS: lote → segunda_descricao (ref). Mesma lógica do remover-duplicatas.
 async function exportLoteRef(cookie: string, leilao: string): Promise<Map<string, string>> {
   const res = await fetch(`${BASE}/ajax/exportalotes.asp?Leilao=${leilao}`, {
     headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_pecas.asp` },
@@ -55,29 +55,44 @@ async function exportLoteRef(cookie: string, leilao: string): Promise<Map<string
   if (!res.ok) throw new Error(`Export falhou: HTTP ${res.status}`);
   const html = await res.text();
 
-  const segments = html.split(/<\/tr>/i);
+  const segments  = html.split(/<\/tr>/i);
   const headerSeg = segments[0] ?? '';
-  const headers = [...headerSeg.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/gi)].map(m => cleanCell(m[1]));
+  const headers   = [...headerSeg.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/gi)].map(m => cleanCell(m[1]));
 
   const idxLote = headers.findIndex(h => /^lote$/i.test(h));
   const idxRef  = headers.findIndex(h => /minidesc|mini|descri.o.2|segunda/i.test(h));
 
   console.log(`[excluir-peca] export headers: ${JSON.stringify(headers)} idxLote=${idxLote} idxRef=${idxRef}`);
 
-  if (idxLote < 0 || idxRef < 0) return new Map();
+  if (idxLote < 0) return new Map();
+
+  // Índice da coluna Descrição (descrição longa, contém "| REF: XXXXX" no final)
+  const idxDesc = headers.findIndex(h => /^descri/i.test(h) && !/mini|2/i.test(h));
+  console.log(`[excluir-peca] idxDesc=${idxDesc} idxRef=${idxRef}`);
 
   const map = new Map<string, string>();
   for (const seg of segments.slice(1)) {
     const cells = [...seg.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
     if (cells.length === 0) continue;
     const lote = cells[idxLote]?.trim();
-    const ref  = cells[idxRef]?.trim().toUpperCase();
+    if (!lote) continue;
+
+    // Tenta MiniDescrição primeiro (segunda_descricao = ref pura)
+    let ref = idxRef >= 0 ? cells[idxRef]?.trim().toUpperCase() : '';
+
+    // Se vazio, extrai de "| REF: XXXXX" na Descrição longa
+    if (!ref && idxDesc >= 0) {
+      const desc = cells[idxDesc] ?? '';
+      const m = desc.match(/\|\s*REF:\s*([A-Z0-9]+)/i);
+      if (m) ref = m[1].toUpperCase();
+    }
+
     if (lote && ref) map.set(lote, ref);
   }
   return map;
 }
 
-// Igual ao remover-duplicatas: retorna mapa lote → idpeca (via listagem AJAX)
+// Listagem AJAX: lote → idpeca. Mesma lógica do remover-duplicatas.
 async function listingLoteId(cookie: string, leilao: string): Promise<Map<string, string>> {
   const res = await fetch(`${BASE}/listar_pecas.asp`, {
     method: 'POST',
@@ -150,13 +165,13 @@ export async function POST(req: Request) {
   try {
     const cookie = await loginLeiloesbr(creds.user, creds.pass, creds.numLeilao);
 
-    // Busca em paralelo igual ao remover-duplicatas
+    // Mesma lógica do remover-duplicatas: dois fetches em paralelo, cruza por lote
     const [loteRefMap, loteIdMap] = await Promise.all([
       exportLoteRef(cookie, leilao),
       listingLoteId(cookie, leilao),
     ]);
 
-    console.log(`[excluir-peca] loteRefMap size=${loteRefMap.size} loteIdMap size=${loteIdMap.size}`);
+    console.log(`[excluir-peca] loteRefMap=${loteRefMap.size} loteIdMap=${loteIdMap.size}`);
 
     const targetRef = referencia.toUpperCase();
     let   idpeca: string | null = null;
@@ -170,8 +185,9 @@ export async function POST(req: Request) {
     }
 
     if (!idpeca) {
+      // Log amostra para debug
       const sample = [...loteRefMap.entries()].slice(0, 5);
-      console.log(`[excluir-peca] ref="${referencia}" nao encontrada. Sample: ${JSON.stringify(sample)}`);
+      console.log(`[excluir-peca] nao encontrada. Sample loteRef: ${JSON.stringify(sample)}`);
       return Response.json(
         { error: `Peça "${referencia}" não encontrada no leilão N°${leilao}` },
         { status: 404 },
