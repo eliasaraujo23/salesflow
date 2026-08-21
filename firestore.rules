@@ -88,6 +88,15 @@ service cloud.firestore {
     // Leilão — regras de destinos excluídos (gerenciado pelo admin).
     match /leilao_regras_destino/{docId} { allow read: if isAuth(); allow write: if isAdmin(); }
 
+    // Achador (busca de peça / assistente) — histórico de conversas por usuário.
+    // Cada conversa é dona do próprio criador (userEmail); admins podem ler tudo (analytics/auditoria).
+    match /agente_conversas/{conversaId} {
+      allow read:   if isAuth() && (resource.data.userEmail == request.auth.token.email || isAdmin());
+      allow create: if isAuth() && request.resource.data.userEmail == request.auth.token.email;
+      allow update: if isAuth() && resource.data.userEmail == request.auth.token.email;
+      allow delete: if isAuth() && (resource.data.userEmail == request.auth.token.email || isAdmin());
+    }
+
     // Deny all other collections by default.
     match /{document=**} {
       allow read, write: if false;

@@ -69,26 +69,29 @@ function renderWithImages(
       const thumb = imgUrl ? (
         <button
           onClick={() => onZoom(imgUrl)}
-          className="group/img relative shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-white/[0.1] hover:border-indigo-400 transition"
+          className="group/img relative shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-zinc-200 dark:border-white/[0.1] hover:border-indigo-400 hover:shadow-md transition-all"
           title={ref}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={imgUrl} alt={ref} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition flex items-center justify-center">
-            <ZoomIn size={14} className="text-white opacity-0 group-hover/img:opacity-100 transition" />
+          <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors flex items-center justify-center">
+            <ZoomIn size={14} className="text-white opacity-0 group-hover/img:opacity-100 transition-opacity" />
           </div>
         </button>
       ) : (
-        <div className="shrink-0 w-20 h-20 rounded-lg border border-dashed border-zinc-300 dark:border-white/[0.1] flex flex-col items-center justify-center gap-1 text-zinc-300 dark:text-zinc-600">
+        <div className="shrink-0 w-20 h-20 rounded-xl border border-dashed border-zinc-300 dark:border-white/[0.12] flex flex-col items-center justify-center gap-1 text-zinc-300 dark:text-zinc-600">
           <CameraOff size={18} />
           <span className="text-[9px] leading-none">sem foto</span>
         </div>
       );
 
       return (
-        <div key={i} className="group/block flex gap-2.5 items-start mt-3 first:mt-0">
+        <div
+          key={i}
+          className="group/block flex gap-3 items-start p-3 mt-2 first:mt-1 rounded-xl bg-zinc-50 dark:bg-white/[0.03] border border-zinc-100 dark:border-white/[0.06]"
+        >
           {thumb}
-          <div className="flex-1 text-xs leading-relaxed">{textNode}</div>
+          <div className="flex-1 text-sm leading-relaxed">{textNode}</div>
           <CopyBlockButton text={block} />
         </div>
       );
@@ -129,36 +132,35 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
 
   return (
     <>
-      <div className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
-        {!isUser && (
-          <div className="shrink-0 w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center mb-0.5">
-            <Sparkles size={12} className="text-indigo-500" />
+      {isUser ? (
+        <div className="flex justify-end py-1.5 animate-in fade-in slide-in-from-bottom-1 duration-300">
+          <div className="group relative max-w-[85%] md:max-w-[70%] rounded-2xl rounded-br-md px-4 py-2.5 text-sm leading-relaxed bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-sm shadow-indigo-500/20">
+            {renderPlainText(message.text)}
           </div>
-        )}
-        <div className={`group relative max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-          isUser
-            ? 'bg-indigo-600 text-white rounded-br-sm'
-            : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] text-zinc-800 dark:text-zinc-200 rounded-bl-sm'
-        }`}>
-          {hasImages
-            ? renderWithImages(message.text, imageMap, setZoom)
-            : renderPlainText(message.text)
-          }
-
-          {!isUser && (
-            <button
-              onClick={copy}
-              title="Copiar"
-              className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition p-1 rounded-lg bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-white/[0.1] shadow-sm text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-            >
-              {copied
-                ? <Check size={11} className="text-green-500" />
-                : <Copy size={11} />
-              }
-            </button>
-          )}
         </div>
-      </div>
+      ) : (
+        <div className="group relative flex items-start gap-3 py-4 animate-in fade-in slide-in-from-bottom-1 duration-300">
+          <div className="shrink-0 w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center mt-0.5">
+            <Sparkles size={13} className="text-white" />
+          </div>
+          <div className="flex-1 text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 min-w-0">
+            {hasImages
+              ? renderWithImages(message.text, imageMap, setZoom)
+              : renderPlainText(message.text)
+            }
+          </div>
+          <button
+            onClick={copy}
+            title="Copiar"
+            className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-white/[0.06] dark:hover:text-zinc-200"
+          >
+            {copied
+              ? <Check size={13} className="text-green-500" />
+              : <Copy size={13} />
+            }
+          </button>
+        </div>
+      )}
 
       {/* Lightbox */}
       {zoom && (
