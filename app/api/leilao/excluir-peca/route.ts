@@ -46,55 +46,40 @@ function cleanCell(html: string): string {
   return html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').trim();
 }
 
-async function findIdpecaByRef(cookie: string, leilao: string, referencia: string): Promise<string | null> {
-  // Exportação XLS: lote → ref
-  const exportRes = await fetch(`${BASE}/ajax/exportalotes.asp?Leilao=${leilao}`, {
+// Igual ao remover-duplicatas: retorna mapa lote → ref (via export XLS)
+async function exportLoteRef(cookie: string, leilao: string): Promise<Map<string, string>> {
+  const res = await fetch(`${BASE}/ajax/exportalotes.asp?Leilao=${leilao}`, {
     headers: { 'Cookie': cookie, 'User-Agent': UA, 'Referer': `${BASE}/listar_pecas.asp` },
     redirect: 'follow',
   });
-  if (!exportRes.ok) throw new Error(`Export falhou: HTTP ${exportRes.status}`);
-  const exportHtml = await exportRes.text();
+  if (!res.ok) throw new Error(`Export falhou: HTTP ${res.status}`);
+  const html = await res.text();
 
-  const segments    = exportHtml.split(/<\/tr>/i);
-  const headerSeg   = segments[0] ?? '';
-  const headers     = [...headerSeg.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/gi)].map(m => cleanCell(m[1]));
-  const idxLote     = headers.findIndex(h => /^lote$/i.test(h));
-  const idxRef      = headers.findIndex(h => /minidesc|mini|descri.o.2|segunda/i.test(h));
+  const segments = html.split(/<\/tr>/i);
+  const headerSeg = segments[0] ?? '';
+  const headers = [...headerSeg.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/gi)].map(m => cleanCell(m[1]));
 
-  console.log(`[excluir-peca] export headers: ${JSON.stringify(headers)}`);
-  console.log(`[excluir-peca] idxLote=${idxLote} idxRef=${idxRef}`);
+  const idxLote = headers.findIndex(h => /^lote$/i.test(h));
+  const idxRef  = headers.findIndex(h => /minidesc|mini|descri.o.2|segunda/i.test(h));
 
-  if (idxLote < 0) throw new Error('Coluna Lote não encontrada no export');
+  console.log(`[excluir-peca] export headers: ${JSON.stringify(headers)} idxLote=${idxLote} idxRef=${idxRef}`);
 
-  const targetRef = referencia.toUpperCase();
-  let   matchLote: string | null = null;
+  if (idxLote < 0 || idxRef < 0) return new Map();
 
-  // Tenta todas as colunas de texto buscando a referência — não depende só de idxRef
-  const textIdxs = headers.map((_, i) => i).filter(i => i !== idxLote);
-
+  const map = new Map<string, string>();
   for (const seg of segments.slice(1)) {
     const cells = [...seg.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
     if (cells.length === 0) continue;
-    const found = textIdxs.some(i => (cells[i] ?? '').toUpperCase() === targetRef);
-    if (found) {
-      matchLote = (cells[idxLote] ?? '').trim();
-      console.log(`[excluir-peca] ref="${referencia}" encontrada no lote=${matchLote}`);
-      break;
-    }
+    const lote = cells[idxLote]?.trim();
+    const ref  = cells[idxRef]?.trim().toUpperCase();
+    if (lote && ref) map.set(lote, ref);
   }
+  return map;
+}
 
-  if (!matchLote) {
-    // Log amostra para debug
-    const sample = segments.slice(1, 4).map(seg => {
-      const cells = [...seg.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
-      return cells;
-    });
-    console.log(`[excluir-peca] ref="${referencia}" nao encontrada. Amostra rows: ${JSON.stringify(sample)}`);
-    return null;
-  }
-
-  // Listagem AJAX: lote → idpeca
-  const listRes = await fetch(`${BASE}/listar_pecas.asp`, {
+// Igual ao remover-duplicatas: retorna mapa lote → idpeca (via listagem AJAX)
+async function listingLoteId(cookie: string, leilao: string): Promise<Map<string, string>> {
+  const res = await fetch(`${BASE}/listar_pecas.asp`, {
     method: 'POST',
     headers: {
       'Content-Type':     'application/x-www-form-urlencoded; charset=UTF-8',
@@ -119,17 +104,16 @@ async function findIdpecaByRef(cookie: string, leilao: string, referencia: strin
     }).toString(),
     redirect: 'follow',
   });
-  const listHtml = await listRes.text();
-  const rows = [...listHtml.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'));
-
+  const html = await res.text();
+  const rows = [...html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].filter(m => m[1].includes('<td'));
+  const map  = new Map<string, string>();
   for (const row of rows) {
     const cells  = [...row[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => cleanCell(m[1]));
     const idpeca = cells[0]?.trim();
     const lote   = cells[2]?.trim();
-    if (idpeca && lote === matchLote && /^\d{6,9}$/.test(idpeca)) return idpeca;
+    if (idpeca && lote && /^\d{6,9}$/.test(idpeca)) map.set(lote, idpeca);
   }
-
-  return null;
+  return map;
 }
 
 async function excluirPeca(cookie: string, idpeca: string): Promise<void> {
@@ -151,7 +135,6 @@ async function excluirPeca(cookie: string, idpeca: string): Promise<void> {
 
 // POST /api/leilao/excluir-peca
 // Body: { leilao: string, nome: string, referencia: string }
-// Returns: { success: true } | { error: string }
 export async function POST(req: Request) {
   let body: { leilao?: string; nome?: string; referencia?: string };
   try { body = await req.json(); } catch { return Response.json({ error: 'Body inválido' }, { status: 400 }); }
@@ -166,10 +149,33 @@ export async function POST(req: Request) {
 
   try {
     const cookie = await loginLeiloesbr(creds.user, creds.pass, creds.numLeilao);
-    const idpeca = await findIdpecaByRef(cookie, leilao, referencia);
+
+    // Busca em paralelo igual ao remover-duplicatas
+    const [loteRefMap, loteIdMap] = await Promise.all([
+      exportLoteRef(cookie, leilao),
+      listingLoteId(cookie, leilao),
+    ]);
+
+    console.log(`[excluir-peca] loteRefMap size=${loteRefMap.size} loteIdMap size=${loteIdMap.size}`);
+
+    const targetRef = referencia.toUpperCase();
+    let   idpeca: string | null = null;
+
+    for (const [lote, ref] of loteRefMap) {
+      if (ref === targetRef) {
+        idpeca = loteIdMap.get(lote) ?? null;
+        console.log(`[excluir-peca] ref="${referencia}" → lote=${lote} → idpeca=${idpeca}`);
+        break;
+      }
+    }
 
     if (!idpeca) {
-      return Response.json({ error: `Peça "${referencia}" não encontrada no leilão N°${leilao}` }, { status: 404 });
+      const sample = [...loteRefMap.entries()].slice(0, 5);
+      console.log(`[excluir-peca] ref="${referencia}" nao encontrada. Sample: ${JSON.stringify(sample)}`);
+      return Response.json(
+        { error: `Peça "${referencia}" não encontrada no leilão N°${leilao}` },
+        { status: 404 },
+      );
     }
 
     await excluirPeca(cookie, idpeca);
