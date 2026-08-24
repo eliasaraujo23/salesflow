@@ -772,10 +772,13 @@ export async function POST(req: NextRequest) {
       model: 'claude-haiku-4-5',
       max_tokens: 2048,
       max_iterations: 15,
-      system: SYSTEM_PROMPT,
+      // System prompt fixo entre todas as chamadas — cache reduz ~90% do custo dessa parte
+      // a partir da segunda mensagem dentro da janela de 5min (compartilhado entre usuários).
+      system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
       tools,
+      // Só as últimas 10 trocas — histórico completo cresce o custo linearmente numa conversa longa.
       messages: [
-        ...history.map(h => ({ role: h.role, content: h.text })),
+        ...history.slice(-20).map(h => ({ role: h.role, content: h.text })),
         { role: 'user' as const, content: message },
       ],
     });

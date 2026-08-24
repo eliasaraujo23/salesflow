@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Sparkles, Copy, Check, ZoomIn, CameraOff, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Sparkles, Copy, Check, ZoomIn, CameraOff, Share2, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { type ChatMessage } from '@/lib/hooks/use-agente-chat';
 
@@ -230,8 +231,8 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
         </div>
       )}
 
-      {/* Lightbox */}
-      {zoom && zoom.urls.length > 0 && (
+      {/* Lightbox — via portal pro <body>, pra sempre cobrir a tela inteira independente de onde a mensagem está no DOM */}
+      {zoom && zoom.urls.length > 0 && typeof document !== 'undefined' && createPortal(
         <div
           className={`fixed inset-0 z-[100] bg-black/80 flex items-center justify-center ${zoomed ? 'overflow-auto p-0 cursor-zoom-out' : 'p-4 cursor-zoom-in'}`}
           onClick={() => { setZoom(null); setZoomed(false); }}
@@ -293,8 +294,17 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
               <Copy size={15} />
               Copiar foto
             </button>
+            <button
+              onClick={e => { e.stopPropagation(); setZoom(null); setZoomed(false); }}
+              aria-label="Fechar"
+              title="Fechar"
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-white/95 text-zinc-800 shadow-lg hover:bg-white transition-colors"
+            >
+              <X size={17} />
+            </button>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
