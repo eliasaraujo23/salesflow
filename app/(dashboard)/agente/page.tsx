@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
-import { Send, Sparkles, ArrowUp, RotateCcw } from 'lucide-react';
+import { Send, Sparkles, ArrowUp } from 'lucide-react';
 import { useAgenteChat } from '@/lib/hooks/use-agente-chat';
 import { ChatMessageBubble } from '@/components/agente/chat-message';
 
@@ -15,7 +15,7 @@ const SUGGESTIONS = [
 ];
 
 export default function AgentePage() {
-  const { messages, input, setInput, loading, handleSubmit, send, clear, bottomRef } = useAgenteChat();
+  const { messages, input, setInput, loading, handleSubmit, send, bottomRef } = useAgenteChat();
   const isEmpty = messages.length === 0;
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -33,16 +33,6 @@ export default function AgentePage() {
 
       {/* Glow ambiente sutil, só decorativo */}
       <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[560px] h-[280px] rounded-full bg-gradient-to-br from-indigo-400/10 via-violet-400/10 to-transparent blur-3xl" aria-hidden />
-
-      {!isEmpty && (
-        <button
-          onClick={() => { clear(); setTimeout(() => inputRef.current?.focus(), 0); }}
-          className="absolute top-3 right-4 md:right-6 z-20 flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors px-2.5 py-1.5 rounded-lg bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md hover:bg-zinc-100 dark:hover:bg-white/[0.06]"
-        >
-          <RotateCcw size={12} />
-          <span className="hidden sm:inline">Nova conversa</span>
-        </button>
-      )}
 
       {/* Mensagens ou Empty State */}
       <div className="flex-1 overflow-y-auto z-10 px-4 md:px-6 py-6 flex flex-col gap-1 [scrollbar-gutter:stable]">

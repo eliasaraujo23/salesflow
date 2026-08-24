@@ -47,7 +47,9 @@ function CopyBlockButton({ text }: { text: string }) {
 /** Compartilha a imagem via Web Share API (WhatsApp/etc no celular) com fallback para download. */
 async function shareImage(url: string, ref: string) {
   try {
-    const res = await fetch(url);
+    // Busca via proxy do servidor — fetch direto na URL presignada do R2 falha por CORS no navegador.
+    const res = await fetch(`/api/chat-agente/images/download?url=${encodeURIComponent(url)}`);
+    if (!res.ok) throw new Error('download falhou');
     const blob = await res.blob();
     const ext = blob.type.split('/')[1]?.split('+')[0] ?? 'jpg';
     const file = new File([blob], `${ref}.${ext}`, { type: blob.type });
