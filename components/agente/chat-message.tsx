@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Sparkles, Copy, Check, ZoomIn, CameraOff, Share2 } from 'lucide-react';
+import { Sparkles, Copy, Check, ZoomIn, CameraOff, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { type ChatMessage } from '@/lib/hooks/use-agente-chat';
 
@@ -72,27 +72,40 @@ async function shareImages(urls: string[], ref: string) {
   }
 }
 
-/** Copia uma imagem para a área de transferência — cola direto no WhatsApp Web/app com Ctrl+V. */
-async function copyImageToClipboard(url: string, ref: string) {
+/** Converte pra PNG — a Clipboard API só aceita esse formato de forma confiável entre navegadores. */
+async function toPngBlob(blob: Blob): Promise<Blob> {
+  if (blob.type === 'image/png') return blob;
+  const bitmap = await createImageBitmap(blob);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(b => (b ? resolve(b) : reject(new Error('conversão falhou'))), 'image/png');
+  });
+}
+
+/**
+ * Copia uma ou mais imagens para a área de transferência — cola direto no WhatsApp Web/app com Ctrl+V.
+ * A maioria dos apps só recupera a última entrada colável ao colar; enviamos todas mesmo assim, já
+ * que alguns navegadores/apps suportam múltiplas entradas de imagem na mesma operação de paste.
+ */
+async function copyImagesToClipboard(urls: string[], ref: string) {
   try {
-    const res = await fetch(`/api/chat-agente/images/download?url=${encodeURIComponent(url)}`);
-    if (!res.ok) throw new Error('download falhou');
-    let blob = await res.blob();
-    // A Clipboard API só aceita PNG de forma confiável entre navegadores — converte se vier JPEG.
-    if (blob.type !== 'image/png') {
-      const bitmap = await createImageBitmap(blob);
-      const canvas = document.createElement('canvas');
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
-      blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(b => (b ? resolve(b) : reject(new Error('conversão falhou'))), 'image/png');
-      });
-    }
-    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-    toast.success('Imagem copiada — cole (Ctrl+V) no WhatsApp Web ou no app.');
+    const items = await Promise.all(urls.map(async url => {
+      const res = await fetch(`/api/chat-agente/images/download?url=${encodeURIComponent(url)}`);
+      if (!res.ok) throw new Error('download falhou');
+      const png = await toPngBlob(await res.blob());
+      return new ClipboardItem({ 'image/png': png });
+    }));
+    await navigator.clipboard.write(items);
+    toast.success(
+      items.length > 1
+        ? 'Imagens copiadas — cole (Ctrl+V) no WhatsApp Web ou no app.'
+        : 'Imagem copiada — cole (Ctrl+V) no WhatsApp Web ou no app.',
+    );
   } catch (err) {
-    console.error('[copyImageToClipboard] falhou:', err, ref);
+    console.error('[copyImagesToClipboard] falhou:', err, ref);
     toast.error('Não foi possível copiar a imagem.');
   }
 }
@@ -239,16 +252,33 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
           />
 
           {zoom.urls.length > 1 && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5">
-              {zoom.urls.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={e => { e.stopPropagation(); setZoom(z => z && { ...z, index: idx }); }}
-                  className={`w-2 h-2 rounded-full transition-colors ${idx === zoom.index ? 'bg-white' : 'bg-white/40'}`}
-                  aria-label={idx === 0 ? 'Foto principal' : 'Foto secundária'}
-                />
-              ))}
-            </div>
+            <>
+              <button
+                onClick={e => { e.stopPropagation(); setZoom(z => z && { ...z, index: (z.index - 1 + z.urls.length) % z.urls.length }); }}
+                aria-label="Foto anterior"
+                className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-white/90 text-zinc-800 shadow-lg hover:bg-white transition-colors"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); setZoom(z => z && { ...z, index: (z.index + 1) % z.urls.length }); }}
+                aria-label="Próxima foto"
+                className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-10 h-10 rounded-full bg-white/90 text-zinc-800 shadow-lg hover:bg-white transition-colors"
+              >
+                <ChevronRight size={20} />
+              </button>
+
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5">
+                {zoom.urls.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={e => { e.stopPropagation(); setZoom(z => z && { ...z, index: idx }); }}
+                    className={`w-2 h-2 rounded-full transition-colors ${idx === zoom.index ? 'bg-white' : 'bg-white/40'}`}
+                    aria-label={idx === 0 ? 'Foto principal' : 'Foto secundária'}
+                  />
+                ))}
+              </div>
+            </>
           )}
 
           <div className="absolute top-4 right-4 flex gap-2">
@@ -263,12 +293,12 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
               </button>
             )}
             <button
-              onClick={e => { e.stopPropagation(); copyImageToClipboard(zoom.urls[zoom.index] ?? zoom.urls[0], zoom.ref); }}
-              title="Copiar imagem para colar no WhatsApp"
+              onClick={e => { e.stopPropagation(); copyImagesToClipboard(zoom.urls, zoom.ref); }}
+              title="Copiar imagem(ns) para colar no WhatsApp"
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/95 text-zinc-800 text-sm font-medium shadow-lg hover:bg-white transition-colors"
             >
               <Copy size={15} />
-              Copiar imagem
+              {zoom.urls.length > 1 ? 'Copiar as 2' : 'Copiar imagem'}
             </button>
           </div>
         </div>
