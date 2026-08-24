@@ -1,10 +1,9 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
-import { Send, Sparkles, ArrowUp, PanelLeft } from 'lucide-react';
+import { useRef, useEffect } from 'react';
+import { Send, Sparkles, ArrowUp, RotateCcw } from 'lucide-react';
 import { useAgenteChat } from '@/lib/hooks/use-agente-chat';
 import { ChatMessageBubble } from '@/components/agente/chat-message';
-import { ConversasSidebar } from '@/components/agente/conversas-sidebar';
 
 const SUGGESTIONS = [
   'E11111',
@@ -16,15 +15,9 @@ const SUGGESTIONS = [
 ];
 
 export default function AgentePage() {
-  const {
-    messages, input, setInput, loading, handleSubmit, send, clear, bottomRef,
-    loadConversa, conversaId, historyVersion,
-  } = useAgenteChat();
+  const { messages, input, setInput, loading, handleSubmit, send, clear, bottomRef } = useAgenteChat();
   const isEmpty = messages.length === 0;
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
-  );
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -36,134 +29,110 @@ export default function AgentePage() {
   };
 
   return (
-    <div className="flex h-full bg-white dark:bg-zinc-950 overflow-hidden">
+    <div className="flex flex-col h-full bg-white dark:bg-zinc-950 relative overflow-hidden">
 
-      <ConversasSidebar
-        open={sidebarOpen}
-        onToggle={() => setSidebarOpen(o => !o)}
-        onSelect={loadConversa}
-        onNewChat={() => { clear(); setTimeout(() => inputRef.current?.focus(), 0); }}
-        activeConversaId={conversaId}
-        refreshKey={historyVersion}
-      />
+      {/* Glow ambiente sutil, só decorativo */}
+      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[560px] h-[280px] rounded-full bg-gradient-to-br from-indigo-400/10 via-violet-400/10 to-transparent blur-3xl" aria-hidden />
 
-      <div className="flex-1 flex flex-col relative overflow-hidden min-w-0">
+      {!isEmpty && (
+        <button
+          onClick={() => { clear(); setTimeout(() => inputRef.current?.focus(), 0); }}
+          className="absolute top-3 right-4 md:right-6 z-20 flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors px-2.5 py-1.5 rounded-lg bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md hover:bg-zinc-100 dark:hover:bg-white/[0.06]"
+        >
+          <RotateCcw size={12} />
+          <span className="hidden sm:inline">Nova conversa</span>
+        </button>
+      )}
 
-        {/* Glow ambiente sutil, só decorativo */}
-        <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[560px] h-[280px] rounded-full bg-gradient-to-br from-indigo-400/10 via-violet-400/10 to-transparent blur-3xl" aria-hidden />
-
-        {/* Header */}
-        <div className="shrink-0 z-10 px-4 md:px-6 py-3 border-b border-zinc-100 dark:border-white/[0.06] bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md flex items-center gap-2.5">
-          {!sidebarOpen && (
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="md:hidden p-1.5 -ml-1 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:bg-white/[0.06] dark:hover:text-zinc-200 transition-colors"
-              aria-label="Mostrar histórico"
-            >
-              <PanelLeft size={17} />
-            </button>
-          )}
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-sm shadow-indigo-500/30">
-            <Sparkles size={13} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">Nexus</h1>
-            <p className="text-[11px] text-zinc-400 leading-tight">
-              {isEmpty ? 'Pergunte qualquer coisa sobre o estoque' : 'Consultando o sistema em tempo real'}
-            </p>
-          </div>
-        </div>
-
-        {/* Mensagens ou Empty State */}
-        <div className="flex-1 overflow-y-auto z-10 px-4 md:px-6 py-6 flex flex-col gap-1 [scrollbar-gutter:stable]">
-          {isEmpty ? (
-            <div className="flex flex-col items-center justify-center h-full gap-7 pb-10 animate-in fade-in duration-500">
-              <div className="text-center">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/25 animate-in zoom-in-95 duration-500">
-                  <Sparkles size={20} className="text-white" />
-                </div>
-                <p className="text-base font-medium text-zinc-800 dark:text-zinc-100">O que você quer saber?</p>
-                <p className="text-sm text-zinc-400 dark:text-zinc-500 mt-1.5">Referência, tipo de peça, destino ou carro chefe</p>
+      {/* Mensagens ou Empty State */}
+      <div className="flex-1 overflow-y-auto z-10 px-4 md:px-6 py-6 flex flex-col gap-1 [scrollbar-gutter:stable]">
+        {isEmpty ? (
+          <div className="flex flex-col items-center justify-center h-full gap-7 pb-10 animate-in fade-in duration-500">
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/25 animate-in zoom-in-95 duration-500">
+                <Sparkles size={20} className="text-white" />
               </div>
-              <div className="flex flex-wrap justify-center gap-2 max-w-md">
-                {SUGGESTIONS.map((s, i) => (
-                  <button
-                    key={s}
-                    onClick={() => { send(s); }}
-                    disabled={loading}
-                    style={{ animationDelay: `${i * 40}ms` }}
-                    className="animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-both text-xs px-3.5 py-2 rounded-full border border-zinc-200 dark:border-white/[0.1] bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-600 dark:hover:border-indigo-500/50 dark:hover:text-indigo-400 hover:shadow-sm transition-all active:scale-95 disabled:opacity-40"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
+              <p className="text-base font-medium text-zinc-800 dark:text-zinc-100">O que você quer saber?</p>
+              <p className="text-sm text-zinc-400 dark:text-zinc-500 mt-1.5">Referência, tipo de peça, destino ou carro chefe</p>
             </div>
-          ) : (
-            <>
-              <div className="max-w-3xl mx-auto w-full flex flex-col gap-1">
-                {messages.map(msg => (
-                  <ChatMessageBubble key={msg.id} message={msg} />
-                ))}
-                {loading && (
-                  <div className="flex items-start gap-3 py-4 animate-in fade-in duration-200">
-                    <div className="shrink-0 w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
-                      <Sparkles size={13} className="text-white animate-pulse" />
-                    </div>
-                    <div className="flex items-center gap-1.5 pt-1.5">
-                      <span className="w-1.5 h-1.5 bg-zinc-400 dark:bg-zinc-500 rounded-full animate-bounce [animation-delay:0ms]" />
-                      <span className="w-1.5 h-1.5 bg-zinc-400 dark:bg-zinc-500 rounded-full animate-bounce [animation-delay:150ms]" />
-                      <span className="w-1.5 h-1.5 bg-zinc-400 dark:bg-zinc-500 rounded-full animate-bounce [animation-delay:300ms]" />
-                    </div>
+            <div className="flex flex-wrap justify-center gap-2 max-w-md">
+              {SUGGESTIONS.map((s, i) => (
+                <button
+                  key={s}
+                  onClick={() => { send(s); }}
+                  disabled={loading}
+                  style={{ animationDelay: `${i * 40}ms` }}
+                  className="animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-both text-xs px-3.5 py-2 rounded-full border border-zinc-200 dark:border-white/[0.1] bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-600 dark:hover:border-indigo-500/50 dark:hover:text-indigo-400 hover:shadow-sm transition-all active:scale-95 disabled:opacity-40"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="max-w-3xl mx-auto w-full flex flex-col gap-1">
+              {messages.map(msg => (
+                <ChatMessageBubble key={msg.id} message={msg} />
+              ))}
+              {loading && (
+                <div className="flex items-start gap-3 py-4 animate-in fade-in duration-200">
+                  <div className="shrink-0 w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
+                    <Sparkles size={13} className="text-white animate-pulse" />
                   </div>
-                )}
-              </div>
-              <div ref={bottomRef} />
-            </>
-          )}
-        </div>
-
-        {/* Input */}
-        <div className="shrink-0 z-10 px-4 md:px-6 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 bg-gradient-to-t from-white dark:from-zinc-950 via-white/95 dark:via-zinc-950/95 to-transparent">
-          <form
-            onSubmit={handleSubmit}
-            className="max-w-3xl mx-auto flex items-end gap-2 rounded-2xl border border-zinc-200 dark:border-white/[0.1] bg-zinc-50 dark:bg-zinc-900 p-1.5 shadow-sm focus-within:border-indigo-400 dark:focus-within:border-indigo-500/60 focus-within:ring-2 focus-within:ring-indigo-500/15 transition-all"
-          >
-            <textarea
-              ref={inputRef}
-              rows={1}
-              value={input}
-              onChange={e => { setInput(e.target.value); autoGrow(e.target); }}
-              placeholder="Referência ou pergunta…"
-              autoComplete="off"
-              disabled={loading}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit(e as unknown as React.SyntheticEvent);
-                  requestAnimationFrame(() => { if (inputRef.current) inputRef.current.style.height = 'auto'; });
-                }
-              }}
-              className="flex-1 resize-none bg-transparent px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none disabled:opacity-50 max-h-40 leading-relaxed"
-            />
-            <button
-              type="submit"
-              disabled={!input.trim() || loading}
-              aria-label="Enviar"
-              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-30 disabled:cursor-not-allowed text-white transition-all active:scale-90 shadow-sm shadow-indigo-500/30"
-            >
-              {loading
-                ? <Send size={15} className="animate-pulse" />
-                : <ArrowUp size={16} strokeWidth={2.5} />
-              }
-            </button>
-          </form>
-          <p className="max-w-3xl mx-auto text-center text-[10px] text-zinc-400 dark:text-zinc-600 mt-2 hidden sm:block">
-            Respostas geradas a partir dos dados do sistema — confirme antes de decisões importantes.
-          </p>
-        </div>
-
+                  <div className="flex items-center gap-1.5 pt-1.5">
+                    <span className="w-1.5 h-1.5 bg-zinc-400 dark:bg-zinc-500 rounded-full animate-bounce [animation-delay:0ms]" />
+                    <span className="w-1.5 h-1.5 bg-zinc-400 dark:bg-zinc-500 rounded-full animate-bounce [animation-delay:150ms]" />
+                    <span className="w-1.5 h-1.5 bg-zinc-400 dark:bg-zinc-500 rounded-full animate-bounce [animation-delay:300ms]" />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div ref={bottomRef} />
+          </>
+        )}
       </div>
+
+      {/* Input */}
+      <div className="shrink-0 z-10 px-4 md:px-6 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 bg-gradient-to-t from-white dark:from-zinc-950 via-white/95 dark:via-zinc-950/95 to-transparent">
+        <form
+          onSubmit={handleSubmit}
+          className="max-w-3xl mx-auto flex items-end gap-2 rounded-2xl border border-zinc-200 dark:border-white/[0.1] bg-zinc-50 dark:bg-zinc-900 p-1.5 shadow-sm focus-within:border-indigo-400 dark:focus-within:border-indigo-500/60 focus-within:ring-2 focus-within:ring-indigo-500/15 transition-all"
+        >
+          <textarea
+            ref={inputRef}
+            rows={1}
+            value={input}
+            onChange={e => { setInput(e.target.value); autoGrow(e.target); }}
+            placeholder="Referência ou pergunta…"
+            autoComplete="off"
+            disabled={loading}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit(e as unknown as React.SyntheticEvent);
+                requestAnimationFrame(() => { if (inputRef.current) inputRef.current.style.height = 'auto'; });
+              }
+            }}
+            className="flex-1 resize-none bg-transparent px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none disabled:opacity-50 max-h-40 leading-relaxed"
+          />
+          <button
+            type="submit"
+            disabled={!input.trim() || loading}
+            aria-label="Enviar"
+            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-30 disabled:cursor-not-allowed text-white transition-all active:scale-90 shadow-sm shadow-indigo-500/30"
+          >
+            {loading
+              ? <Send size={15} className="animate-pulse" />
+              : <ArrowUp size={16} strokeWidth={2.5} />
+            }
+          </button>
+        </form>
+        <p className="max-w-3xl mx-auto text-center text-[10px] text-zinc-400 dark:text-zinc-600 mt-2 hidden sm:block">
+          Respostas geradas a partir dos dados do sistema — confirme antes de decisões importantes.
+        </p>
+      </div>
+
     </div>
   );
 }

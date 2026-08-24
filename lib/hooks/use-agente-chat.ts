@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useFirebase } from '@/components/firebase-provider';
-import { criarConversaAction, salvarMensagensAction, type StoredChatMessage } from '@/lib/actions/agente-conversas';
 
 export type ChatMessage = {
   id: number;
@@ -12,50 +10,23 @@ export type ChatMessage = {
 };
 
 export function useAgenteChat() {
-  const { currentUser } = useFirebase();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput]       = useState('');
   const [loading, setLoading]   = useState(false);
-  const [conversaId, setConversaId] = useState<string | null>(null);
-  const [historyVersion, setHistoryVersion] = useState(0);
   const nextId                  = useRef(1);
   const bottomRef               = useRef<HTMLDivElement>(null);
   const messagesRef             = useRef<ChatMessage[]>([]);
-  const conversaIdRef           = useRef<string | null>(null);
 
   useEffect(() => {
     messagesRef.current = messages;
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const persist = useCallback(async (allMessages: ChatMessage[], firstQuestion: string) => {
-    if (!currentUser) return; // sem sessão — não há onde salvar
-    const stored: StoredChatMessage[] = allMessages.map(m => ({ role: m.role, text: m.text }));
-    try {
-      let isNew = false;
-      if (!conversaIdRef.current) {
-        const res = await criarConversaAction(currentUser.email, currentUser.name, firstQuestion);
-        if (res.data?.id) {
-          conversaIdRef.current = res.data.id;
-          setConversaId(res.data.id);
-          isNew = true;
-        }
-      }
-      if (conversaIdRef.current) {
-        await salvarMensagensAction(conversaIdRef.current, stored);
-        if (isNew) setHistoryVersion(v => v + 1);
-      }
-    } catch {
-      // histórico é best-effort — não deve travar a experiência de chat
-    }
-  }, [currentUser]);
-
   const send = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
 
     const userMsg: ChatMessage = { id: nextId.current++, role: 'user', text: trimmed };
-    const isFirst = messagesRef.current.length === 0;
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
@@ -87,21 +58,22 @@ export function useAgenteChat() {
         }
       }
 
-      const assistantMsg: ChatMessage = {
+      setMessages(prev => [...prev, {
         id: nextId.current++,
         role: 'assistant',
         text: reply,
         images: images.length > 0 ? images : undefined,
-      };
-      setMessages(prev => [...prev, assistantMsg]);
-      void persist([...messagesRef.current, userMsg, assistantMsg], isFirst ? trimmed : messagesRef.current[0]?.text ?? trimmed);
+      }]);
     } catch {
-      const errorMsg: ChatMessage = { id: nextId.current++, role: 'assistant', text: 'Erro de conexão. Tente novamente.' };
-      setMessages(prev => [...prev, errorMsg]);
+      setMessages(prev => [...prev, {
+        id: nextId.current++,
+        role: 'assistant',
+        text: 'Erro de conexão. Tente novamente.',
+      }]);
     } finally {
       setLoading(false);
     }
-  }, [loading, persist]);
+  }, [loading]);
 
   const handleSubmit = useCallback((e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -111,18 +83,7 @@ export function useAgenteChat() {
   const clear = useCallback(() => {
     setMessages([]);
     setInput('');
-    conversaIdRef.current = null;
-    setConversaId(null);
   }, []);
 
-  const loadConversa = useCallback((id: string, mensagens: StoredChatMessage[]) => {
-    conversaIdRef.current = id;
-    setConversaId(id);
-    setMessages(mensagens.map(m => ({ id: nextId.current++, role: m.role, text: m.text })));
-  }, []);
-
-  return {
-    messages, input, setInput, loading, handleSubmit, send, clear, bottomRef,
-    loadConversa, conversaId, historyVersion,
-  };
+  return { messages, input, setInput, loading, handleSubmit, send, clear, bottomRef };
 }

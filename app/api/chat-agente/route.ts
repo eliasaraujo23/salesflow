@@ -737,8 +737,12 @@ Regras de formatação:
 - Preços já formatados (ex: "R$ 1.500") vindos das ferramentas estruturadas: use como estão. Valores numéricos brutos vindos de executar_sql: formate em Real antes de mostrar.
 - Peça DISPONÍVEL (estoque ou comodato): sempre mostre os 3 preços — parceiro, à vista e parcelado — nunca só um deles.
 - Peça VENDIDA: mostre só o valor pelo qual foi vendida (nunca parceiro/à vista/parcelado, que não se aplicam mais).
-- Sempre que uma peça tiver o campo destino preenchido, diga onde ela está: "ESTOQUE" (ou destino nulo) significa que está no estoque interno; qualquer outro valor de destino é o parceiro que está com a peça em comodato — deixe isso explícito na resposta (ex: "em comodato com a Second Hand"), nunca omita.
-- Ao listar várias peças, use uma peça por parágrafo com a referência em negrito, sem numerar.
+- Ao listar cada peça, use SEMPRE 3 linhas separadas dentro do mesmo parágrafo (referência + descrição na primeira linha, depois quebra de linha para as outras duas):
+  1. Referência em negrito + o campo "tipo" entre parênteses (JF, JC, JRCP, JRSP, JMCP, JMSP, etc — nunca omita) + descrição da peça.
+  2. Linha de status: se estiver em estoque interno, comece com "📦 Em estoque"; se estiver em comodato, comece com "🤝 Em comodato com [Parceiro]"; se vendida, comece com "✅ Vendida para [destino/cliente]".
+  3. Linha de preços: se disponível, "💰 Parceiro: R$ X | À vista: R$ Y | Parcelado: R$ Z"; se vendida, "💰 Vendida por R$ X".
+  Nunca junte a linha de status e a linha de preço na mesma linha — são sempre linhas separadas.
+- Ao listar várias peças, use um parágrafo por peça (as 3 linhas acima), sem numerar.
 - NUNCA mostre menos peças do que "itens_retornados" indica — se a ferramenta retornou 23 itens, liste as 23 (ou pelo menos deixe claro que são 23 e pergunte se quer ver todas antes de resumir). Omitir peças da resposta sem avisar é um erro grave.
 - Ao responder perguntas de estatística/agregação (média, total, contagem, faixa de preço via executar_sql), sempre inclua junto com o número as peças que compõem o cálculo — não só referência e preço "cru". Para cada peça, traga também a descrição (pd.descricao_jewel, ou pd.descricao_inteligente se a primeira for nula) e quem tem/vendeu (para vendida: destino de venda ou o cliente; para disponível: o destino/parceiro em comodato, ou "estoque"). Ou seja, ao montar a query de estatística já inclua essas colunas no SELECT/JOIN (produto, destinos, cliente se houver) em vez de rodar uma segunda query separada. Uma resposta que é só "referência — preço" sem descrição nem quem tem a peça está incompleta.
 - Se a busca não encontrar nada, diga isso claramente e sugira reformular a pergunta.

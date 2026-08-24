@@ -22,7 +22,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { label: 'Fotografia',        href: '/photography',    icon: 'ti-camera',          section: 'Operacional', permission: 'fotografia' },
   { label: 'Parceiros',         href: '/partners',       icon: 'ti-building-store',  section: 'Operacional', permission: 'parceiros' },
   { label: 'Painel Mensal',     href: '/painel',         icon: 'ti-chart-bar',       section: 'Operacional', permission: 'painel' },
-  { label: 'Busca de Peça',    href: '/agente',         icon: 'ti-sparkles',        section: 'Operacional', permission: 'agente' },
+  { label: 'Nexus',            href: '/agente',         icon: 'ti-sparkles',        section: 'Operacional', permission: 'agente' },
   { label: 'Leilão',           href: '/leilao',         icon: 'ti-gavel',           section: 'Operacional', permission: 'leilao' },
   { label: 'Usuários & Acesso', href: '/users',          icon: 'ti-shield-check',    section: 'Admin',       adminOnly: true },
   { label: 'Configurações',     href: '/settings',       icon: 'ti-settings-2',      section: 'Admin',       adminOnly: true },
