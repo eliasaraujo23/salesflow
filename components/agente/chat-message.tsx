@@ -76,7 +76,9 @@ async function shareImages(urls: string[], ref: string) {
     );
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') return; // usuário cancelou o compartilhamento
-    toast.error('Não foi possível compartilhar a imagem.');
+    console.error('[shareImages] falhou:', err);
+    const msg = err instanceof Error ? err.message : String(err);
+    toast.error(`Não foi possível compartilhar a imagem. (${msg})`);
   }
 }
 
