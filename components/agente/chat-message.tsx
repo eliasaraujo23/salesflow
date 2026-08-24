@@ -86,26 +86,19 @@ async function toPngBlob(blob: Blob): Promise<Blob> {
 }
 
 /**
- * Copia uma ou mais imagens para a área de transferência — cola direto no WhatsApp Web/app com Ctrl+V.
- * A maioria dos apps só recupera a última entrada colável ao colar; enviamos todas mesmo assim, já
- * que alguns navegadores/apps suportam múltiplas entradas de imagem na mesma operação de paste.
+ * Copia a imagem atual para a área de transferência — cola direto no WhatsApp Web/app com Ctrl+V.
+ * O navegador só permite um ClipboardItem por vez (múltiplos itens não são suportados no Chrome),
+ * então copia sempre a foto que está sendo exibida no lightbox no momento.
  */
-async function copyImagesToClipboard(urls: string[], ref: string) {
+async function copyImageToClipboard(url: string, ref: string) {
   try {
-    const items = await Promise.all(urls.map(async url => {
-      const res = await fetch(`/api/chat-agente/images/download?url=${encodeURIComponent(url)}`);
-      if (!res.ok) throw new Error('download falhou');
-      const png = await toPngBlob(await res.blob());
-      return new ClipboardItem({ 'image/png': png });
-    }));
-    await navigator.clipboard.write(items);
-    toast.success(
-      items.length > 1
-        ? 'Imagens copiadas — cole (Ctrl+V) no WhatsApp Web ou no app.'
-        : 'Imagem copiada — cole (Ctrl+V) no WhatsApp Web ou no app.',
-    );
+    const res = await fetch(`/api/chat-agente/images/download?url=${encodeURIComponent(url)}`);
+    if (!res.ok) throw new Error('download falhou');
+    const png = await toPngBlob(await res.blob());
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+    toast.success('Imagem copiada — cole (Ctrl+V) no WhatsApp Web ou no app.');
   } catch (err) {
-    console.error('[copyImagesToClipboard] falhou:', err, ref);
+    console.error('[copyImageToClipboard] falhou:', err, ref);
     toast.error('Não foi possível copiar a imagem.');
   }
 }
@@ -240,7 +233,7 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
       {/* Lightbox */}
       {zoom && zoom.urls.length > 0 && (
         <div
-          className={`fixed inset-0 z-50 bg-black/80 flex items-center justify-center ${zoomed ? 'overflow-auto p-0 cursor-zoom-out' : 'p-4 cursor-zoom-in'}`}
+          className={`fixed inset-0 z-[100] bg-black/80 flex items-center justify-center ${zoomed ? 'overflow-auto p-0 cursor-zoom-out' : 'p-4 cursor-zoom-in'}`}
           onClick={() => { setZoom(null); setZoomed(false); }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -293,12 +286,12 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
               </button>
             )}
             <button
-              onClick={e => { e.stopPropagation(); copyImagesToClipboard(zoom.urls, zoom.ref); }}
-              title="Copiar imagem(ns) para colar no WhatsApp"
+              onClick={e => { e.stopPropagation(); copyImageToClipboard(zoom.urls[zoom.index] ?? zoom.urls[0], zoom.ref); }}
+              title="Copiar esta foto para colar no WhatsApp"
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/95 text-zinc-800 text-sm font-medium shadow-lg hover:bg-white transition-colors"
             >
               <Copy size={15} />
-              {zoom.urls.length > 1 ? 'Copiar as 2' : 'Copiar imagem'}
+              Copiar foto
             </button>
           </div>
         </div>
