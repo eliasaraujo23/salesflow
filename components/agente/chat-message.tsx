@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Sparkles, Copy, Check, ZoomIn, CameraOff } from 'lucide-react';
+import { Sparkles, Copy, Check, ZoomIn, CameraOff, Share2, Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { type ChatMessage } from '@/lib/hooks/use-agente-chat';
 
 function renderLine(line: string) {
@@ -23,6 +24,7 @@ function renderPlainText(text: string) {
 }
 
 interface ImageMap { [ref: string]: string }
+interface ZoomState { url: string; ref: string }
 
 function CopyBlockButton({ text }: { text: string }) {
   const [done, setDone] = useState(false);
@@ -42,10 +44,36 @@ function CopyBlockButton({ text }: { text: string }) {
   );
 }
 
+/** Compartilha a imagem via Web Share API (WhatsApp/etc no celular) com fallback para download. */
+async function shareImage(url: string, ref: string) {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const ext = blob.type.split('/')[1]?.split('+')[0] ?? 'jpg';
+    const file = new File([blob], `${ref}.${ext}`, { type: blob.type });
+
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: ref });
+      return;
+    }
+
+    // Fallback: sem suporte a compartilhar arquivos (desktop) — baixa a imagem direto.
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${ref}.${ext}`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    toast.success('Imagem baixada — envie pelo WhatsApp Web ou outro app.');
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') return; // usuário cancelou o compartilhamento
+    toast.error('Não foi possível compartilhar a imagem.');
+  }
+}
+
 function renderWithImages(
   text: string,
   imageMap: ImageMap,
-  onZoom: (url: string) => void,
+  onZoom: (state: ZoomState) => void,
 ) {
   const blocks = text.split(/\n\n+/);
 
@@ -68,7 +96,7 @@ function renderWithImages(
     if (ref) {
       const thumb = imgUrl ? (
         <button
-          onClick={() => onZoom(imgUrl)}
+          onClick={() => onZoom({ url: imgUrl, ref })}
           className="group/img relative shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-zinc-200 dark:border-white/[0.1] hover:border-indigo-400 hover:shadow-md transition-all"
           title={ref}
         >
@@ -112,7 +140,7 @@ interface ChatMessageProps {
 export function ChatMessageBubble({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const [copied, setCopied]   = useState(false);
-  const [zoom, setZoom]       = useState<string | null>(null);
+  const [zoom, setZoom]       = useState<ZoomState | null>(null);
   const [zoomed, setZoomed]   = useState(false);
 
   function copy() {
@@ -129,6 +157,7 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
   }
 
   const hasImages = message.images && message.images.length > 0;
+  const canShareFiles = typeof navigator !== 'undefined' && !!navigator.canShare;
 
   return (
     <>
@@ -170,11 +199,19 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={zoom}
+            src={zoom.url}
             alt="Imagem ampliada"
             className={`shadow-2xl transition-all duration-200 ${zoomed ? 'rounded-none w-auto h-auto min-w-[150%] min-h-[150%] object-contain' : 'rounded-xl max-w-full max-h-full object-contain'}`}
             onClick={e => { e.stopPropagation(); setZoomed(z => !z); }}
           />
+          <button
+            onClick={e => { e.stopPropagation(); shareImage(zoom.url, zoom.ref); }}
+            title={canShareFiles ? 'Compartilhar' : 'Baixar imagem'}
+            className="absolute top-4 right-4 flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/95 text-zinc-800 text-sm font-medium shadow-lg hover:bg-white transition-colors"
+          >
+            {canShareFiles ? <Share2 size={15} /> : <Download size={15} />}
+            {canShareFiles ? 'Compartilhar' : 'Baixar'}
+          </button>
         </div>
       )}
     </>
