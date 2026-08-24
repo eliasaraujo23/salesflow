@@ -208,14 +208,14 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
       )}
 
       {/* Lightbox */}
-      {zoom && (
+      {zoom && zoom.urls.length > 0 && (
         <div
           className={`fixed inset-0 z-50 bg-black/80 flex items-center justify-center ${zoomed ? 'overflow-auto p-0 cursor-zoom-out' : 'p-4 cursor-zoom-in'}`}
           onClick={() => { setZoom(null); setZoomed(false); }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={zoom.urls[zoom.index]}
+            src={zoom.urls[zoom.index] ?? zoom.urls[0]}
             alt="Imagem ampliada"
             className={`shadow-2xl transition-all duration-200 ${zoomed ? 'rounded-none w-auto h-auto min-w-[150%] min-h-[150%] object-contain' : 'rounded-xl max-w-full max-h-full object-contain'}`}
             onClick={e => { e.stopPropagation(); setZoomed(z => !z); }}
