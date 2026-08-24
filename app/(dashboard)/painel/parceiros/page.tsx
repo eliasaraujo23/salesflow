@@ -5,6 +5,7 @@ import { RefreshCw, X, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-rea
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { usePainelVendas } from '@/hooks/use-painel-vendas';
 import { HBarChart } from '@/components/painel/h-bar-chart';
+import { chartCardHeight } from '@/lib/chart-height';
 
 function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -117,29 +118,29 @@ export default function PainelParceirosPage() {
   ];
 
   return (
-    <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
+    <div className="h-full overflow-y-auto md:overflow-hidden p-4 flex flex-col gap-3">
 
       {/* KPI bar global */}
       <div className="shrink-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
         <div className="px-4 py-2 bg-zinc-900 dark:bg-zinc-800 text-white">
           <span className="text-xs font-bold uppercase tracking-widest">Total do Período</span>
         </div>
-        <div className="grid grid-cols-4 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+        <div className="grid grid-cols-3 divide-x divide-zinc-200 dark:divide-white/[0.08]">
           {[
             { label: 'Faturamento',   value: isLoading ? '—' : fmtBRL((data?.jf.faturamento ?? 0) + (data?.jm.faturamento ?? 0) + (data?.revenda.faturamento ?? 0)) },
             { label: 'Ticket Médio',  value: isLoading ? '—' : fmtBRL(((data?.jf.faturamento ?? 0) + (data?.jm.faturamento ?? 0) + (data?.revenda.faturamento ?? 0)) / Math.max((data?.jf.qtd ?? 0) + (data?.jm.qtd ?? 0) + (data?.revenda.qtd ?? 0), 1)) },
             { label: 'Qtd',           value: isLoading ? '—' : String((data?.jf.qtd ?? 0) + (data?.jm.qtd ?? 0) + (data?.revenda.qtd ?? 0)) },
           ].map(k => (
-            <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
-              <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
-              <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{k.value}</span>
+            <div key={k.label} className="flex flex-col gap-0.5 px-2 py-2 md:px-4 md:py-2.5 min-w-0">
+              <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">{k.label}</span>
+              <span className="text-xs md:text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{k.value}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* KPI bar — 3 seções separadas */}
-      <div className="shrink-0 grid grid-cols-3 gap-3">
+      <div className="shrink-0 grid grid-cols-1 md:grid-cols-3 gap-3">
         {sections.map(s => (
           <div key={s.label} className="border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
             <div className={`px-4 py-2 ${s.headerCls}`}>
@@ -147,9 +148,9 @@ export default function PainelParceirosPage() {
             </div>
             <div className="grid grid-cols-3 divide-x divide-zinc-200 dark:divide-white/[0.08]">
               {s.kpis.map(k => (
-                <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
-                  <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{k.value}</span>
+                <div key={k.label} className="flex flex-col gap-0.5 px-2 py-2 md:px-4 md:py-2.5 min-w-0">
+                  <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">{k.label}</span>
+                  <span className="text-xs md:text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{k.value}</span>
                 </div>
               ))}
             </div>
@@ -171,8 +172,11 @@ export default function PainelParceirosPage() {
       {data && !isLoading && (
         <>
           {/* 3 charts em grid */}
-          <div className="flex-1 min-h-0 grid grid-cols-3 gap-3">
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
+          <div className="shrink-0 md:flex-1 md:min-h-0 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div
+              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col md:!min-h-0"
+              style={{ minHeight: chartCardHeight(jfData.length) }}
+            >
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
                 Joias Fabricadas — JF
               </p>
@@ -182,7 +186,10 @@ export default function PainelParceirosPage() {
                   : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem vendas JF</div>}
               </div>
             </div>
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
+            <div
+              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col md:!min-h-0"
+              style={{ minHeight: chartCardHeight(jmData.length) }}
+            >
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
                 Joias Modificadas — JM
               </p>
@@ -192,7 +199,10 @@ export default function PainelParceirosPage() {
                   : <div className="flex items-center justify-center h-full text-zinc-400 text-sm">Sem vendas JM</div>}
               </div>
             </div>
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
+            <div
+              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col md:!min-h-0"
+              style={{ minHeight: chartCardHeight(rvData.length) }}
+            >
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
                 Joias Revenda — JR
               </p>

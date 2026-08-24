@@ -170,7 +170,7 @@ export function BaseSistemaUpload({
 
         <span className={`shrink-0 tabular-nums ${excluded ? 'text-zinc-400' : 'text-zinc-500 dark:text-zinc-500'}`}>{f.count} peças</span>
         {f.vendidos.length > 0 && (
-          <span className="shrink-0 text-[10px] text-emerald-600 dark:text-emerald-400 tabular-nums">{f.vendidos.length} vendidas</span>
+          <span className="hidden md:inline shrink-0 text-[10px] text-emerald-600 dark:text-emerald-400 tabular-nums">{f.vendidos.length} vendidas</span>
         )}
         <button onClick={() => onToggleExclude(f.filename)} title={excluded ? 'Incluir' : 'Excluir'}
           className={`shrink-0 p-1 rounded transition-colors ${excluded ? 'text-zinc-400 hover:text-zinc-600' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'}`}>
@@ -196,7 +196,7 @@ export function BaseSistemaUpload({
       />
 
       {filtered.length > 0 && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Coluna ETERNNO */}
           <div className="flex flex-col gap-1.5">
             {eternno.length > 0 && <>

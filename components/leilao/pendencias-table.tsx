@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   useReactTable, getCoreRowModel, getSortedRowModel,
   createColumnHelper, flexRender, type SortingState,
@@ -11,6 +11,7 @@ import {
   PENDENCIA_LABELS, PENDENCIA_COLOR,
 } from '@/lib/hooks/use-leilao-pendencias';
 import { statusLabel } from '@/lib/hooks/use-leilao-base';
+import { useHorizontalScrollFade } from '@/hooks/use-horizontal-scroll-fade';
 
 interface Props {
   rows:         PendenciaRow[];
@@ -96,8 +97,12 @@ export function PendenciasTable({ rows, globalFilter, filtro }: Props) {
     getSortedRowModel: getSortedRowModel(),
   });
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { showLeftFade, showRightFade } = useHorizontalScrollFade(containerRef, [filtered.length]);
+
   return (
-    <div className="flex-1 min-h-0 overflow-auto border border-zinc-200 dark:border-white/[0.10] rounded-xl bg-white dark:bg-zinc-900">
+    <div className="relative flex-1 min-h-0">
+    <div ref={containerRef} className="h-full overflow-auto border border-zinc-200 dark:border-white/[0.10] rounded-xl bg-white dark:bg-zinc-900">
       <table className="w-full text-xs border-separate border-spacing-0 data-table">
         <thead>
           <tr>
@@ -161,6 +166,14 @@ export function PendenciasTable({ rows, globalFilter, filtro }: Props) {
           ))}
         </tbody>
       </table>
+    </div>
+
+      {showLeftFade && (
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white dark:from-zinc-900 to-transparent rounded-l-xl" />
+      )}
+      {showRightFade && (
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white dark:from-zinc-900 to-transparent rounded-r-xl" />
+      )}
     </div>
   );
 }

@@ -33,16 +33,16 @@ export default function RoboPage() {
 
       {/* ── Bases do Leilão ──────────────────────────────────── */}
       <section className="flex flex-col gap-2 shrink-0">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-baseline gap-2">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-3">
+          <div className="flex flex-col md:flex-row md:items-baseline gap-0.5 md:gap-2 min-w-0">
             <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Bases do Leilão</h2>
             <p className="text-[11px] text-zinc-400">Sincronize ou importe CSVs da leiloes.br</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <BasesSyncButton leiloes={leiloes} onSyncComplete={() => setSyncKey(k => k + 1)} />
             <button
               onClick={() => triggerUploadRef.current?.()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] text-xs font-medium transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] text-xs font-medium transition-colors whitespace-nowrap"
             >
               <Upload size={12} />
               {uploadedFiles.length > 0 ? 'Adicionar mais' : 'Adicionar CSV'}

@@ -9,6 +9,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { type LeilaoBaseRow, statusLabel } from '@/lib/hooks/use-leilao-base';
 import type { ActiveRefsMap } from '@/components/leilao/base-sistema-upload';
+import { useHorizontalScrollFade } from '@/hooks/use-horizontal-scroll-fade';
 
 interface Props {
   rows:         LeilaoBaseRow[];
@@ -95,6 +96,8 @@ export function BaseSistemaTable({ rows, activeRefs, globalFilter, tipoFiltro }:
     });
   }, [rows, activeRefs, tipoFiltro]);
 
+  const { showLeftFade, showRightFade } = useHorizontalScrollFade(containerRef, [filtered.length]);
+
   const table = useReactTable({
     data:              filtered,
     columns:           COLUMNS,
@@ -120,10 +123,11 @@ export function BaseSistemaTable({ rows, activeRefs, globalFilter, tipoFiltro }:
   const paddingBottom = virtualItems.length > 0 ? totalSize - virtualItems[virtualItems.length - 1].end : 0;
 
   return (
-    <div
-      ref={containerRef}
-      className="flex-1 min-h-0 overflow-auto border border-zinc-200 dark:border-white/[0.10] rounded-xl bg-white dark:bg-zinc-900"
-    >
+    <div className="relative flex-1 min-h-0">
+      <div
+        ref={containerRef}
+        className="h-full overflow-auto border border-zinc-200 dark:border-white/[0.10] rounded-xl bg-white dark:bg-zinc-900"
+      >
       <table className="w-full text-xs border-separate border-spacing-0 data-table">
         <thead>
           <tr>
@@ -212,6 +216,14 @@ export function BaseSistemaTable({ rows, activeRefs, globalFilter, tipoFiltro }:
           )}
         </tbody>
       </table>
+      </div>
+
+      {showLeftFade && (
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white dark:from-zinc-900 to-transparent rounded-l-xl" />
+      )}
+      {showRightFade && (
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white dark:from-zinc-900 to-transparent rounded-r-xl" />
+      )}
     </div>
   );
 }

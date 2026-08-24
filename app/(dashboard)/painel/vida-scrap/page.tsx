@@ -8,6 +8,7 @@ import {
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { useScrapVida } from '@/hooks/use-scrap-vida';
 import { HBarChart } from '@/components/painel/h-bar-chart';
+import { chartCardHeight } from '@/lib/chart-height';
 import type { ScrapVidaRow } from '@/lib/actions/fetch-scrap-vida';
 
 function fmtBRL(v: number) {
@@ -119,23 +120,23 @@ export default function VidaScrapPage() {
   }, [data, sortKey, sortDir]);
 
   return (
-    <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
+    <div className="h-full overflow-y-auto md:overflow-hidden p-4 flex flex-col gap-3">
 
       {/* KPI */}
       <div className="shrink-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
         <div className="px-4 py-2 bg-amber-500 text-white">
           <span className="text-xs font-bold uppercase tracking-widest">Vida das Joias de Scrap</span>
         </div>
-        <div className="grid grid-cols-4 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+        <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-zinc-200 dark:divide-white/[0.08]">
           {[
             { label: 'Total Vendidas', value: isLoading ? '—' : String(kpi.total) },
             { label: 'Vida Média',     value: isLoading ? '—' : `${kpi.avg} dias` },
             { label: 'Mínimo',         value: isLoading ? '—' : `${kpi.min} dias` },
             { label: 'Máximo',         value: isLoading ? '—' : `${kpi.max} dias` },
           ].map(k => (
-            <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
-              <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
-              <span className="text-sm font-bold tabular-nums text-zinc-900 dark:text-zinc-100">{k.value}</span>
+            <div key={k.label} className="flex flex-col gap-0.5 px-2 py-2 md:px-4 md:py-2.5 min-w-0">
+              <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">{k.label}</span>
+              <span className="text-xs md:text-sm font-bold tabular-nums text-zinc-900 dark:text-zinc-100 truncate">{k.value}</span>
             </div>
           ))}
         </div>
@@ -155,10 +156,10 @@ export default function VidaScrapPage() {
       {!isLoading && !isError && (
         <>
           {/* Middle */}
-          <div className="flex-1 min-h-0 grid gap-3" style={{ gridTemplateColumns: '1fr 1fr' }}>
+          <div className="shrink-0 md:flex-1 md:min-h-0 grid grid-cols-1 md:grid-flow-col md:auto-cols-fr gap-3">
 
             {/* Distribuição por faixa */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-[280px] md:min-h-0">
               <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
                 Distribuição por Faixa de Tempo
               </div>
@@ -193,7 +194,10 @@ export default function VidaScrapPage() {
             </div>
 
             {/* Vida média por destino */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
+            <div
+              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col md:!min-h-0"
+              style={{ minHeight: chartCardHeight(byDestino.length) }}
+            >
               <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
                 Vida Média por Destino (dias)
               </div>

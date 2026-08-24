@@ -5,6 +5,7 @@ import { RefreshCw, X, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-rea
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { usePainelVendas } from '@/hooks/use-painel-vendas';
 import { HBarChart } from '@/components/painel/h-bar-chart';
+import { chartCardHeight } from '@/lib/chart-height';
 
 function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -136,22 +137,22 @@ export default function PainelEternnoPage() {
   };
 
   return (
-    <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
+    <div className="h-full overflow-y-auto md:overflow-hidden p-4 flex flex-col gap-3">
 
       {/* KPI bar global Eternno */}
       <div className="shrink-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
         <div className="px-4 py-2 bg-zinc-900 dark:bg-zinc-800 text-white">
           <span className="text-xs font-bold uppercase tracking-widest">Eternno</span>
         </div>
-        <div className="grid grid-cols-4 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+        <div className="grid grid-cols-3 divide-x divide-zinc-200 dark:divide-white/[0.08]">
           {[
             { label: 'Faturamento',  value: isLoading ? '—' : fmtBRL(kpi.fat) },
             { label: 'Ticket Médio', value: isLoading ? '—' : fmtBRL(kpi.tm) },
             { label: 'Qtd',          value: isLoading ? '—' : String(kpi.qtd) },
           ].map(k => (
-            <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
-              <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
-              <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{k.value}</span>
+            <div key={k.label} className="flex flex-col gap-0.5 px-2 py-2 md:px-4 md:py-2.5 min-w-0">
+              <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">{k.label}</span>
+              <span className="text-xs md:text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{k.value}</span>
             </div>
           ))}
         </div>
@@ -171,9 +172,13 @@ export default function PainelEternnoPage() {
       {data && !isLoading && (
         <>
           {/* Charts por tipo */}
-          <div className="flex-1 min-h-0 grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.max(byTipo.length, 1)}, 1fr)` }}>
+          <div className="shrink-0 md:flex-1 md:min-h-0 grid grid-cols-1 md:grid-flow-col md:auto-cols-fr gap-3">
             {byTipo.map(t => (
-              <div key={t.tipo} className={`bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden flex flex-col transition-colors ${selectedTipo === t.tipo ? 'border-indigo-400 dark:border-indigo-500' : 'border-zinc-200 dark:border-white/[0.08]'}`}>
+              <div
+                key={t.tipo}
+                className={`bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden flex flex-col transition-colors md:!min-h-0 ${selectedTipo === t.tipo ? 'border-indigo-400 dark:border-indigo-500' : 'border-zinc-200 dark:border-white/[0.08]'}`}
+                style={{ minHeight: chartCardHeight(t.byProduto.length) }}
+              >
                 <div className={`${TIPO_HEADER[t.tipo] ?? 'bg-zinc-600 text-white'} px-4 py-2 shrink-0`}>
                   <span className="text-xs font-bold uppercase tracking-widest">{TIPO_LABEL[t.tipo] ?? t.tipo}</span>
                 </div>
@@ -183,9 +188,9 @@ export default function PainelEternnoPage() {
                     { label: 'Ticket Médio', value: fmtBRL(t.tm) },
                     { label: 'Qtd',          value: String(t.qtd) },
                   ].map(k => (
-                    <div key={k.label} className="px-3 py-2 flex flex-col gap-0.5">
-                      <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
-                      <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{k.value}</span>
+                    <div key={k.label} className="px-2 py-2 md:px-3 flex flex-col gap-0.5 min-w-0">
+                      <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">{k.label}</span>
+                      <span className="text-xs md:text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{k.value}</span>
                     </div>
                   ))}
                 </div>

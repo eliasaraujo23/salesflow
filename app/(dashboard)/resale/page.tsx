@@ -140,7 +140,7 @@ export default function ResalePage() {
               <KPIBox label="Quantidade"   value={String(data.qtd)} flash={kpiFlash} />
               <KPIBox label="Ticket Médio" value={ticketMedio(data.faturamento, data.qtd)} flash={kpiFlash} />
             </div>
-            <SectionCard title="Por Destino" className="md:flex-1 md:flex md:flex-col md:min-h-0" contentClass="min-h-[220px] md:min-h-0 md:flex-1">
+            <SectionCard title="Por Destino" className="md:flex-1 md:flex md:flex-col md:min-h-0" contentClass="flex flex-col h-[320px] md:h-auto md:min-h-0 md:flex-1">
               {data.byDestino.length === 0
                 ? <div className="text-xs text-zinc-500 dark:text-zinc-400 py-6 text-center">Sem dados</div>
                 : <ResaleHBar data={data.byDestino} color="#8b5cf6" labelWidth={160} fullHeight />}

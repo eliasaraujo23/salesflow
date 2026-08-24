@@ -122,7 +122,7 @@ export default function PainelProducaoPage() {
       {data && !isLoading && (
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
           {/* Charts row */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Produto × Custo × Quantidade em Fabricação</p>
               {byProdutoCusto.length > 0 ? (

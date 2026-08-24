@@ -84,7 +84,7 @@ export default function JoiasMesPage() {
   const activeLojas = lojaFiltro ? [lojaFiltro] : lojasPresentes;
 
   return (
-    <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
+    <div className="h-full overflow-y-auto md:overflow-hidden p-4 flex flex-col gap-3">
 
       {/* KPI + filtro loja */}
       <div className="shrink-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
@@ -143,7 +143,7 @@ export default function JoiasMesPage() {
       {!isLoading && !isError && (
         <>
           {/* Chart: cadastradas por loja empilhado */}
-          <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
+          <div className="shrink-0 md:flex-1 min-h-[280px] md:min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col">
             <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
               Cadastradas por Mês e Loja
             </div>

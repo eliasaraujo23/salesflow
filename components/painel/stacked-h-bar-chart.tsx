@@ -43,7 +43,7 @@ function CustomYAxisTick(props: { x?: number; y?: number; payload?: { value: str
   const { x = 0, y = 0, payload } = props;
   return (
     <g transform={`translate(${x},${y})`}>
-      <text x={-4} y={0} textAnchor="end" dominantBaseline="central" fill="#71717a" fontSize={12}>
+      <text x={-4} y={0} textAnchor="end" dominantBaseline="central" fill="#71717a" fontSize={12} fontWeight={600}>
         {payload?.value}
       </text>
     </g>

@@ -183,7 +183,7 @@ export default function PainelEvolutivoPage() {
   }
 
   return (
-    <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
+    <div className="h-full overflow-y-auto md:overflow-hidden p-4 flex flex-col gap-3">
 
       {/* Control bar */}
       <div className="shrink-0 flex flex-wrap items-center gap-4 border border-zinc-200 dark:border-white/[0.08] rounded-xl bg-white dark:bg-zinc-900 px-4 py-3">
@@ -231,7 +231,7 @@ export default function PainelEvolutivoPage() {
       {rawData && !isLoading && (
         <>
           {/* 4 area charts individuais — flex-1 para preencher ~55% da altura disponível */}
-          <div className="flex-[55] min-h-0 grid grid-cols-2 gap-3">
+          <div className="shrink-0 md:flex-[55] min-h-[400px] md:min-h-0 grid grid-cols-1 md:grid-cols-2 gap-3">
             {CANAIS.filter(c => activeCanais.has(c.key)).map(canal => {
               const rows = filterByYear(canalData.get(canal.key) ?? []);
               const total = rows.reduce((s, r) => s + r.faturamento, 0);
@@ -242,7 +242,7 @@ export default function PainelEvolutivoPage() {
               const mid = Math.floor(sorted.length / 2);
               const mediana = sorted.length === 0 ? 0 : sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
               return (
-                <div key={canal.key} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col min-h-0">
+                <div key={canal.key} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col min-h-[280px] md:min-h-0">
                   <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-white/[0.06]">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: canal.color }} />
@@ -309,7 +309,7 @@ export default function PainelEvolutivoPage() {
             const picoValor = Math.max(...totaisMensais, 0);
             const picoRow = filteredRows[totaisMensais.indexOf(picoValor)];
             return (
-          <div className="flex-[45] min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col gap-2">
+          <div className="shrink-0 md:flex-[45] min-h-[400px] md:min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col gap-2">
             <div className="shrink-0 flex items-center justify-between">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Evolução Comparativa por Canal</p>
               <div className="flex items-center gap-2">

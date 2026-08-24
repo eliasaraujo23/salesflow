@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useParams, notFound } from 'next/navigation';
 import { getLojaConfig } from '@/lib/controle-config';
 import { ChevronRight } from 'lucide-react';
+import { NavTabBar, type NavTab } from '@/components/nav-tab-bar';
 
 const TABS = [
   { label: 'Resumo',   href: 'resumo' },
@@ -25,6 +26,15 @@ export default function LojaLayout({ children }: Props) {
   if (!loja) notFound();
 
   const pathname = usePathname();
+
+  const tabs: NavTab[] = TABS.map(tab => {
+    const href = `/controle/${lojaCode}/${tab.href}`;
+    return {
+      label: tab.label,
+      href,
+      active: pathname === href || pathname.startsWith(href + '/'),
+    };
+  });
 
   return (
     <div className="flex flex-col h-full">
@@ -48,25 +58,7 @@ export default function LojaLayout({ children }: Props) {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1">
-          {TABS.map(tab => {
-            const href = `/controle/${lojaCode}/${tab.href}`;
-            const isActive = pathname === href || pathname.startsWith(href + '/');
-            return (
-              <Link
-                key={tab.href}
-                href={href}
-                className={`px-4 py-2 text-[13px] font-medium border-b-2 transition-colors -mb-px ${
-                  isActive
-                    ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                    : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
-                }`}
-              >
-                {tab.label}
-              </Link>
-            );
-          })}
-        </div>
+        <NavTabBar tabs={tabs} variant="underline" />
       </div>
 
       <div className="flex-1 overflow-y-auto">

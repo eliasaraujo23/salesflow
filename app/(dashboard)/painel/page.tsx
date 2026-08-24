@@ -56,18 +56,18 @@ export default function PainelPage() {
   }, [data]);
 
   return (
-    <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
+    <div className="h-full overflow-y-auto md:overflow-hidden p-4 flex flex-col gap-3">
 
       {/* KPI bar compacto */}
-      <div className="shrink-0 grid grid-cols-4 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+      <div className="shrink-0 grid grid-cols-3 md:grid-cols-4 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900 divide-x divide-zinc-200 dark:divide-white/[0.08]">
         {[
           { label: 'Faturamento Total', value: isLoading ? '—' : fmtBRL(data?.total.faturamento ?? 0) },
           { label: 'Ticket Médio',      value: isLoading ? '—' : fmtBRL(data?.total.tm ?? 0) },
           { label: 'Quantidade',        value: isLoading ? '—' : String(data?.total.qtd ?? 0) },
         ].map(k => (
-          <div key={k.label} className="flex flex-col gap-0.5 px-5 py-3">
-            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
-            <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{k.value}</span>
+          <div key={k.label} className="flex flex-col gap-0.5 px-2 py-2 md:px-5 md:py-3 min-w-0">
+            <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">{k.label}</span>
+            <span className="text-sm md:text-lg font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{k.value}</span>
           </div>
         ))}
       </div>
@@ -84,10 +84,10 @@ export default function PainelPage() {
       )}
 
       {data && !isLoading && (
-        <div className="flex-1 min-h-0 grid grid-cols-2 gap-3">
+        <div className="shrink-0 md:flex-1 md:min-h-0 grid grid-cols-1 md:grid-cols-2 gap-3">
 
           {/* Faturamento por Destino */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-[280px] md:min-h-0">
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
               Faturamento Total por Destino
             </p>
@@ -98,7 +98,7 @@ export default function PainelPage() {
 
           {/* Dois donuts empilhados */}
           <div className="flex flex-col gap-3 min-h-0">
-            <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col overflow-hidden">
+            <div className="shrink-0 md:flex-1 min-h-[280px] md:min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col overflow-hidden">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
                 Revenda × Fabricado
               </p>
@@ -109,7 +109,7 @@ export default function PainelPage() {
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col overflow-hidden">
+            <div className="shrink-0 md:flex-1 min-h-[280px] md:min-h-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col overflow-hidden">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
                 Canal de Venda
               </p>

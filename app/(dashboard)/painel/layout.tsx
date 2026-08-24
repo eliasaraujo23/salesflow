@@ -6,7 +6,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
     <PainelFiltersProvider>
       <div className="flex flex-col h-full overflow-hidden">
         <PainelFilterBar />
-        <div className="flex-1 overflow-hidden min-h-0">
+        <div className="flex-1 overflow-y-auto md:overflow-hidden min-h-0">
           {children}
         </div>
       </div>

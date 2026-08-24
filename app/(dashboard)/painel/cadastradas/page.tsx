@@ -5,6 +5,7 @@ import { RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { useCadastroJoias } from '@/hooks/use-cadastro-joias';
 import { HBarChart } from '@/components/painel/h-bar-chart';
+import { chartCardHeight } from '@/lib/chart-height';
 
 function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -88,7 +89,7 @@ export default function PainelCadastradasPage() {
   }, [filteredRows, sortKey, sortDir]);
 
   return (
-    <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
+    <div className="h-full overflow-y-auto md:overflow-hidden p-4 flex flex-col gap-3">
 
       {data && !isLoading && (
         <div className="shrink-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
@@ -101,9 +102,9 @@ export default function PainelCadastradasPage() {
               { label: 'Custo Total',    value: fmtBRL(data.total.custo) },
               { label: 'Peso Total',     value: `${data.total.peso.toFixed(2)}g` },
             ].map(k => (
-              <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
-                <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
-                <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{k.value}</span>
+              <div key={k.label} className="flex flex-col gap-0.5 px-2 py-2 md:px-4 md:py-2.5 min-w-0">
+                <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">{k.label}</span>
+                <span className="text-xs md:text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{k.value}</span>
               </div>
             ))}
           </div>
@@ -125,20 +126,24 @@ export default function PainelCadastradasPage() {
       {data && !isLoading && (
         <>
           {/* Cards por tipo */}
-          <div className="flex-1 min-h-0 grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.max(data.porTipo.length, 1)}, 1fr)` }}>
+          <div className="shrink-0 md:flex-1 md:min-h-0 grid grid-cols-1 md:grid-flow-col md:auto-cols-fr gap-3">
             {data.porTipo.map(t => (
-              <div key={t.tipo} className={`bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden flex flex-col transition-colors ${selectedTipo === t.tipo ? 'border-indigo-400 dark:border-indigo-500' : 'border-zinc-200 dark:border-white/[0.08]'}`}>
+              <div
+                key={t.tipo}
+                className={`bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden flex flex-col md:!min-h-0 transition-colors ${selectedTipo === t.tipo ? 'border-indigo-400 dark:border-indigo-500' : 'border-zinc-200 dark:border-white/[0.08]'}`}
+                style={{ minHeight: chartCardHeight(t.porProduto.length) }}
+              >
                 <div className={`${TIPO_HEADER[t.tipo] ?? 'bg-zinc-600 text-white'} px-4 py-2 shrink-0`}>
                   <span className="text-xs font-bold uppercase tracking-widest">{TIPO_LABEL[t.tipo] ?? t.tipo}</span>
                 </div>
                 <div className="grid grid-cols-2 divide-x divide-zinc-200 dark:divide-white/[0.08] border-b border-zinc-200 dark:border-white/[0.08] shrink-0">
-                  <div className="px-3 py-2 flex flex-col gap-0.5">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Qtd</span>
-                    <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{t.qtd}</span>
+                  <div className="px-2 py-2 md:px-3 flex flex-col gap-0.5 min-w-0">
+                    <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">Qtd</span>
+                    <span className="text-xs md:text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{t.qtd}</span>
                   </div>
-                  <div className="px-3 py-2 flex flex-col gap-0.5">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Custo Total</span>
-                    <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtBRL(t.custo)}</span>
+                  <div className="px-2 py-2 md:px-3 flex flex-col gap-0.5 min-w-0">
+                    <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">Custo Total</span>
+                    <span className="text-xs md:text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{fmtBRL(t.custo)}</span>
                   </div>
                 </div>
                 <div className="flex-1 min-h-0 p-3">

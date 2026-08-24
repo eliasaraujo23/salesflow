@@ -139,10 +139,10 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
       </div>
 
       {/* ── Main area: calendar + sidebar ───────────────────────── */}
-      <div className="flex gap-4 flex-1 min-h-0">
+      <div className="flex flex-col md:flex-row gap-4 md:flex-1 md:min-h-0">
 
         {/* ── Calendar grid ───────────────────────────────────── */}
-        <div className="flex-1 flex flex-col min-h-0 border border-zinc-200 dark:border-white/[0.10] rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
+        <div className="shrink-0 h-[520px] md:h-auto md:flex-1 flex flex-col md:min-h-0 border border-zinc-200 dark:border-white/[0.10] rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
           {/* Day headers */}
           <div className="grid grid-cols-7 border-b-2 border-zinc-200 dark:border-white/[0.10] bg-zinc-50 dark:bg-zinc-800/50 shrink-0">
             {WEEK_DAYS.map((d, i) => (
@@ -187,12 +187,12 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
                         <div
                           key={di}
                           onClick={() => onAdd(format(day, 'yyyy-MM-dd'))}
-                          className={`group py-1 px-2 cursor-pointer select-none ${
+                          className={`group py-1 px-0.5 md:px-2 cursor-pointer select-none ${
                             weekend ? 'bg-rose-50/60 dark:bg-rose-950/10' : ''
                           } ${!inMonth ? 'opacity-35' : ''}`}
                         >
                           <span
-                            className={`inline-flex w-6 h-6 items-center justify-center rounded-full text-[12px] font-medium transition-colors ${
+                            className={`inline-flex w-5 h-5 md:w-6 md:h-6 items-center justify-center rounded-full text-[10px] md:text-[12px] font-medium transition-colors ${
                               today
                                 ? 'bg-indigo-600 text-white'
                                 : weekend
@@ -222,7 +222,7 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
                           <button
                             key={`${seg.leilao.id}-${si}`}
                             onClick={e => { e.stopPropagation(); onEdit(seg.leilao); }}
-                            className="flex items-center px-3 text-white text-[12px] font-bold truncate h-[28px] hover:brightness-110 transition-all shadow-sm"
+                            className="flex items-center px-1.5 md:px-3 text-white text-[10px] md:text-[12px] font-bold truncate h-[28px] hover:brightness-110 transition-all shadow-sm"
                             style={{
                               gridColumn:  `${seg.colStart} / ${seg.colEnd}`,
                               background:  seg.leilao.cor,
@@ -232,8 +232,8 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
                             {!seg.continuesBefore && (
                               <span className="truncate flex items-center gap-1.5">
                                 <span className="font-bold">N°{seg.leilao.codigoPlatforma || '—'}</span>
-                                <span className="opacity-70 text-[11px]">#{seg.leilao.numero}</span>
-                                <span>{seg.leilao.nome}</span>
+                                <span className="hidden md:inline opacity-70 text-[11px]">#{seg.leilao.numero}</span>
+                                <span className="hidden md:inline">{seg.leilao.nome}</span>
                               </span>
                             )}
                           </button>
@@ -248,7 +248,7 @@ export function LeilaoCalendar({ leiloes, onAdd, onEdit }: Props) {
         </div>
 
         {/* ── Upcoming sidebar ────────────────────────────────── */}
-        <div className="w-56 shrink-0 flex flex-col border border-zinc-200 dark:border-white/[0.08] rounded-xl bg-white dark:bg-zinc-900 overflow-hidden">
+        <div className="w-full md:w-56 shrink-0 h-[420px] md:h-auto flex flex-col border border-zinc-200 dark:border-white/[0.08] rounded-xl bg-white dark:bg-zinc-900 overflow-hidden">
           <div className="flex-1 overflow-y-auto flex flex-col">
 
             {/* Sem data — precisam de data cadastrada */}

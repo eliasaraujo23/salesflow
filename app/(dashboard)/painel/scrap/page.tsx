@@ -5,6 +5,7 @@ import { RefreshCw, X, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-rea
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { usePainelScrap, type ScrapDetailRow } from '@/hooks/use-painel-scrap';
 import { HBarChart } from '@/components/painel/h-bar-chart';
+import { chartCardHeight } from '@/lib/chart-height';
 import { TipoDonut } from '@/components/painel/tipo-donut';
 
 function fmtBRL(v: number) {
@@ -77,23 +78,23 @@ export default function PainelScrapPage() {
   }, [filteredRows, sortKey, sortDir]);
 
   return (
-    <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
+    <div className="h-full overflow-y-auto md:overflow-hidden p-4 flex flex-col gap-3">
 
       {/* ── KPI bar ─────────────────────────────────────────────── */}
       <div className="shrink-0 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
         <div className="px-4 py-2 bg-amber-500 text-white">
           <span className="text-xs font-bold uppercase tracking-widest">Scrap</span>
         </div>
-        <div className="grid grid-cols-5 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+        <div className="grid grid-cols-4 divide-x divide-zinc-200 dark:divide-white/[0.08]">
           {[
             { label: 'Faturamento',   value: isLoading || !data ? '—' : fmtBRL(data.kpi.faturamento),    cls: '' },
             { label: 'Quantidade',    value: isLoading || !data ? '—' : String(data.kpi.qtd),             cls: '' },
             { label: 'Ticket Médio',  value: isLoading || !data ? '—' : fmtBRL(data.kpi.tm),             cls: '' },
             { label: 'Peso Total',    value: isLoading || !data ? '—' : fmtPeso(data.kpi.pesoTotal),     cls: '' },
           ].map(k => (
-            <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
-              <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
-              <span className={`text-sm font-bold tabular-nums ${k.cls || 'text-zinc-900 dark:text-zinc-100'}`}>{k.value}</span>
+            <div key={k.label} className="flex flex-col gap-0.5 px-2 py-2 md:px-4 md:py-2.5 min-w-0">
+              <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">{k.label}</span>
+              <span className={`text-xs md:text-sm font-bold tabular-nums truncate ${k.cls || 'text-zinc-900 dark:text-zinc-100'}`}>{k.value}</span>
             </div>
           ))}
         </div>
@@ -114,10 +115,13 @@ export default function PainelScrapPage() {
       {data && !isLoading && (
         <>
           {/* ── Middle: Por Destino + B2B/B2C + Por Tipo ────────── */}
-          <div className="flex-1 min-h-0 grid gap-3" style={{ gridTemplateColumns: '3fr 2fr' }}>
+          <div className="shrink-0 md:flex-1 md:min-h-0 grid grid-cols-1 md:grid-flow-col md:auto-cols-fr gap-3">
 
             {/* Por Destino */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col min-h-0">
+            <div
+              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex flex-col md:!min-h-0"
+              style={{ minHeight: chartCardHeight(data.byDestino.length) }}
+            >
               <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
                 Por Destino
               </div>
@@ -149,18 +153,18 @@ export default function PainelScrapPage() {
                   ].map(({ label, kpi, accent }) => (
                     <div key={label} className="p-3">
                       <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">{label}</div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <div>
-                          <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Fat.</div>
-                          <div className="text-xs font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtBRL(kpi.faturamento)}</div>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <div className="min-w-0">
+                          <div className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">Fat.</div>
+                          <div className="text-[11px] md:text-xs font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{fmtBRL(kpi.faturamento)}</div>
                         </div>
-                        <div>
-                          <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Qtd</div>
-                          <div className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{kpi.qtd}</div>
+                        <div className="min-w-0">
+                          <div className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">Qtd</div>
+                          <div className="text-[11px] md:text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{kpi.qtd}</div>
                         </div>
-                        <div>
-                          <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">TM</div>
-                          <div className="text-xs font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{fmtBRL(kpi.tm)}</div>
+                        <div className="min-w-0">
+                          <div className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">TM</div>
+                          <div className="text-[11px] md:text-xs font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{fmtBRL(kpi.tm)}</div>
                         </div>
                       </div>
                     </div>
@@ -186,7 +190,7 @@ export default function PainelScrapPage() {
               </div>
 
               {/* Por Tipo */}
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 flex-1 min-h-0 flex flex-col">
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-4 shrink-0 md:flex-1 min-h-[280px] md:min-h-0 flex flex-col">
                 <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-3 shrink-0">
                   Por Tipo
                 </div>

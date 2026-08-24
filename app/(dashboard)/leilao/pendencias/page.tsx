@@ -81,7 +81,7 @@ export default function PendenciasPage() {
   return (
     <div className="h-full overflow-hidden p-3 sm:p-6 flex flex-col gap-4">
 
-      {/* ── Filtros + Export ────────────────────────────────────── */}
+      {/* ── Filtros ─────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
         {FILTROS.map(f => {
           const count = counts[f.key] ?? 0;
@@ -109,29 +109,11 @@ export default function PendenciasPage() {
             </button>
           );
         })}
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
-            Atualizar
-          </button>
-          <button
-            onClick={handleExportCsv}
-            disabled={filteredRows.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            <Download size={13} />
-            Exportar CSV ({filteredRows.length})
-          </button>
-        </div>
       </div>
 
-      {/* ── Busca ───────────────────────────────────────────────── */}
-      <div className="shrink-0">
-        <div className="relative max-w-xs">
+      {/* ── Busca + Ações ───────────────────────────────────────── */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="relative flex-1 md:flex-none md:max-w-xs">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           <input
             value={globalFilter}
@@ -140,6 +122,24 @@ export default function PendenciasPage() {
             className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors"
           />
         </div>
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          title="Atualizar"
+          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
+          <span className="hidden sm:inline">Atualizar</span>
+        </button>
+        <button
+          onClick={handleExportCsv}
+          disabled={filteredRows.length === 0}
+          title={`Exportar CSV (${filteredRows.length})`}
+          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <Download size={13} />
+          <span className="hidden sm:inline">Exportar CSV ({filteredRows.length})</span>
+        </button>
       </div>
 
       {/* ── Tabela ──────────────────────────────────────────────── */}

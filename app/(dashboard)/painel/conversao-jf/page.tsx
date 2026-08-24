@@ -82,7 +82,7 @@ export default function PainelConversaoJfPage() {
   const kpi = data?.kpi;
 
   return (
-    <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
+    <div className="h-full overflow-y-auto md:overflow-hidden p-4 flex flex-col gap-3">
 
       {isLoading && (
         <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm gap-2">
@@ -99,7 +99,7 @@ export default function PainelConversaoJfPage() {
       {data && !isLoading && (
         <>
           {/* KPI bar */}
-          <div className="shrink-0 grid grid-cols-6 gap-3">
+          <div className="shrink-0 grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-3">
             {[
               { label: 'Quantidade Fabricada', value: String(kpi!.qtdFabricada) },
               { label: 'Quantidade Vendida',   value: String(kpi!.qtdVendida) },
@@ -108,16 +108,16 @@ export default function PainelConversaoJfPage() {
               { label: 'Custo de Fabricação',  value: fmtBRL(kpi!.custoTotal) },
               { label: 'Arrecadação',          value: fmtBRL(kpi!.arrecadacao) },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-4 py-2.5 flex flex-col gap-0.5">
-                <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{label}</span>
-                <span className="text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{value}</span>
+              <div key={label} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl px-2 py-2 md:px-4 md:py-2.5 flex flex-col gap-0.5 min-w-0">
+                <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">{label}</span>
+                <span className="text-xs md:text-base font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{value}</span>
               </div>
             ))}
           </div>
 
           {/* Charts */}
-          <div className="flex-1 min-h-0 grid grid-cols-2 gap-3">
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col">
+          <div className="shrink-0 md:flex-1 md:min-h-0 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col min-h-[280px] md:min-h-0">
               <div className="shrink-0 px-4 py-2.5 border-b border-zinc-200 dark:border-white/[0.08]">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Produto × Quantidade × Custo JF</span>
               </div>
@@ -133,7 +133,7 @@ export default function PainelConversaoJfPage() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col min-h-[280px] md:min-h-0">
               <div className="shrink-0 px-4 py-2.5 border-b border-zinc-200 dark:border-white/[0.08]">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Produto × Quantidade × Arrecadação JF</span>
               </div>

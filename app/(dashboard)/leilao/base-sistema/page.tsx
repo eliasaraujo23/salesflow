@@ -97,13 +97,13 @@ export default function BaseSistemaPage() {
 
       {/* ── Toolbar ─────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 shrink-0">
-        <div className="relative">
+        <div className="relative flex-1 md:flex-none">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           <input
             value={globalFilter}
             onChange={e => setGlobalFilter(e.target.value)}
             placeholder="Buscar referência, produto, destino..."
-            className="w-64 pl-8 pr-3 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors"
+            className="w-full md:w-64 pl-8 pr-3 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-white/[0.10] bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500 transition-colors"
           />
         </div>
 
@@ -111,10 +111,10 @@ export default function BaseSistemaPage() {
           onClick={() => refetch()}
           disabled={isFetching}
           title="Atualizar base do sistema"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-50 text-xs font-medium transition-colors"
+          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.10] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] disabled:opacity-50 text-xs font-medium transition-colors"
         >
           <RefreshCw size={12} className={isFetching ? 'animate-spin' : ''} />
-          Atualizar
+          <span className="hidden sm:inline">Atualizar</span>
         </button>
       </div>
 

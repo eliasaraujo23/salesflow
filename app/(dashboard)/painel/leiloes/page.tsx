@@ -5,6 +5,7 @@ import { RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { usePainelFilters } from '@/components/painel/painel-filters-context';
 import { usePainelVendas, type PainelDetailRow } from '@/hooks/use-painel-vendas';
 import { HBarChart } from '@/components/painel/h-bar-chart';
+import { chartCardHeight } from '@/lib/chart-height';
 
 function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
@@ -40,9 +41,9 @@ const COLS: { label: string; key: SortKey }[] = [
 interface KpiCellProps { label: string; value: string; border?: boolean; }
 function KpiCell({ label, value, border = true }: KpiCellProps) {
   return (
-    <div className={`flex flex-col justify-center gap-0.5 px-4 py-2.5 ${border ? 'border-r border-zinc-200 dark:border-white/[0.08]' : ''}`}>
-      <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{label}</span>
-      <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{value}</span>
+    <div className={`flex flex-col justify-center gap-0.5 px-1.5 py-2 md:px-4 md:py-2.5 min-w-0 ${border ? 'border-r border-zinc-200 dark:border-white/[0.08]' : ''}`}>
+      <span className="text-[7px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">{label}</span>
+      <span className="text-[11px] md:text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{value}</span>
     </div>
   );
 }
@@ -93,7 +94,7 @@ export default function PainelLeiloesPage() {
   const clearFilter = () => { setSelectedLeilao(null); setSelectedProduto(null); };
 
   return (
-    <div className="h-full overflow-hidden p-4 flex flex-col gap-3">
+    <div className="h-full overflow-y-auto md:overflow-hidden p-4 flex flex-col gap-3">
       {isLoading && (
         <div className="flex-1 flex items-center justify-center text-zinc-400 text-sm gap-2">
           <RefreshCw size={15} className="animate-spin" /> Carregando dados...
@@ -114,15 +115,15 @@ export default function PainelLeiloesPage() {
             <div className="px-4 py-2 bg-zinc-900 dark:bg-zinc-800 text-white">
               <span className="text-xs font-bold uppercase tracking-widest">Total do Período</span>
             </div>
-            <div className="grid grid-cols-4 divide-x divide-zinc-200 dark:divide-white/[0.08]">
+            <div className="grid grid-cols-3 divide-x divide-zinc-200 dark:divide-white/[0.08]">
               {[
                 { label: 'Faturamento',   value: fmtBRL(fat) },
                 { label: 'Ticket Médio',  value: fmtBRL(qtd > 0 ? fat / qtd : 0) },
                 { label: 'Qtd',           value: String(qtd) },
               ].map(k => (
-                <div key={k.label} className="flex flex-col gap-0.5 px-4 py-2.5">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{k.label}</span>
-                  <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{k.value}</span>
+                <div key={k.label} className="flex flex-col gap-0.5 px-2 py-2 md:px-4 md:py-2.5 min-w-0">
+                  <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">{k.label}</span>
+                  <span className="text-xs md:text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums truncate">{k.value}</span>
                 </div>
               ))}
             </div>
@@ -138,7 +139,7 @@ export default function PainelLeiloesPage() {
         ) : (
           <>
             {/* Charts — mesma altura, fill */}
-            <div className={`flex-1 min-h-0 grid gap-3 ${data.leiloes.length === 1 ? 'grid-cols-1' : data.leiloes.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+            <div className={`shrink-0 md:flex-1 md:min-h-0 grid grid-cols-1 gap-3 ${data.leiloes.length === 1 ? 'md:grid-cols-1' : data.leiloes.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
               {data.leiloes.map(leilao => {
                 const nonScrap = leilao.byProduto.filter(p => p.name !== 'SCRAP');
                 const scrap = leilao.byProduto.find(p => p.name === 'SCRAP');
@@ -146,13 +147,17 @@ export default function PainelLeiloesPage() {
                 const isActive = selectedLeilao === nomeCurto;
 
                 return (
-                  <div key={leilao.nome} className={`bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden flex flex-col transition-colors ${isActive ? 'border-purple-400 dark:border-purple-500' : 'border-zinc-200 dark:border-white/[0.08]'}`}>
+                  <div
+                    key={leilao.nome}
+                    className={`bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden flex flex-col md:!min-h-0 transition-colors ${isActive ? 'border-purple-400 dark:border-purple-500' : 'border-zinc-200 dark:border-white/[0.08]'}`}
+                    style={{ minHeight: chartCardHeight(nonScrap.length) + (scrap ? 40 : 0) }}
+                  >
                     {/* KPI header */}
                     <div className="shrink-0 grid divide-x divide-zinc-200 dark:divide-white/[0.08] border-b border-zinc-200 dark:border-white/[0.08]"
                       style={{ gridTemplateColumns: '100px repeat(4, 1fr)' }}>
-                      <div className="flex flex-col justify-center px-3 py-2">
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Leilão</span>
-                        <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">{nomeCurto}</span>
+                      <div className="flex flex-col justify-center px-1.5 py-2 md:px-3 min-w-0">
+                        <span className="text-[7px] md:text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">Leilão</span>
+                        <span className="text-[11px] md:text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">{nomeCurto}</span>
                       </div>
                       <KpiCell label="Faturamento"   value={fmtBRL(leilao.faturamento)} />
                       <KpiCell label="Qtd"           value={String(leilao.qtd)} />

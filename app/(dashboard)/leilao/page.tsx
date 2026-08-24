@@ -58,7 +58,7 @@ export default function LeilaoPage() {
     ?? (defaultDate ? { dataInicio: defaultDate, dataFim: defaultDate } : undefined);
 
   return (
-    <div className="h-full overflow-hidden p-3 sm:p-6 flex flex-col">
+    <div className="h-full overflow-y-auto md:overflow-hidden p-3 sm:p-6 flex flex-col">
       <LeilaoCalendar leiloes={leiloes} onAdd={handleAdd} onEdit={handleEdit} />
       <LeilaoModal
         open={modalOpen}
