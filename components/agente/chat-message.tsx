@@ -23,8 +23,8 @@ function renderPlainText(text: string) {
   ));
 }
 
-interface ImageMap { [ref: string]: string }
-interface ZoomState { url: string; ref: string }
+interface ImageMap { [ref: string]: string[] }
+interface ZoomState { urls: string[]; index: number; ref: string }
 
 function CopyBlockButton({ text }: { text: string }) {
   const [done, setDone] = useState(false);
@@ -44,28 +44,36 @@ function CopyBlockButton({ text }: { text: string }) {
   );
 }
 
-/** Compartilha a imagem via Web Share API (WhatsApp/etc no celular) com fallback para download. */
-async function shareImage(url: string, ref: string) {
-  try {
-    // Busca via proxy do servidor — fetch direto na URL presignada do R2 falha por CORS no navegador.
-    const res = await fetch(`/api/chat-agente/images/download?url=${encodeURIComponent(url)}`);
-    if (!res.ok) throw new Error('download falhou');
-    const blob = await res.blob();
-    const ext = blob.type.split('/')[1]?.split('+')[0] ?? 'jpg';
-    const file = new File([blob], `${ref}.${ext}`, { type: blob.type });
+/** Baixa uma imagem via proxy do servidor (evita CORS numa URL presignada do R2) como File pronto pra compartilhar. */
+async function fetchAsFile(url: string, name: string): Promise<File> {
+  const res = await fetch(`/api/chat-agente/images/download?url=${encodeURIComponent(url)}`);
+  if (!res.ok) throw new Error('download falhou');
+  const blob = await res.blob();
+  const ext = blob.type.split('/')[1]?.split('+')[0] ?? 'jpg';
+  return new File([blob], `${name}.${ext}`, { type: blob.type });
+}
 
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: ref });
+/** Compartilha uma ou mais imagens da mesma peça via Web Share API, com fallback para download. */
+async function shareImages(urls: string[], ref: string) {
+  try {
+    const files = await Promise.all(urls.map((u, i) => fetchAsFile(u, urls.length > 1 ? `${ref}-${i + 1}` : ref)));
+
+    if (navigator.canShare?.({ files })) {
+      await navigator.share({ files, title: ref });
       return;
     }
 
-    // Fallback: sem suporte a compartilhar arquivos (desktop) — baixa a imagem direto.
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${ref}.${ext}`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-    toast.success('Imagem baixada — envie pelo WhatsApp Web ou outro app.');
+    // Fallback: sem suporte a compartilhar arquivos (desktop) — baixa as imagens direto.
+    for (const file of files) {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(file);
+      link.download = file.name;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+    toast.success(
+      files.length > 1 ? 'Imagens baixadas — envie pelo WhatsApp Web ou outro app.' : 'Imagem baixada — envie pelo WhatsApp Web ou outro app.',
+    );
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') return; // usuário cancelou o compartilhamento
     toast.error('Não foi possível compartilhar a imagem.');
@@ -82,7 +90,7 @@ function renderWithImages(
   return blocks.map((block, i) => {
     const refMatch = block.match(/^\*\*([A-Za-z]\d{4,6})\*\*/);
     const ref = refMatch ? refMatch[1].toUpperCase() : null;
-    const imgUrl = ref ? imageMap[ref] : null;
+    const urls = ref ? imageMap[ref] ?? [] : [];
 
     const textNode = (
       <span>
@@ -96,18 +104,23 @@ function renderWithImages(
     );
 
     if (ref) {
-      const thumb = imgUrl ? (
-        <button
-          onClick={() => onZoom({ url: imgUrl, ref })}
-          className="group/img relative shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-zinc-200 dark:border-white/[0.1] hover:border-indigo-400 hover:shadow-md transition-all"
-          title={ref}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={imgUrl} alt={ref} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors flex items-center justify-center">
-            <ZoomIn size={14} className="text-white opacity-0 group-hover/img:opacity-100 transition-opacity" />
-          </div>
-        </button>
+      const thumbs = urls.length > 0 ? (
+        <div className="shrink-0 flex gap-1.5">
+          {urls.map((url, idx) => (
+            <button
+              key={url}
+              onClick={() => onZoom({ urls, index: idx, ref })}
+              className="group/img relative w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden border border-zinc-200 dark:border-white/[0.1] hover:border-indigo-400 hover:shadow-md transition-all"
+              title={idx === 0 ? `${ref} — foto principal` : `${ref} — foto secundária`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt={ref} className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors flex items-center justify-center">
+                <ZoomIn size={14} className="text-white opacity-0 group-hover/img:opacity-100 transition-opacity" />
+              </div>
+            </button>
+          ))}
+        </div>
       ) : (
         <div className="shrink-0 w-20 h-20 rounded-xl border border-dashed border-zinc-300 dark:border-white/[0.12] flex flex-col items-center justify-center gap-1 text-zinc-300 dark:text-zinc-600">
           <CameraOff size={18} />
@@ -120,7 +133,7 @@ function renderWithImages(
           key={i}
           className="group/block flex gap-3 items-start p-3 mt-2 first:mt-1 rounded-xl bg-zinc-50 dark:bg-white/[0.03] border border-zinc-100 dark:border-white/[0.06]"
         >
-          {thumb}
+          {thumbs}
           <div className="flex-1 text-sm leading-relaxed">{textNode}</div>
           <CopyBlockButton text={block} />
         </div>
@@ -154,7 +167,8 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
   const imageMap: ImageMap = {};
   if (message.images) {
     for (const img of message.images) {
-      imageMap[img.ref.toUpperCase()] = img.url;
+      const key = img.ref.toUpperCase();
+      (imageMap[key] ??= []).push(img.url);
     }
   }
 
@@ -201,18 +215,35 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={zoom.url}
+            src={zoom.urls[zoom.index]}
             alt="Imagem ampliada"
             className={`shadow-2xl transition-all duration-200 ${zoomed ? 'rounded-none w-auto h-auto min-w-[150%] min-h-[150%] object-contain' : 'rounded-xl max-w-full max-h-full object-contain'}`}
             onClick={e => { e.stopPropagation(); setZoomed(z => !z); }}
           />
+
+          {zoom.urls.length > 1 && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5">
+              {zoom.urls.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={e => { e.stopPropagation(); setZoom(z => z && { ...z, index: idx }); }}
+                  className={`w-2 h-2 rounded-full transition-colors ${idx === zoom.index ? 'bg-white' : 'bg-white/40'}`}
+                  aria-label={idx === 0 ? 'Foto principal' : 'Foto secundária'}
+                />
+              ))}
+            </div>
+          )}
+
           <button
-            onClick={e => { e.stopPropagation(); shareImage(zoom.url, zoom.ref); }}
-            title={canShareFiles ? 'Compartilhar' : 'Baixar imagem'}
+            onClick={e => { e.stopPropagation(); shareImages(zoom.urls, zoom.ref); }}
+            title={canShareFiles ? 'Compartilhar' : 'Baixar imagem(ns)'}
             className="absolute top-4 right-4 flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/95 text-zinc-800 text-sm font-medium shadow-lg hover:bg-white transition-colors"
           >
             {canShareFiles ? <Share2 size={15} /> : <Download size={15} />}
-            {canShareFiles ? 'Compartilhar' : 'Baixar'}
+            {canShareFiles
+              ? (zoom.urls.length > 1 ? 'Compartilhar as 2' : 'Compartilhar')
+              : (zoom.urls.length > 1 ? 'Baixar as 2' : 'Baixar')
+            }
           </button>
         </div>
       )}
