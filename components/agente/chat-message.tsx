@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Sparkles, Copy, Check, ZoomIn, CameraOff, Share2, Download } from 'lucide-react';
+import { Sparkles, Copy, Check, ZoomIn, CameraOff, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { type ChatMessage } from '@/lib/hooks/use-agente-chat';
 
@@ -55,29 +55,13 @@ async function fetchAsFile(url: string, name: string): Promise<File> {
 
 let shareInProgress = false;
 
-/** Compartilha uma ou mais imagens da mesma peça via Web Share API, com fallback para download. */
+/** Compartilha várias imagens via Web Share API (celular — abre o menu nativo com WhatsApp etc). */
 async function shareImages(urls: string[], ref: string) {
   if (shareInProgress) return; // navegador só permite um navigator.share() ativo por vez
   shareInProgress = true;
   try {
     const files = await Promise.all(urls.map((u, i) => fetchAsFile(u, urls.length > 1 ? `${ref}-${i + 1}` : ref)));
-
-    if (navigator.canShare?.({ files })) {
-      await navigator.share({ files, title: ref });
-      return;
-    }
-
-    // Fallback: sem suporte a compartilhar arquivos (desktop) — baixa as imagens direto.
-    for (const file of files) {
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(file);
-      link.download = file.name;
-      link.click();
-      URL.revokeObjectURL(link.href);
-    }
-    toast.success(
-      files.length > 1 ? 'Imagens baixadas — envie pelo WhatsApp Web ou outro app.' : 'Imagem baixada — envie pelo WhatsApp Web ou outro app.',
-    );
+    await navigator.share({ files, title: ref });
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') return; // usuário cancelou o compartilhamento
     console.error('[shareImages] falhou:', err);
@@ -85,6 +69,31 @@ async function shareImages(urls: string[], ref: string) {
     toast.error(`Não foi possível compartilhar a imagem. (${msg})`);
   } finally {
     shareInProgress = false;
+  }
+}
+
+/** Copia uma imagem para a área de transferência — cola direto no WhatsApp Web/app com Ctrl+V. */
+async function copyImageToClipboard(url: string, ref: string) {
+  try {
+    const res = await fetch(`/api/chat-agente/images/download?url=${encodeURIComponent(url)}`);
+    if (!res.ok) throw new Error('download falhou');
+    let blob = await res.blob();
+    // A Clipboard API só aceita PNG de forma confiável entre navegadores — converte se vier JPEG.
+    if (blob.type !== 'image/png') {
+      const bitmap = await createImageBitmap(blob);
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
+      blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(b => (b ? resolve(b) : reject(new Error('conversão falhou'))), 'image/png');
+      });
+    }
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    toast.success('Imagem copiada — cole (Ctrl+V) no WhatsApp Web ou no app.');
+  } catch (err) {
+    console.error('[copyImageToClipboard] falhou:', err, ref);
+    toast.error('Não foi possível copiar a imagem.');
   }
 }
 
@@ -242,17 +251,26 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
             </div>
           )}
 
-          <button
-            onClick={e => { e.stopPropagation(); shareImages(zoom.urls, zoom.ref); }}
-            title={canShareFiles ? 'Compartilhar' : 'Baixar imagem(ns)'}
-            className="absolute top-4 right-4 flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/95 text-zinc-800 text-sm font-medium shadow-lg hover:bg-white transition-colors"
-          >
-            {canShareFiles ? <Share2 size={15} /> : <Download size={15} />}
-            {canShareFiles
-              ? (zoom.urls.length > 1 ? 'Compartilhar as 2' : 'Compartilhar')
-              : (zoom.urls.length > 1 ? 'Baixar as 2' : 'Baixar')
-            }
-          </button>
+          <div className="absolute top-4 right-4 flex gap-2">
+            {canShareFiles && (
+              <button
+                onClick={e => { e.stopPropagation(); shareImages(zoom.urls, zoom.ref); }}
+                title="Compartilhar"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/95 text-zinc-800 text-sm font-medium shadow-lg hover:bg-white transition-colors"
+              >
+                <Share2 size={15} />
+                {zoom.urls.length > 1 ? 'Compartilhar as 2' : 'Compartilhar'}
+              </button>
+            )}
+            <button
+              onClick={e => { e.stopPropagation(); copyImageToClipboard(zoom.urls[zoom.index] ?? zoom.urls[0], zoom.ref); }}
+              title="Copiar imagem para colar no WhatsApp"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/95 text-zinc-800 text-sm font-medium shadow-lg hover:bg-white transition-colors"
+            >
+              <Copy size={15} />
+              Copiar imagem
+            </button>
+          </div>
         </div>
       )}
     </>
