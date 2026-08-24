@@ -26,7 +26,15 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const { currentUser, logOut } = useFirebase();
   const { mutate: logout } = useLogout();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(true);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(true);
+  // No mobile o menu é um overlay que sempre abre com os nomes visíveis — só o desktop
+  // tem o modo "recolhido só com ícones". isMobile é lido uma vez no mount (evita
+  // setState síncrono num efeito); a media query md: já cobre resize em tempo real.
+  const [isMobile] = useState(
+    () => typeof window !== 'undefined' && !window.matchMedia('(min-width: 768px)').matches,
+  );
+  const collapsed = desktopCollapsed && !isMobile;
+  const setCollapsed = setDesktopCollapsed;
   const [changePwOpen, setChangePwOpen] = useState(false);
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
