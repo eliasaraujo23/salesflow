@@ -53,8 +53,12 @@ async function fetchAsFile(url: string, name: string): Promise<File> {
   return new File([blob], `${name}.${ext}`, { type: blob.type });
 }
 
+let shareInProgress = false;
+
 /** Compartilha uma ou mais imagens da mesma peça via Web Share API, com fallback para download. */
 async function shareImages(urls: string[], ref: string) {
+  if (shareInProgress) return; // navegador só permite um navigator.share() ativo por vez
+  shareInProgress = true;
   try {
     const files = await Promise.all(urls.map((u, i) => fetchAsFile(u, urls.length > 1 ? `${ref}-${i + 1}` : ref)));
 
@@ -79,6 +83,8 @@ async function shareImages(urls: string[], ref: string) {
     console.error('[shareImages] falhou:', err);
     const msg = err instanceof Error ? err.message : String(err);
     toast.error(`Não foi possível compartilhar a imagem. (${msg})`);
+  } finally {
+    shareInProgress = false;
   }
 }
 
