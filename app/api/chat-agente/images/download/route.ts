@@ -16,8 +16,24 @@ export async function GET(req: NextRequest) {
   const isAllowed = ALLOWED_HOSTS.some(suffix => parsed.hostname.endsWith(suffix));
   if (!isAllowed) return NextResponse.json({ error: 'host não permitido' }, { status: 403 });
 
-  const upstream = await fetch(parsed.toString());
+  // Falhas transitórias de rede/TLS ao R2 são comuns sob concorrência — 1 retry resolve a maioria.
+  let upstream: Response | undefined;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 2 && !upstream; attempt++) {
+    try {
+      upstream = await fetch(parsed.toString());
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  if (!upstream) {
+    const cause = lastErr instanceof Error && 'cause' in lastErr ? lastErr.cause : undefined;
+    console.error('[images/download] fetch falhou:', lastErr, 'cause:', cause);
+    return NextResponse.json({ error: 'erro de rede ao buscar imagem' }, { status: 502 });
+  }
+
   if (!upstream.ok || !upstream.body) {
+    console.error('[images/download] upstream não-ok:', upstream.status, await upstream.text().catch(() => ''));
     return NextResponse.json({ error: 'falha ao buscar imagem' }, { status: 502 });
   }
 
