@@ -70,10 +70,13 @@ function ResumoCard({ leilao, selected, onClick }: ResumoCardProps) {
   const vencendo     = vencendoRows.length;
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
       className={[
-        'text-left rounded-xl border p-4 flex flex-col gap-3 transition-all',
+        'text-left rounded-xl border p-4 flex flex-col gap-3 transition-all cursor-pointer',
         selected
           ? 'border-indigo-400 dark:border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/20 shadow-sm'
           : 'border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-white/[0.15]',
@@ -129,7 +132,7 @@ function ResumoCard({ leilao, selected, onClick }: ResumoCardProps) {
       {!loading && !error && lances?.length === 0 && (
         <p className="text-[10px] text-zinc-400">Sem lances ainda</p>
       )}
-    </button>
+    </div>
   );
 }
 
