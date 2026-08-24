@@ -1,21 +1,13 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
-import { Send, Sparkles, ArrowUp } from 'lucide-react';
+import { useRef, useEffect, useCallback } from 'react';
+import { Send, Sparkles, ArrowUp, Mic, Square } from 'lucide-react';
 import { useAgenteChat } from '@/lib/hooks/use-agente-chat';
+import { useSpeechToText } from '@/lib/hooks/use-speech-to-text';
 import { ChatMessageBubble } from '@/components/agente/chat-message';
 
-const SUGGESTIONS = [
-  'E11111',
-  'Qual o custo da E11111?',
-  'Colar riviera mais caro disponível',
-  'Anel solitário diamante em comodato',
-  'Carros chefe do achados perdidos',
-  'Colar riviera vendido pelo achados perdidos',
-];
-
 export default function AgentePage() {
-  const { messages, input, setInput, loading, handleSubmit, send, bottomRef } = useAgenteChat();
+  const { messages, input, setInput, loading, handleSubmit, bottomRef } = useAgenteChat();
   const isEmpty = messages.length === 0;
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -27,6 +19,13 @@ export default function AgentePage() {
     el.style.height = 'auto';
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   };
+
+  const handleSpeechResult = useCallback((text: string) => {
+    setInput(text);
+    if (inputRef.current) autoGrow(inputRef.current);
+  }, [setInput]);
+
+  const { listening, supported: micSupported, toggle: toggleMic } = useSpeechToText(handleSpeechResult);
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-zinc-950 relative overflow-hidden">
@@ -42,21 +41,8 @@ export default function AgentePage() {
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/25 animate-in zoom-in-95 duration-500">
                 <Sparkles size={20} className="text-white" />
               </div>
-              <p className="text-base font-medium text-zinc-800 dark:text-zinc-100">O que você quer saber?</p>
-              <p className="text-sm text-zinc-400 dark:text-zinc-500 mt-1.5">Referência, tipo de peça, destino ou carro chefe</p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-2 max-w-md">
-              {SUGGESTIONS.map((s, i) => (
-                <button
-                  key={s}
-                  onClick={() => { send(s); }}
-                  disabled={loading}
-                  style={{ animationDelay: `${i * 40}ms` }}
-                  className="animate-in fade-in slide-in-from-bottom-1 duration-300 fill-mode-both text-xs px-3.5 py-2 rounded-full border border-zinc-200 dark:border-white/[0.1] bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:border-indigo-300 hover:text-indigo-600 dark:hover:border-indigo-500/50 dark:hover:text-indigo-400 hover:shadow-sm transition-all active:scale-95 disabled:opacity-40"
-                >
-                  {s}
-                </button>
-              ))}
+              <p className="text-base font-medium text-zinc-800 dark:text-zinc-100">Pergunte ao Nexus qualquer coisa relacionada à revenda</p>
+              <p className="text-sm text-zinc-400 dark:text-zinc-500 mt-1.5">Referência, tipo de peça, destino ou carro chefe — vou te ajudar</p>
             </div>
           </div>
         ) : (
@@ -94,7 +80,7 @@ export default function AgentePage() {
             rows={1}
             value={input}
             onChange={e => { setInput(e.target.value); autoGrow(e.target); }}
-            placeholder="Referência ou pergunta…"
+            placeholder={listening ? 'Ouvindo... fale sua pergunta' : 'Referência ou pergunta…'}
             autoComplete="off"
             disabled={loading}
             onKeyDown={e => {
@@ -106,6 +92,22 @@ export default function AgentePage() {
             }}
             className="flex-1 resize-none bg-transparent px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none disabled:opacity-50 max-h-40 leading-relaxed"
           />
+          {micSupported && (
+            <button
+              type="button"
+              onClick={toggleMic}
+              disabled={loading}
+              aria-label={listening ? 'Parar gravação' : 'Gravar pergunta por voz'}
+              title={listening ? 'Parar gravação' : 'Gravar pergunta por voz'}
+              className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-xl transition-all active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed ${
+                listening
+                  ? 'bg-red-500 text-white shadow-sm shadow-red-500/30 animate-pulse'
+                  : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.06]'
+              }`}
+            >
+              {listening ? <Square size={14} fill="currentColor" /> : <Mic size={17} />}
+            </button>
+          )}
           <button
             type="submit"
             disabled={!input.trim() || loading}
