@@ -28,6 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const { currentUser, loading } = useFirebase();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(true);
 
   useEffect(() => {
     if (!loading && !currentUser) router.push('/login');
@@ -54,18 +55,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!canAccess(currentUser, pathname)) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950">
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
+    <div className="flex flex-col h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+      <Topbar
+        onMobileMenu={() => setMobileMenuOpen(o => !o)}
+        desktopCollapsed={desktopCollapsed}
+      />
+
+      <div className="flex-1 flex overflow-hidden min-w-0">
+        {mobileMenuOpen && (
+          <div
+            className="fixed inset-0 top-topbar z-40 bg-black/50 md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+
+        <Sidebar
+          mobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
+          desktopCollapsed={desktopCollapsed}
+          setDesktopCollapsed={setDesktopCollapsed}
         />
-      )}
 
-      <Sidebar mobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />
-
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <Topbar onMobileMenu={() => setMobileMenuOpen(o => !o)} />
         <main className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-zinc-950">
           {children}
         </main>

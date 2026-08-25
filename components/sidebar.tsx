@@ -19,14 +19,15 @@ function getInitials(name: string): string {
 interface SidebarProps {
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  desktopCollapsed: boolean;
+  setDesktopCollapsed: (v: boolean) => void;
 }
 
-export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
+export function Sidebar({ mobileOpen = false, onMobileClose, desktopCollapsed, setDesktopCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const { currentUser, logOut } = useFirebase();
   const { mutate: logout } = useLogout();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [desktopCollapsed, setDesktopCollapsed] = useState(true);
   // No mobile o menu é um overlay que sempre abre com os nomes visíveis — só o desktop
   // tem o modo "recolhido só com ícones". isMobile é lido uma vez no mount (evita
   // setState síncrono num efeito); a media query md: já cobre resize em tempo real.
@@ -118,50 +119,13 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       className={[
         'flex flex-col overflow-hidden bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-white/[0.13]',
         widthClass,
-        // Mobile: fixed overlay, slides in from left (z-50 sits above the backdrop z-40)
-        'fixed inset-y-0 left-0 z-50 transition-transform duration-200',
+        // Mobile: fixed overlay below the topbar strip, slides in from left (z-50 sits above the backdrop z-40)
+        'fixed left-0 top-topbar bottom-0 z-50 transition-transform duration-200',
         mobileOpen ? 'translate-x-0' : '-translate-x-full',
         // Desktop: back in normal flow, always visible, width transition
-        'md:relative md:translate-x-0 md:z-auto md:shrink-0 md:transition-[width] md:duration-200',
+        'md:relative md:top-0 md:translate-x-0 md:z-auto md:shrink-0 md:transition-[width] md:duration-200',
       ].join(' ')}
     >
-      {/* Logo header — collapsed (desktop only) */}
-      {collapsed && (
-        <div className="h-topbar hidden md:flex items-center justify-center border-b border-zinc-200 dark:border-white/[0.13] shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-[15px] shadow-md shadow-indigo-500/25">
-            S
-          </div>
-        </div>
-      )}
-
-      {/* Logo header — expanded */}
-      {!collapsed && (
-        <div className="h-topbar px-3.5 flex items-center gap-3 border-b border-zinc-200 dark:border-white/[0.13] shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-[15px] shadow-md shadow-indigo-500/25 shrink-0">
-            S
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[14px] font-bold text-zinc-900 dark:text-zinc-50 leading-tight">SalesFlow</div>
-            <div className="text-[11.5px] text-zinc-400 dark:text-zinc-500 leading-tight">Goldtech Joias</div>
-          </div>
-          {/* Desktop: collapse button */}
-          <button
-            onClick={() => { setCollapsed(true); setProfileMenuOpen(false); }}
-            className="hidden md:flex shrink-0 p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors"
-            title="Recolher menu"
-          >
-            <PanelLeftClose size={16} />
-          </button>
-          {/* Mobile: close button */}
-          <button
-            onClick={onMobileClose}
-            className="md:hidden shrink-0 p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-colors"
-            title="Fechar menu"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-1.5 py-3 space-y-4">

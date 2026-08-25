@@ -10,6 +10,7 @@ interface TopbarProps {
   title?: string;
   subtitle?: string;
   onMobileMenu?: () => void;
+  desktopCollapsed?: boolean;
 }
 
 interface TabGroupConfig {
@@ -98,7 +99,7 @@ const TAB_GROUPS: TabGroupConfig[] = [
   },
 ];
 
-export function Topbar({ title, subtitle, onMobileMenu }: TopbarProps) {
+export function Topbar({ title, subtitle, onMobileMenu, desktopCollapsed = false }: TopbarProps) {
   const pathname = usePathname();
   const [isDark, setIsDark] = useState(true);
 
@@ -136,7 +137,25 @@ export function Topbar({ title, subtitle, onMobileMenu }: TopbarProps) {
   };
 
   return (
-    <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.13] shrink-0 flex flex-col">
+    <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.13] shrink-0 flex items-stretch">
+      {/* Logo strip — width tracks the sidebar's collapsed state on desktop */}
+      <div
+        className={`hidden md:flex items-center shrink-0 border-r border-zinc-200 dark:border-white/[0.13] transition-[width] duration-200 ${
+          desktopCollapsed ? 'w-[56px] justify-center' : 'w-[248px] px-3.5 gap-3'
+        }`}
+      >
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-[15px] shadow-md shadow-indigo-500/25 shrink-0">
+          S
+        </div>
+        {!desktopCollapsed && (
+          <div className="flex-1 min-w-0">
+            <div className="text-[14px] font-bold text-zinc-900 dark:text-zinc-50 leading-tight">SalesFlow</div>
+            <div className="text-[11.5px] text-zinc-400 dark:text-zinc-500 leading-tight">Goldtech Joias</div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 flex flex-col min-w-0">
       <div className="h-topbar px-3 md:px-6 flex items-center justify-between gap-2">
         {/* Left: hamburger (mobile) + page title */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -198,6 +217,7 @@ export function Topbar({ title, subtitle, onMobileMenu }: TopbarProps) {
           <NavTabBar tabs={tabGroup} variant="pill" />
         </div>
       )}
+      </div>
     </header>
   );
 }
