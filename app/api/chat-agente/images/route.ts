@@ -23,22 +23,24 @@ export async function GET(req: NextRequest) {
 
   const client = await pool.connect();
   try {
-    // Busca a principal e a secundária por produto: white-images > leilao, dentro de cada uma
-    const result = await client.query<{ ref: string; key: string; bucket: string; is_main: boolean }>(
-      `SELECT DISTINCT ON (pd.referencia, img.is_main)
-         pd.referencia AS ref,
-         img.key,
-         img.bucket,
-         img.is_main
+    // Traz até 3 fotos por peça: principal, secundária, e uma foto "site" (is_eternno) extra
+    // quando ela não coincidir com nenhuma das duas — essas são as fotos aprovadas para o site.
+    // category: 0 = principal, 1 = secundária, 2 = site (Eternno) adicional.
+    const result = await client.query<{ ref: string; key: string; bucket: string; category: number; is_eternno: boolean }>(
+      `SELECT DISTINCT ON (pd.referencia, categorized.category)
+         pd.referencia AS ref, categorized.key, categorized.bucket, categorized.category, categorized.is_eternno
        FROM product_details pd
-       JOIN leilao_image img ON img."productDetailsId" = pd.id
+       JOIN (
+         SELECT img."productDetailsId", img.key, img.bucket, img.is_eternno, img."createdAt",
+           CASE WHEN img.is_main THEN 0 WHEN img.is_secondary THEN 1 ELSE 2 END AS category
+         FROM leilao_image img
+         WHERE img.key IS NOT NULL AND (img.is_main OR img.is_secondary OR img.is_eternno)
+       ) categorized ON categorized."productDetailsId" = pd.id
        WHERE UPPER(pd.referencia) = ANY($1)
-         AND img.key IS NOT NULL
-         AND (img.is_main OR img.is_secondary)
        ORDER BY
-         pd.referencia, img.is_main DESC,
-         CASE WHEN img.bucket = 'white-images' THEN 0 ELSE 1 END,
-         img."createdAt" DESC`,
+         pd.referencia, categorized.category,
+         CASE WHEN categorized.bucket = 'white-images' THEN 0 ELSE 1 END,
+         categorized."createdAt" DESC`,
       [refs],
     );
 
@@ -46,7 +48,7 @@ export async function GET(req: NextRequest) {
       result.rows.map(async r => {
         try {
           const url = await getPresignedUrl(r.bucket, r.key);
-          return { ref: r.ref, url, is_main: r.is_main };
+          return { ref: r.ref, url, category: r.category, is_eternno: r.is_eternno };
         } catch {
           return null;
         }
@@ -54,9 +56,9 @@ export async function GET(req: NextRequest) {
     );
 
     const images = resolved
-      .filter((x): x is { ref: string; url: string; is_main: boolean } => x !== null)
-      .sort((a, b) => Number(b.is_main) - Number(a.is_main))
-      .map(({ ref, url }) => ({ ref, url }));
+      .filter((x): x is { ref: string; url: string; category: number; is_eternno: boolean } => x !== null)
+      .sort((a, b) => a.category - b.category)
+      .map(({ ref, url, is_eternno }) => ({ ref, url, is_eternno }));
 
     return NextResponse.json({ images });
   } finally {

@@ -2,9 +2,9 @@
 
 import { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, Copy, Check, ZoomIn, CameraOff, Share2, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Sparkles, Copy, Check, ZoomIn, CameraOff, Share2, ChevronLeft, ChevronRight, X, Globe } from 'lucide-react';
 import { toast } from 'sonner';
-import { type ChatMessage } from '@/lib/hooks/use-agente-chat';
+import { type ChatMessage, type ChatImage } from '@/lib/hooks/use-agente-chat';
 
 function renderLine(line: string) {
   const parts = line.split(/(\*\*[^*]+\*\*)/g);
@@ -24,7 +24,7 @@ function renderPlainText(text: string) {
   ));
 }
 
-interface ImageMap { [ref: string]: string[] }
+interface ImageMap { [ref: string]: ChatImage[] }
 interface ZoomState { urls: string[]; index: number; ref: string }
 
 function CopyBlockButton({ text }: { text: string }) {
@@ -128,17 +128,29 @@ function renderWithImages(
     );
 
     if (ref) {
+      const urlList = urls.map(img => img.url);
+      const thumbLabel = (idx: number) => {
+        if (urls[idx]?.is_eternno) return `${ref} — foto do site`;
+        return idx === 0 ? `${ref} — foto principal` : `${ref} — foto secundária`;
+      };
+
       const thumbs = urls.length > 0 ? (
-        <div className="shrink-0 flex gap-1.5">
-          {urls.map((url, idx) => (
+        <div className="flex gap-1.5 flex-wrap">
+          {urls.map((img, idx) => (
             <button
-              key={url}
-              onClick={() => onZoom({ urls, index: idx, ref })}
+              key={img.url}
+              onClick={() => onZoom({ urls: urlList, index: idx, ref })}
               className="group/img relative w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden border border-zinc-200 dark:border-white/[0.1] hover:border-indigo-400 hover:shadow-md transition-all"
-              title={idx === 0 ? `${ref} — foto principal` : `${ref} — foto secundária`}
+              title={thumbLabel(idx)}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt={ref} className="w-full h-full object-cover" />
+              <img src={img.url} alt={ref} className="w-full h-full object-cover" />
+              {img.is_eternno && (
+                <span className="absolute top-1 left-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-medium leading-none">
+                  <Globe size={9} />
+                  Site
+                </span>
+              )}
               <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors flex items-center justify-center">
                 <ZoomIn size={14} className="text-white opacity-0 group-hover/img:opacity-100 transition-opacity" />
               </div>
@@ -146,7 +158,7 @@ function renderWithImages(
           ))}
         </div>
       ) : (
-        <div className="shrink-0 w-20 h-20 rounded-xl border border-dashed border-zinc-300 dark:border-white/[0.12] flex flex-col items-center justify-center gap-1 text-zinc-300 dark:text-zinc-600">
+        <div className="w-20 h-20 rounded-xl border border-dashed border-zinc-300 dark:border-white/[0.12] flex flex-col items-center justify-center gap-1 text-zinc-300 dark:text-zinc-600">
           <CameraOff size={18} />
           <span className="text-[9px] leading-none">sem foto</span>
         </div>
@@ -155,11 +167,13 @@ function renderWithImages(
       return (
         <div
           key={i}
-          className="group/block flex gap-3 items-start p-3 mt-2 first:mt-1 rounded-xl bg-zinc-50 dark:bg-white/[0.03] border border-zinc-100 dark:border-white/[0.06]"
+          className="group/block flex flex-col gap-2.5 items-start p-3 mt-2 first:mt-1 rounded-xl bg-zinc-50 dark:bg-white/[0.03] border border-zinc-100 dark:border-white/[0.06]"
         >
-          {thumbs}
+          <div className="flex items-start justify-between w-full gap-2">
+            {thumbs}
+            <CopyBlockButton text={block} />
+          </div>
           <div className="flex-1 text-sm leading-relaxed">{textNode}</div>
-          <CopyBlockButton text={block} />
         </div>
       );
     }
@@ -192,7 +206,7 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
   if (message.images) {
     for (const img of message.images) {
       const key = img.ref.toUpperCase();
-      (imageMap[key] ??= []).push(img.url);
+      (imageMap[key] ??= []).push(img);
     }
   }
 
@@ -268,7 +282,7 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
                     key={idx}
                     onClick={e => { e.stopPropagation(); setZoom(z => z && { ...z, index: idx }); }}
                     className={`w-2 h-2 rounded-full transition-colors ${idx === zoom.index ? 'bg-white' : 'bg-white/40'}`}
-                    aria-label={idx === 0 ? 'Foto principal' : 'Foto secundária'}
+                    aria-label={`Foto ${idx + 1} de ${zoom.urls.length}`}
                   />
                 ))}
               </div>
@@ -283,7 +297,7 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/95 text-zinc-800 text-sm font-medium shadow-lg hover:bg-white transition-colors"
               >
                 <Share2 size={15} />
-                {zoom.urls.length > 1 ? 'Compartilhar as 2' : 'Compartilhar'}
+                {zoom.urls.length > 1 ? `Compartilhar as ${zoom.urls.length}` : 'Compartilhar'}
               </button>
             )}
             <button

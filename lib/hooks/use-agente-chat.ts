@@ -2,11 +2,13 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 
+export type ChatImage = { ref: string; url: string; is_eternno?: boolean };
+
 export type ChatMessage = {
   id: number;
   role: 'user' | 'assistant';
   text: string;
-  images?: { ref: string; url: string }[];
+  images?: ChatImage[];
 };
 
 export function useAgenteChat() {
@@ -47,11 +49,11 @@ export function useAgenteChat() {
 
       // Extrai referências do reply (ex: **E11111**) e busca imagens em paralelo
       const refs = [...reply.matchAll(/\*\*([A-Za-z]\d{4,6})\*\*/g)].map(m => m[1]);
-      let images: { ref: string; url: string }[] = [];
+      let images: ChatImage[] = [];
       if (refs.length > 0) {
         try {
           const imgRes = await fetch(`/api/chat-agente/images?refs=${refs.join(',')}`);
-          const imgJson = await imgRes.json() as { images?: { ref: string; url: string }[] };
+          const imgJson = await imgRes.json() as { images?: ChatImage[] };
           images = imgJson.images ?? [];
         } catch {
           // imagens são opcionais — falha silenciosa
