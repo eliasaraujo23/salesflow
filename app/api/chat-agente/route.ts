@@ -472,6 +472,79 @@ async function buscarPorDestino(
   }
 }
 
+// ── DB: melhor destino para enviar uma peça (histórico de vendas do mesmo tipo) ──
+
+async function melhorDestinoParaPeca(ref: string) {
+  const client = await pool.connect();
+  try {
+    const pecaRes = await client.query(
+      `SELECT pd.id, pd.referencia, pd."produtoId", pd."subtipoId", pd."tipoPedraId",
+              pd."statusProdutoId" AS status_id, pd.descricao_jewel,
+              p.produto, s.subtipo, tp.tipo_pedra, d.destino AS destino_atual
+       FROM product_details pd
+       LEFT JOIN produto    p  ON p.id  = pd."produtoId"
+       LEFT JOIN subtipo    s  ON s.id  = pd."subtipoId"
+       LEFT JOIN tipo_pedra tp ON tp.id = pd."tipoPedraId"
+       LEFT JOIN destinos   d  ON d.id  = pd."destinoId"
+       WHERE UPPER(pd.referencia) = $1
+       LIMIT 1`,
+      [ref.toUpperCase()],
+    );
+    const peca = pecaRes.rows[0];
+    if (!peca) return { encontrado: false as const };
+    if (!peca.produtoId) {
+      return { encontrado: true as const, referencia: peca.referencia, erro: 'Peça sem produto cadastrado — não é possível comparar histórico por tipo.' };
+    }
+
+    // Nível de comparação: produto (ex: "PULSEIRA RIVIERA") é o modelo em si — subtipo (FACA, ILUSION, CORAÇÃO...)
+    // é só o formato do elo/acabamento dentro do mesmo modelo, então NÃO trava por subtipo (perderia amostra à toa).
+    // Histórico de vendas do mesmo produto, por destino de venda.
+    const historicoRes = await client.query<{ destino: string; vendas: string }>(
+      `SELECT d.destino, COUNT(*) AS vendas
+       FROM product_details pd
+       LEFT JOIN destinos d ON d.id = pd."destinoId"
+       WHERE pd."statusProdutoId" IN (2, 4, 13)
+         AND d.destino IS NOT NULL
+         AND pd."produtoId" = $1
+       GROUP BY d.destino
+       ORDER BY vendas DESC`,
+      [peca.produtoId],
+    );
+
+    // Destinos que JÁ têm, agora, uma peça do mesmo produto em comodato (não faz sentido reenviar pra eles).
+    const jaTemRes = await client.query<{ destino: string }>(
+      `SELECT DISTINCT d.destino
+       FROM product_details pd
+       LEFT JOIN destinos d ON d.id = pd."destinoId"
+       WHERE pd."statusProdutoId" = 6
+         AND d.destino IS NOT NULL
+         AND pd."produtoId" = $1`,
+      [peca.produtoId],
+    );
+    const jaTem = new Set(jaTemRes.rows.map(r => r.destino));
+
+    const ranking = historicoRes.rows.map(r => ({
+      destino: capitalize(r.destino),
+      vendas: parseInt(r.vendas, 10),
+      ja_tem_peca_do_tipo_em_comodato: jaTem.has(r.destino),
+    }));
+
+    const recomendados = ranking.filter(r => !r.ja_tem_peca_do_tipo_em_comodato);
+
+    return {
+      encontrado: true as const,
+      referencia: peca.referencia,
+      tipo_peca: { produto: peca.produto, subtipo: peca.subtipo, tipo_pedra: peca.tipo_pedra, descricao: peca.descricao_jewel },
+      nota: `Ranking calculado pelo modelo "${peca.produto}" (subtipo/tipo de pedra são só variação de acabamento dentro do mesmo modelo, não entram no filtro).`,
+      status_atual: STATUS_VENDIDA.includes(peca.status_id) ? 'vendida' : peca.status_id === 6 ? `em comodato com ${capitalize(peca.destino_atual ?? '')}` : 'em estoque',
+      ranking_completo_por_vendas: ranking,
+      recomendados_excluindo_quem_ja_tem_em_comodato: recomendados,
+    };
+  } finally {
+    client.release();
+  }
+}
+
 // ── DB: destinos sem determinado produto ─────────────────────────────────────
 
 const GENERIC_DEST_TERMS = new Set([
@@ -654,6 +727,14 @@ const tools = [
       })),
   }),
   betaZodTool({
+    name: 'melhor_destino_para_peca',
+    description: 'Dado o código de uma referência, identifica o tipo da peça (produto/subtipo/tipo de pedra) e retorna o ranking de destinos/parceiros por número de vendas históricas desse mesmo tipo de peça, já excluindo quem atualmente tem uma peça do mesmo tipo em comodato. Use para perguntas como "pra quem envio a E14387?", "quem tem mais chance de vender essa peça?", "quem é melhor pra mandar essa referência".',
+    inputSchema: z.object({
+      referencia: z.string().describe('Código da referência, ex: E14387'),
+    }),
+    run: async ({ referencia }) => JSON.stringify(await melhorDestinoParaPeca(referencia)),
+  }),
+  betaZodTool({
     name: 'listar_carros_chefe',
     description: 'Lista todos os carros chefe (peças de referência/destaque) cadastrados no sistema.',
     inputSchema: z.object({}),
@@ -729,6 +810,7 @@ Estrutura de product_details — use estas colunas relacionais, NUNCA busque um 
 
 Como agir:
 - Para perguntas comuns (referência específica, busca de peça por descrição, peças de um destino/parceiro, carros chefe), use as ferramentas específicas — elas já têm a lógica de busca certa.
+- Pergunta do tipo "pra quem eu envio a [referência]?", "quem tem mais chance de vender essa peça?", "quem é melhor pra mandar a [referência]?" = use SEMPRE a ferramenta melhor_destino_para_peca. Ela já cruza o histórico de vendas do mesmo tipo de peça por destino E exclui quem já tem uma peça do mesmo tipo em comodato (não faz sentido recomendar enviar pra quem já está com uma igual). Ao responder, use a lista "recomendados_excluindo_quem_ja_tem_em_comodato" para a recomendação, mas se algum destino do topo do ranking foi excluído por já ter a peça, mencione isso ("Loja X vende bem esse tipo, mas já tem uma em comodato, por isso não recomendo reenviar pra ela").
 - Se uma ferramenta específica não encontrar nada ou não cobrir o que foi pedido (ex: filtro por código de tipo/categoria interno, estatísticas, cruzamentos, "quem tem mais chance de vender X", informações sobre clientes/vendas/avaliações), não desista: use listar_tabelas_banco e descrever_tabela para entender a estrutura, depois executar_sql para responder. Explore o banco antes de dizer que não sabe buscar algo.
 - Se o usuário te corrigir ou te der uma informação sobre como o banco funciona (ex: "JF é o tipo de compra, é a coluna tipo em product_details, tem JF, JC, JRCP, JRSP"), isso é prioridade máxima: refaça a busca imediatamente usando essa informação, com executar_sql se necessário. Nunca repita a mesma dúvida ou a mesma busca que já falhou — a correção do usuário sempre resolve o impasse, use-a.
 - Ao usar executar_sql em product_details, NUNCA assuma de cabeça o significado de um "statusProdutoId" — sempre faça JOIN com a tabela status_produto (ON status_produto.id = pd."statusProdutoId") e leia o nome do status. Não adivinhe: 2, 4 e 13 são "vendido" (VENDIDO E PAGO, AGUARDANDO PAGAMENTO, VENDIDO PARCELADO), 6 é "em comodato", 3 é "sem venda efetivada" (estoque), mas confirme sempre pelo JOIN antes de interpretar um número.
