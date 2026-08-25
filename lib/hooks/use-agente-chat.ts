@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-export type ChatImage = { ref: string; url: string; is_eternno?: boolean };
+export type ChatImage = { ref: string; url: string };
 
 export type ChatMessage = {
   id: number;

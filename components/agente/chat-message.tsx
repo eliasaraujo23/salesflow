@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, Copy, Check, ZoomIn, CameraOff, Share2, ChevronLeft, ChevronRight, X, Globe } from 'lucide-react';
+import { Sparkles, Copy, Check, ZoomIn, CameraOff, Share2, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { type ChatMessage, type ChatImage } from '@/lib/hooks/use-agente-chat';
 
@@ -129,10 +129,6 @@ function renderWithImages(
 
     if (ref) {
       const urlList = urls.map(img => img.url);
-      const thumbLabel = (idx: number) => {
-        if (urls[idx]?.is_eternno) return `${ref} — foto do site`;
-        return idx === 0 ? `${ref} — foto principal` : `${ref} — foto secundária`;
-      };
 
       const thumbs = urls.length > 0 ? (
         <div className="flex gap-1.5 flex-wrap">
@@ -141,16 +137,10 @@ function renderWithImages(
               key={img.url}
               onClick={() => onZoom({ urls: urlList, index: idx, ref })}
               className="group/img relative w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden border border-zinc-200 dark:border-white/[0.1] hover:border-indigo-400 hover:shadow-md transition-all"
-              title={thumbLabel(idx)}
+              title={`${ref} — foto ${idx + 1}`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={img.url} alt={ref} className="w-full h-full object-cover" />
-              {img.is_eternno && (
-                <span className="absolute top-1 left-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-medium leading-none">
-                  <Globe size={9} />
-                  Site
-                </span>
-              )}
               <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors flex items-center justify-center">
                 <ZoomIn size={14} className="text-white opacity-0 group-hover/img:opacity-100 transition-opacity" />
               </div>
