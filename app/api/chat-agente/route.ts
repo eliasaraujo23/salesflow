@@ -472,6 +472,38 @@ async function buscarPorDestino(
   }
 }
 
+// ── DB: checar quais referências têm foto no sistema ─────────────────────────
+
+async function checarFotos(refs: string[]) {
+  const normalizedRefs = [...new Set(refs.map(r => r.trim().toUpperCase()).filter(Boolean))].slice(0, 200);
+  if (normalizedRefs.length === 0) return { erro: 'Nenhuma referência informada.' };
+
+  const client = await pool.connect();
+  try {
+    const result = await client.query<{ referencia: string; tem_foto: boolean }>(
+      `SELECT pd.referencia,
+              EXISTS (SELECT 1 FROM leilao_image li WHERE li."productDetailsId" = pd.id AND li.key IS NOT NULL) AS tem_foto
+       FROM product_details pd
+       WHERE UPPER(pd.referencia) = ANY($1)`,
+      [normalizedRefs],
+    );
+
+    const encontradas = new Map(result.rows.map(r => [r.referencia.toUpperCase(), r.tem_foto]));
+    const naoEncontradas = normalizedRefs.filter(r => !encontradas.has(r));
+    const comFoto = normalizedRefs.filter(r => encontradas.get(r) === true);
+    const semFoto = normalizedRefs.filter(r => encontradas.get(r) === false);
+
+    return {
+      total_consultado: normalizedRefs.length,
+      com_foto: comFoto,
+      sem_foto: semFoto,
+      referencias_nao_encontradas_no_sistema: naoEncontradas,
+    };
+  } finally {
+    client.release();
+  }
+}
+
 // ── DB: melhor destino para enviar uma peça (histórico de vendas do mesmo tipo) ──
 
 async function melhorDestinoParaPeca(ref: string) {
@@ -727,6 +759,14 @@ const tools = [
       })),
   }),
   betaZodTool({
+    name: 'checar_fotos',
+    description: 'Verifica, para uma lista de referências, quais têm foto cadastrada no sistema e quais não têm. Use SEMPRE que o usuário perguntar "quais dessas referências não têm foto?", "essas peças têm foto?" ou similar — nunca tente responder isso via executar_sql, esta ferramenta já faz a checagem exata e evita erro na lista.',
+    inputSchema: z.object({
+      referencias: z.array(z.string()).describe('Lista de códigos de referência a checar, ex: ["E11111", "E12222"]'),
+    }),
+    run: async ({ referencias }) => JSON.stringify(await checarFotos(referencias)),
+  }),
+  betaZodTool({
     name: 'melhor_destino_para_peca',
     description: 'Dado o código de uma referência, identifica o tipo da peça (produto/subtipo/tipo de pedra) e retorna o ranking de destinos/parceiros por número de vendas históricas desse mesmo tipo de peça, já excluindo quem atualmente tem uma peça do mesmo tipo em comodato. Use para perguntas como "pra quem envio a E14387?", "quem tem mais chance de vender essa peça?", "quem é melhor pra mandar essa referência".',
     inputSchema: z.object({
@@ -813,6 +853,7 @@ Como agir:
 - Pergunta do tipo "pra quem eu envio a [referência]?", "quem tem mais chance de vender essa peça?", "quem é melhor pra mandar a [referência]?" = use SEMPRE a ferramenta melhor_destino_para_peca. Ela já cruza o histórico de vendas do mesmo tipo de peça por destino E exclui quem já tem uma peça do mesmo tipo em comodato (não faz sentido recomendar enviar pra quem já está com uma igual). Ao responder, use a lista "recomendados_excluindo_quem_ja_tem_em_comodato" para a recomendação, mas se algum destino do topo do ranking foi excluído por já ter a peça, mencione isso ("Loja X vende bem esse tipo, mas já tem uma em comodato, por isso não recomendo reenviar pra ela").
 - Se uma ferramenta específica não encontrar nada ou não cobrir o que foi pedido (ex: filtro por código de tipo/categoria interno, estatísticas, cruzamentos, "quem tem mais chance de vender X", informações sobre clientes/vendas/avaliações), não desista: use listar_tabelas_banco e descrever_tabela para entender a estrutura, depois executar_sql para responder. Explore o banco antes de dizer que não sabe buscar algo.
 - Se o usuário te corrigir ou te der uma informação sobre como o banco funciona (ex: "JF é o tipo de compra, é a coluna tipo em product_details, tem JF, JC, JRCP, JRSP"), isso é prioridade máxima: refaça a busca imediatamente usando essa informação, com executar_sql se necessário. Nunca repita a mesma dúvida ou a mesma busca que já falhou — a correção do usuário sempre resolve o impasse, use-a.
+- Se o usuário disser que um dado factual que você trouxe está errado (ex: "essa referência tem foto sim", "esse preço tá errado"), NUNCA apenas concorde ou diga "você tem razão" sem antes rodar a ferramenta/query de novo para confirmar de fato. Refaça a consulta, veja o resultado real, e só então responda — se o resultado confirmar o usuário, ótimo; se não confirmar, diga isso educadamente e explique o que a consulta mostra. Concordar sem reconsultar é um erro grave (finge verificação que não aconteceu).
 - Ao usar executar_sql em product_details, NUNCA assuma de cabeça o significado de um "statusProdutoId" — sempre faça JOIN com a tabela status_produto (ON status_produto.id = pd."statusProdutoId") e leia o nome do status. Não adivinhe: 2, 4 e 13 são "vendido" (VENDIDO E PAGO, AGUARDANDO PAGAMENTO, VENDIDO PARCELADO), 6 é "em comodato", 3 é "sem venda efetivada" (estoque), mas confirme sempre pelo JOIN antes de interpretar um número.
 - Nunca invente referências, preços, disponibilidade ou qualquer dado — sempre confirme com uma ferramenta antes de responder.
 - Não escreva texto explicando o que você vai fazer a seguir ("deixa eu verificar...", "vou calcular...") antes de já ter o resultado final — só escreva texto de resposta quando já tiver os dados para responder de fato.
