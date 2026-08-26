@@ -20,11 +20,10 @@ interface TabGroupConfig {
 
 const TAB_GROUPS: TabGroupConfig[] = [
   {
-    match: pathname => pathname.startsWith('/fabricacoes-jf') || pathname === '/analise-jf' || pathname === '/carros-chefe',
+    match: pathname => pathname.startsWith('/fabricacoes-jf') || pathname === '/analise-jf',
     tabs: [
-      { label: 'Estoque',      href: '/fabricacoes-jf', active: p => p === '/fabricacoes-jf' },
-      { label: 'Análise',      href: '/analise-jf',      active: p => p === '/analise-jf' },
-      { label: 'Carros-Chefe', href: '/carros-chefe',    active: p => p === '/carros-chefe' },
+      { label: 'Estoque', href: '/fabricacoes-jf', active: p => p === '/fabricacoes-jf' },
+      { label: 'Análise', href: '/analise-jf',      active: p => p === '/analise-jf' },
     ],
   },
   {
@@ -47,12 +46,13 @@ const TAB_GROUPS: TabGroupConfig[] = [
     ],
   },
   {
-    match: pathname => pathname.startsWith('/partners') || pathname.startsWith('/graficos/parceiros'),
+    match: pathname => pathname.startsWith('/partners') || pathname.startsWith('/graficos/parceiros') || pathname === '/carros-chefe',
     tabs: [
-      { label: 'Parceiros',    href: '/partners',              active: p => p === '/partners' },
-      { label: 'Gaps',         href: '/partners/gaps',         active: p => p === '/partners/gaps' },
-      { label: 'Por Parceiro', href: '/partners/por-parceiro', active: p => p === '/partners/por-parceiro' },
-      { label: 'Evolução',     href: '/graficos/parceiros',    active: p => p.startsWith('/graficos/parceiros') },
+      { label: 'Geral',           href: '/partners',              active: p => p === '/partners' },
+      { label: 'Por Carro Chefe', href: '/partners/gaps',         active: p => p === '/partners/gaps' },
+      { label: 'Por Parceiro',    href: '/partners/por-parceiro', active: p => p === '/partners/por-parceiro' },
+      { label: 'Evolução',        href: '/graficos/parceiros',    active: p => p.startsWith('/graficos/parceiros') },
+      { label: 'Carros-Chefe',    href: '/carros-chefe',          active: p => p === '/carros-chefe' },
     ],
   },
   {
@@ -171,9 +171,9 @@ export function Topbar({ title, subtitle, onMobileMenu, desktopCollapsed = false
 
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <div className="text-[15px] font-semibold text-zinc-900 dark:text-zinc-50 truncate shrink-0">
-              {(pathname.startsWith('/fabricacoes-jf') || pathname === '/analise-jf' || pathname === '/carros-chefe')
+              {(pathname.startsWith('/fabricacoes-jf') || pathname === '/analise-jf')
                 ? 'Fabricações JF'
-                : (pathname.startsWith('/partners') || pathname.startsWith('/graficos/parceiros'))
+                : (pathname.startsWith('/partners') || pathname.startsWith('/graficos/parceiros') || pathname === '/carros-chefe')
                 ? 'Parceiros'
                 : (pathname === '/tasks' || pathname === '/ia')
                 ? 'Minhas Tarefas'
