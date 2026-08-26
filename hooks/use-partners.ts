@@ -78,9 +78,16 @@ export interface GapRedist {
   oldest: PartnerConsignment;
 }
 
+export interface PartnerHave {
+  partner: string;
+  count: number;
+  tipos: string[];
+}
+
 export interface GapInfo {
   catLabel: string;
   partnersMissing: string[];
+  partnersHave: PartnerHave[];
   stockItems: GapStockItem[];
   redistFrom: GapRedist[];
 }
@@ -232,6 +239,16 @@ export function usePartnersPage() {
         !data.some(r => r.destino === p && cat.check(r))
       );
 
+      const partnersHave: PartnerHave[] = partnerList
+        .map(p => {
+          const pieces = data.filter(r => r.destino === p && cat.check(r));
+          if (pieces.length === 0) return null;
+          const tipos = [...new Set(pieces.map(r => r.tipo).filter((t): t is string => !!t))];
+          return { partner: p, count: pieces.length, tipos };
+        })
+        .filter((x): x is PartnerHave => x !== null)
+        .sort((a, b) => b.count - a.count);
+
       const stockItems: GapStockItem[] = jmInStock
         .filter(j => cat.check(normalizeJmItem(j)))
         .map(j => ({
@@ -253,7 +270,7 @@ export function usePartnersPage() {
         .filter((x): x is GapRedist => x !== null)
         .sort((a, b) => b.oldest.dias_campo - a.oldest.dias_campo);
 
-      return { catLabel: cat.label, partnersMissing, stockItems, redistFrom };
+      return { catLabel: cat.label, partnersMissing, partnersHave, stockItems, redistFrom };
     }).filter(g => g.partnersMissing.length > 0);
   }, [data, partnerList, jmInStock, cats]);
 

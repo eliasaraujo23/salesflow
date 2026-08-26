@@ -1,28 +1,12 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import { RefreshCw } from 'lucide-react';
 import { usePartnersPage } from '@/hooks/use-partners';
-import { PartnersChips } from '@/components/partners/partners-chips';
-import { PartnersMatrix } from '@/components/partners/partners-matrix';
-import { PartnersProfile } from '@/components/partners/partners-profile';
+import { PartnersGaps } from '@/components/partners/partners-gaps';
 
-export default function PartnersPage() {
-  const {
-    isLoading,
-    isError,
-    isFetching,
-    cats,
-    partnerList,
-    kpis,
-    matrix,
-    gaps,
-    activePartner,
-    setActivePartner,
-    partnerData,
-    partnerSales,
-    refresh,
-  } = usePartnersPage();
+export default function PartnersGapsPage() {
+  const { isLoading, isError, isFetching, gaps, refresh } = usePartnersPage();
 
   if (isLoading) {
     return (
@@ -50,11 +34,10 @@ export default function PartnersPage() {
 
   return (
     <div className="p-3 sm:p-6 space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Parceiros</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">Comodato em campo</p>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Gaps</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">Carros-chefe em falta por parceiro</p>
         </div>
         <button
           onClick={refresh}
@@ -66,25 +49,7 @@ export default function PartnersPage() {
         </button>
       </div>
 
-      {/* Partner filter chips */}
-      <PartnersChips
-        partners={partnerList}
-        active={activePartner}
-        onSelect={setActivePartner}
-      />
-
-      {/* Content: matrix or partner profile */}
-      {activePartner === null ? (
-        <PartnersMatrix rows={matrix} partners={partnerList} />
-      ) : (
-        <PartnersProfile
-          destino={activePartner}
-          data={partnerData}
-          sales={partnerSales}
-          gaps={gaps.filter(g => g.partnersMissing.includes(activePartner))}
-          cats={cats}
-        />
-      )}
+      <PartnersGaps gaps={gaps} />
     </div>
   );
 }
