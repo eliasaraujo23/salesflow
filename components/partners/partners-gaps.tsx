@@ -20,7 +20,7 @@ export function PartnersGaps({ gaps }: PartnersGapsProps) {
   const filteredGaps = useMemo(() => {
     const q = search.trim().toLowerCase();
     const base = q ? gaps.filter(g => g.catLabel.toLowerCase().includes(q)) : gaps;
-    return [...base].sort((a, b) => b.partnersMissing.length - a.partnersMissing.length);
+    return [...base].sort((a, b) => a.catLabel.localeCompare(b.catLabel, 'pt-BR'));
   }, [gaps, search]);
 
   if (gaps.length === 0) {

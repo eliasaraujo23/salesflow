@@ -276,7 +276,7 @@ export function usePartnersPage() {
           return { partner: p, count: pieces.length, tipos };
         })
         .filter((x): x is PartnerHave => x !== null)
-        .sort((a, b) => b.count - a.count);
+        .sort((a, b) => a.partner.localeCompare(b.partner, 'pt-BR'));
 
       const stockItems: GapStockItem[] = jmInStock
         .filter(j => cat.check(normalizeJmItem(j)))
@@ -309,7 +309,7 @@ export function usePartnersPage() {
         }
       });
       return { partner: p, catsHave, catsMissing };
-    }).sort((a, b) => b.catsMissing.length - a.catsMissing.length);
+    }).sort((a, b) => a.partner.localeCompare(b.partner, 'pt-BR'));
   }, [data, partnerList, cats]);
 
   const partnerData = useMemo(
