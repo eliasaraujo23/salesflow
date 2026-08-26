@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { type GapInfo } from '@/hooks/use-partners';
 import { RedistCell } from '@/components/partners/redist-cell';
 
@@ -16,6 +16,16 @@ interface PartnersGapsProps {
 
 export function PartnersGaps({ gaps }: PartnersGapsProps) {
   const [search, setSearch] = useState('');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  function toggleExpanded(catLabel: string) {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(catLabel)) next.delete(catLabel);
+      else next.add(catLabel);
+      return next;
+    });
+  }
 
   const filteredGaps = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -132,7 +142,24 @@ export function PartnersGaps({ gaps }: PartnersGapsProps) {
                 </td>
 
                 <td className="px-4 py-3">
-                  <RedistCell redistFrom={g.redistFrom} />
+                  {g.redistFrom.length === 0 ? (
+                    <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => toggleExpanded(g.catLabel)}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 transition-colors"
+                      >
+                        {expanded.has(g.catLabel) ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+                        {g.redistFrom.length} {g.redistFrom.length === 1 ? 'sugestão' : 'sugestões'}
+                      </button>
+                      {expanded.has(g.catLabel) && (
+                        <div className="mt-2">
+                          <RedistCell redistFrom={g.redistFrom} limit={g.redistFrom.length} />
+                        </div>
+                      )}
+                    </>
+                  )}
                 </td>
               </tr>
               );

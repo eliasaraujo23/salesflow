@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { type PartnerCoverage } from '@/hooks/use-partners';
 import { RedistCell } from '@/components/partners/redist-cell';
 
@@ -11,6 +11,16 @@ interface PartnersCoverageProps {
 
 export function PartnersCoverage({ coverage }: PartnersCoverageProps) {
   const [search, setSearch] = useState('');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  function toggleExpanded(partner: string) {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(partner)) next.delete(partner);
+      else next.add(partner);
+      return next;
+    });
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -124,18 +134,36 @@ export function PartnersCoverage({ coverage }: PartnersCoverageProps) {
                   </td>
 
                   <td className="px-4 py-3">
-                    <div className="space-y-2">
-                      {c.catsMissing.filter(m => m.redistFrom.length > 0).length === 0 ? (
-                        <span className="text-zinc-300 dark:text-zinc-600">—</span>
-                      ) : c.catsMissing.filter(m => m.redistFrom.length > 0).map(m => (
-                        <div key={m.catLabel}>
-                          <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
-                            {m.catLabel}
-                          </div>
-                          <RedistCell redistFrom={m.redistFrom} limit={1} />
-                        </div>
-                      ))}
-                    </div>
+                    {(() => {
+                      const withRedist = c.catsMissing.filter(m => m.redistFrom.length > 0);
+                      if (withRedist.length === 0) {
+                        return <span className="text-zinc-300 dark:text-zinc-600">—</span>;
+                      }
+                      const isOpen = expanded.has(c.partner);
+                      return (
+                        <>
+                          <button
+                            onClick={() => toggleExpanded(c.partner)}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 transition-colors"
+                          >
+                            {isOpen ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+                            {withRedist.length} {withRedist.length === 1 ? 'sugestão' : 'sugestões'}
+                          </button>
+                          {isOpen && (
+                            <div className="space-y-2 mt-2">
+                              {withRedist.map(m => (
+                                <div key={m.catLabel}>
+                                  <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
+                                    {m.catLabel}
+                                  </div>
+                                  <RedistCell redistFrom={m.redistFrom} limit={1} />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </td>
                 </tr>
               ))}
