@@ -98,10 +98,15 @@ export interface CatHave {
   tipos: string[];
 }
 
+export interface CatMissing {
+  catLabel: string;
+  redistFrom: GapRedist[];
+}
+
 export interface PartnerCoverage {
   partner: string;
   catsHave: CatHave[];
-  catsMissing: string[];
+  catsMissing: CatMissing[];
 }
 
 export function usePartnersPage() {
@@ -245,6 +250,18 @@ export function usePartnersPage() {
     return grouped.sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
   }, [data, partnerList, cats]);
 
+  function computeRedistFrom(cat: CatDefDynamic): GapRedist[] {
+    return partnerList
+      .map(p => {
+        const pieces = data.filter(r => r.destino === p && cat.check(r));
+        if (pieces.length < 2) return null;
+        const oldest = pieces.reduce((a, b) => (a.dias_campo > b.dias_campo ? a : b));
+        return { partner: p, count: pieces.length, oldest };
+      })
+      .filter((x): x is GapRedist => x !== null)
+      .sort((a, b) => b.oldest.dias_campo - a.oldest.dias_campo);
+  }
+
   const gaps = useMemo((): GapInfo[] => {
     return cats.map(cat => {
       const partnersMissing = partnerList.filter(p =>
@@ -272,15 +289,7 @@ export function usePartnersPage() {
           dias: j.dias,
         }));
 
-      const redistFrom: GapRedist[] = partnerList
-        .map(p => {
-          const pieces = data.filter(r => r.destino === p && cat.check(r));
-          if (pieces.length < 2) return null;
-          const oldest = pieces.reduce((a, b) => (a.dias_campo > b.dias_campo ? a : b));
-          return { partner: p, count: pieces.length, oldest };
-        })
-        .filter((x): x is GapRedist => x !== null)
-        .sort((a, b) => b.oldest.dias_campo - a.oldest.dias_campo);
+      const redistFrom = computeRedistFrom(cat);
 
       return { catLabel: cat.label, partnersMissing, partnersHave, stockItems, redistFrom };
     }).filter(g => g.partnersMissing.length > 0);
@@ -289,11 +298,11 @@ export function usePartnersPage() {
   const partnerCoverage = useMemo((): PartnerCoverage[] => {
     return partnerList.map(p => {
       const catsHave: CatHave[] = [];
-      const catsMissing: string[] = [];
+      const catsMissing: CatMissing[] = [];
       cats.forEach(cat => {
         const pieces = data.filter(r => r.destino === p && cat.check(r));
         if (pieces.length === 0) {
-          catsMissing.push(cat.label);
+          catsMissing.push({ catLabel: cat.label, redistFrom: computeRedistFrom(cat) });
         } else {
           const tipos = [...new Set(pieces.map(r => r.tipo).filter((t): t is string => !!t))];
           catsHave.push({ catLabel: cat.label, count: pieces.length, tipos });

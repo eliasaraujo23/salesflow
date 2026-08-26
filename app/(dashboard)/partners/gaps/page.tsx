@@ -36,7 +36,7 @@ export default function PartnersGapsPage() {
     <div className="p-3 sm:p-6 space-y-4">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Gaps</h1>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Por Carro Chefe</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">Carros-chefe em falta por parceiro</p>
         </div>
         <button

@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, X } from 'lucide-react';
 import { type PartnerCoverage } from '@/hooks/use-partners';
+import { RedistCell } from '@/components/partners/redist-cell';
 
 interface PartnersCoverageProps {
   coverage: PartnerCoverage[];
@@ -72,6 +73,9 @@ export function PartnersCoverage({ coverage }: PartnersCoverageProps) {
                 <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-red-500 dark:text-red-400 whitespace-nowrap">
                   Não Tem
                 </th>
+                <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 whitespace-nowrap min-w-[220px]">
+                  Redistribuir De (mais antigo)
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -108,13 +112,28 @@ export function PartnersCoverage({ coverage }: PartnersCoverageProps) {
                     <div className="flex flex-wrap gap-1">
                       {c.catsMissing.length === 0 ? (
                         <span className="text-zinc-300 dark:text-zinc-600 text-[10px]">—</span>
-                      ) : c.catsMissing.map(label => (
+                      ) : c.catsMissing.map(m => (
                         <span
-                          key={label}
+                          key={m.catLabel}
                           className="text-[10px] font-medium bg-red-500/10 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded"
                         >
-                          {label}
+                          {m.catLabel}
                         </span>
+                      ))}
+                    </div>
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <div className="space-y-2">
+                      {c.catsMissing.filter(m => m.redistFrom.length > 0).length === 0 ? (
+                        <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                      ) : c.catsMissing.filter(m => m.redistFrom.length > 0).map(m => (
+                        <div key={m.catLabel}>
+                          <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">
+                            {m.catLabel}
+                          </div>
+                          <RedistCell redistFrom={m.redistFrom} limit={1} />
+                        </div>
                       ))}
                     </div>
                   </td>
