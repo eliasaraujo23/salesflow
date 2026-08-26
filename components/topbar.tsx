@@ -49,9 +49,10 @@ const TAB_GROUPS: TabGroupConfig[] = [
   {
     match: pathname => pathname.startsWith('/partners') || pathname.startsWith('/graficos/parceiros'),
     tabs: [
-      { label: 'Parceiros', href: '/partners',            active: p => p === '/partners' },
-      { label: 'Gaps',      href: '/partners/gaps',       active: p => p === '/partners/gaps' },
-      { label: 'Evolução',  href: '/graficos/parceiros',  active: p => p.startsWith('/graficos/parceiros') },
+      { label: 'Parceiros',    href: '/partners',              active: p => p === '/partners' },
+      { label: 'Gaps',         href: '/partners/gaps',         active: p => p === '/partners/gaps' },
+      { label: 'Por Parceiro', href: '/partners/por-parceiro', active: p => p === '/partners/por-parceiro' },
+      { label: 'Evolução',     href: '/graficos/parceiros',    active: p => p.startsWith('/graficos/parceiros') },
     ],
   },
   {

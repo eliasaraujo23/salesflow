@@ -92,6 +92,18 @@ export interface GapInfo {
   redistFrom: GapRedist[];
 }
 
+export interface CatHave {
+  catLabel: string;
+  count: number;
+  tipos: string[];
+}
+
+export interface PartnerCoverage {
+  partner: string;
+  catsHave: CatHave[];
+  catsMissing: string[];
+}
+
 export function usePartnersPage() {
   const [activePartner, setActivePartner] = useState<string | null>(null);
   const { cats } = useCarrosChefe();
@@ -274,6 +286,23 @@ export function usePartnersPage() {
     }).filter(g => g.partnersMissing.length > 0);
   }, [data, partnerList, jmInStock, cats]);
 
+  const partnerCoverage = useMemo((): PartnerCoverage[] => {
+    return partnerList.map(p => {
+      const catsHave: CatHave[] = [];
+      const catsMissing: string[] = [];
+      cats.forEach(cat => {
+        const pieces = data.filter(r => r.destino === p && cat.check(r));
+        if (pieces.length === 0) {
+          catsMissing.push(cat.label);
+        } else {
+          const tipos = [...new Set(pieces.map(r => r.tipo).filter((t): t is string => !!t))];
+          catsHave.push({ catLabel: cat.label, count: pieces.length, tipos });
+        }
+      });
+      return { partner: p, catsHave, catsMissing };
+    }).sort((a, b) => b.catsMissing.length - a.catsMissing.length);
+  }, [data, partnerList, cats]);
+
   const partnerData = useMemo(
     () => (activePartner ? data.filter(r => r.destino === activePartner) : []),
     [data, activePartner],
@@ -299,6 +328,7 @@ export function usePartnersPage() {
     kpis,
     matrix,
     gaps,
+    partnerCoverage,
     activePartner,
     setActivePartner,
     partnerData,
