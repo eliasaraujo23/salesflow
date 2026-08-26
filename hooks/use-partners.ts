@@ -82,6 +82,7 @@ export interface PartnerHave {
   partner: string;
   count: number;
   tipos: string[];
+  pieces: PartnerConsignment[];
 }
 
 export interface GapInfo {
@@ -96,6 +97,7 @@ export interface CatHave {
   catLabel: string;
   count: number;
   tipos: string[];
+  pieces: PartnerConsignment[];
 }
 
 export interface CatMissing {
@@ -273,7 +275,7 @@ export function usePartnersPage() {
           const pieces = data.filter(r => r.destino === p && cat.check(r));
           if (pieces.length === 0) return null;
           const tipos = [...new Set(pieces.map(r => r.tipo).filter((t): t is string => !!t))];
-          return { partner: p, count: pieces.length, tipos };
+          return { partner: p, count: pieces.length, tipos, pieces };
         })
         .filter((x): x is PartnerHave => x !== null)
         .sort((a, b) => a.partner.localeCompare(b.partner, 'pt-BR'));
@@ -305,7 +307,7 @@ export function usePartnersPage() {
           catsMissing.push({ catLabel: cat.label, redistFrom: computeRedistFrom(cat) });
         } else {
           const tipos = [...new Set(pieces.map(r => r.tipo).filter((t): t is string => !!t))];
-          catsHave.push({ catLabel: cat.label, count: pieces.length, tipos });
+          catsHave.push({ catLabel: cat.label, count: pieces.length, tipos, pieces });
         }
       });
       return { partner: p, catsHave, catsMissing };

@@ -2,8 +2,43 @@
 
 import React, { useState, useMemo } from 'react';
 import { Search, X, ChevronDown, ChevronRight } from 'lucide-react';
-import { type PartnerCoverage } from '@/hooks/use-partners';
+import { type PartnerCoverage, type GapRedist } from '@/hooks/use-partners';
 import { RedistCell } from '@/components/partners/redist-cell';
+import { PieceRefsChip } from '@/components/partners/piece-refs-chip';
+
+interface MissingCatChipProps {
+  catLabel: string;
+  redistFrom: GapRedist[];
+}
+
+function MissingCatChip({ catLabel, redistFrom }: MissingCatChipProps) {
+  const [open, setOpen] = useState(false);
+
+  if (redistFrom.length === 0) {
+    return (
+      <span className="text-[10px] font-medium bg-red-500/10 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded">
+        {catLabel}
+      </span>
+    );
+  }
+
+  return (
+    <div className="inline-block">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="inline-flex items-center gap-1 text-[10px] font-medium bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 px-1.5 py-0.5 rounded transition-colors"
+      >
+        {open ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
+        {catLabel}
+      </button>
+      {open && (
+        <div className="mt-1 mb-1 ml-3 border-l border-zinc-200 dark:border-white/[0.08] pl-2">
+          <RedistCell redistFrom={redistFrom} limit={redistFrom.length} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface PartnersCoverageProps {
   coverage: PartnerCoverage[];
@@ -106,14 +141,14 @@ export function PartnersCoverage({ coverage }: PartnersCoverageProps) {
                       {c.catsHave.length === 0 ? (
                         <span className="text-zinc-300 dark:text-zinc-600 text-[10px]">—</span>
                       ) : c.catsHave.map(h => (
-                        <span
+                        <PieceRefsChip
                           key={h.catLabel}
-                          className="inline-flex items-center gap-1 text-[10px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded"
-                        >
-                          {h.catLabel}
-                          {h.count > 1 && <span className="opacity-70">×{h.count}</span>}
-                          <span className="opacity-50">{h.tipos.join('/')}</span>
-                        </span>
+                          label={h.catLabel}
+                          count={h.count}
+                          tipos={h.tipos}
+                          pieces={h.pieces}
+                          colorClass="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20"
+                        />
                       ))}
                     </div>
                   </td>
@@ -123,12 +158,7 @@ export function PartnersCoverage({ coverage }: PartnersCoverageProps) {
                       {c.catsMissing.length === 0 ? (
                         <span className="text-zinc-300 dark:text-zinc-600 text-[10px]">—</span>
                       ) : c.catsMissing.map(m => (
-                        <span
-                          key={m.catLabel}
-                          className="text-[10px] font-medium bg-red-500/10 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded"
-                        >
-                          {m.catLabel}
-                        </span>
+                        <MissingCatChip key={m.catLabel} catLabel={m.catLabel} redistFrom={m.redistFrom} />
                       ))}
                     </div>
                   </td>

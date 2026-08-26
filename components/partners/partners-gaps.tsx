@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { type GapInfo } from '@/hooks/use-partners';
 import { RedistCell } from '@/components/partners/redist-cell';
+import { PieceRefsChip } from '@/components/partners/piece-refs-chip';
 
 function shortName(n: string): string {
   const parts = n.split(' ');
@@ -116,14 +117,14 @@ export function PartnersGaps({ gaps }: PartnersGapsProps) {
                     {g.partnersHave.length === 0 ? (
                       <span className="text-zinc-300 dark:text-zinc-600 text-[10px]">—</span>
                     ) : g.partnersHave.map(h => (
-                      <span
+                      <PieceRefsChip
                         key={h.partner}
-                        className="inline-flex items-center gap-1 text-[10px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded"
-                      >
-                        {shortName(h.partner)}
-                        {h.count > 1 && <span className="opacity-70">×{h.count}</span>}
-                        <span className="opacity-50">{h.tipos.join('/')}</span>
-                      </span>
+                        label={shortName(h.partner)}
+                        count={h.count}
+                        tipos={h.tipos}
+                        pieces={h.pieces}
+                        colorClass="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20"
+                      />
                     ))}
                   </div>
                 </td>
