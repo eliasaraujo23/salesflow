@@ -2,16 +2,10 @@
 
 import React, { useMemo, useState } from 'react';
 import { notFound, useParams } from 'next/navigation';
-import { Timestamp } from 'firebase/firestore';
 import { getLojaConfig, type LojaCode } from '@/lib/controle-config';
 import { useMetal } from '@/hooks/use-metal';
 import { Loader2 } from 'lucide-react';
 import { MetalUnified } from '@/components/controle/metal-unified';
-
-function toDate(ts: Timestamp | null | undefined): Date {
-  if (!ts) return new Date(0);
-  return ts instanceof Timestamp ? ts.toDate() : new Date();
-}
 
 export default function ResumoPage() {
   const { loja: lojaCode } = useParams<{ loja: string }>();
@@ -22,22 +16,17 @@ export default function ResumoPage() {
   const y = now.getFullYear();
   const m = now.getMonth();
 
-  const { records: metalRecords, loading: metalLoading } = useMetal(loja.code as LojaCode);
+  const { records: metalRecords, loading: metalLoading } = useMetal(loja.code as LojaCode, { ano: y, mes: m + 1 });
 
   const todayRecords = useMemo(() => {
     const d = now.getDate();
     return metalRecords.filter(r => {
-      const rd = toDate(r.data);
-      return rd.getFullYear() === y && rd.getMonth() === m && rd.getDate() === d;
+      const rd = new Date(`${r.data}T00:00:00`);
+      return rd.getDate() === d;
     });
-  }, [metalRecords, now, y, m]);
+  }, [metalRecords, now]);
 
-  const monthRecords = useMemo(() => {
-    return metalRecords.filter(r => {
-      const rd = toDate(r.data);
-      return rd.getFullYear() === y && rd.getMonth() === m;
-    });
-  }, [metalRecords, y, m]);
+  const monthRecords = metalRecords;
 
   if (metalLoading) {
     return (

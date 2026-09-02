@@ -43,6 +43,7 @@ import {
   Trash2,
   Gavel,
   Network,
+  Coins,
   LucideIcon,
 } from 'lucide-react';
 
@@ -94,6 +95,7 @@ const iconMap: Record<string, LucideIcon> = {
   'ti-sparkles': Sparkles,
   'ti-gavel': Gavel,
   'ti-hierarchy': Network,
+  'ti-chart-line': Coins,
 };
 
 interface IconProps {

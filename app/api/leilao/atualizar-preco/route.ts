@@ -1,4 +1,5 @@
 export const maxDuration = 300; // 300s no Pro, 60s no Hobby (Vercel aplica o limite do plano)
+import { requireAuth } from '@/lib/auth/require-auth';
 
 const BASE = 'https://leiloesbr.com.br/painel_lbr';
 const UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
@@ -214,6 +215,9 @@ interface PecaInput {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const body = await req.json() as {
     codigoPlatforma: string;
     nome:            string;

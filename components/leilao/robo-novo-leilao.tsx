@@ -731,6 +731,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
         state={transferirState}
         pecas={pecasParaTransferir}
         startLote={transferStartLote}
+        numDias={numDias}
         leilaoOrigem={selectedOld || undefined}
         leilaoDestino={novoLeilao || undefined}
         onClose={closeTransferir}
@@ -742,6 +743,7 @@ export function RoboNovoLeilao({ basePieces, uploadedFiles, refsPerFile, exclude
             leilaoOrigem:  selectedOld,
             leilaoDestino: novoLeilao,
             startLote:     transferStartLote,
+            numDias,
             pecas:         selected,
           });
         }}

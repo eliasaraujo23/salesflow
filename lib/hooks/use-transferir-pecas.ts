@@ -47,6 +47,7 @@ interface ExecuteParams {
   leilaoOrigem:  string;
   leilaoDestino: string;
   startLote:     number;
+  numDias:       number;
   pecas:         PecaTransferencia[];
 }
 
@@ -55,7 +56,7 @@ export function useTransferirPecas() {
   const [state, setState] = useState<TransferirPecasState>(INITIAL);
   const abortRef = useRef<AbortController | null>(null);
 
-  const execute = useCallback(async ({ nome, leilaoOrigem, leilaoDestino, startLote, pecas }: ExecuteParams) => {
+  const execute = useCallback(async ({ nome, leilaoOrigem, leilaoDestino, startLote, numDias, pecas }: ExecuteParams) => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -103,6 +104,7 @@ export function useTransferirPecas() {
             leilaoOrigem,
             leilaoDestino,
             startLote:  chunkStart,
+            numDias,
             doneOffset: cumulativeDone,
             totalGlobal: total,
             pecas: chunk,

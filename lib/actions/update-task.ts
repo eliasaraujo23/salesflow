@@ -1,5 +1,3 @@
-import { doc, updateDoc, query, collection, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { z } from 'zod';
 
 const updateTaskSchema = z.object({
@@ -33,14 +31,14 @@ export async function updateTaskAction(data: UpdateTaskInput): Promise<ResponseA
     if (fields.status      !== undefined) payload.status      = fields.status;
     if (fields.due         !== undefined) payload.due         = fields.due;
 
-    if (typeof id === 'string') {
-      await updateDoc(doc(db, 'tasks', id), payload);
-    } else {
-      const q = query(collection(db, 'tasks'), where('id', '==', id));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        await updateDoc(snap.docs[0].ref, payload);
-      }
+    const res = await fetch(`/api/tasks/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { httpStatus: res.status, message: body.message || 'Erro ao atualizar tarefa' };
     }
 
     return { httpStatus: 200, data: { id: String(id) } };

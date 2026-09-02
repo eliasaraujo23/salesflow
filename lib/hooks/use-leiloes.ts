@@ -1,12 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import {
-  collection, onSnapshot, addDoc, deleteDoc, updateDoc,
-  doc, query, orderBy, writeBatch,
-} from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { z } from 'zod';
 
 export type LeilaoStatus =
   | 'captando'
@@ -27,68 +23,86 @@ export interface Leilao {
   status?: LeilaoStatus;
 }
 
-const COLLECTION  = 'leilao_leiloes';
-const LEGACY_KEY  = 'goldtech_leiloes_v1';
+const QUERY_KEY = ['leilao-leiloes'];
 
-// Impede migração dupla dentro da mesma sessão
-let migrationDone = false;
+const leilaoSchema = z.object({
+  id: z.string(),
+  numero: z.string(),
+  nome: z.string(),
+  dataInicio: z.string(),
+  dataFim: z.string(),
+  cor: z.string(),
+  codigoPlatforma: z.string(),
+  observacao: z.string().nullable(),
+  status: z.enum(['captando', 'convite', 'convite_catalogo', 'venda_pos_leilao', 'finalizado']).nullable(),
+});
+
+async function fetchLeiloes(): Promise<Leilao[]> {
+  const res = await fetch('/api/leilao/leiloes', { cache: 'no-store' });
+  if (!res.ok) return [];
+  const body = await res.json().catch(() => ({}));
+  const parsed = z.array(leilaoSchema).safeParse(body.data);
+  if (!parsed.success) return [];
+  return parsed.data.map((l) => ({
+    ...l,
+    observacao: l.observacao ?? undefined,
+    status: l.status ?? undefined,
+  }));
+}
 
 export function useLeiloes() {
-  const [leiloes, setLeiloes] = useState<Leilao[]>([]);
+  const qc = useQueryClient();
+  const { data: leiloes = [] } = useQuery({
+    queryKey: QUERY_KEY,
+    queryFn: fetchLeiloes,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15_000,
+  });
 
-  useEffect(() => {
-    let unsubSnap: (() => void) | null = null;
-
-    // Só inicia o listener após o Firebase Auth confirmar o usuário
-    const unsubAuth = onAuthStateChanged(auth, user => {
-      if (unsubSnap) { unsubSnap(); unsubSnap = null; }
-      if (!user) return;
-
-      const q = query(collection(db, COLLECTION), orderBy('dataInicio', 'asc'));
-      unsubSnap = onSnapshot(q, async snap => {
-        const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as Leilao));
-
-        // Migração única: se Firestore vazio e há dados no localStorage, sobe tudo
-        if (list.length === 0 && !migrationDone) {
-          migrationDone = true;
-          try {
-            const raw = localStorage.getItem(LEGACY_KEY);
-            if (raw) {
-              const legacy = JSON.parse(raw) as Leilao[];
-              if (legacy.length > 0) {
-                const batch = writeBatch(db);
-                for (const { id: _id, ...rest } of legacy) {
-                  batch.set(doc(collection(db, COLLECTION)), rest);
-                }
-                await batch.commit();
-                return; // onSnapshot dispara novamente com os dados migrados
-              }
-            }
-          } catch { /* ignore — migração opcional */ }
-        }
-
-        setLeiloes(list);
+  const addMutation = useMutation({
+    mutationFn: async (l: Omit<Leilao, 'id'>) => {
+      const res = await fetch('/api/leilao/leiloes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(l),
       });
-    });
+      if (!res.ok) throw new Error('add failed');
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
 
-    return () => {
-      unsubAuth();
-      if (unsubSnap) unsubSnap();
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const updateMutation = useMutation({
+    mutationFn: async (l: Leilao) => {
+      const { id, ...rest } = l;
+      const res = await fetch(`/api/leilao/leiloes/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rest),
+      });
+      if (!res.ok) throw new Error('update failed');
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/leilao/leiloes/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('remove failed');
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
 
   const add = useCallback((l: Omit<Leilao, 'id'>) => {
-    addDoc(collection(db, COLLECTION), l).catch(() => {});
-  }, []);
+    addMutation.mutate(l);
+  }, [addMutation]);
 
   const update = useCallback((l: Leilao) => {
-    const { id, ...rest } = l;
-    updateDoc(doc(db, COLLECTION, id), rest).catch(() => {});
-  }, []);
+    updateMutation.mutate(l);
+  }, [updateMutation]);
 
   const remove = useCallback((id: string) => {
-    deleteDoc(doc(db, COLLECTION, id)).catch(() => {});
-  }, []);
+    removeMutation.mutate(id);
+  }, [removeMutation]);
 
   return { leiloes, add, update, remove };
 }

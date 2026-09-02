@@ -5,12 +5,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, ArrowLeftRight } from 'lucide-react';
-import { Timestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { type LojaConfig } from '@/lib/controle-config';
 import { type LancamentoRecord } from '@/types/controle';
 import { useConfigGlobal } from '@/hooks/use-config-global';
-import { localISO, todayLocalISO } from '@/lib/date-utils';
+import { todayLocalISO } from '@/lib/date-utils';
 
 const schema = z.object({
   data:      z.string().min(1, 'Data obrigatória'),
@@ -28,11 +27,10 @@ const labelCls = 'block text-[10px] font-bold uppercase tracking-wider text-zinc
 function nowDate(): string { return todayLocalISO(); }
 
 function recordToForm(r: LancamentoRecord): FormValues {
-  const d = r.data instanceof Timestamp ? r.data.toDate() : new Date();
   return {
-    data:      localISO(d),
-    tipo:      r.tipo,
-    banco:     r.banco,
+    data:      r.data,
+    tipo:      r.tipo_lancamento_id ?? '',
+    banco:     r.banco_caixa_id ?? '',
     descricao: r.descricao,
     valor:     r.valor,
   };
@@ -42,7 +40,7 @@ interface Props {
   record?: LancamentoRecord;
   loja: LojaConfig;
   onClose: () => void;
-  onSave: (data: Omit<LancamentoRecord, 'id' | 'createdAt'>) => Promise<void>;
+  onSave: (data: Omit<LancamentoRecord, 'id' | 'created_at'>) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
 }
 
@@ -63,13 +61,12 @@ export function LancamentoFormModal({ record, loja, onClose, onSave, onDelete }:
 
   async function onSubmit(values: FormValues) {
     try {
-      const [y, m, d] = values.data.split('-').map(Number);
       await onSave({
-        data:      Timestamp.fromDate(new Date(y, m - 1, d)),
-        tipo:      values.tipo,
-        banco:     values.banco,
-        descricao: values.descricao,
-        valor:     values.valor,
+        data:               values.data,
+        tipo_lancamento_id: values.tipo || null,
+        banco_caixa_id:     values.banco || null,
+        descricao:          values.descricao,
+        valor:              values.valor,
       });
       toast.success(isEdit ? 'Lançamento atualizado' : 'Lançamento registrado');
       onClose();
@@ -116,7 +113,7 @@ export function LancamentoFormModal({ record, loja, onClose, onSave, onDelete }:
               <label className={labelCls}>Tipo</label>
               <select {...register('tipo')} className={inputCls}>
                 <option value="">Selecionar...</option>
-                {config.tipos_lancamento.map(t => <option key={t} value={t}>{t}</option>)}
+                {config.tipos_lancamento.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
               </select>
               {errors.tipo && <p className="text-xs text-red-500 mt-1">{errors.tipo.message}</p>}
             </div>
@@ -124,7 +121,7 @@ export function LancamentoFormModal({ record, loja, onClose, onSave, onDelete }:
               <label className={labelCls}>Banco / Caixa</label>
               <select {...register('banco')} className={inputCls}>
                 <option value="">Selecionar...</option>
-                {config.bancos_caixa.map(b => <option key={b} value={b}>{b}</option>)}
+                {config.bancos_caixa.map(b => <option key={b.id} value={b.id}>{b.nome}</option>)}
               </select>
               {errors.banco && <p className="text-xs text-red-500 mt-1">{errors.banco.message}</p>}
             </div>

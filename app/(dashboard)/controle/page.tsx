@@ -1,12 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useFirebase } from '@/components/firebase-provider';
 import { LOJAS } from '@/lib/controle-config';
 import { Building2, ChevronRight } from 'lucide-react';
 
 export default function ControlePage() {
+  const router = useRouter();
   const { currentUser } = useFirebase();
   const isAdmin = currentUser?.role === 'admin';
   const perms = currentUser?.permissions ?? [];
@@ -14,6 +16,14 @@ export default function ControlePage() {
   const lojas = LOJAS.filter(l =>
     isAdmin || perms.includes(l.permission) || perms.includes('controle')
   );
+
+  useEffect(() => {
+    if (!isAdmin && lojas.length === 1) {
+      router.replace(`/controle/${lojas[0].code}/resumo`);
+    }
+  }, [isAdmin, lojas, router]);
+
+  if (!isAdmin && lojas.length === 1) return null;
 
   return (
     <div className="p-6 space-y-6">

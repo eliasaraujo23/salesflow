@@ -3,18 +3,13 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import {
-  collection, getDocs, addDoc, deleteDoc, updateDoc,
-  doc, serverTimestamp, query, orderBy,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { z } from 'zod';
 import type { Leilao } from '@/lib/hooks/use-leiloes';
 
-const QUERY_KEY  = ['leilao-bases-ativas'];
-const COLLECTION = 'leilao_bases_ativas';
+const QUERY_KEY = ['leilao-bases-ativas'];
 
 export interface UploadedFileStored {
-  id:              string;   // Firestore document ID
+  id:              string;
   filename:        string;
   codigoPlatforma: string | null;
   leilao:          Leilao | null;
@@ -23,35 +18,35 @@ export interface UploadedFileStored {
   pricePerRef:     Record<string, number>;
 }
 
-interface FirestoreDoc {
-  id:               string;
-  codigo_plataforma: string | null;
-  filename:          string;
-  count_pecas:       number;
-  refs:              string[];
-  refs_vendidos:     string[];
-  excluded:          boolean;
-  price_per_ref:     Record<string, number>;
-}
+const rowSchema = z.object({
+  id: z.string(),
+  codigo_plataforma: z.string().nullable(),
+  filename: z.string(),
+  count_pecas: z.number(),
+  refs: z.array(z.string()),
+  refs_vendidos: z.array(z.string()),
+  excluded: z.boolean(),
+  price_per_ref: z.record(z.string(), z.number()),
+});
 
-async function fetchBases(): Promise<FirestoreDoc[]> {
-  const q = query(collection(db, COLLECTION), orderBy('createdAt', 'asc'));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({
-    id:               d.id,
-    codigo_plataforma: d.data().codigo_plataforma ?? null,
-    filename:          d.data().filename,
-    count_pecas:       d.data().count_pecas ?? 0,
-    refs:              d.data().refs ?? [],
-    refs_vendidos:     d.data().refs_vendidos ?? [],
-    excluded:          d.data().excluded ?? false,
-    price_per_ref:     (d.data().price_per_ref ?? {}) as Record<string, number>,
-  }));
+type Row = z.infer<typeof rowSchema>;
+
+async function fetchBases(): Promise<Row[]> {
+  const res = await fetch('/api/leilao/bases-ativas', { cache: 'no-store' });
+  if (!res.ok) return [];
+  const body = await res.json().catch(() => ({}));
+  const parsed = z.array(rowSchema).safeParse(body.data);
+  return parsed.success ? parsed.data : [];
 }
 
 export function useLeilaoBasesStorage(leiloes: Leilao[]) {
   const qc = useQueryClient();
-  const { data: dbRows = [] } = useQuery({ queryKey: QUERY_KEY, queryFn: fetchBases });
+  const { data: dbRows = [] } = useQuery({
+    queryKey: QUERY_KEY,
+    queryFn: fetchBases,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
+  });
 
   const uploadedFiles: UploadedFileStored[] = dbRows.map(r => ({
     id:              r.id,
@@ -77,16 +72,12 @@ export function useLeilaoBasesStorage(leiloes: Leilao[]) {
       refsVendidos:    string[];
       pricePerRef:     Record<string, number>;
     }) => {
-      await addDoc(collection(db, COLLECTION), {
-        codigo_plataforma: payload.codigoPlatforma,
-        filename:          payload.filename,
-        count_pecas:       payload.count,
-        refs:              payload.refs,
-        refs_vendidos:     payload.refsVendidos,
-        price_per_ref:     payload.pricePerRef,
-        excluded:          false,
-        createdAt:         serverTimestamp(),
+      const res = await fetch('/api/leilao/bases-ativas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
+      if (!res.ok) throw new Error('save failed');
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
     onError:   (err: Error) => toast.error(`Erro ao salvar base: ${err.message}`),
@@ -94,14 +85,20 @@ export function useLeilaoBasesStorage(leiloes: Leilao[]) {
 
   const removeMutation = useMutation({
     mutationFn: async (id: string) => {
-      await deleteDoc(doc(db, COLLECTION, id));
+      const res = await fetch(`/api/leilao/bases-ativas/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('delete failed');
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
   });
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, excluded }: { id: string; excluded: boolean }) => {
-      await updateDoc(doc(db, COLLECTION, id), { excluded });
+      const res = await fetch(`/api/leilao/bases-ativas/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ excluded }),
+      });
+      if (!res.ok) throw new Error('toggle failed');
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
   });

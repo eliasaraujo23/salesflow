@@ -1,6 +1,7 @@
 export const maxDuration = 300;
 
 import { loadPecaFormHtml, extractPecaFields, gravarPeca } from '../_peca-form';
+import { requireAuth } from '@/lib/auth/require-auth';
 
 const BASE = 'https://www.leiloesbr.com.br/painel_lbr';
 const UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
@@ -115,6 +116,9 @@ async function ativarSite(cookie: string, pieceId: string, codigoPlatforma: stri
 
 // ─── GET: scan — retorna peças com Site=0 que têm principal ──────────────────
 export async function GET(req: Request) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(req.url);
   const leilao = searchParams.get('leilao')?.trim() ?? '';
   const nome   = searchParams.get('nome')?.trim() ?? '';
@@ -142,6 +146,9 @@ export async function GET(req: Request) {
 
 // ─── POST: ativa Site de uma lista de pieceIds ────────────────────────────────
 export async function POST(req: Request) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const body = await req.json() as { codigoPlatforma: string; nome: string; pecas: { pieceId: string; lote: number }[] };
   const { codigoPlatforma, nome, pecas } = body;
 

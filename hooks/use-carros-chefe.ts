@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { z } from 'zod';
 import { type CarroChefeDef, CC_DEFAULTS } from '@/lib/actions/carros-chefe';
 
 export type { CarroChefeDef };
@@ -27,22 +27,34 @@ export interface CatDefDynamic {
   check: (r: { produto?: string | null; subtipo?: string | null; tipo_pedra?: string | null; lapidacao?: string | null }) => boolean;
 }
 
-export function useCarrosChefe() {
-  const [defs, setDefs] = useState<CarroChefeDef[]>([]);
-  const [loading, setLoading] = useState(true);
+const carroChefeSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  produto: z.string(),
+  subtipo: z.string(),
+  tipo_pedra: z.string(),
+  lapidacao: z.string(),
+  order: z.number(),
+});
 
-  useEffect(() => {
-    const q = query(collection(db, 'carros_chefe'), orderBy('order'));
-    const unsub = onSnapshot(q, snap => {
-      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() } as CarroChefeDef));
-      setDefs(docs);
-      setLoading(false);
-    });
-    return unsub;
-  }, []);
+async function fetchCarrosChefe(): Promise<CarroChefeDef[]> {
+  const res = await fetch('/api/carros-chefe', { cache: 'no-store' });
+  if (!res.ok) return [];
+  const body = await res.json().catch(() => ({}));
+  const parsed = z.array(carroChefeSchema).safeParse(body.data);
+  return parsed.success ? parsed.data : [];
+}
+
+export function useCarrosChefe() {
+  const { data: defs = [], isLoading: loading } = useQuery({
+    queryKey: ['carros-chefe'],
+    queryFn: fetchCarrosChefe,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
+  });
 
   const cats: CatDefDynamic[] = useMemo(() => {
-    // Fall back to hardcoded defaults while Firestore loads or if collection is empty
+    // Fall back to hardcoded defaults while loading or if the table is empty
     const source = !loading && defs.length > 0 ? defs : (loading ? [] : CC_DEFAULTS.map((d, i) => ({ ...d, id: String(i) })));
     return source
       .map(def => ({ label: def.label, grupo: def.label, check: buildCheckFn(def) }))

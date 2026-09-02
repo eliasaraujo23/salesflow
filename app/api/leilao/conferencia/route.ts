@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
+import { requireAuth } from '@/lib/auth/require-auth';
 
 const pool = new Pool({
   connectionString: process.env.PG_CONNECTION_STRING,
@@ -57,6 +58,9 @@ export interface ConferenciaIssue {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const body     = await req.json() as { refs?: unknown; destinos?: unknown };
   const refs     = Array.isArray(body.refs)     ? (body.refs     as string[]).slice(0, 3000) : [];
   const destinos = Array.isArray(body.destinos) ? (body.destinos as string[]) : [];

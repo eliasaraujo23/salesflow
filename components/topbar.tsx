@@ -99,6 +99,17 @@ const TAB_GROUPS: TabGroupConfig[] = [
       { label: 'Brechós', href: '/resale/breachos',  active: (p: string) => p.startsWith('/resale/breachos') },
     ],
   },
+  {
+    match: pathname => pathname.startsWith('/analise-ht'),
+    tabs: [
+      { label: 'Bonificação e Premiação', href: '/analise-ht',            active: (p: string) => p === '/analise-ht' },
+      { label: 'Resumo',                  href: '/analise-ht/resumo',     active: (p: string) => p.startsWith('/analise-ht/resumo') },
+      { label: 'Metas por Loja',          href: '/analise-ht/metas',      active: (p: string) => p.startsWith('/analise-ht/metas') },
+      { label: 'Loja Base',               href: '/analise-ht/loja-base',  active: (p: string) => p.startsWith('/analise-ht/loja-base') },
+      { label: 'Gratificação',            href: '/analise-ht/gratificacao', active: (p: string) => p.startsWith('/analise-ht/gratificacao') },
+      { label: 'Config. Premiação',       href: '/analise-ht/config',     active: (p: string) => p.startsWith('/analise-ht/config') },
+    ],
+  },
 ];
 
 export function Topbar({ title, subtitle, onMobileMenu, desktopCollapsed = false }: TopbarProps) {

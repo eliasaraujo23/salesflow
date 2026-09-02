@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, CheckCircle2, XCircle, Loader2, AlertTriangle, FileDown, ArrowRightLeft } from 'lucide-react';
 import type { PecaTransferencia, TransferirPecasState } from '@/lib/hooks/use-transferir-pecas';
+import { loteParaDia } from '@/lib/hooks/use-cadastrar-pecas';
 
 interface Props {
   open:           boolean;
   state:          TransferirPecasState;
   pecas:          PecaTransferencia[];
   startLote:      number;
+  numDias:        number;
   leilaoOrigem?:  string;
   leilaoDestino?: string;
   onClose:        () => void;
@@ -54,7 +56,7 @@ function downloadRelatorio(
 }
 
 export function TransferirPecasModal({
-  open, state, pecas, startLote, leilaoOrigem, leilaoDestino, onClose, onExecute, isRunning,
+  open, state, pecas, startLote, numDias, leilaoOrigem, leilaoDestino, onClose, onExecute, isRunning,
 }: Props) {
   const tbodyRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<Set<string>>(() => new Set(pecas.map(p => p.ref)));
@@ -187,7 +189,7 @@ export function TransferirPecasModal({
                     </td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] tabular-nums font-semibold text-zinc-500">
                       {r.lote}
-                      {r.lote > 200 && <span className="ml-1 text-[9px] text-zinc-400">D2</span>}
+                      <span className="ml-1 text-[9px] text-zinc-400">D{loteParaDia(r.lote, numDias)}</span>
                     </td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] font-mono font-semibold text-zinc-700 dark:text-zinc-200">{r.ref}</td>
                     <td className="px-3 py-1.5 border-b border-zinc-100 dark:border-white/[0.04] tabular-nums font-semibold text-violet-600 dark:text-violet-400">

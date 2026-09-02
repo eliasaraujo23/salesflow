@@ -1,10 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import {
-  collection, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, query, orderBy,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { z } from 'zod';
 
 export interface Brecho {
   id: string;
@@ -13,25 +10,58 @@ export interface Brecho {
   uf: string;
 }
 
-export function useBreachos() {
-  const [breachos, setBreachos] = useState<Brecho[]>([]);
-  const [loading, setLoading] = useState(true);
+const QUERY_KEY = ['breachos'];
 
-  useEffect(() => {
-    const q = query(collection(db, 'breachos'), orderBy('nome', 'asc'));
-    const unsub = onSnapshot(q, snap => {
-      setBreachos(snap.docs.map(d => ({ id: d.id, ...d.data() } as Brecho)));
-      setLoading(false);
-    });
-    return unsub;
-  }, []);
+const brechoSchema = z.object({
+  id: z.string(),
+  nome: z.string(),
+  estado: z.string(),
+  uf: z.string(),
+});
+
+async function fetchBreachos(): Promise<Brecho[]> {
+  const res = await fetch('/api/breachos', { cache: 'no-store' });
+  if (!res.ok) return [];
+  const body = await res.json().catch(() => ({}));
+  const parsed = z.array(brechoSchema).safeParse(body.data);
+  return parsed.success ? parsed.data : [];
+}
+
+export function useBreachos() {
+  const qc = useQueryClient();
+  const { data: breachos = [], isLoading: loading } = useQuery({
+    queryKey: QUERY_KEY,
+    queryFn: fetchBreachos,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
+  });
+
+  const addMutation = useMutation({
+    mutationFn: async (data: Omit<Brecho, 'id'>) => {
+      const res = await fetch('/api/breachos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('Erro ao adicionar brechó');
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/breachos/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Erro ao remover brechó');
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+  });
 
   async function addBrecho(data: Omit<Brecho, 'id'>) {
-    await addDoc(collection(db, 'breachos'), { ...data, createdAt: serverTimestamp() });
+    await addMutation.mutateAsync(data);
   }
 
   async function removeBrecho(id: string) {
-    await deleteDoc(doc(db, 'breachos', id));
+    await removeMutation.mutateAsync(id);
   }
 
   return { breachos, loading, addBrecho, removeBrecho };

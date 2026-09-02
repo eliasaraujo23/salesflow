@@ -5,23 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useFirebase } from '@/components/firebase-provider';
 import { Sidebar } from '@/components/sidebar';
 import { Topbar } from '@/components/topbar';
-import { NAVIGATION_ITEMS } from '@/lib/constants';
-
-type MinUser = { role: string; permissions: string[] };
-
-function canAccess(user: MinUser, href: string): boolean {
-  const item = NAVIGATION_ITEMS.find(i => href === i.href || href.startsWith(i.href + '/'));
-  if (!item) return true;
-  if (user.role === 'admin') return true;
-  if (item.adminOnly) return false;
-  if (!item.permission) return true;
-  return user.permissions.includes(item.permission);
-}
-
-function firstAllowedHref(user: MinUser): string {
-  const item = NAVIGATION_ITEMS.find(i => canAccess(user, i.href));
-  return item?.href ?? '/tasks';
-}
+import { canAccessPath as canAccess, firstAllowedPath as firstAllowedHref } from '@/lib/auth/can-access-path';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();

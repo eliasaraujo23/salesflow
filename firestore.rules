@@ -2,93 +2,12 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isAuth() {
-      return request.auth != null;
-    }
-
-    function isAdmin() {
-      return isAuth()
-        && request.auth.token.email != null
-        && exists(/databases/$(database)/documents/usuarios/$(request.auth.token.email))
-        && get(/databases/$(database)/documents/usuarios/$(request.auth.token.email)).data.role == 'admin';
-    }
-
-    // Tasks — authenticated users can read/create/update.
-    // Only admins can delete directly (others must request deletion).
-    match /tasks/{taskId} {
-      allow read:   if isAuth();
-      allow create: if isAuth();
-      allow update: if isAuth();
-      allow delete: if isAdmin();
-    }
-
-    // Delete requests — any auth user can create a request.
-    // Only admins can approve (delete the request + the task).
-    match /task_delete_requests/{docId} {
-      allow read:   if isAuth();
-      allow create: if isAuth();
-      allow delete: if isAdmin();
-      allow update: if false;
-    }
-
-    // Metals — any authenticated user can read and write.
-    match /metais/{metalId} {
-      allow read, write: if isAuth();
-    }
-
-    // Users — any auth user can read (needed for name resolution, etc.).
-    // Only admins can create/update/delete user profiles and permissions.
-    match /usuarios/{email} {
-      allow read:  if isAuth();
-      allow write: if isAdmin();
-    }
-
-    // Carros-chefe — any auth user can read. Only admins can modify.
-    match /carros_chefe/{docId} {
-      allow read:  if isAuth();
-      allow write: if isAdmin();
-    }
-
-    // Fluxograma — any auth user can read and write.
-    match /fluxogramas/{docId} {
-      allow read, write: if isAuth();
-    }
-
-    // Controle de Lojas — metal, despesas e lançamentos por loja.
-    match /metal_gtt/{docId}      { allow read, write: if isAuth(); }
-    match /metal_gti/{docId}      { allow read, write: if isAuth(); }
-    match /metal_24k/{docId}      { allow read, write: if isAuth(); }
-    match /metal_ci/{docId}       { allow read, write: if isAuth(); }
-    match /despesa_gtt/{docId}    { allow read, write: if isAuth(); }
-    match /despesa_gti/{docId}    { allow read, write: if isAuth(); }
-    match /despesa_24k/{docId}    { allow read, write: if isAuth(); }
-    match /despesa_ci/{docId}     { allow read, write: if isAuth(); }
-    match /lancamento_gtt/{docId} { allow read, write: if isAuth(); }
-    match /lancamento_gti/{docId} { allow read, write: if isAuth(); }
-    match /lancamento_24k/{docId} { allow read, write: if isAuth(); }
-    match /lancamento_ci/{docId}  { allow read, write: if isAuth(); }
-    match /caixa_gtt/{docId}      { allow read, write: if isAuth(); }
-    match /caixa_gti/{docId}      { allow read, write: if isAuth(); }
-    match /caixa_24k/{docId}      { allow read, write: if isAuth(); }
-    match /caixa_ci/{docId}       { allow read, write: if isAuth(); }
-
-    // Configurações dinâmicas — leitura para todos autenticados, escrita só admin.
-    match /config_global/{docId}  { allow read: if isAuth(); allow write: if isAdmin(); }
-    match /config_loja/{docId}    { allow read: if isAuth(); allow write: if isAdmin(); }
-
-    // Brechós — mapeamento de concorrentes no Brasil.
-    match /breachos/{docId}       { allow read, write: if isAuth(); }
-
-    // Leilão — bases ativas do leiloes.br (CSVs carregados pelo usuário).
-    match /leilao_bases_ativas/{docId}    { allow read, write: if isAuth(); }
-
-    // Leilão — cadastro de leilões compartilhado entre todos os usuários.
-    match /leilao_leiloes/{docId}        { allow read: if isAuth(); allow write: if isAdmin(); }
-
-    // Leilão — regras de destinos excluídos (gerenciado pelo admin).
-    match /leilao_regras_destino/{docId} { allow read: if isAuth(); allow write: if isAdmin(); }
-
-    // Deny all other collections by default.
+    // Todo dado de app (tasks, metais, usuarios, carros_chefe, fluxogramas,
+    // breachos, leilao_*) migrou para bancos Neon Postgres dedicados,
+    // acessados exclusivamente via API routes do Next.js com sessão JWT
+    // verificada no servidor. O Firestore hoje serve só como backend do
+    // Firebase Auth (customTokens mintados pelo próprio backend) — nenhum
+    // código lê ou escreve nenhuma coleção de dados aqui.
     match /{document=**} {
       allow read, write: if false;
     }

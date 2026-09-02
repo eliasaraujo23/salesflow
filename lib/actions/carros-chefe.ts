@@ -1,9 +1,3 @@
-import { db } from '@/lib/firebase';
-import {
-  collection, addDoc, updateDoc, deleteDoc,
-  doc, serverTimestamp, writeBatch, getDocs, query, orderBy,
-} from 'firebase/firestore';
-
 export interface CarroChefeDef {
   id: string;
   label: string;
@@ -15,8 +9,6 @@ export interface CarroChefeDef {
 }
 
 export type CarroChefeInput = Omit<CarroChefeDef, 'id'>;
-
-const COL = 'carros_chefe';
 
 // Derived from full sales history (JF vendidos mar/2022–jun/2026)
 // Grouping: tipo de joia × subtipo × pedra (lapidação not used — any lapidação qualifies)
@@ -55,33 +47,34 @@ export const CC_DEFAULTS: CarroChefeInput[] = [
 ];
 
 export async function addCarroChefeAction(data: CarroChefeInput): Promise<void> {
-  await addDoc(collection(db, COL), { ...data, createdAt: serverTimestamp() });
+  const res = await fetch('/api/carros-chefe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Erro ao adicionar carro-chefe');
 }
 
 export async function updateCarroChefeAction(id: string, data: Partial<CarroChefeInput>): Promise<void> {
-  await updateDoc(doc(db, COL, id), data);
+  const res = await fetch(`/api/carros-chefe/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Erro ao atualizar carro-chefe');
 }
 
 export async function deleteCarroChefeAction(id: string): Promise<void> {
-  await deleteDoc(doc(db, COL, id));
+  const res = await fetch(`/api/carros-chefe/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Erro ao remover carro-chefe');
 }
 
 export async function seedDefaultsAction(): Promise<void> {
-  const snap = await getDocs(query(collection(db, COL), orderBy('order')));
-  if (!snap.empty) return; // only seed if collection is truly empty
-  const batch = writeBatch(db);
-  CC_DEFAULTS.forEach(def => {
-    batch.set(doc(collection(db, COL)), { ...def, createdAt: serverTimestamp() });
-  });
-  await batch.commit();
+  const res = await fetch('/api/carros-chefe/seed-defaults', { method: 'POST' });
+  if (!res.ok) throw new Error('Erro ao carregar padrões');
 }
 
 export async function resetDefaultsAction(): Promise<void> {
-  const snap = await getDocs(collection(db, COL));
-  const batch = writeBatch(db);
-  snap.docs.forEach(d => batch.delete(d.ref));
-  CC_DEFAULTS.forEach(def => {
-    batch.set(doc(collection(db, COL)), { ...def, createdAt: serverTimestamp() });
-  });
-  await batch.commit();
+  const res = await fetch('/api/carros-chefe/reset-defaults', { method: 'POST' });
+  if (!res.ok) throw new Error('Erro ao redefinir padrões');
 }

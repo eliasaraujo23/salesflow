@@ -3,21 +3,9 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import {
-  collection, getDocs, addDoc, deleteDoc, updateDoc,
-  doc, query, orderBy, writeBatch,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { z } from 'zod';
 
-const QUERY_KEY  = ['leilao-regras-destino'];
-const COLLECTION = 'leilao_regras_destino';
-
-const DESTINOS_DEFAULT = [
-  'Achados Perdidos', 'Agosto', 'Augusto', 'Brilho Vintage',
-  'Cadastro Pendente', 'Eduardo', 'Emerson Tijuca', 'Etiqueta Única',
-  'Gringa', 'Helton', 'Lohana Coelho', 'Louca por Joias',
-  'Lucimary', 'Pamela Ferrari', 'Retorno Scrap', 'Thais',
-];
+const QUERY_KEY = ['leilao-regras-destino'];
 
 export interface RegraDestino {
   id:      string;
@@ -25,45 +13,58 @@ export interface RegraDestino {
   ativo:   boolean;
 }
 
+const regraSchema = z.object({ id: z.string(), destino: z.string(), ativo: z.boolean() });
+
 async function fetchRegras(): Promise<RegraDestino[]> {
-  const q    = query(collection(db, COLLECTION), orderBy('destino', 'asc'));
-  const snap = await getDocs(q);
-
-  if (snap.empty) {
-    const batch = writeBatch(db);
-    for (const destino of DESTINOS_DEFAULT) {
-      batch.set(doc(collection(db, COLLECTION)), { destino, ativo: true });
-    }
-    await batch.commit();
-    const snap2 = await getDocs(query(collection(db, COLLECTION), orderBy('destino', 'asc')));
-    return snap2.docs.map(d => ({ id: d.id, destino: d.data().destino as string, ativo: d.data().ativo as boolean }));
-  }
-
-  return snap.docs.map(d => ({ id: d.id, destino: d.data().destino as string, ativo: d.data().ativo as boolean }));
+  const res = await fetch('/api/leilao/regras-destino', { cache: 'no-store' });
+  if (!res.ok) return [];
+  const body = await res.json().catch(() => ({}));
+  const parsed = z.array(regraSchema).safeParse(body.data);
+  return parsed.success ? parsed.data : [];
 }
 
 export function useLeilaoRegras() {
   const qc = useQueryClient();
-  const { data: regras = [], isLoading } = useQuery({ queryKey: QUERY_KEY, queryFn: fetchRegras });
+  const { data: regras = [], isLoading } = useQuery({
+    queryKey: QUERY_KEY,
+    queryFn: fetchRegras,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
+  });
 
   const activeDestinos = regras.map(r => r.destino);
 
   const toggleMutation = useMutation({
-    mutationFn: ({ id, ativo }: { id: string; ativo: boolean }) =>
-      updateDoc(doc(db, COLLECTION, id), { ativo }),
+    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+      const res = await fetch(`/api/leilao/regras-destino/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ativo }),
+      });
+      if (!res.ok) throw new Error('Erro ao atualizar');
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
     onError:   (err: Error) => toast.error(`Erro ao atualizar: ${err.message}`),
   });
 
   const addMutation = useMutation({
-    mutationFn: (destino: string) =>
-      addDoc(collection(db, COLLECTION), { destino, ativo: true }),
+    mutationFn: async (destino: string) => {
+      const res = await fetch('/api/leilao/regras-destino', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ destino }),
+      });
+      if (!res.ok) throw new Error('Erro ao adicionar');
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
     onError:   (err: Error) => toast.error(`Erro ao adicionar: ${err.message}`),
   });
 
   const removeMutation = useMutation({
-    mutationFn: (id: string) => deleteDoc(doc(db, COLLECTION, id)),
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/leilao/regras-destino/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Erro ao remover');
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
     onError:   (err: Error) => toast.error(`Erro ao remover: ${err.message}`),
   });

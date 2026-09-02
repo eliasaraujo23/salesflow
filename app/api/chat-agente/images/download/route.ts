@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth/require-auth';
 
 const ALLOWED_HOSTS = ['.r2.cloudflarestorage.com'];
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const url = req.nextUrl.searchParams.get('url');
   if (!url) return NextResponse.json({ error: 'url obrigatória' }, { status: 400 });
 

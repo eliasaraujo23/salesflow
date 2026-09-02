@@ -95,9 +95,10 @@ export async function importPricesFromCsv(formData: FormData): Promise<ResponseA
 ## 5. Paridade entre Lojas (Controle de Lojas)
 
 > [!IMPORTANT]
-> **GTT (Tijuca) é a loja de referência.** Toda alteração feita para GTT — seja em código, componentes, hooks, types, scripts de migração ou regras de negócio — deve ser aplicada **imediatamente e automaticamente** para GTI (Ipanema) e 24K (Méier), **sem precisar ser solicitado**.
+> **GTT (Tijuca) é a loja de referência.** Toda alteração feita para GTT — seja em código, componentes, hooks, types, scripts de migração ou regras de negócio — deve ser aplicada **imediatamente e automaticamente** para todas as demais lojas, **sem precisar ser solicitado**.
 
-- O agente deve, por conta própria, verificar e propagar qualquer mudança para as três lojas antes de considerar uma tarefa concluída.
+- Lojas atuais: **GTT** (Tijuca, T), **24K** (Méier, M), **GTI** (Ipanema, I), **CI** (Prime Joias Copanema, C), **PTQ** (Prime Joias Taquara, Q), **PGT** (Premier Gold Tijuca, GT). A lista completa e canônica vive em `LOJAS`, `lib/controle-config.ts`.
+- O agente deve, por conta própria, verificar e propagar qualquer mudança para todas as lojas antes de considerar uma tarefa concluída.
 - As lojas diferem **apenas** em dados de configuração (avaliadores, feedbacks locais, bancas, caixa_bruto, trocados) definidos em `lib/controle-config.ts`. Todo o restante — lógica, UI, hooks, types, scripts — é idêntico.
 - Scripts de migração Access → Firestore (`migrate-gtt.js`, `migrate-gti.js`) devem sempre ter a mesma estrutura e os mesmos campos. Ao adicionar um campo em um, adicionar em todos e re-executar as migrações afetadas.
 

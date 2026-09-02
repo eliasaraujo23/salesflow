@@ -1,19 +1,16 @@
-import { doc, updateDoc, query, collection, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-
 export async function updateTaskStatusAction(
   taskId: string | number,
   newStatus: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    if (typeof taskId === 'string') {
-      await updateDoc(doc(db, 'tasks', taskId), { status: newStatus });
-    } else {
-      const q = query(collection(db, 'tasks'), where('id', '==', taskId));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        await updateDoc(snap.docs[0].ref, { status: newStatus });
-      }
+    const res = await fetch(`/api/tasks/${taskId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { success: false, error: body.message || 'Erro ao atualizar tarefa' };
     }
     return { success: true };
   } catch (error: unknown) {

@@ -2,17 +2,11 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import {
-  collection, getDocs, deleteDoc, addDoc,
-  query, where, serverTimestamp,
-} from 'firebase/firestore';
 import { useQueryClient } from '@tanstack/react-query';
-import { db } from '@/lib/firebase';
 import type { Leilao } from '@/lib/hooks/use-leiloes';
 import type { SyncResult } from '@/app/api/leilao/sync-base/route';
 
-const COLLECTION = 'leilao_bases_ativas';
-const QUERY_KEY  = ['leilao-bases-ativas'];
+const QUERY_KEY = ['leilao-bases-ativas'];
 
 export function useSyncBases(leiloes: Leilao[], onSyncComplete?: () => void) {
   const [syncing, setSyncing] = useState(false);
@@ -63,10 +57,11 @@ export function useSyncBases(leiloes: Leilao[], onSyncComplete?: () => void) {
         // Leilão finalizado na leiloes.br → remover do storage local
         if (item.finalizado) {
           finalizados++;
-          const existing = await getDocs(
-            query(collection(db, COLLECTION), where('codigo_plataforma', '==', item.codigoPlatforma)),
-          );
-          await Promise.all(existing.docs.map(d => deleteDoc(d.ref)));
+          await fetch('/api/leilao/bases-ativas/replace', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codigoPlatforma: item.codigoPlatforma }),
+          });
           continue;
         }
 
@@ -74,21 +69,18 @@ export function useSyncBases(leiloes: Leilao[], onSyncComplete?: () => void) {
 
         const filename = `Lotes_${item.codigoPlatforma}.xls`;
 
-        // Substitui qualquer doc existente com o mesmo codigo_plataforma
-        const existing = await getDocs(
-          query(collection(db, COLLECTION), where('codigo_plataforma', '==', item.codigoPlatforma)),
-        );
-        await Promise.all(existing.docs.map(d => deleteDoc(d.ref)));
-
-        await addDoc(collection(db, COLLECTION), {
-          codigo_plataforma: item.codigoPlatforma,
-          filename,
-          count_pecas:       item.count   ?? 0,
-          refs:              item.refs    ?? [],
-          refs_vendidos:     item.vendidos ?? [],
-          price_per_ref:     item.pricePerRef ?? {},
-          excluded:          false,
-          createdAt:         serverTimestamp(),
+        // Substitui qualquer registro existente com o mesmo codigo_plataforma
+        await fetch('/api/leilao/bases-ativas/replace', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            codigoPlatforma: item.codigoPlatforma,
+            filename,
+            count: item.count ?? 0,
+            refs: item.refs ?? [],
+            refsVendidos: item.vendidos ?? [],
+            pricePerRef: item.pricePerRef ?? {},
+          }),
         });
 
         ok++;

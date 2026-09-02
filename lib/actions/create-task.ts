@@ -1,5 +1,3 @@
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { z } from 'zod';
 
 const createTaskSchema = z.object({
@@ -24,18 +22,18 @@ export async function createTaskAction(data: CreateTaskInput): Promise<ResponseA
   try {
     const validated = createTaskSchema.parse(data);
 
-    const docRef = await addDoc(collection(db, 'tasks'), {
-      title:       validated.title,
-      description: validated.description ?? '',
-      person:      validated.person,
-      priority:    validated.priority,
-      status:      validated.status,
-      due:         validated.due ?? 'Sem prazo',
-      late:        0,
-      createdAt:   serverTimestamp(),
+    const res = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(validated),
     });
+    const body = await res.json().catch(() => ({}));
 
-    return { httpStatus: 200, data: { id: docRef.id } };
+    if (!res.ok) {
+      return { httpStatus: res.status, message: body.message || 'Erro ao criar tarefa' };
+    }
+
+    return { httpStatus: 200, data: { id: body.data.id } };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Erro ao criar tarefa';
     return { httpStatus: 400, message: msg };

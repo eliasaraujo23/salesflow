@@ -1,46 +1,55 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import {
-  collection, query, orderBy, onSnapshot,
-  addDoc, updateDoc, deleteDoc, doc, serverTimestamp,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { despesaCollection, type LojaCode } from '@/lib/controle-config';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchDespesas, addDespesa, updateDespesa, deleteDespesa } from '@/lib/actions/controle-lojas-registros';
+import { type LojaCode } from '@/lib/controle-config';
 import { type DespesaRecord } from '@/types/controle';
 
 export type { DespesaRecord };
 
 export function useDespesas(loja: LojaCode) {
-  const [records, setRecords] = useState<DespesaRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const col = despesaCollection(loja);
-    const q = query(collection(db, col), orderBy('data', 'desc'));
-    const unsub = onSnapshot(q, snap => {
-      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() } as DespesaRecord));
-      setRecords(docs);
-      setLoading(false);
-    });
-    return unsub;
-  }, [loja]);
+  const query = useQuery({
+    queryKey: ['controle-lojas-despesa', loja],
+    queryFn: async () => {
+      const res = await fetchDespesas(loja);
+      if (!res.data) throw new Error(res.message ?? 'Erro ao carregar despesas');
+      return res.data as unknown as DespesaRecord[];
+    },
+  });
 
-  async function addRecord(data: Omit<DespesaRecord, 'id' | 'createdAt'>) {
-    const col = despesaCollection(loja);
-    await addDoc(collection(db, col), {
-      ...data,
-      createdAt: serverTimestamp(),
-    });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['controle-lojas-despesa', loja] });
+
+  const addMutation = useMutation({
+    mutationFn: (data: Omit<DespesaRecord, 'id' | 'created_at'>) => addDespesa(loja, data),
+    onSuccess: invalidate,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<DespesaRecord> }) => updateDespesa(loja, id, data),
+    onSuccess: invalidate,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteDespesa(loja, id),
+    onSuccess: invalidate,
+  });
+
+  async function addRecord(data: Omit<DespesaRecord, 'id' | 'created_at'>) {
+    const res = await addMutation.mutateAsync(data);
+    if (!res.data) throw new Error(res.message ?? 'Erro ao salvar despesa');
   }
 
-  async function updateRecord(id: string, data: Partial<Omit<DespesaRecord, 'id' | 'createdAt'>>) {
-    await updateDoc(doc(db, despesaCollection(loja), id), data as Record<string, unknown>);
+  async function updateRecord(id: string, data: Partial<DespesaRecord>) {
+    const res = await updateMutation.mutateAsync({ id, data });
+    if (!res.data) throw new Error(res.message ?? 'Erro ao atualizar despesa');
   }
 
   async function deleteRecord(id: string) {
-    await deleteDoc(doc(db, despesaCollection(loja), id));
+    const res = await deleteMutation.mutateAsync(id);
+    if (!res.data) throw new Error(res.message ?? 'Erro ao excluir despesa');
   }
 
-  return { records, loading, addRecord, updateRecord, deleteRecord };
+  return { records: query.data ?? [], loading: query.isLoading, addRecord, updateRecord, deleteRecord };
 }

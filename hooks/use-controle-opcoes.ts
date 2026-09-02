@@ -3,13 +3,15 @@
 import { useConfigGlobal } from './use-config-global';
 import { useConfigLoja } from './use-config-loja';
 import { type LojaCode } from '@/lib/controle-config';
+import { type ConfigItem, type EmpresaItem, type AvaliadorItem } from '@/lib/actions/controle-lojas-config';
 
 export interface ControleOpcoes {
-  avaliadores: string[];
-  feedbacks_compra: string[];
-  feedbacks_nc: string[];
-  tipos: string[];
-  empresas: string[];
+  /** Somente avaliadores ativos — para popular selects de novos registros. */
+  avaliadores: AvaliadorItem[];
+  feedbacks_compra: ConfigItem[];
+  feedbacks_nc: ConfigItem[];
+  tipos: ConfigItem[];
+  empresas: EmpresaItem[];
 }
 
 export function useControleOpcoes(lojaCode: LojaCode): ControleOpcoes {
@@ -17,7 +19,7 @@ export function useControleOpcoes(lojaCode: LojaCode): ControleOpcoes {
   const local = useConfigLoja(lojaCode);
 
   return {
-    avaliadores:      global.avaliadores,
+    avaliadores:      global.avaliadores.filter(a => a.ativo),
     feedbacks_compra: local.feedbacks_compra,
     feedbacks_nc:     global.motivos_nc,
     tipos:            global.modalidades,

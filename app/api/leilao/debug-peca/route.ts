@@ -1,6 +1,7 @@
 export const maxDuration = 60;
 
 import { loadPecaFormHtml, extractPecaFields, gravarPeca } from '../_peca-form';
+import { requireAuth } from '@/lib/auth/require-auth';
 
 const BASE = 'https://www.leiloesbr.com.br/painel_lbr';
 const UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
@@ -19,6 +20,9 @@ async function login(user: string, pass: string, numLeilao: string): Promise<str
 
 // GET /api/leilao/debug-peca?pieceId=32059090&leilao=63756&nome=BRUNO
 export async function GET(req: Request) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(req.url);
   const pieceId = searchParams.get('pieceId') ?? '';
   const leilao  = searchParams.get('leilao') ?? '';
@@ -79,6 +83,9 @@ export async function GET(req: Request) {
 // POST /api/leilao/debug-peca
 // Body: { pieceId, leilao, nome, patch: { ID_Cliente: "257103", ... } }
 export async function POST(req: Request) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const body = await req.json() as { pieceId: string; leilao: string; nome: string; patch: Record<string, string> };
   const { pieceId, leilao, nome, patch } = body;
 

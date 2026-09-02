@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Pencil, Trash2, Star, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { type CarroChefeDef, deleteCarroChefeAction } from '@/lib/actions/carros-chefe';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 type SortCol = 'order' | 'label';
@@ -34,6 +35,7 @@ export function CcListTable({ defs, onEdit }: CcListTableProps) {
   const [sortCol, setSortCol] = useState<SortCol>('order');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [pendingDelete, setPendingDelete] = useState<CarroChefeDef | null>(null);
+  const queryClient = useQueryClient();
 
   function toggleSort(col: SortCol) {
     if (sortCol === col) {
@@ -55,6 +57,7 @@ export function CcListTable({ defs, onEdit }: CcListTableProps) {
     try {
       await deleteCarroChefeAction(pendingDelete.id);
       toast.success('Carro-chefe removido');
+      await queryClient.invalidateQueries({ queryKey: ['carros-chefe'] });
     } catch {
       toast.error('Erro ao remover');
     }

@@ -1,5 +1,8 @@
 export const maxDuration = 300;
 
+import { loteParaDia } from '@/lib/hooks/use-cadastrar-pecas';
+import { requireAuth } from '@/lib/auth/require-auth';
+
 const BASE = 'https://leiloesbr.com.br/painel_lbr';
 const UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 const IDC  = '257103';
@@ -200,20 +203,25 @@ interface PecaTransferencia {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const body = await req.json() as {
     nome:          string;
     leilaoOrigem:  string;
     leilaoDestino: string;
     startLote:     number;
+    numDias?:      number;
     doneOffset?:   number;
     totalGlobal?:  number;
     pecas:         PecaTransferencia[];
   };
 
-  const { nome, leilaoOrigem, leilaoDestino, startLote, totalGlobal, pecas } = body;
+  const { nome, leilaoOrigem, leilaoDestino, startLote, numDias, totalGlobal, pecas } = body;
   if (!nome || !leilaoOrigem || !leilaoDestino || !startLote || !Array.isArray(pecas) || pecas.length === 0) {
     return new Response('Payload inválido', { status: 400 });
   }
+  const diasLeilao = numDias && numDias > 0 ? numDias : 3;
 
   // totalGlobal é enviado pelo hook quando usa chunking — permite calcular progresso global
   const reportTotal = totalGlobal ?? pecas.length;
@@ -251,7 +259,7 @@ export async function POST(req: Request) {
       for (let i = 0; i < pecas.length; i++) {
         const peca     = pecas[i];
         const novoLote = startLote + i;
-        const dia      = novoLote <= 200 ? 1 : 2;
+        const dia      = loteParaDia(novoLote, diasLeilao);
         const idpeca   = refIdMap.get(peca.ref.toUpperCase());
 
         if (!idpeca) {

@@ -138,7 +138,8 @@ export function CalendarDateRangePicker({
           align="start"
           side="bottom"
           sideOffset={8}
-          avoidCollisions={false}
+          avoidCollisions
+          collisionPadding={12}
         >
           {/* INÍCIO / FIM */}
           <div className="flex items-center gap-4 px-5 pt-4 pb-3 border-b border-zinc-100 dark:border-white/[0.05]">

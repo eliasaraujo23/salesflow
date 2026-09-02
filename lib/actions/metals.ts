@@ -1,6 +1,3 @@
-import { collection, addDoc, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-
 export interface AddMetalInput {
   tipo: 'entrada' | 'cadastro' | 'antigo';
   metal: 'ouro' | 'prata' | 'platina';
@@ -17,12 +14,15 @@ export async function addMetalAction(
   input: AddMetalInput,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const id = Date.now();
-    await addDoc(collection(db, 'metais'), {
-      ...input,
-      id,
-      createdAt: id,
+    const res = await fetch('/api/metais', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
     });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { success: false, error: body.message || 'Erro ao adicionar metal' };
+    }
     return { success: true };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Erro ao adicionar metal';
@@ -34,7 +34,11 @@ export async function deleteMetalAction(
   docId: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await deleteDoc(doc(db, 'metais', docId));
+    const res = await fetch(`/api/metais/${docId}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { success: false, error: body.message || 'Erro ao remover metal' };
+    }
     return { success: true };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Erro ao remover metal';

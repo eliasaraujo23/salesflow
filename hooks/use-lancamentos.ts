@@ -1,46 +1,55 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import {
-  collection, query, orderBy, onSnapshot,
-  addDoc, updateDoc, deleteDoc, doc, serverTimestamp,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { lancamentoCollection, type LojaCode } from '@/lib/controle-config';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchLancamentos, addLancamento, updateLancamento, deleteLancamento } from '@/lib/actions/controle-lojas-registros';
+import { type LojaCode } from '@/lib/controle-config';
 import { type LancamentoRecord } from '@/types/controle';
 
 export type { LancamentoRecord };
 
 export function useLancamentos(loja: LojaCode) {
-  const [records, setRecords] = useState<LancamentoRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const col = lancamentoCollection(loja);
-    const q = query(collection(db, col), orderBy('data', 'desc'));
-    const unsub = onSnapshot(q, snap => {
-      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() } as LancamentoRecord));
-      setRecords(docs);
-      setLoading(false);
-    });
-    return unsub;
-  }, [loja]);
+  const query = useQuery({
+    queryKey: ['controle-lojas-lancamento', loja],
+    queryFn: async () => {
+      const res = await fetchLancamentos(loja);
+      if (!res.data) throw new Error(res.message ?? 'Erro ao carregar lançamentos');
+      return res.data as unknown as LancamentoRecord[];
+    },
+  });
 
-  async function addRecord(data: Omit<LancamentoRecord, 'id' | 'createdAt'>) {
-    const col = lancamentoCollection(loja);
-    await addDoc(collection(db, col), {
-      ...data,
-      createdAt: serverTimestamp(),
-    });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['controle-lojas-lancamento', loja] });
+
+  const addMutation = useMutation({
+    mutationFn: (data: Omit<LancamentoRecord, 'id' | 'created_at'>) => addLancamento(loja, data),
+    onSuccess: invalidate,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<LancamentoRecord> }) => updateLancamento(loja, id, data),
+    onSuccess: invalidate,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteLancamento(loja, id),
+    onSuccess: invalidate,
+  });
+
+  async function addRecord(data: Omit<LancamentoRecord, 'id' | 'created_at'>) {
+    const res = await addMutation.mutateAsync(data);
+    if (!res.data) throw new Error(res.message ?? 'Erro ao salvar lançamento');
   }
 
-  async function updateRecord(id: string, data: Partial<Omit<LancamentoRecord, 'id' | 'createdAt'>>) {
-    await updateDoc(doc(db, lancamentoCollection(loja), id), data as Record<string, unknown>);
+  async function updateRecord(id: string, data: Partial<LancamentoRecord>) {
+    const res = await updateMutation.mutateAsync({ id, data });
+    if (!res.data) throw new Error(res.message ?? 'Erro ao atualizar lançamento');
   }
 
   async function deleteRecord(id: string) {
-    await deleteDoc(doc(db, lancamentoCollection(loja), id));
+    const res = await deleteMutation.mutateAsync(id);
+    if (!res.data) throw new Error(res.message ?? 'Erro ao excluir lançamento');
   }
 
-  return { records, loading, addRecord, updateRecord, deleteRecord };
+  return { records: query.data ?? [], loading: query.isLoading, addRecord, updateRecord, deleteRecord };
 }

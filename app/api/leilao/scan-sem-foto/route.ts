@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth/require-auth';
 
 export const maxDuration = 300;
 
@@ -176,6 +177,9 @@ async function cdnCheckFoto(numLeilao: string, pieceId: string): Promise<'jpeg' 
 }
 
 export async function GET(req: Request): Promise<NextResponse> {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(req.url);
   const leilao   = searchParams.get('leilao')?.trim() ?? '';
   const nome     = searchParams.get('nome')?.trim() ?? '';

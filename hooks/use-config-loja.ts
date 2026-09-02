@@ -1,43 +1,70 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { doc, onSnapshot, setDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { getLojaConfig, type LojaCode } from '@/lib/controle-config';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  fetchFeedbacks, addFeedbackItem, renameFeedbackItem, removeFeedbackItem,
+  type ConfigItem,
+} from '@/lib/actions/controle-lojas-config';
+import { type LojaCode } from '@/lib/controle-config';
 
 export interface ConfigLoja {
-  feedbacks_compra: string[];
+  feedbacks_compra: ConfigItem[];
   loading: boolean;
-  addFeedback: (item: string) => Promise<void>;
-  removeFeedback: (item: string) => Promise<void>;
+  addFeedback: (nome: string) => Promise<void>;
+  renameFeedback: (id: string, nome: string) => Promise<void>;
+  removeFeedback: (id: string) => Promise<void>;
 }
 
 export function useConfigLoja(lojaCode: LojaCode): ConfigLoja {
-  const fallback = getLojaConfig(lojaCode);
-  const [feedbacks, setFeedbacks] = useState<string[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'config_loja', lojaCode), snap => {
-      const data = snap.data();
-      setFeedbacks(Array.isArray(data?.feedbacks) ? data.feedbacks : null);
-      setLoading(false);
-    });
-    return unsub;
-  }, [lojaCode]);
+  const query = useQuery({
+    queryKey: ['controle-lojas-feedbacks', lojaCode],
+    queryFn: async () => {
+      const res = await fetchFeedbacks(lojaCode);
+      if (!res.data) throw new Error(res.message ?? 'Erro ao carregar feedbacks');
+      return res.data;
+    },
+  });
 
-  const addFeedback = useCallback(async (item: string) => {
-    await setDoc(doc(db, 'config_loja', lojaCode), { feedbacks: arrayUnion(item) }, { merge: true });
-  }, [lojaCode]);
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ['controle-lojas-feedbacks', lojaCode] });
 
-  const removeFeedback = useCallback(async (item: string) => {
-    await setDoc(doc(db, 'config_loja', lojaCode), { feedbacks: arrayRemove(item) }, { merge: true });
-  }, [lojaCode]);
+  const addMutation = useMutation({
+    mutationFn: (nome: string) => addFeedbackItem(lojaCode, nome),
+    onSuccess: invalidate,
+  });
+
+  const renameMutation = useMutation({
+    mutationFn: ({ id, nome }: { id: string; nome: string }) => renameFeedbackItem(lojaCode, id, nome),
+    onSuccess: invalidate,
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (id: string) => removeFeedbackItem(lojaCode, id),
+    onSuccess: invalidate,
+  });
+
+  async function addFeedback(nome: string) {
+    const res = await addMutation.mutateAsync(nome);
+    if (!res.data) throw new Error(res.message ?? 'Erro ao adicionar feedback');
+  }
+
+  async function renameFeedback(id: string, nome: string) {
+    const res = await renameMutation.mutateAsync({ id, nome });
+    if (!res.data) throw new Error(res.message ?? 'Erro ao renomear feedback');
+  }
+
+  async function removeFeedback(id: string) {
+    const res = await removeMutation.mutateAsync(id);
+    if (!res.data) throw new Error(res.message ?? 'Erro ao remover feedback');
+  }
 
   return {
-    feedbacks_compra: feedbacks ?? fallback?.feedbacks_compra ?? [],
-    loading,
+    feedbacks_compra: query.data ?? [],
+    loading: query.isLoading,
     addFeedback,
+    renameFeedback,
     removeFeedback,
   };
 }

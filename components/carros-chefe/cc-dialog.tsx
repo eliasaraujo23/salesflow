@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { X, Star, Loader2 } from 'lucide-react';
 import { addCarroChefeAction, updateCarroChefeAction, type CarroChefeDef } from '@/lib/actions/carros-chefe';
 import { useProductOptions } from '@/hooks/use-product-options';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 const schema = z.object({
@@ -32,6 +33,7 @@ interface Props {
 export function CcDialog({ def, nextOrder, onClose }: Props) {
   const isEdit = !!def;
   const opts = useProductOptions();
+  const queryClient = useQueryClient();
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -54,6 +56,7 @@ export function CcDialog({ def, nextOrder, onClose }: Props) {
         await addCarroChefeAction(values);
         toast.success('Carro-chefe criado');
       }
+      await queryClient.invalidateQueries({ queryKey: ['carros-chefe'] });
       onClose();
     } catch {
       toast.error('Erro ao salvar');

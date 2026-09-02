@@ -1,22 +1,19 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { 
-  onAuthStateChanged, 
-  signInWithCustomToken, 
-  signOut, 
-  User as FirebaseUser 
+import {
+  onAuthStateChanged,
+  signInWithCustomToken,
+  signOut,
+  User as FirebaseUser
 } from 'firebase/auth';
-import { 
-  collection, 
-  onSnapshot, 
-  query, 
-  orderBy, 
-  doc, 
-  getDoc 
-} from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { toast } from 'sonner';
+import { useUsersList } from '@/hooks/use-users-list';
+import { useMyProfile } from '@/hooks/use-my-profile';
+import { useTasksLive } from '@/hooks/use-tasks-live';
+import { useMetaisLive } from '@/hooks/use-metais-live';
+import { useDeleteRequestsLive } from '@/hooks/use-delete-requests-live';
 
 export interface AppUser {
   email: string;
@@ -89,16 +86,12 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const sessionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentUserRef = useRef<AppUser | null>(null);
 
-  const clearSessionCookie = () => {
-    document.cookie = 'sf_session=; path=/; max-age=0; SameSite=Strict';
-  };
-
   const forceExpire = () => {
     signOut(auth).catch(() => {});
+    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     setCurrentUser(null);
     localStorage.removeItem('sf_user');
     localStorage.removeItem('sf_login_time');
-    clearSessionCookie();
     toast.info('Sessão expirada. Faça login novamente.');
   };
 
@@ -126,13 +119,9 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (Date.now() - loginTime >= SESSION_MAX_MS) {
         localStorage.removeItem('sf_user');
         localStorage.removeItem('sf_login_time');
-        document.cookie = 'sf_session=; path=/; max-age=0; SameSite=Strict';
       } else {
         setCurrentUser(JSON.parse(savedUser));
         scheduleExpiry(loginTime);
-        // Re-set cookie in case it was lost (e.g. new deployment, browser cleared cookies)
-        const remainingSeconds = Math.floor((SESSION_MAX_MS - (Date.now() - loginTime)) / 1000);
-        document.cookie = `sf_session=1; path=/; max-age=${remainingSeconds}; SameSite=Strict`;
       }
     }
     setLoading(false);
@@ -155,117 +144,66 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Listen for database collections when user is logged in AND Firebase Auth is ready
+  // Dados de app (tasks, metais, pedidos de exclusão) agora vêm do Neon via
+  // API com polling, não mais de onSnapshot em Firestore — ver plano de
+  // migração Firestore→Neon. Só busca quando logado E com o Firebase Auth
+  // pronto, preservando o mesmo gate de antes.
+  const canFetchAppData = !!currentUser && firebaseAuthReady;
+  const { data: tasksData } = useTasksLive(canFetchAppData);
+  const { data: metalsData } = useMetaisLive(canFetchAppData);
+  const { data: deleteRequestsData } = useDeleteRequestsLive(canFetchAppData);
+
   useEffect(() => {
-    if (!currentUser || !firebaseAuthReady) {
+    if (!canFetchAppData) {
       setTasks([]);
       setMetals([]);
-      setUsers([]);
       setDeleteRequests([]);
       return;
     }
+    if (tasksData) setTasks(tasksData);
+  }, [canFetchAppData, tasksData]);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  useEffect(() => {
+    if (canFetchAppData && metalsData) setMetals(metalsData);
+  }, [canFetchAppData, metalsData]);
 
-    const onAuthError = (error: Error) => {
-      if ((error as any).code === 'permission-denied') forceExpire();
-    };
+  useEffect(() => {
+    if (canFetchAppData && deleteRequestsData) setDeleteRequests(deleteRequestsData);
+  }, [canFetchAppData, deleteRequestsData]);
 
-    // Subscribe to Tasks (real-time stream)
-    const tasksQuery = query(collection(db, 'tasks'), orderBy('createdAt', 'desc'));
-    const unsubscribeTasks = onSnapshot(tasksQuery, (snap) => {
-      const parsedTasks = snap.docs.map((d) => {
-        const data = d.data() as any;
-        const task = {
-          ...data,
-          id: isNaN(Number(data.id)) ? d.id : Number(data.id),
-          description: data.description ?? data.desc,
-        } as Task;
+  // Lista de usuários (admin) e auto-sync do próprio perfil — vêm do Neon via
+  // API, não mais de Firestore usuarios/{email} (que ficou redundante desde
+  // que role/permissions passaram a viver só no Neon, fonte real do JWT).
+  const isLoggedIn = !!currentUser;
+  const { data: usersListData } = useUsersList(isLoggedIn && currentUser?.role === 'admin');
+  const { data: myProfileData } = useMyProfile(isLoggedIn);
 
-        // Recalculate delays on the client side
-        if (task.status !== 'done' && task.due && task.due !== 'Sem prazo') {
-          const parts = task.due.split('/');
-          const dueDate = parts.length === 3 ? new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])) : null;
-          task.late = dueDate ? Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / 86400000)) : 0;
-        } else {
-          task.late = 0;
-        }
+  useEffect(() => {
+    if (!isLoggedIn) { setUsers([]); return; }
+    if (usersListData) setUsers(usersListData);
+  }, [isLoggedIn, usersListData]);
 
-        return task;
-      });
-      setTasks(parsedTasks);
-    }, onAuthError);
+  useEffect(() => {
+    if (!myProfileData) return;
+    setCurrentUser(prev => {
+      if (!prev) return prev;
+      const changed =
+        myProfileData.role !== prev.role ||
+        myProfileData.name !== prev.name ||
+        myProfileData.cargo !== prev.cargo ||
+        myProfileData.personKey !== prev.personKey ||
+        JSON.stringify(myProfileData.permissions) !== JSON.stringify(prev.permissions);
+      if (!changed) return prev;
+      localStorage.setItem('sf_user', JSON.stringify(myProfileData));
+      return myProfileData;
+    });
+  }, [myProfileData]);
 
-    // Subscribe to Metals
-    const metalsQuery = query(collection(db, 'metais'), orderBy('createdAt', 'desc'));
-    const unsubscribeMetals = onSnapshot(metalsQuery, (snap) => {
-      const parsedMetals = snap.docs.map((d) => {
-        const data = d.data();
-        return {
-          ...data,
-          id: isNaN(Number(data.id)) ? d.id : Number(data.id),
-          docId: d.id,
-        } as Metal;
-      });
-      setMetals(parsedMetals);
-    }, onAuthError);
-
-    // Subscribe to Users
-    const unsubscribeUsers = onSnapshot(collection(db, 'usuarios'), (snap) => {
-      const parsedUsers = snap.docs.map((d) => {
-        const data = d.data();
-        return {
-          email: d.id,
-          name: data.name || d.id,
-          personKey: data.personKey || '',
-          role: data.role || 'user',
-          permissions: data.permissions || [],
-          cargo: data.cargo || 'Colaborador',
-        } as AppUser;
-      });
-      setUsers(parsedUsers);
-
-      // Auto-sync currentUser when admin changes this user's permissions/role
-
-      setCurrentUser(prev => {
-        if (!prev) return prev;
-        const updated = parsedUsers.find(u => u.email === prev.email);
-        if (!updated) return prev;
-        const changed =
-          updated.role !== prev.role ||
-          updated.name !== prev.name ||
-          updated.cargo !== prev.cargo ||
-          updated.personKey !== prev.personKey ||
-          JSON.stringify(updated.permissions) !== JSON.stringify(prev.permissions);
-        if (!changed) return prev;
-        localStorage.setItem('sf_user', JSON.stringify(updated));
-        return updated;
-      });
-    }, onAuthError);
-
-    // Subscribe to Delete Requests
-    const unsubscribeDeleteRequests = onSnapshot(collection(db, 'task_delete_requests'), (snap) => {
-      const parsedRequests = snap.docs.map((d) => {
-        const data = d.data();
-        return {
-          docId: d.id,
-          ...data,
-        } as DeleteRequest;
-      });
-      setDeleteRequests(parsedRequests);
-    }, onAuthError);
-
-    return () => {
-      unsubscribeTasks();
-      unsubscribeMetals();
-      unsubscribeUsers();
-      unsubscribeDeleteRequests();
-    };
-  }, [currentUser, firebaseAuthReady]);
-
-  const logIn = async (email: string, token: string, profile: any) => {
-    await signInWithCustomToken(auth, token);
+  // Nota: token/cookie de sessão real (sf_session/sf_refresh) já foram definidos
+  // pelo servidor (HttpOnly) na resposta de /api/auth/login. Aqui só populamos
+  // o estado local/localStorage para exibição (nome, navegação) — nunca mais
+  // uma fonte de autorização.
+  const logIn = async (email: string, _token: string, profile: any) => {
     const user: AppUser = {
       email,
       name: profile.name,
@@ -278,17 +216,16 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('sf_user', JSON.stringify(user));
     const now = Date.now();
     localStorage.setItem('sf_login_time', now.toString());
-    document.cookie = `sf_session=1; path=/; max-age=${SESSION_MAX_MS / 1000}; SameSite=Strict`;
     scheduleExpiry(now);
   };
 
   const logOut = async () => {
     if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
     await signOut(auth);
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     setCurrentUser(null);
     localStorage.removeItem('sf_user');
     localStorage.removeItem('sf_login_time');
-    clearSessionCookie();
     toast.success('Sessão encerrada com sucesso!');
   };
 

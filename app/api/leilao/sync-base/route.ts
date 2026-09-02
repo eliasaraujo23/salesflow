@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth/require-auth';
 
 const BASE = 'https://leiloesbr.com.br/painel_lbr';
 
@@ -143,6 +144,9 @@ export interface SyncResult {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const body    = await req.json() as { leiloes?: LeilaoInput[] };
   const leiloes = Array.isArray(body.leiloes) ? body.leiloes : [];
 

@@ -1,21 +1,19 @@
-import { type Timestamp } from 'firebase/firestore';
-
 export type TransacaoTipo = 'COMPRA' | 'NAO_COMPRA';
 
 export interface MetalRecord {
   id: string;
   cod_interno: string;
-  data: Timestamp;
-  datetime?: Timestamp;
+  data: string;
+  datetime: string;
   hora: string;
   avaliadores: string[];
   nome: string;
   cpf: string;
   transacao: TransacaoTipo;
-  feedback: string;
-  motivo_nc: string;
-  tipo: string;
-  razao_social: string;
+  feedback_id: string | null;
+  feedback_nc_id: string | null;
+  modalidade_id: string | null;
+  empresa_id: string | null;
   ouro_24k: number;
   ouro_22k: number;
   pt: number;
@@ -29,28 +27,28 @@ export interface MetalRecord {
   valor: number;
   pago_por_grama: number;
   observacao: string;
-  createdAt: Timestamp;
+  created_at: string;
 }
 
 export interface DespesaRecord {
   id: string;
-  data: Timestamp;
-  tipo_despesa: string;
-  forma_pagamento: string;
-  banco_caixa: string;
+  data: string;
+  tipo_despesa_id: string | null;
+  forma_pagamento_id: string | null;
+  banco_caixa_id: string | null;
   valor: number;
   observacao: string;
-  createdAt: Timestamp;
+  created_at: string;
 }
 
 export interface LancamentoRecord {
   id: string;
-  data: Timestamp;
-  tipo: string;
-  banco: string;
+  data: string;
+  tipo_lancamento_id: string | null;
+  banco_caixa_id: string | null;
   descricao: string;
   valor: number;
-  createdAt: Timestamp;
+  created_at: string;
 }
 
 export interface CaixaEntry {
@@ -58,10 +56,11 @@ export interface CaixaEntry {
   valor: number;
 }
 
-export interface CaixaDoc {
+export interface CaixaRecord {
+  id: string;
+  updatedAt: string;
   bruto: CaixaEntry[];
-  trocados?: CaixaEntry[];
-  updatedAt: Timestamp;
+  trocados: CaixaEntry[];
 }
 
 export type MetalQualidade = 'ouro_24k' | 'ouro_22k' | 'pt' | 'ouro_750' | 'ouro_720' | 'bx' | 'platina' | 'prata';

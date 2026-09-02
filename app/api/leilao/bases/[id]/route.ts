@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
+import { requireAuth } from '@/lib/auth/require-auth';
 
 const pool = new Pool({
   connectionString: process.env.PG_CONNECTION_STRING,
@@ -13,6 +14,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   const { excluded } = await req.json() as { excluded: boolean };
   const client = await pool.connect();
@@ -29,9 +33,12 @@ export async function PATCH(
 
 // DELETE — remove base
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   const client = await pool.connect();
   try {

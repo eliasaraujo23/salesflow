@@ -1,36 +1,41 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Plus, Trash2, Check, X } from 'lucide-react';
+import { Search, Plus, Trash2, Check, X, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
+import { type ConfigItem } from '@/lib/actions/controle-lojas-config';
 
 interface Props {
   title: string;
-  items: string[];
-  onAdd: (item: string) => Promise<void>;
-  onRemove: (item: string) => Promise<void>;
+  items: ConfigItem[];
+  onAdd: (nome: string) => Promise<void>;
+  onRemove: (id: string) => Promise<void>;
+  onRename: (id: string, nome: string) => Promise<void>;
   placeholder?: string;
+  /** Quando true, a lista ocupa toda a altura disponível do container pai em vez de um maxHeight fixo. */
+  fill?: boolean;
 }
 
-export function ConfigListEditor({ title, items, onAdd, onRemove, placeholder }: Props) {
+export function ConfigListEditor({ title, items, onAdd, onRemove, onRename, placeholder, fill }: Props) {
   const [search, setSearch] = useState('');
   const [newItem, setNewItem] = useState('');
-  const [adding, setAdding] = useState(false);
   const [showInput, setShowInput] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [optimistic, setOptimistic] = useState<string[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const editRef = useRef<HTMLInputElement>(null);
 
-  // remove from optimistic once Firestore confirms
-  useEffect(() => {
-    setOptimistic(prev => prev.filter(i => !items.includes(i)));
-  }, [items]);
-
-  const allItems = [...new Set([...items, ...optimistic])].sort((a, b) => a.localeCompare(b));
+  const sorted = [...items].sort((a, b) => a.nome.localeCompare(b.nome));
   const filtered = search
-    ? allItems.filter(i => i.toLowerCase().includes(search.toLowerCase()))
-    : allItems;
+    ? sorted.filter(i => i.nome.toLowerCase().includes(search.toLowerCase()))
+    : sorted;
+
+  useEffect(() => {
+    if (editingId && !items.some(i => i.id === editingId)) setEditingId(null);
+  }, [items, editingId]);
 
   function openAdd() {
     setShowInput(true);
@@ -45,29 +50,24 @@ export function ConfigListEditor({ title, items, onAdd, onRemove, placeholder }:
   async function handleAdd() {
     const val = newItem.trim();
     if (!val) return;
-    if (allItems.includes(val)) {
+    if (sorted.some(i => i.nome.toLowerCase() === val.toLowerCase())) {
       toast.error('Item já existe na lista');
       return;
     }
-    setOptimistic(prev => [...prev, val]);
     setNewItem('');
     setShowInput(false);
-    setAdding(true);
     try {
       await onAdd(val);
     } catch {
-      setOptimistic(prev => prev.filter(i => i !== val));
       toast.error('Erro ao adicionar');
-    } finally {
-      setAdding(false);
     }
   }
 
-  async function handleRemove(item: string) {
+  async function handleRemove(id: string) {
     setConfirmDelete(null);
-    setRemoving(item);
+    setRemoving(id);
     try {
-      await onRemove(item);
+      await onRemove(id);
     } catch {
       toast.error('Erro ao remover');
     } finally {
@@ -75,12 +75,37 @@ export function ConfigListEditor({ title, items, onAdd, onRemove, placeholder }:
     }
   }
 
+  function startEdit(item: ConfigItem) {
+    setEditingId(item.id);
+    setEditValue(item.nome);
+    setTimeout(() => editRef.current?.focus(), 50);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditValue('');
+  }
+
+  async function handleEditSave() {
+    const val = editValue.trim();
+    if (!editingId || !val) return;
+    setSaving(true);
+    try {
+      await onRename(editingId, val);
+      cancelEdit();
+    } catch {
+      toast.error('Erro ao editar');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col">
+    <div className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.08] rounded-xl overflow-hidden flex flex-col ${fill ? 'h-full' : ''}`}>
       {/* Header */}
       <div className="px-4 py-3 border-b border-zinc-100 dark:border-white/[0.04] flex items-center justify-between flex-shrink-0">
         <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">{title}</h3>
-        <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">{allItems.length} itens</span>
+        <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">{sorted.length} itens</span>
       </div>
 
       {/* Search */}
@@ -97,7 +122,7 @@ export function ConfigListEditor({ title, items, onAdd, onRemove, placeholder }:
       </div>
 
       {/* List */}
-      <div className="px-4 pt-2 pb-3 overflow-y-auto flex-1" style={{ maxHeight: '220px' }}>
+      <div className="px-4 pt-2 pb-3 overflow-y-auto flex-1" style={fill ? undefined : { maxHeight: '220px' }}>
         {filtered.length === 0 ? (
           <p className="text-xs text-zinc-400 dark:text-zinc-500 py-3 text-center">
             {search ? 'Nenhum resultado' : 'Nenhum item'}
@@ -105,14 +130,14 @@ export function ConfigListEditor({ title, items, onAdd, onRemove, placeholder }:
         ) : (
           <div className="space-y-0.5">
             {filtered.map(item => (
-              <div key={item}>
-                {confirmDelete === item ? (
+              <div key={item.id}>
+                {confirmDelete === item.id ? (
                   <div className="flex items-center justify-between px-2 py-1.5 rounded-md bg-red-50 dark:bg-red-500/10">
-                    <span className="text-sm text-red-600 dark:text-red-400 truncate">Excluir <strong>{item}</strong>?</span>
+                    <span className="text-sm text-red-600 dark:text-red-400 truncate">Excluir <strong>{item.nome}</strong>?</span>
                     <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                       <button
-                        onClick={() => handleRemove(item)}
-                        disabled={removing === item}
+                        onClick={() => handleRemove(item.id)}
+                        disabled={removing === item.id}
                         className="px-2 py-1 text-xs font-semibold bg-red-600 hover:bg-red-500 text-white rounded-md transition-colors disabled:opacity-40"
                       >
                         Sim
@@ -125,19 +150,43 @@ export function ConfigListEditor({ title, items, onAdd, onRemove, placeholder }:
                       </button>
                     </div>
                   </div>
+                ) : editingId === item.id ? (
+                  <div className="flex items-center gap-1 px-2 py-1">
+                    <input
+                      ref={editRef}
+                      value={editValue}
+                      onChange={e => setEditValue(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') { e.preventDefault(); handleEditSave(); }
+                        if (e.key === 'Escape') cancelEdit();
+                      }}
+                      disabled={saving}
+                      className="flex-1 px-2 py-1 bg-zinc-50 dark:bg-zinc-800 border border-indigo-500 rounded-md text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none disabled:opacity-50"
+                    />
+                    <button onClick={handleEditSave} disabled={saving} className="p-1 text-indigo-600 hover:text-indigo-500 disabled:opacity-40">
+                      <Check size={13} />
+                    </button>
+                    <button onClick={cancelEdit} disabled={saving} className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-40">
+                      <X size={13} />
+                    </button>
+                  </div>
                 ) : (
                   <div className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-800/60 group transition-colors">
-                    <span className={`text-sm truncate ${optimistic.includes(item) ? 'text-zinc-400 dark:text-zinc-500 italic' : 'text-zinc-700 dark:text-zinc-300'}`}>
-                      {item}
-                    </span>
-                    {!optimistic.includes(item) && (
+                    <span className="text-sm truncate text-zinc-700 dark:text-zinc-300">{item.nome}</span>
+                    <div className="flex items-center gap-0.5 ml-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all">
                       <button
-                        onClick={() => setConfirmDelete(item)}
-                        className="ml-2 flex-shrink-0 p-1 rounded text-zinc-300 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                        onClick={() => startEdit(item)}
+                        className="p-1 rounded text-zinc-300 dark:text-zinc-600 hover:text-indigo-500 dark:hover:text-indigo-400"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(item.id)}
+                        className="p-1 rounded text-zinc-300 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400"
                       >
                         <Trash2 size={12} />
                       </button>
-                    )}
+                    </div>
                   </div>
                 )}
               </div>

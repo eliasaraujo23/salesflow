@@ -2,24 +2,20 @@
 
 import React, { useState, useMemo } from 'react';
 import { notFound, useParams } from 'next/navigation';
-import { Timestamp } from 'firebase/firestore';
 import { Plus, Loader2, ArrowLeftRight, Search, X } from 'lucide-react';
 import { getLojaConfig, type LojaCode } from '@/lib/controle-config';
 import { useLancamentos } from '@/hooks/use-lancamentos';
 import { type LancamentoRecord } from '@/types/controle';
 import { LancamentoFormModal } from '@/components/controle/lancamento-form-modal';
+import { useConfigGlobal } from '@/hooks/use-config-global';
 
 function formatBRL(v: number): string {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-function formatDate(ts: Timestamp | null | undefined): string {
-  if (!ts) return '—';
-  return (ts instanceof Timestamp ? ts.toDate() : new Date()).toLocaleDateString('pt-BR');
-}
-
-function displayId(id: string): string {
-  return id.startsWith('ac_') ? id.slice(3) : id;
+function formatDate(dataISO: string | null | undefined): string {
+  if (!dataISO) return '—';
+  return new Date(`${dataISO}T00:00:00`).toLocaleDateString('pt-BR');
 }
 
 const thCls =
@@ -36,9 +32,20 @@ export default function EntradasPage() {
 
   const [now] = useState(() => new Date());
   const { records, loading, addRecord, updateRecord, deleteRecord } = useLancamentos(loja.code as LojaCode);
+  const global = useConfigGlobal();
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<LancamentoRecord | undefined>(undefined);
   const [search, setSearch] = useState('');
+
+  const nomeTipoLancamento = useMemo(() => {
+    const map = new Map(global.tipos_lancamento.map(t => [t.id, t.nome]));
+    return (id: string | null) => (id ? map.get(id) ?? id : '');
+  }, [global.tipos_lancamento]);
+
+  const nomeBancoCaixa = useMemo(() => {
+    const map = new Map(global.bancos_caixa.map(b => [b.id, b.nome]));
+    return (id: string | null) => (id ? map.get(id) ?? id : '');
+  }, [global.bancos_caixa]);
 
   const filtered = useMemo(() => {
     const y = now.getFullYear();
@@ -46,32 +53,28 @@ export default function EntradasPage() {
     const q = search.toLowerCase();
     return records
       .filter(r => {
-        const d = r.data instanceof Timestamp ? r.data.toDate() : new Date();
+        const d = new Date(`${r.data}T00:00:00`);
         if (d.getFullYear() !== y || d.getMonth() !== m) return false;
         if (!q) return true;
         return (
-          r.tipo.toLowerCase().includes(q) ||
-          r.banco.toLowerCase().includes(q) ||
-          r.descricao.toLowerCase().includes(q) ||
-          displayId(r.id).includes(q)
+          nomeTipoLancamento(r.tipo_lancamento_id).toLowerCase().includes(q) ||
+          nomeBancoCaixa(r.banco_caixa_id).toLowerCase().includes(q) ||
+          r.descricao.toLowerCase().includes(q)
         );
       })
-      .sort((a, b) => {
-        const na = parseInt(displayId(a.id), 10) || 0;
-        const nb = parseInt(displayId(b.id), 10) || 0;
-        return nb - na;
-      });
-  }, [records, search, now]);
+      .sort((a, b) => (a.data < b.data ? 1 : -1));
+  }, [records, search, now, nomeTipoLancamento, nomeBancoCaixa]);
 
   const total = filtered.reduce((s, r) => s + r.valor, 0);
 
   const byTipo = useMemo(() => {
     const map: Record<string, number> = {};
     filtered.forEach(r => {
-      map[r.tipo] = (map[r.tipo] || 0) + r.valor;
+      const nome = nomeTipoLancamento(r.tipo_lancamento_id) || '—';
+      map[nome] = (map[nome] || 0) + r.valor;
     });
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [filtered]);
+  }, [filtered, nomeTipoLancamento]);
 
   function openEdit(r: LancamentoRecord) {
     setEditing(r);
@@ -129,7 +132,7 @@ export default function EntradasPage() {
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar por tipo, banco, código..."
+          placeholder="Buscar por tipo, banco..."
           className="w-full pl-8 pr-8 py-2 text-sm bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-white/[0.08] rounded-lg text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-colors"
         />
         {search && (
@@ -151,7 +154,6 @@ export default function EntradasPage() {
           <table className="text-sm border-collapse data-table">
             <thead>
               <tr className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-white/[0.08]">
-                <th className={thCls}>ID_LANCAMENTO</th>
                 <th className={thCls}>Data</th>
                 <th className={thCls}>Valor</th>
                 <th className={thCls}>Tipo</th>
@@ -162,7 +164,7 @@ export default function EntradasPage() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-sm text-zinc-400">
+                  <td colSpan={5} className="py-10 text-center text-sm text-zinc-400">
                     Nenhum lançamento encontrado
                   </td>
                 </tr>
@@ -173,9 +175,6 @@ export default function EntradasPage() {
                     onClick={() => openEdit(r)}
                     className="border-b border-zinc-50 dark:border-white/[0.02] last:border-0 cursor-pointer hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors"
                   >
-                    <td className={`${tdCls} font-mono text-indigo-600 dark:text-indigo-400 font-medium`}>
-                      {displayId(r.id)}
-                    </td>
                     <td className={`${tdCls} text-zinc-600 dark:text-zinc-400 tabular-nums`}>
                       {formatDate(r.data)}
                     </td>
@@ -184,10 +183,10 @@ export default function EntradasPage() {
                     </td>
                     <td className={tdCls}>
                       <span className="inline-flex px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-500/10 text-[11px] font-medium text-blue-700 dark:text-blue-400">
-                        {r.tipo}
+                        {nomeTipoLancamento(r.tipo_lancamento_id) || '—'}
                       </span>
                     </td>
-                    <td className={`${tdCls} text-zinc-600 dark:text-zinc-400`}>{r.banco || '—'}</td>
+                    <td className={`${tdCls} text-zinc-600 dark:text-zinc-400`}>{nomeBancoCaixa(r.banco_caixa_id) || '—'}</td>
                     <td className={`${tdCls} text-zinc-400 max-w-[200px] truncate`} title={r.descricao}>
                       {r.descricao || '—'}
                     </td>

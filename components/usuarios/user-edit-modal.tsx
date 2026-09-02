@@ -4,12 +4,14 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, setDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { type AppUser } from '@/components/firebase-provider';
 import { NAVIGATION_ITEMS } from '@/lib/constants';
+import { useCreateUser } from '@/hooks/use-create-user';
+import { useUpdateUser } from '@/hooks/use-update-user';
+import { useDeleteUser } from '@/hooks/use-delete-user';
+import { useQueryClient } from '@tanstack/react-query';
 import { ShieldCheck, User as UserIcon, Trash2 } from 'lucide-react';
 
 // Derived from NAVIGATION_ITEMS — adding a new menu item automatically adds it here.
@@ -28,6 +30,7 @@ const schema = z.object({
   email:       z.string().email('Email inválido'),
   personKey:   z.string().min(1, 'Sigla obrigatória').max(3, 'Máx 3 caracteres'),
   permissions: z.array(z.string()),
+  password:    z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -42,10 +45,14 @@ export function UserEditModal({ open, onClose, user }: UserEditModalProps) {
   const isEditing = !!user;
   const [saving, setSaving] = useState(false);
   const [deleteStep, setDeleteStep] = useState(false);
+  const { mutateAsync: createUser } = useCreateUser();
+  const { mutateAsync: updateUser } = useUpdateUser();
+  const { mutateAsync: deleteUser } = useDeleteUser();
+  const queryClient = useQueryClient();
 
-  const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, watch, setValue, reset, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: '', cargo: '', email: '', personKey: '', permissions: [] },
+    defaultValues: { name: '', cargo: '', email: '', personKey: '', permissions: [], password: '' },
   });
 
   const permissions = watch('permissions');
@@ -63,9 +70,10 @@ export function UserEditModal({ open, onClose, user }: UserEditModalProps) {
           personKey:   user.personKey ?? '',
           // Admins always get all permissions (including newly added ones)
           permissions: user.role === 'admin' ? ALL_PAGES.map(p => p.key) : (user.permissions ?? []),
+          password:    '',
         });
       } else {
-        reset({ name: '', cargo: '', email: '', personKey: '', permissions: [] });
+        reset({ name: '', cargo: '', email: '', personKey: '', permissions: [], password: '' });
       }
     }
   }, [open, user, reset]);
@@ -81,17 +89,49 @@ export function UserEditModal({ open, onClose, user }: UserEditModalProps) {
   function clearAll()  { setValue('permissions', []); }
 
   async function onSubmit(values: FormValues) {
+    const role = values.permissions.length === ALL_PAGES.length ? 'admin' : 'user';
+
+    if (!isEditing) {
+      if (!values.password || values.password.length < 8) {
+        setError('password', { message: 'A senha deve conter no mínimo 8 caracteres.' });
+        return;
+      }
+    }
+
     setSaving(true);
     try {
-      const role = values.permissions.length === ALL_PAGES.length ? 'admin' : 'user';
-      await setDoc(doc(db, 'usuarios', values.email), {
-        name:        values.name,
-        cargo:       values.cargo ?? '',
-        email:       values.email,
-        personKey:   values.personKey.toUpperCase(),
-        role,
-        permissions: values.permissions,
-      });
+      if (!isEditing) {
+        const result = await createUser({
+          email:       values.email,
+          name:        values.name,
+          personKey:   values.personKey.toUpperCase(),
+          cargo:       values.cargo,
+          role,
+          permissions: values.permissions,
+          password:    values.password!,
+        });
+        if (result.httpStatus !== 200) {
+          toast.error(result.message || 'Erro ao criar conta de login.');
+          setSaving(false);
+          return;
+        }
+      } else {
+        const result = await updateUser({
+          email:       values.email,
+          name:        values.name,
+          cargo:       values.cargo,
+          personKey:   values.personKey.toUpperCase(),
+          role,
+          permissions: values.permissions,
+        });
+        if (result.httpStatus !== 200) {
+          toast.error(result.message || 'Erro ao atualizar usuário.');
+          setSaving(false);
+          return;
+        }
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['users-list'] });
       toast.success(isEditing ? 'Usuário atualizado!' : 'Usuário criado!');
       onClose();
     } catch (err) {
@@ -105,7 +145,12 @@ export function UserEditModal({ open, onClose, user }: UserEditModalProps) {
     if (!deleteStep) { setDeleteStep(true); return; }
     setSaving(true);
     try {
-      await deleteDoc(doc(db, 'usuarios', user!.email));
+      const result = await deleteUser(user!.email);
+      if (result.httpStatus !== 200) {
+        toast.error(result.message || 'Erro ao excluir usuário.');
+        return;
+      }
+      await queryClient.invalidateQueries({ queryKey: ['users-list'] });
       toast.success('Usuário removido.');
       onClose();
     } catch {
@@ -209,11 +254,21 @@ export function UserEditModal({ open, onClose, user }: UserEditModalProps) {
             </div>
           </div>
 
-          {/* Firebase note for new users */}
+          {/* Senha inicial — só ao criar um usuário novo */}
           {!isEditing && (
-            <p className="text-xs text-zinc-400 dark:text-zinc-500 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-white/[0.13] rounded-lg px-3 py-2">
-              A senha deve ser definida no Firebase Console → Authentication após criar o usuário.
-            </p>
+            <div>
+              <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Senha inicial *</label>
+              <input
+                {...register('password')}
+                type="text"
+                placeholder="Mínimo 8 caracteres"
+                className={inputCls}
+              />
+              {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+                A pessoa pode trocar depois em &quot;Esqueci minha senha&quot;.
+              </p>
+            </div>
           )}
 
           {/* Actions */}

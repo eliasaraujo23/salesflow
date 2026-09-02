@@ -2,21 +2,20 @@
 
 import React, { useState, useMemo } from 'react';
 import { notFound, useParams } from 'next/navigation';
-import { Timestamp } from 'firebase/firestore';
 import { Plus, Loader2, Receipt, Search, X } from 'lucide-react';
 import { getLojaConfig, type LojaCode } from '@/lib/controle-config';
 import { useDespesas } from '@/hooks/use-despesas';
 import { type DespesaRecord } from '@/types/controle';
 import { DespesaFormModal } from '@/components/controle/despesa-form-modal';
+import { useConfigGlobal } from '@/hooks/use-config-global';
 
 function formatBRL(v: number): string {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-function formatDate(ts: Timestamp | null | undefined): string {
-  if (!ts) return '—';
-  const d = ts instanceof Timestamp ? ts.toDate() : new Date();
-  return d.toLocaleDateString('pt-BR');
+function formatDate(dataISO: string | null | undefined): string {
+  if (!dataISO) return '—';
+  return new Date(`${dataISO}T00:00:00`).toLocaleDateString('pt-BR');
 }
 
 export default function DespesasPage() {
@@ -26,33 +25,50 @@ export default function DespesasPage() {
 
   const [now] = useState(() => new Date());
   const { records, loading, addRecord, updateRecord, deleteRecord } = useDespesas(loja.code as LojaCode);
+  const global = useConfigGlobal();
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<DespesaRecord | undefined>(undefined);
   const [search, setSearch] = useState('');
+
+  const nomeTipoDespesa = useMemo(() => {
+    const map = new Map(global.tipos_despesa.map(t => [t.id, t.nome]));
+    return (id: string | null) => (id ? map.get(id) ?? id : '');
+  }, [global.tipos_despesa]);
+
+  const nomeFormaPagamento = useMemo(() => {
+    const map = new Map(global.formas_pagamento.map(f => [f.id, f.nome]));
+    return (id: string | null) => (id ? map.get(id) ?? id : '');
+  }, [global.formas_pagamento]);
+
+  const nomeBancoCaixa = useMemo(() => {
+    const map = new Map(global.bancos_caixa.map(b => [b.id, b.nome]));
+    return (id: string | null) => (id ? map.get(id) ?? id : '');
+  }, [global.bancos_caixa]);
 
   const filtered = useMemo(() => {
     const y = now.getFullYear();
     const m = now.getMonth();
     const q = search.toLowerCase();
     return records.filter(r => {
-      const d = r.data instanceof Timestamp ? r.data.toDate() : new Date(r.data as unknown as string);
+      const d = new Date(`${r.data}T00:00:00`);
       if (d.getFullYear() !== y || d.getMonth() !== m) return false;
       return !q ||
-        r.tipo_despesa.toLowerCase().includes(q) ||
-        r.banco_caixa.toLowerCase().includes(q) ||
+        nomeTipoDespesa(r.tipo_despesa_id).toLowerCase().includes(q) ||
+        nomeBancoCaixa(r.banco_caixa_id).toLowerCase().includes(q) ||
         r.observacao.toLowerCase().includes(q);
     });
-  }, [records, search, now]);
+  }, [records, search, now, nomeTipoDespesa, nomeBancoCaixa]);
 
   const totalDespesas = filtered.reduce((s, r) => s + r.valor, 0);
 
   const byTipo = useMemo(() => {
     const map: Record<string, number> = {};
     filtered.forEach(r => {
-      map[r.tipo_despesa] = (map[r.tipo_despesa] || 0) + r.valor;
+      const nome = nomeTipoDespesa(r.tipo_despesa_id) || '—';
+      map[nome] = (map[nome] || 0) + r.valor;
     });
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [filtered]);
+  }, [filtered, nomeTipoDespesa]);
 
   function openNew() {
     setEditing(undefined);
@@ -145,11 +161,11 @@ export default function DespesasPage() {
                     <td className="px-4 py-2.5 text-zinc-600 dark:text-zinc-400 tabular-nums">{formatDate(r.data)}</td>
                     <td className="px-4 py-2.5">
                       <span className="inline-flex px-2 py-0.5 rounded bg-red-50 dark:bg-red-500/10 text-[11px] font-medium text-red-700 dark:text-red-400">
-                        {r.tipo_despesa}
+                        {nomeTipoDespesa(r.tipo_despesa_id) || '—'}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-zinc-600 dark:text-zinc-400">{r.forma_pagamento}</td>
-                    <td className="px-4 py-2.5 text-zinc-500 dark:text-zinc-500">{r.banco_caixa}</td>
+                    <td className="px-4 py-2.5 text-zinc-600 dark:text-zinc-400">{nomeFormaPagamento(r.forma_pagamento_id) || '—'}</td>
+                    <td className="px-4 py-2.5 text-zinc-500 dark:text-zinc-500">{nomeBancoCaixa(r.banco_caixa_id) || '—'}</td>
                     <td className="px-4 py-2.5 text-zinc-400 text-xs max-w-[200px] truncate">{r.observacao || '—'}</td>
                     <td className="px-4 py-2.5 text-right font-mono font-medium text-zinc-800 dark:text-zinc-200 tabular-nums">
                       {formatBRL(r.valor)}

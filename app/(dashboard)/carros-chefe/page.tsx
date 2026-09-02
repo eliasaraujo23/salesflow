@@ -6,6 +6,7 @@ import { useCarrosChefe, type CarroChefeDef } from '@/hooks/use-carros-chefe';
 import { CcListTable } from '@/components/carros-chefe/cc-list-table';
 import { CcDialog } from '@/components/carros-chefe/cc-dialog';
 import { seedDefaultsAction, resetDefaultsAction } from '@/lib/actions/carros-chefe';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 export default function CarrosChefePage() {
@@ -15,6 +16,7 @@ export default function CarrosChefePage() {
   const [seeding, setSeeding] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleSeed = async () => {
     if (defs.length > 0) {
@@ -24,6 +26,7 @@ export default function CarrosChefePage() {
     setSeeding(true);
     try {
       await seedDefaultsAction();
+      await queryClient.invalidateQueries({ queryKey: ['carros-chefe'] });
       toast.success('Padrões carregados com sucesso!');
     } catch {
       toast.error('Erro ao carregar padrões');
@@ -38,6 +41,7 @@ export default function CarrosChefePage() {
     setConfirmReset(false);
     try {
       await resetDefaultsAction();
+      await queryClient.invalidateQueries({ queryKey: ['carros-chefe'] });
       toast.success('Carros-chefe redefinidos com os padrões do histórico!');
     } catch {
       toast.error('Erro ao redefinir');

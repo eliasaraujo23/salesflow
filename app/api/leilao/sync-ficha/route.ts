@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth/require-auth';
 
 export const maxDuration = 300;
 
@@ -224,7 +225,10 @@ async function fetchListaLeiloes(conta: Conta): Promise<LeilaoRemoto[]> {
 
 // ─── Rota POST — retorna lista de leilões de todas as contas ──────────────────
 
-export async function POST(): Promise<NextResponse> {
+export async function POST(req: Request): Promise<NextResponse> {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const contas = getContas();
   if (contas.length === 0)
     return NextResponse.json({ error: 'Sem credenciais configuradas' }, { status: 500 });
@@ -272,6 +276,9 @@ export async function POST(): Promise<NextResponse> {
 
 // GET: debug — ?lista=1 mostra HTML bruto do listar_leiloes.asp
 export async function GET(req: Request): Promise<NextResponse> {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(req.url);
   const conta = getContas()[0];
   if (!conta) return NextResponse.json({ error: 'Sem credenciais' }, { status: 500 });

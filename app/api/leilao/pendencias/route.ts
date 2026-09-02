@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
+import { requireAuth } from '@/lib/auth/require-auth';
 
 const pool = new Pool({
   connectionString: process.env.PG_CONNECTION_STRING,
@@ -21,6 +22,9 @@ function normalizeDest(s: string): string {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const body     = await req.json() as { destinos?: unknown };
   const destinos = Array.isArray(body.destinos) ? (body.destinos as string[]) : [];
 

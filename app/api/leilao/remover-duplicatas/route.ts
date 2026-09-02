@@ -1,4 +1,5 @@
 export const maxDuration = 300;
+import { requireAuth } from '@/lib/auth/require-auth';
 
 const BASE = 'https://leiloesbr.com.br/painel_lbr';
 const UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
@@ -169,6 +170,9 @@ async function excluirPeca(cookie: string, idpeca: string): Promise<void> {
 // ─── GET: escanear duplicatas sem remover ─────────────────────────────────────
 
 export async function GET(req: Request) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(req.url);
   const leilao = searchParams.get('leilao') ?? '';
   const nome   = searchParams.get('nome')   ?? '';
@@ -206,6 +210,9 @@ export async function GET(req: Request) {
 // ─── DELETE: zerar leilão inteiro via SSE ────────────────────────────────────
 
 export async function DELETE(req: Request) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const body = await req.json() as { nome: string; leilao: string };
   const { nome, leilao } = body;
 
@@ -279,6 +286,9 @@ export async function DELETE(req: Request) {
 // ─── POST: remover duplicatas via SSE ─────────────────────────────────────────
 
 export async function POST(req: Request) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const body = await req.json() as { nome: string; leilao: string };
   const { nome, leilao } = body;
 

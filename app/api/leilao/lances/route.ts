@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth/require-auth';
 
 const BASE = 'https://www.leiloesbr.com.br/painel_lbr';
 const UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
@@ -52,6 +53,9 @@ export interface LancesResult {
 }
 
 export async function GET(req: Request): Promise<NextResponse> {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(req.url);
   const leilao = searchParams.get('leilao')?.trim() ?? '';
   const nome   = searchParams.get('nome')?.trim() ?? '';

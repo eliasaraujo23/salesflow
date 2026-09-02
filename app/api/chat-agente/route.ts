@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { betaZodTool } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
 import { CC_DEFAULTS } from '@/lib/actions/carros-chefe';
+import { requireAuth } from '@/lib/auth/require-auth';
 
 export const maxDuration = 60;
 
@@ -877,6 +878,9 @@ Regras de formatação:
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   if (!process.env.PG_CONNECTION_STRING) {
     return NextResponse.json({ reply: 'Banco de dados não configurado.' }, { status: 500 });
   }

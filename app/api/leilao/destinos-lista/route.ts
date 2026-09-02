@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
+import { requireAuth } from '@/lib/auth/require-auth';
 
 const pool = new Pool({
   connectionString: process.env.PG_CONNECTION_STRING,
@@ -8,7 +9,10 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
 });
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (!auth.ok) return auth.response;
+
   const client = await pool.connect();
   try {
     const { rows } = await client.query<{ destino: string }>(

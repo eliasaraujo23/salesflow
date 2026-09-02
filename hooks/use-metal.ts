@@ -1,69 +1,62 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import {
-  collection, query, orderBy, onSnapshot,
-  addDoc, updateDoc, deleteDoc, doc, serverTimestamp, Timestamp,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { metalCollection, type LojaCode } from '@/lib/controle-config';
-import { type MetalRecord, QUALIDADES } from '@/types/controle';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchMetal, addMetal, updateMetal, deleteMetal } from '@/lib/actions/controle-lojas-registros';
+import { type LojaCode } from '@/lib/controle-config';
+import { type MetalRecord } from '@/types/controle';
 
 export type { MetalRecord };
 
-export function useMetal(loja: LojaCode) {
-  const [records, setRecords] = useState<MetalRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+export function useMetal(loja: LojaCode, mes?: { ano: number; mes: number }) {
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const col = metalCollection(loja);
-    const q = query(collection(db, col), orderBy('datetime', 'desc'));
-    const unsub = onSnapshot(q, snap => {
-      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() } as MetalRecord));
-      setRecords(docs);
-      setLoading(false);
-    });
-    return unsub;
-  }, [loja]);
+  const query = useQuery({
+    queryKey: ['controle-lojas-metal', loja, mes?.ano, mes?.mes],
+    queryFn: async () => {
+      const res = await fetchMetal(loja, mes);
+      if (!res.data) throw new Error(res.message ?? 'Erro ao carregar registros');
+      return res.data as unknown as MetalRecord[];
+    },
+  });
 
-  async function addRecord(data: Omit<MetalRecord, 'id' | 'createdAt'>) {
-    const col = metalCollection(loja);
-    const totalPeso = QUALIDADES.reduce((sum, q) => sum + (Number(data[q]) || 0), 0);
-    const pagoPorGrama = totalPeso > 0 ? (data.valor / totalPeso) : 0;
-    const horaStr = data.hora ?? '00:00';
-    const datePart = data.data.toDate().toISOString().slice(0, 10);
-    const datetime = Timestamp.fromDate(new Date(`${datePart}T${horaStr}:00`));
-    await addDoc(collection(db, col), {
-      ...data,
-      datetime,
-      total_peso: totalPeso,
-      pago_por_grama: pagoPorGrama,
-      createdAt: serverTimestamp(),
-    });
+  const records = query.data ?? [];
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['controle-lojas-metal', loja] });
+
+  const addMutation = useMutation({
+    mutationFn: (data: Omit<MetalRecord, 'id' | 'created_at' | 'datetime' | 'total_peso' | 'pago_por_grama'>) =>
+      addMetal(loja, data),
+    onSuccess: invalidate,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<MetalRecord> }) => updateMetal(loja, id, data),
+    onSuccess: invalidate,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteMetal(loja, id),
+    onSuccess: invalidate,
+  });
+
+  async function addRecord(data: Omit<MetalRecord, 'id' | 'created_at' | 'datetime' | 'total_peso' | 'pago_por_grama'>) {
+    const res = await addMutation.mutateAsync(data);
+    if (!res.data) throw new Error(res.message ?? 'Erro ao salvar registro');
   }
 
-  async function updateRecord(id: string, data: Partial<Omit<MetalRecord, 'id' | 'createdAt'>>) {
-    const col = metalCollection(loja);
-    const payload = { ...data } as Record<string, unknown>;
-    if (QUALIDADES.some(q => q in payload)) {
-      const currentRecord = records.find(r => r.id === id);
-      const merged = { ...currentRecord, ...data };
-      const totalPeso = QUALIDADES.reduce((sum, q) => sum + (Number(merged[q]) || 0), 0);
-      payload.total_peso = totalPeso;
-      payload.pago_por_grama = totalPeso > 0 ? ((merged.valor || 0) / totalPeso) : 0;
-    }
-    await updateDoc(doc(db, col, id), payload);
+  async function updateRecord(id: string, data: Partial<MetalRecord>) {
+    const res = await updateMutation.mutateAsync({ id, data });
+    if (!res.data) throw new Error(res.message ?? 'Erro ao atualizar registro');
   }
 
   async function deleteRecord(id: string) {
-    await deleteDoc(doc(db, metalCollection(loja), id));
+    const res = await deleteMutation.mutateAsync(id);
+    if (!res.data) throw new Error(res.message ?? 'Erro ao excluir registro');
   }
 
   function generateCodInterno(prefix: string): string {
     const now = new Date();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const yyyy = String(now.getFullYear());
-    // Deriva o próximo número a partir do maior seq encontrado nos registros existentes
     const pattern = new RegExp(`^${prefix}(\\d+)-`);
     let maxSeq = 0;
     for (const r of records) {
@@ -76,9 +69,5 @@ export function useMetal(loja: LojaCode) {
     return `${prefix}${maxSeq + 1}-${mm}${yyyy}`;
   }
 
-  function todayTimestamp(): Timestamp {
-    return Timestamp.fromDate(new Date());
-  }
-
-  return { records, loading, addRecord, updateRecord, deleteRecord, generateCodInterno, todayTimestamp };
+  return { records, loading: query.isLoading, addRecord, updateRecord, deleteRecord, generateCodInterno };
 }

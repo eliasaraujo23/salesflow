@@ -2,16 +2,16 @@
 
 import React, { useState, useMemo } from 'react';
 import { notFound, useParams } from 'next/navigation';
-import { Timestamp } from 'firebase/firestore';
 import { Plus, Loader2, Scale, Search, X } from 'lucide-react';
 import { getLojaConfig, type LojaCode } from '@/lib/controle-config';
 import { useMetal } from '@/hooks/use-metal';
 import { type MetalRecord } from '@/types/controle';
 import { MetalFormModal } from '@/components/controle/metal-form-modal';
+import { useConfigGlobal } from '@/hooks/use-config-global';
 
-function fmtDate(ts: Timestamp | null | undefined): string {
-  if (!ts) return '—';
-  return (ts instanceof Timestamp ? ts.toDate() : new Date()).toLocaleDateString('pt-BR');
+function fmtDate(dataISO: string | null | undefined): string {
+  if (!dataISO) return '—';
+  return new Date(`${dataISO}T00:00:00`).toLocaleDateString('pt-BR');
 }
 
 function fmtN(v: number): string {
@@ -36,26 +36,38 @@ export default function MetalPage() {
 
   const [now] = useState(() => new Date());
   const { records, loading, addRecord, updateRecord, deleteRecord, generateCodInterno } =
-    useMetal(loja.code as LojaCode);
+    useMetal(loja.code as LojaCode, { ano: now.getFullYear(), mes: now.getMonth() + 1 });
+  const global = useConfigGlobal();
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<MetalRecord | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [filterTransacao, setFilterTransacao] = useState<'ALL' | 'COMPRA' | 'NAO_COMPRA'>('ALL');
 
+  const nomeAvaliador = useMemo(() => {
+    const map = new Map(global.avaliadores.map(a => [a.id, a.nome]));
+    return (id: string) => map.get(id) ?? id;
+  }, [global.avaliadores]);
+
+  const nomeModalidade = useMemo(() => {
+    const map = new Map(global.modalidades.map(m => [m.id, m.nome]));
+    return (id: string | null) => (id ? map.get(id) ?? id : '');
+  }, [global.modalidades]);
+
+  const nomeEmpresa = useMemo(() => {
+    const map = new Map(global.empresas.map(e => [e.id, e.nome]));
+    return (id: string | null) => (id ? map.get(id) ?? id : '');
+  }, [global.empresas]);
+
   const filtered = useMemo(() => {
-    const y = now.getFullYear();
-    const m = now.getMonth();
     const q = search.toLowerCase();
     return records
       .filter(r => {
-        const d = r.data instanceof Timestamp ? r.data.toDate() : new Date(r.data as unknown as string);
-        if (d.getFullYear() !== y || d.getMonth() !== m) return false;
         if (filterTransacao !== 'ALL' && r.transacao !== filterTransacao) return false;
         if (
           q &&
           !r.nome.toLowerCase().includes(q) &&
           !r.cod_interno.toLowerCase().includes(q) &&
-          !(r.avaliadores ?? []).join(' ').toLowerCase().includes(q)
+          !(r.avaliadores ?? []).map(nomeAvaliador).join(' ').toLowerCase().includes(q)
         )
           return false;
         return true;
@@ -67,7 +79,7 @@ export default function MetalPage() {
         };
         return seq(b.cod_interno) - seq(a.cod_interno);
       });
-  }, [records, search, filterTransacao, now]);
+  }, [records, search, filterTransacao, nomeAvaliador]);
 
   const newCod = generateCodInterno(loja.cod_prefix);
 
@@ -145,7 +157,7 @@ export default function MetalPage() {
                 <th className={thCls}>Data</th>
                 <th className={thCls}>Hora</th>
                 <th className={thCls}>Feedback</th>
-                <th className={`${thCls} text-right`}>Preço</th>
+                <th className={`${thCls} text-right`}>Nº Preço</th>
                 <th className={thCls}>Motivo NC</th>
                 <th className={thCls}>Transação</th>
                 <th className={`${thCls} text-right`}>24K</th>
@@ -197,9 +209,9 @@ export default function MetalPage() {
                       <td className={`${tdCls} font-mono text-indigo-600 dark:text-indigo-400 font-medium`}>{r.cod_interno}</td>
                       <td className={`${tdCls} text-zinc-600 dark:text-zinc-400 tabular-nums`}>{fmtDate(r.data)}</td>
                       <td className={`${tdCls} text-zinc-500 tabular-nums`}>{r.hora || '—'}</td>
-                      <td className={`${tdCls} text-zinc-600 dark:text-zinc-400 max-w-[120px] truncate`}>{r.feedback || '—'}</td>
+                      <td className={`${tdCls} text-zinc-600 dark:text-zinc-400 max-w-[120px] truncate`}>{r.feedback_id || '—'}</td>
                       <td className={`${tdNum} text-zinc-500`}>{r.preco > 0 ? r.preco : '—'}</td>
-                      <td className={`${tdCls} text-zinc-500 max-w-[140px] truncate`}>{r.motivo_nc || '—'}</td>
+                      <td className={`${tdCls} text-zinc-500 max-w-[140px] truncate`}>{r.feedback_nc_id || '—'}</td>
                       <td className={tdCls}>
                         <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold ${
                           isCompra
@@ -227,15 +239,17 @@ export default function MetalPage() {
                       <td className={`${tdCls} text-zinc-500 max-w-[160px] truncate`} title={r.observacao}>
                         {r.observacao || '—'}
                       </td>
-                      <td className={`${tdCls} text-zinc-600 dark:text-zinc-400`}>{avs[0] || '—'}</td>
-                      <td className={`${tdCls} text-zinc-500`}>{avs[1] || '—'}</td>
-                      <td className={`${tdCls} text-zinc-500`}>{avs[2] || '—'}</td>
-                      <td className={`${tdCls} text-zinc-500`}>{avs[3] || '—'}</td>
-                      <td className={`${tdCls} text-zinc-500`}>{avs[4] || '—'}</td>
+                      <td className={`${tdCls} text-zinc-600 dark:text-zinc-400 max-w-[220px] truncate`} title={avs.map(nomeAvaliador).join('/')}>
+                        {avs.length > 0 ? avs.map(nomeAvaliador).join('/') : '—'}
+                      </td>
+                      <td className={`${tdCls} text-zinc-500`}>{avs[0] ? nomeAvaliador(avs[0]) : '—'}</td>
+                      <td className={`${tdCls} text-zinc-500`}>{avs[1] ? nomeAvaliador(avs[1]) : '—'}</td>
+                      <td className={`${tdCls} text-zinc-500`}>{avs[2] ? nomeAvaliador(avs[2]) : '—'}</td>
+                      <td className={`${tdCls} text-zinc-500`}>{avs[3] ? nomeAvaliador(avs[3]) : '—'}</td>
                       <td className={`${tdCls} font-mono text-zinc-500 text-[10px]`}>{r.cpf || '—'}</td>
                       <td className={`${tdCls} text-zinc-700 dark:text-zinc-300 max-w-[140px] truncate`}>{r.nome || '—'}</td>
-                      <td className={`${tdCls} text-zinc-500 max-w-[160px] truncate`}>{r.razao_social || '—'}</td>
-                      <td className={`${tdCls} text-zinc-500`}>{r.tipo || '—'}</td>
+                      <td className={`${tdCls} text-zinc-500 max-w-[160px] truncate`}>{nomeEmpresa(r.empresa_id) || '—'}</td>
+                      <td className={`${tdCls} text-zinc-500`}>{nomeModalidade(r.modalidade_id) || '—'}</td>
                     </tr>
                   );
                 })

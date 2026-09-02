@@ -42,12 +42,15 @@ function somaOuroPlatina(r: MetalRecord): number {
 }
 
 function computeStats(records: MetalRecord[]): Stats {
-  const bijuteria = records.filter(r => r.motivo_nc === '4').length;
+  const bijuteria = records.filter(r => r.feedback_nc_id === '4').length;
   const totalAvaliacoes = records.length;
   const semBijuteria = totalAvaliacoes - bijuteria;
 
   const compras = records.filter(r => r.transacao === 'COMPRA' && somaOuroPlatina(r) > 0);
-  const naoCompras = records.filter(r => r.transacao === 'NAO_COMPRA' && r.motivo_nc !== '4');
+  const naoCompras = records.filter(r => r.transacao === 'NAO_COMPRA' && r.feedback_nc_id !== '4');
+  // Conversão só considera avaliações com ouro/platina de verdade envolvido —
+  // bijuteria e qualquer não-compra sem peso ficam de fora dos dois lados.
+  const naoComprasComPeso = naoCompras.filter(r => somaOuroPlatina(r) > 0);
 
   const totalCompras = compras.length;
   const pesoOuro = compras.reduce((s, r) => s + r.total_peso, 0);
@@ -55,7 +58,8 @@ function computeStats(records: MetalRecord[]): Stats {
   const valorGasto = compras.reduce((s, r) => s + r.valor, 0);
   const mediaPreco = ouroPlatina > 0 ? valorGasto / ouroPlatina : 0;
   const pesoSemVenda = naoCompras.reduce((s, r) => s + somaOuroPlatina(r), 0);
-  const conversao = semBijuteria > 0 ? totalCompras / semBijuteria : 0;
+  const totalComPeso = totalCompras + naoComprasComPeso.length;
+  const conversao = totalComPeso > 0 ? totalCompras / totalComPeso : 0;
 
   const metaNova =
     totalCompras > 0

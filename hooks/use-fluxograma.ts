@@ -5,8 +5,6 @@ import {
   type Node, type Edge, type Connection, type NodeChange, type EdgeChange,
   addEdge, applyNodeChanges, applyEdgeChanges,
 } from '@xyflow/react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { toast } from 'sonner';
 
 export type FlowNodeType = 'process' | 'decision' | 'terminal';
@@ -18,8 +16,6 @@ export interface FlowNodeData {
   responsavel?: string;
   color?: string;
 }
-
-const FLUXOGRAMA_DOC = doc(db, 'fluxogramas', 'empresa');
 
 interface PendingSave { nodes: Node[]; edges: Edge[] }
 
@@ -35,19 +31,22 @@ export function useFluxograma() {
 
   useEffect(() => { loadedRef.current = loaded; }, [loaded]);
 
-  // Carrega do Firestore — migra edges antigas para o tipo customizado
+  // Carrega da API — migra edges antigas para o tipo customizado
   useEffect(() => {
-    const unsub = onSnapshot(FLUXOGRAMA_DOC, (snap) => {
-      if (snap.exists()) {
-        const d = snap.data();
-        setNodes(d.nodes ?? []);
-        setEdges(
-          (d.edges ?? []).map((e: Edge) => ({ ...e, type: 'flowEdge' }))
-        );
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/fluxograma', { cache: 'no-store' });
+        if (!res.ok) { if (!cancelled) setLoaded(true); return; }
+        const body = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        setNodes(body.data?.nodes ?? []);
+        setEdges((body.data?.edges ?? []).map((e: Edge) => ({ ...e, type: 'flowEdge' })));
+      } finally {
+        if (!cancelled) setLoaded(true);
       }
-      setLoaded(true);
-    }, () => setLoaded(true));
-    return unsub;
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   const scheduleSave = useCallback((n: Node[], e: Edge[]) => {
@@ -59,9 +58,14 @@ export function useFluxograma() {
       const { nodes: ns, edges: es } = pendingRef.current;
       setSaving(true);
       try {
-        // JSON round-trip strips undefined fields, which Firestore rejects
-        const payload = JSON.parse(JSON.stringify({ nodes: ns, edges: es, updatedAt: new Date().toISOString() }));
-        await setDoc(FLUXOGRAMA_DOC, payload);
+        // JSON round-trip strips undefined fields before sending
+        const payload = JSON.parse(JSON.stringify({ nodes: ns, edges: es }));
+        const res = await fetch('/api/fluxograma', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error('save failed');
       } catch {
         toast.error('Erro ao salvar fluxograma');
       } finally {
