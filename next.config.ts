@@ -9,7 +9,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['jimp'],
+  serverExternalPackages: ['jimp', 'firebase-admin', 'jwks-rsa'],
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },
