@@ -96,9 +96,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose, desktopCollapsed, s
   }, [currentUser?.role, currentUser?.permissions]);
 
   const handleLogout = async () => {
-    // logOut() já limpa a sessão Firebase e o cookie JWT (ver firebase-provider.tsx)
-    // — nada aqui depende mais do backend externo antigo.
-    try { await logOut(); toast.success('Sessão encerrada.'); }
+    // logOut() limpa a sessão Firebase e o cookie JWT e navega para /login
+    // via window.location (ver firebase-provider.tsx) — nada aqui depende
+    // mais do backend externo antigo.
+    try { await logOut(); }
     catch { toast.error('Erro ao sair'); }
   };
 
