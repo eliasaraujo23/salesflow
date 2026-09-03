@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useFirebase } from '@/components/firebase-provider';
 import { Icon } from '@/components/icon-map';
-import { useLogout } from '@/hooks/use-logout';
 import { toast } from 'sonner';
 import { LogOut, Lock, ChevronUp, PanelLeftClose, PanelLeftOpen, X, Eye, EyeOff } from 'lucide-react';
 import { NAVIGATION_ITEMS } from '@/lib/constants';
@@ -26,7 +25,6 @@ interface SidebarProps {
 export function Sidebar({ mobileOpen = false, onMobileClose, desktopCollapsed, setDesktopCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const { currentUser, logOut } = useFirebase();
-  const { mutate: logout } = useLogout();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   // No mobile o menu é um overlay que sempre abre com os nomes visíveis — só o desktop
   // tem o modo "recolhido só com ícones". isMobile é lido uma vez no mount (evita
@@ -98,13 +96,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose, desktopCollapsed, s
   }, [currentUser?.role, currentUser?.permissions]);
 
   const handleLogout = async () => {
-    logout(undefined, {
-      onSuccess: async () => {
-        try { await logOut(); toast.success('Sessão encerrada.'); }
-        catch { toast.error('Erro ao sair'); }
-      },
-      onError: () => toast.error('Erro ao sair'),
-    });
+    // logOut() já limpa a sessão Firebase e o cookie JWT (ver firebase-provider.tsx)
+    // — nada aqui depende mais do backend externo antigo.
+    try { await logOut(); toast.success('Sessão encerrada.'); }
+    catch { toast.error('Erro ao sair'); }
   };
 
   if (!currentUser) return null;

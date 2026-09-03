@@ -221,12 +221,17 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const logOut = async () => {
     if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
-    await signOut(auth);
-    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    // Limpa o estado local imediatamente — não espera Firebase/API responderem
+    // para o usuário sair da tela (essas chamadas continuam em paralelo, mas
+    // não bloqueiam mais o redirect para /login).
     setCurrentUser(null);
     localStorage.removeItem('sf_user');
     localStorage.removeItem('sf_login_time');
     toast.success('Sessão encerrada com sucesso!');
+    await Promise.allSettled([
+      signOut(auth),
+      fetch('/api/auth/logout', { method: 'POST' }),
+    ]);
   };
 
   return (
