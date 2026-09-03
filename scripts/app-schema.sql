@@ -132,11 +132,24 @@ CREATE TABLE IF NOT EXISTS leilao_bases_ativas (
   refs_vendidos      TEXT[] NOT NULL DEFAULT '{}',
   excluded           BOOLEAN NOT NULL DEFAULT false,
   price_per_ref      JSONB NOT NULL DEFAULT '{}',
+  lote_para_ref      JSONB NOT NULL DEFAULT '{}',
   created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
   legacy_id          TEXT UNIQUE
 );
 
 CREATE INDEX IF NOT EXISTS idx_leilao_bases_ativas_created_at ON leilao_bases_ativas (created_at ASC);
+
+-- Peças vendidas/arrematadas no leiloesbr que já foram separadas fisicamente
+-- (marcado manualmente na aba Lances). Não afeta leilao_bases_ativas para não
+-- perder o estado quando a base é resincronizada/substituída.
+CREATE TABLE IF NOT EXISTS leilao_pecas_separadas (
+  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  codigo_plataforma  TEXT NOT NULL,
+  referencia         TEXT NOT NULL,
+  separado_em        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  separado_por       TEXT,
+  UNIQUE (codigo_plataforma, referencia)
+);
 
 -- ── Análise HT (planilhas de Histórico de Trabalho por loja/mês) ───────────
 -- Formato de origem: CSV "AAAAMM_LOJA.csv" (G:\USUÁRIOS\ELIAS\Planilha HT).

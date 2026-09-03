@@ -10,6 +10,7 @@ const requestSchema = z.object({
   refs: z.array(z.string()).optional(),
   refsVendidos: z.array(z.string()).optional(),
   pricePerRef: z.record(z.string(), z.number()).optional(),
+  loteParaRef: z.record(z.string(), z.string()).optional(),
 });
 
 // Substitui (remove + insere) qualquer base existente com o mesmo
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ httpStatus: 400, message: 'Dados inválidos.', errors: parsed.error }, { status: 400 });
   }
 
-  const { codigoPlatforma, filename, count, refs, refsVendidos, pricePerRef } = parsed.data;
+  const { codigoPlatforma, filename, count, refs, refsVendidos, pricePerRef, loteParaRef } = parsed.data;
   const pool = getAppPool();
   const client = await pool.connect();
   try {
@@ -34,9 +35,9 @@ export async function POST(req: NextRequest) {
 
     if (filename) {
       await client.query(
-        `INSERT INTO leilao_bases_ativas (codigo_plataforma, filename, count_pecas, refs, refs_vendidos, price_per_ref)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
-        [codigoPlatforma, filename, count ?? 0, refs ?? [], refsVendidos ?? [], JSON.stringify(pricePerRef ?? {})]
+        `INSERT INTO leilao_bases_ativas (codigo_plataforma, filename, count_pecas, refs, refs_vendidos, price_per_ref, lote_para_ref)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [codigoPlatforma, filename, count ?? 0, refs ?? [], refsVendidos ?? [], JSON.stringify(pricePerRef ?? {}), JSON.stringify(loteParaRef ?? {})]
       );
     }
 

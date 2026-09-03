@@ -80,6 +80,7 @@ export function useSyncBases(leiloes: Leilao[], onSyncComplete?: () => void) {
             refs: item.refs ?? [],
             refsVendidos: item.vendidos ?? [],
             pricePerRef: item.pricePerRef ?? {},
+            loteParaRef: item.loteParaRef ?? {},
           }),
         });
 

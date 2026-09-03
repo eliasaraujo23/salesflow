@@ -16,6 +16,7 @@ export interface UploadedFileStored {
   count:           number;
   vendidos:        string[];
   pricePerRef:     Record<string, number>;
+  loteParaRef:     Record<string, string>;
 }
 
 const rowSchema = z.object({
@@ -27,6 +28,7 @@ const rowSchema = z.object({
   refs_vendidos: z.array(z.string()),
   excluded: z.boolean(),
   price_per_ref: z.record(z.string(), z.number()),
+  lote_para_ref: z.record(z.string(), z.string()),
 });
 
 type Row = z.infer<typeof rowSchema>;
@@ -55,6 +57,7 @@ export function useLeilaoBasesStorage(leiloes: Leilao[]) {
     count:           r.count_pecas,
     vendidos:        r.refs_vendidos,
     pricePerRef:     r.price_per_ref,
+    loteParaRef:     r.lote_para_ref,
     leilao:          r.codigo_plataforma
       ? leiloes.find(l => l.codigoPlatforma === r.codigo_plataforma) ?? null
       : null,
@@ -71,6 +74,7 @@ export function useLeilaoBasesStorage(leiloes: Leilao[]) {
       refs:            string[];
       refsVendidos:    string[];
       pricePerRef:     Record<string, number>;
+      loteParaRef:     Record<string, string>;
     }) => {
       const res = await fetch('/api/leilao/bases-ativas', {
         method: 'POST',
@@ -104,7 +108,7 @@ export function useLeilaoBasesStorage(leiloes: Leilao[]) {
   });
 
   const add = useCallback((
-    file: { filename: string; codigoPlatforma: string | null; count: number; leilao: Leilao | null; vendidos?: string[]; pricePerRef?: Record<string, number> },
+    file: { filename: string; codigoPlatforma: string | null; count: number; leilao: Leilao | null; vendidos?: string[]; pricePerRef?: Record<string, number>; loteParaRef?: Record<string, string> },
     refs: string[],
   ) => {
     addMutation.mutate({
@@ -114,6 +118,7 @@ export function useLeilaoBasesStorage(leiloes: Leilao[]) {
       refs,
       refsVendidos:    file.vendidos ?? [],
       pricePerRef:     file.pricePerRef ?? {},
+      loteParaRef:     file.loteParaRef ?? {},
     });
   }, [addMutation]);
 

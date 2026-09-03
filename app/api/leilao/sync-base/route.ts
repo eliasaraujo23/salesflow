@@ -79,7 +79,7 @@ async function exportHtml(cookie: string, numLeilao: string): Promise<string> {
   return exportRes.text();
 }
 
-function parseHtmlTable(html: string): { refs: string[]; vendidos: string[]; pricePerRef: Record<string, number> } {
+function parseHtmlTable(html: string): { refs: string[]; vendidos: string[]; pricePerRef: Record<string, number>; loteParaRef: Record<string, string> } {
   // HTML é malformado: apenas a 1ª linha de dados tem <tr> de abertura.
   // Divide pelo fechamento </tr> para extrair cada linha.
   const segments = html.split(/<\/tr>/i);
@@ -88,17 +88,19 @@ function parseHtmlTable(html: string): { refs: string[]; vendidos: string[]; pri
   const headers = [...headerSeg.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/gi)]
     .map(m => m[1].replace(/<[^>]+>/g, '').trim());
 
-  if (headers.length === 0) return { refs: [], vendidos: [], pricePerRef: {} };
+  if (headers.length === 0) return { refs: [], vendidos: [], pricePerRef: {}, loteParaRef: {} };
 
   const idxMini  = headers.findIndex(h => /minidesc|mini/i.test(h));
   const idxValor = headers.findIndex(h => /valorvend/i.test(h));
   const idxBase  = headers.findIndex(h => /^base$/i.test(h));
+  const idxLote  = headers.findIndex(h => /^lote$/i.test(h));
 
-  if (idxMini < 0) return { refs: [], vendidos: [], pricePerRef: {} };
+  if (idxMini < 0) return { refs: [], vendidos: [], pricePerRef: {}, loteParaRef: {} };
 
   const refs: string[] = [];
   const vendidos: string[] = [];
   const pricePerRef: Record<string, number> = {};
+  const loteParaRef: Record<string, string> = {};
 
   for (const seg of segments.slice(1)) {
     const cells = [...seg.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)]
@@ -117,9 +119,13 @@ function parseHtmlTable(html: string): { refs: string[]; vendidos: string[]; pri
       const p = parseFloat((cells[idxBase] ?? '').replace(',', '.')) || 0;
       if (p > 0) pricePerRef[ref] = p;
     }
+    if (idxLote >= 0) {
+      const lote = (cells[idxLote] ?? '').trim();
+      if (lote) loteParaRef[lote] = ref;
+    }
   }
 
-  return { refs, vendidos, pricePerRef };
+  return { refs, vendidos, pricePerRef, loteParaRef };
 }
 
 interface LeilaoInput {
@@ -136,6 +142,7 @@ export interface SyncResult {
   refs?:           string[];
   vendidos?:       string[];
   pricePerRef?:    Record<string, number>;
+  loteParaRef?:    Record<string, string>;
   count?:          number;
   skipped:         boolean;
   finalizado?:     boolean; // leilão está finalizado na leiloes.br → remover do storage
@@ -176,6 +183,7 @@ export async function POST(req: Request) {
         refs:            parsed.refs,
         vendidos:        parsed.vendidos,
         pricePerRef:     parsed.pricePerRef,
+        loteParaRef:     parsed.loteParaRef,
         count:           parsed.refs.length,
         skipped:         false,
       };

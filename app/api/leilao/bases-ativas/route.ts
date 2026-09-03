@@ -10,6 +10,7 @@ const addSchema = z.object({
   refs: z.array(z.string()),
   refsVendidos: z.array(z.string()).default([]),
   pricePerRef: z.record(z.string(), z.number()).default({}),
+  loteParaRef: z.record(z.string(), z.string()).default({}),
 });
 
 const rowOutputSchema = z.object({
@@ -21,6 +22,7 @@ const rowOutputSchema = z.object({
   refs_vendidos: z.array(z.string()),
   excluded: z.boolean(),
   price_per_ref: z.record(z.string(), z.number()),
+  lote_para_ref: z.record(z.string(), z.string()),
 });
 
 type RowOutput = z.infer<typeof rowOutputSchema>;
@@ -35,6 +37,7 @@ function mapRow(row: any): RowOutput {
     refs_vendidos: row.refs_vendidos ?? [],
     excluded: row.excluded,
     price_per_ref: row.price_per_ref ?? {},
+    lote_para_ref: row.lote_para_ref ?? {},
   };
 }
 
@@ -44,7 +47,7 @@ export async function GET(req: NextRequest) {
 
   const pool = getAppPool();
   const result = await pool.query(
-    `SELECT id, codigo_plataforma, filename, count_pecas, refs, refs_vendidos, excluded, price_per_ref
+    `SELECT id, codigo_plataforma, filename, count_pecas, refs, refs_vendidos, excluded, price_per_ref, lote_para_ref
      FROM leilao_bases_ativas ORDER BY created_at ASC`
   );
   const data: RowOutput[] = result.rows.map(mapRow);
@@ -61,13 +64,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ httpStatus: 400, message: 'Dados inválidos.', errors: parsed.error }, { status: 400 });
   }
 
-  const { codigoPlatforma, filename, count, refs, refsVendidos, pricePerRef } = parsed.data;
+  const { codigoPlatforma, filename, count, refs, refsVendidos, pricePerRef, loteParaRef } = parsed.data;
   const pool = getAppPool();
   const result = await pool.query(
-    `INSERT INTO leilao_bases_ativas (codigo_plataforma, filename, count_pecas, refs, refs_vendidos, price_per_ref)
-     VALUES ($1,$2,$3,$4,$5,$6)
-     RETURNING id, codigo_plataforma, filename, count_pecas, refs, refs_vendidos, excluded, price_per_ref`,
-    [codigoPlatforma, filename, count, refs, refsVendidos, JSON.stringify(pricePerRef)]
+    `INSERT INTO leilao_bases_ativas (codigo_plataforma, filename, count_pecas, refs, refs_vendidos, price_per_ref, lote_para_ref)
+     VALUES ($1,$2,$3,$4,$5,$6,$7)
+     RETURNING id, codigo_plataforma, filename, count_pecas, refs, refs_vendidos, excluded, price_per_ref, lote_para_ref`,
+    [codigoPlatforma, filename, count, refs, refsVendidos, JSON.stringify(pricePerRef), JSON.stringify(loteParaRef)]
   );
   const data: RowOutput = mapRow(result.rows[0]);
   return NextResponse.json({ httpStatus: 200, data }, { status: 201 });

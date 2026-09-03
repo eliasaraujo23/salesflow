@@ -174,12 +174,16 @@ export function RoboConferencias({ uploadedFiles, refsPerFile, excludedFiles, ac
       const leilaoResults: LeilaoResult[] = activeFiles.map(f => {
         const fileIssues: ConferenciaIssue[] = [];
         const seenRefs = new Set<string>();
+        // Peças já vendidas/arrematadas no leiloesbr não podem (nem devem) ser
+        // excluídas da plataforma — só precisam de separação física, tratada na aba Lances.
+        const vendidosSet = new Set(f.vendidos.map(v => v.toUpperCase()));
 
         for (const ref of (refsPerFile.get(f.filename) ?? [])) {
           if (!ref) continue;
           const upper = ref.toUpperCase();
           if (seenRefs.has(upper)) continue;
           seenRefs.add(upper);
+          if (vendidosSet.has(upper)) continue;
           const issue = issueMap.get(upper);
           if (issue) fileIssues.push(issue);
         }

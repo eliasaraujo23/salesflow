@@ -1,21 +1,25 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { RefreshCw, Loader2, AlertTriangle, TrendingUp, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Fragment, useState, useMemo, useEffect, useCallback } from 'react';
+import { RefreshCw, Loader2, AlertTriangle, TrendingUp, ChevronUp, ChevronDown, ChevronsUpDown, CheckSquare, Square } from 'lucide-react';
 import type { Leilao } from '@/lib/hooks/use-leiloes';
 import type { Lance } from '@/lib/hooks/use-leilao-lances';
+import type { UploadedFileStored } from '@/lib/hooks/use-leilao-bases-storage';
+import { useLeilaoPecasSeparadas } from '@/lib/hooks/use-leilao-pecas-separadas';
 
 interface Props {
-  leiloes: Leilao[];
+  leiloes:       Leilao[];
+  uploadedFiles: UploadedFileStored[];
 }
 
-type SortKey = 'lote' | 'nome' | 'valor' | 'data' | 'status';
+type SortKey = 'lote' | 'nome' | 'valor' | 'data' | 'hora' | 'status';
 type SortDir = 'asc' | 'desc';
 
 const COLS: { key: SortKey; label: string }[] = [
   { key: 'lote',   label: 'Lote'        },
   { key: 'nome',   label: 'Arrematante' },
   { key: 'data',   label: 'Data'        },
+  { key: 'hora',   label: 'Hora'        },
   { key: 'status', label: 'Status'      },
   { key: 'valor',  label: 'Lance'       },
 ];
@@ -24,12 +28,14 @@ function fmtBRL(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-function fmtData(s: string) {
-  if (!s) return '—';
+// "DD/MM/AAAA-HH:MM:SS" → { data: "DD/MM", hora: "HH:MM", ts: número comparável }
+function parseData(s: string): { data: string; hora: string; ts: number } {
+  if (!s) return { data: '—', hora: '—', ts: 0 };
   const [date, time] = s.split('-');
-  const [d, m] = (date ?? '').split('/');
+  const [d, m, y] = (date ?? '').split('/');
   const hm = (time ?? '').slice(0, 5);
-  return `${d}/${m} ${hm}`;
+  const ts = Number(y) * 1e8 + Number(m) * 1e6 + Number(d) * 1e4 + Number((time ?? '').replace(/:/g, '').slice(0, 4));
+  return { data: `${d}/${m}`, hora: hm || '—', ts: Number.isNaN(ts) ? 0 : ts };
 }
 
 async function fetchLancesApi(leilao: string, nome: string): Promise<Lance[]> {
@@ -138,7 +144,7 @@ function ResumoCard({ leilao, selected, onClick }: ResumoCardProps) {
 
 // ─── Painel principal ─────────────────────────────────────────────────────────
 
-export function LancesPanel({ leiloes }: Props) {
+export function LancesPanel({ leiloes, uploadedFiles }: Props) {
   const [selectedId, setSelectedId] = useState('');
   const [lances,     setLances]     = useState<Lance[]>([]);
   const [phase,      setPhase]      = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
@@ -149,6 +155,14 @@ export function LancesPanel({ leiloes }: Props) {
   const [search,  setSearch]  = useState('');
 
   const selected = leiloes.find(l => l.id === selectedId);
+
+  // Mapa lote → referência, vindo da base ativa daquele leilão (export de lotes já sincronizado)
+  const loteParaRef = useMemo(() => {
+    const file = uploadedFiles.find(f => f.codigoPlatforma === selected?.codigoPlatforma);
+    return file?.loteParaRef ?? {};
+  }, [uploadedFiles, selected]);
+
+  const { separadas, toggle: toggleSeparada } = useLeilaoPecasSeparadas(selected?.codigoPlatforma ?? '');
 
   async function loadDetalhe(leilao: Leilao) {
     setPhase('loading'); setLances([]); setErrMsg('');
@@ -189,7 +203,8 @@ export function LancesPanel({ leiloes }: Props) {
       switch (sortKey) {
         case 'lote':   va = a.lote;   vb = b.lote;   break;
         case 'nome':   va = a.nome;   vb = b.nome;    break;
-        case 'data':   va = a.data;   vb = b.data;    break;
+        case 'data':
+        case 'hora':   va = parseData(a.data).ts; vb = parseData(b.data).ts; break;
         case 'status': va = a.status; vb = b.status;  break;
         case 'valor':  va = a.valor;  vb = b.valor;   break;
       }
@@ -304,37 +319,51 @@ export function LancesPanel({ leiloes }: Props) {
                 <table className="w-full text-xs border-separate border-spacing-0 data-table">
                   <thead>
                     <tr>
-                      <th colSpan={COLS.length + 1} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] text-left font-semibold text-zinc-700 dark:text-zinc-200">
+                      <th colSpan={COLS.length + 3} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] text-left font-semibold text-zinc-700 dark:text-zinc-200">
                         {totalLances} lance{totalLances !== 1 ? 's' : ''} · {uniqueLotes} lote{uniqueLotes !== 1 ? 's' : ''}
                         {search && <span className="text-zinc-400 font-normal ml-1">· filtrado</span>}
                       </th>
                     </tr>
                     <tr>
-                      {COLS.map(col => (
-                        <th
-                          key={col.key}
-                          onClick={() => toggleSort(col.key)}
-                          className="sticky top-[41px] z-10 px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] font-semibold text-zinc-500 cursor-pointer select-none whitespace-nowrap"
-                        >
-                          <span className="inline-flex items-center gap-1">
-                            {col.label}
-                            <SortIcon col={col.key} />
-                          </span>
-                        </th>
+                      {COLS.map((col, idx) => (
+                        <Fragment key={col.key}>
+                          <th
+                            onClick={() => toggleSort(col.key)}
+                            className="sticky top-[41px] z-10 px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] font-semibold text-zinc-500 cursor-pointer select-none whitespace-nowrap"
+                          >
+                            <span className="inline-flex items-center gap-1">
+                              {col.label}
+                              <SortIcon col={col.key} />
+                            </span>
+                          </th>
+                          {idx === 0 && (
+                            <th className="sticky top-[41px] z-10 px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] font-semibold text-zinc-500 whitespace-nowrap">
+                              Referência
+                            </th>
+                          )}
+                        </Fragment>
                       ))}
                       <th className="sticky top-[41px] z-10 px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] font-semibold text-zinc-500">
                         Contrato
+                      </th>
+                      <th className="sticky top-[41px] z-10 px-3 py-2 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.06] font-semibold text-zinc-500 whitespace-nowrap">
+                        Separada
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.map((r, i) => {
                       const isVencendo = r.status.toLowerCase().includes('vencendo');
+                      const ref = loteParaRef[String(r.lote)] ?? null;
+                      const isSeparada = ref ? separadas.has(ref) : false;
+                      const { data, hora } = parseData(r.data);
                       return (
                         <tr key={`${r.lote}-${i}`} className={isVencendo ? 'bg-emerald-50/40 dark:bg-emerald-950/10' : ''}>
                           <td className="px-3 py-2 border-b border-zinc-100 dark:border-white/[0.04] font-bold tabular-nums text-zinc-700 dark:text-zinc-200">{r.lote}</td>
+                          <td className="px-3 py-2 border-b border-zinc-100 dark:border-white/[0.04] font-bold tabular-nums text-zinc-700 dark:text-zinc-200">{ref ?? '—'}</td>
                           <td className="px-3 py-2 border-b border-zinc-100 dark:border-white/[0.04] text-zinc-700 dark:text-zinc-300 max-w-[200px] truncate">{r.nome || '—'}</td>
-                          <td className="px-3 py-2 border-b border-zinc-100 dark:border-white/[0.04] text-zinc-500 whitespace-nowrap tabular-nums">{fmtData(r.data)}</td>
+                          <td className="px-3 py-2 border-b border-zinc-100 dark:border-white/[0.04] text-zinc-500 whitespace-nowrap tabular-nums">{data}</td>
+                          <td className="px-3 py-2 border-b border-zinc-100 dark:border-white/[0.04] text-zinc-500 whitespace-nowrap tabular-nums">{hora}</td>
                           <td className="px-3 py-2 border-b border-zinc-100 dark:border-white/[0.04]">
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                               isVencendo
@@ -346,6 +375,19 @@ export function LancesPanel({ leiloes }: Props) {
                           </td>
                           <td className="px-3 py-2 border-b border-zinc-100 dark:border-white/[0.04] font-semibold tabular-nums text-zinc-800 dark:text-zinc-100 whitespace-nowrap">{fmtBRL(r.valor)}</td>
                           <td className="px-3 py-2 border-b border-zinc-100 dark:border-white/[0.04] tabular-nums text-zinc-500 whitespace-nowrap">{r.valorContrato ? fmtBRL(r.valorContrato) : '—'}</td>
+                          <td className="px-3 py-2 border-b border-zinc-100 dark:border-white/[0.04] text-center">
+                            {ref ? (
+                              <button
+                                onClick={() => toggleSeparada(ref, !isSeparada)}
+                                className={`inline-flex items-center justify-center transition-colors ${
+                                  isSeparada ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-300 dark:text-zinc-600 hover:text-zinc-500'
+                                }`}
+                                title={isSeparada ? 'Marcada como separada' : 'Marcar como separada'}
+                              >
+                                {isSeparada ? <CheckSquare size={14} /> : <Square size={14} />}
+                              </button>
+                            ) : '—'}
+                          </td>
                         </tr>
                       );
                     })}
