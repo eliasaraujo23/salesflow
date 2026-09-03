@@ -23,7 +23,7 @@ export function LojaBaseColumn({
 }: Props) {
   return (
     <div
-      className="flex flex-col min-w-[150px] flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.10] rounded-xl overflow-hidden"
+      className="flex flex-col bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.10] rounded-xl overflow-hidden"
       style={{ borderTopColor: cor, borderTopWidth: 3 }}
     >
       <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-100 dark:border-white/[0.06]">

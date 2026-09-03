@@ -24,7 +24,6 @@ export function AnaliseHtUploadSection({ uploads, isUploading, onUpload, onRemov
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-3">
         <div className="flex flex-col md:flex-row md:items-baseline gap-0.5 md:gap-2 min-w-0">
           <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Planilhas HT</h2>
-          <p className="text-[11px] text-zinc-400">Importe CSVs de Histórico de Trabalho por loja/mês</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <input ref={inputRef} type="file" accept=".csv" multiple className="hidden" onChange={handleFiles} />
@@ -40,24 +39,23 @@ export function AnaliseHtUploadSection({ uploads, isUploading, onUpload, onRemov
       </div>
 
       {uploads.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1">
           {uploads.map(u => (
             <div
               key={u.id}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-zinc-900 text-xs"
+              className="group flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-md border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-zinc-900 text-[11px]"
             >
-              <FileSpreadsheet size={14} className="shrink-0 text-zinc-400" />
+              <FileSpreadsheet size={11} className="shrink-0 text-zinc-400" />
               <span className="font-bold tabular-nums shrink-0 text-zinc-800 dark:text-zinc-100">{u.loja}</span>
-              <span className="shrink-0 tabular-nums text-[10px] font-semibold px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
-                {u.ano_mes}
-              </span>
-              <span className="shrink-0 tabular-nums text-zinc-500 dark:text-zinc-500">{u.row_count} registros</span>
+              <span className="shrink-0 tabular-nums text-zinc-400 dark:text-zinc-500">{u.ano_mes}</span>
+              <span className="shrink-0 tabular-nums text-zinc-400 dark:text-zinc-600">·</span>
+              <span className="shrink-0 tabular-nums text-zinc-500 dark:text-zinc-500">{u.row_count}</span>
               <button
                 onClick={() => onRemove(u.id)}
                 title="Remover"
-                className="shrink-0 p-1 rounded text-zinc-300 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                className="shrink-0 p-0.5 rounded text-zinc-300 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
               >
-                <X size={13} />
+                <X size={11} />
               </button>
             </div>
           ))}

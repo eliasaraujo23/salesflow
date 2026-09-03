@@ -50,7 +50,7 @@ export function MetasLojaResultado({ onSalvar, isSaving }: Props) {
   const carregando = isSaving || isCalculating;
 
   return (
-    <div className="flex flex-col gap-2 shrink-0" style={{ flexBasis: '52%' }}>
+    <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between shrink-0">
         <div>
           <h2 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">Resultado por loja</h2>
@@ -71,7 +71,7 @@ export function MetasLojaResultado({ onSalvar, isSaving }: Props) {
           <p className="text-sm text-zinc-400">Nenhum resultado calculado ainda — clique em Salvar e recalcular.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 flex-1 min-h-0 overflow-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {ordenado.map(r => {
             const itens: ItemMeta[] = [
               { label: 'Peso', valor: `${fmtKg(r.pesoComprado)}g`, batida: r.metaPesoBatida },
@@ -116,7 +116,7 @@ export function MetasLojaResultado({ onSalvar, isSaving }: Props) {
                   <span className="font-medium">Conversão (loja)</span>
                   <span className="tabular-nums font-semibold">{fmtPct(r.conversaoGeral)}</span>
                 </div>
-                <div className="px-3 pt-2 pb-1.5 flex flex-col gap-1.5 overflow-y-auto max-h-[180px]">
+                <div className="px-3 pt-2 pb-1.5 flex flex-col gap-1.5">
                   <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">
                     Conversão individual — {conversoesBatidas}/{conversaoDaLoja.length}
                   </span>

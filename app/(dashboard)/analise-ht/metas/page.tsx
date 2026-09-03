@@ -20,7 +20,7 @@ export default function AnaliseHtMetasPage() {
   }
 
   return (
-    <div className="h-full flex flex-col gap-4 p-3 sm:p-6 overflow-hidden">
+    <div className="flex flex-col gap-4 p-3 sm:p-6">
       <MetasLojaResultado onSalvar={handleSalvar} isSaving={isSaving} />
       <MetasLojaConfigTable metas={metas} isLoading={isLoading} edicoes={edicoes} setEdicoes={setEdicoes} />
     </div>

@@ -14,18 +14,34 @@ const inputCls = 'w-20 px-1.5 py-1 text-xs bg-white dark:bg-zinc-800 border bord
 const fmtFaixaValor = (min: number, max: number) => `R$${min.toFixed(2)} - R$${max.toFixed(2)}`;
 const fmtFaixaPeso = (min: number, max: number | null) => (max === null ? `Acima de ${min}g` : `${min}g - ${max}g`);
 
+function chaveCampo(id: string, campo: 'premio1' | 'premio2' | 'premio3') {
+  return `${id}::${campo}`;
+}
+
 export function PremiacaoConfigTable() {
   const { faixas, isLoading, salvar, isSaving } = useAnaliseHtPremiacaoConfig();
   const [edicoes, setEdicoes] = useState<Record<string, PremiacaoFaixaConfig>>({});
+  // Texto bruto dos campos — separado de `edicoes` porque formatar o valor
+  // a cada tecla reposiciona o cursor no meio da digitação, e as setinhas
+  // nativas de type="number" atrapalham mais do que ajudam aqui.
+  const [textos, setTextos] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const map: Record<string, PremiacaoFaixaConfig> = {};
-    for (const f of faixas) map[f.id] = f;
+    const novosTextos: Record<string, string> = {};
+    for (const f of faixas) {
+      map[f.id] = f;
+      novosTextos[chaveCampo(f.id, 'premio1')] = String(f.premio1);
+      novosTextos[chaveCampo(f.id, 'premio2')] = String(f.premio2);
+      novosTextos[chaveCampo(f.id, 'premio3')] = String(f.premio3);
+    }
     setEdicoes(map);
+    setTextos(novosTextos);
   }, [faixas]);
 
   function handleChange(id: string, campo: 'premio1' | 'premio2' | 'premio3', valor: string) {
-    setEdicoes(prev => ({ ...prev, [id]: { ...prev[id], [campo]: parseFloat(valor) || 0 } }));
+    setTextos(prev => ({ ...prev, [chaveCampo(id, campo)]: valor }));
+    setEdicoes(prev => ({ ...prev, [id]: { ...prev[id], [campo]: parseFloat(valor.replace(',', '.')) || 0 } }));
   }
 
   function handleSalvar() {
@@ -82,7 +98,7 @@ export function PremiacaoConfigTable() {
                         {(['premio1', 'premio2', 'premio3'] as const).map(campo => (
                           <td key={campo} className="px-2 py-1.5">
                             <input
-                              type="number" step="0.01" value={edicoes[f.id]?.[campo] ?? 0}
+                              type="text" inputMode="decimal" value={textos[chaveCampo(f.id, campo)] ?? ''}
                               onChange={e => handleChange(f.id, campo, e.target.value)}
                               className={inputCls}
                             />

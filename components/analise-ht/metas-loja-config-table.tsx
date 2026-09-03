@@ -15,6 +15,10 @@ function chavePct(id: string, campo: CampoPct) {
   return `${id}::${campo}`;
 }
 
+function chaveNum(id: string, campo: CampoNum) {
+  return `${id}::${campo}`;
+}
+
 interface Props {
   metas: MetaLojaConfigRow[];
   isLoading: boolean;
@@ -23,22 +27,31 @@ interface Props {
 }
 
 export function MetasLojaConfigTable({ metas, isLoading, edicoes, setEdicoes }: Props) {
-  // Texto bruto dos campos de % — separado de `edicoes` porque formatar o
-  // valor numérico a cada tecla (toFixed) reposiciona o cursor no meio da
-  // digitação, impedindo digitar a vírgula decimal.
+  // Texto bruto dos campos — separado de `edicoes` porque formatar o valor
+  // numérico a cada tecla reposiciona o cursor no meio da digitação,
+  // impedindo digitar a vírgula decimal (e as setinhas nativas de
+  // type="number" atrapalham mais do que ajudam nesses campos).
   const [textosPct, setTextosPct] = useState<Record<string, string>>({});
+  const [textosNum, setTextosNum] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const textos: Record<string, string> = {};
+    const numeros: Record<string, string> = {};
+    const camposNum: CampoNum[] = ['metaPeso', 'premioPeso', 'metaPagoGrama', 'premioPagoGrama', 'premioConversao', 'limiteAbaixo250', 'premioAbaixo250'];
     for (const m of metas) {
       textos[chavePct(m.id, 'metaConversao')] = (m.metaConversao * 100).toFixed(2);
       textos[chavePct(m.id, 'metaAbaixo250')] = (m.metaAbaixo250 * 100).toFixed(2);
+      for (const campo of camposNum) {
+        numeros[chaveNum(m.id, campo)] = String(m[campo]);
+      }
     }
     setTextosPct(textos);
+    setTextosNum(numeros);
   }, [metas]);
 
   function handleChangeNum(id: string, campo: CampoNum, valor: string) {
-    setEdicoes(prev => ({ ...prev, [id]: { ...prev[id], [campo]: parseFloat(valor) || 0 } }));
+    setTextosNum(prev => ({ ...prev, [chaveNum(id, campo)]: valor }));
+    setEdicoes(prev => ({ ...prev, [id]: { ...prev[id], [campo]: parseFloat(valor.replace(',', '.')) || 0 } }));
   }
 
   function handleChangePct(id: string, campo: CampoPct, valor: string) {
@@ -53,10 +66,10 @@ export function MetasLojaConfigTable({ metas, isLoading, edicoes, setEdicoes }: 
   );
 
   return (
-    <div className="flex flex-col gap-2 flex-1 min-h-0">
-      <p className="text-[11px] text-zinc-400 shrink-0">Metas e prêmios por loja — cada meta batida paga o valor cheio a toda avaliadora da loja base</p>
+    <div className="flex flex-col gap-2">
+      <p className="text-[11px] text-zinc-400">Metas e prêmios por loja — cada meta batida paga o valor cheio a toda avaliadora da loja base</p>
 
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl overflow-auto flex-1 min-h-0">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl overflow-x-auto">
         <table className="w-full text-xs border-separate border-spacing-0 data-table">
           <thead>
             <tr>
@@ -93,31 +106,31 @@ export function MetasLojaConfigTable({ metas, isLoading, edicoes, setEdicoes }: 
                   </span>
                 </td>
                 <td className="px-2 py-2 border-l border-zinc-100 dark:border-white/[0.06]">
-                  <input type="number" step="1" value={edicoes[m.id]?.metaPeso ?? 0} onChange={e => handleChangeNum(m.id, 'metaPeso', e.target.value)} className={inputCls} />
+                  <input type="text" inputMode="decimal" value={textosNum[chaveNum(m.id, 'metaPeso')] ?? ''} onChange={e => handleChangeNum(m.id, 'metaPeso', e.target.value)} className={inputCls} />
                 </td>
                 <td className="px-2 py-2">
-                  <input type="number" step="0.01" value={edicoes[m.id]?.premioPeso ?? 0} onChange={e => handleChangeNum(m.id, 'premioPeso', e.target.value)} className={inputCls} />
+                  <input type="text" inputMode="decimal" value={textosNum[chaveNum(m.id, 'premioPeso')] ?? ''} onChange={e => handleChangeNum(m.id, 'premioPeso', e.target.value)} className={inputCls} />
                 </td>
                 <td className="px-2 py-2 border-l border-zinc-100 dark:border-white/[0.06]">
-                  <input type="number" step="0.01" value={edicoes[m.id]?.metaPagoGrama ?? 0} onChange={e => handleChangeNum(m.id, 'metaPagoGrama', e.target.value)} className={inputCls} />
+                  <input type="text" inputMode="decimal" value={textosNum[chaveNum(m.id, 'metaPagoGrama')] ?? ''} onChange={e => handleChangeNum(m.id, 'metaPagoGrama', e.target.value)} className={inputCls} />
                 </td>
                 <td className="px-2 py-2">
-                  <input type="number" step="0.01" value={edicoes[m.id]?.premioPagoGrama ?? 0} onChange={e => handleChangeNum(m.id, 'premioPagoGrama', e.target.value)} className={inputCls} />
+                  <input type="text" inputMode="decimal" value={textosNum[chaveNum(m.id, 'premioPagoGrama')] ?? ''} onChange={e => handleChangeNum(m.id, 'premioPagoGrama', e.target.value)} className={inputCls} />
                 </td>
                 <td className="px-2 py-2 border-l border-zinc-100 dark:border-white/[0.06]">
                   <input type="text" inputMode="decimal" value={textosPct[chavePct(m.id, 'metaConversao')] ?? ''} onChange={e => handleChangePct(m.id, 'metaConversao', e.target.value)} className={inputCls} />
                 </td>
                 <td className="px-2 py-2">
-                  <input type="number" step="0.01" value={edicoes[m.id]?.premioConversao ?? 0} onChange={e => handleChangeNum(m.id, 'premioConversao', e.target.value)} className={inputCls} />
+                  <input type="text" inputMode="decimal" value={textosNum[chaveNum(m.id, 'premioConversao')] ?? ''} onChange={e => handleChangeNum(m.id, 'premioConversao', e.target.value)} className={inputCls} />
                 </td>
                 <td className="px-2 py-2 border-l border-zinc-100 dark:border-white/[0.06]">
-                  <input type="number" step="0.01" value={edicoes[m.id]?.limiteAbaixo250 ?? 0} onChange={e => handleChangeNum(m.id, 'limiteAbaixo250', e.target.value)} className={inputCls} />
+                  <input type="text" inputMode="decimal" value={textosNum[chaveNum(m.id, 'limiteAbaixo250')] ?? ''} onChange={e => handleChangeNum(m.id, 'limiteAbaixo250', e.target.value)} className={inputCls} />
                 </td>
                 <td className="px-2 py-2">
                   <input type="text" inputMode="decimal" value={textosPct[chavePct(m.id, 'metaAbaixo250')] ?? ''} onChange={e => handleChangePct(m.id, 'metaAbaixo250', e.target.value)} className={inputCls} />
                 </td>
                 <td className="px-2 py-2">
-                  <input type="number" step="0.01" value={edicoes[m.id]?.premioAbaixo250 ?? 0} onChange={e => handleChangeNum(m.id, 'premioAbaixo250', e.target.value)} className={inputCls} />
+                  <input type="text" inputMode="decimal" value={textosNum[chaveNum(m.id, 'premioAbaixo250')] ?? ''} onChange={e => handleChangeNum(m.id, 'premioAbaixo250', e.target.value)} className={inputCls} />
                 </td>
               </tr>
             ))}

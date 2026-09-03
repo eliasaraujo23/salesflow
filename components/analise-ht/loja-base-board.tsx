@@ -47,7 +47,7 @@ export function LojaBaseBoard() {
         </button>
       </div>
 
-      <div className="flex flex-wrap 2xl:flex-nowrap gap-3 overflow-x-auto pb-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {LOJAS.map(({ sigla, cor }) => (
           <LojaBaseColumn
             key={sigla}
