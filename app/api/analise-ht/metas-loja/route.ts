@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireRole } from '@/lib/auth/require-auth';
+import { requirePermission } from '@/lib/auth/require-auth';
 import { getAppPool } from '@/lib/app-db';
 import { calcularMetaLoja, type MetaLojaConfig } from '@/lib/analise-ht/metas-loja';
 import type { AnaliseHtRegistroDb } from '@/lib/analise-ht/bonificacao';
@@ -25,7 +25,7 @@ function mapConfigRow(row: any): MetaLojaConfig {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireRole(req, 'admin');
+  const auth = await requirePermission(req, 'analise-ht');
   if (!auth.ok) return auth.response;
 
   const body = await req.json().catch(() => null);

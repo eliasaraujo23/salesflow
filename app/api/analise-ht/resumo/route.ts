@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireRole } from '@/lib/auth/require-auth';
+import { requirePermission } from '@/lib/auth/require-auth';
 import { getAppPool } from '@/lib/app-db';
 import { calcularResumo, DEFAULT_RESUMO_PARAMS } from '@/lib/analise-ht/resumo';
 import type { AnaliseHtRegistroDb } from '@/lib/analise-ht/bonificacao';
@@ -13,7 +13,7 @@ const paramsSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const auth = await requireRole(req, 'admin');
+  const auth = await requirePermission(req, 'analise-ht');
   if (!auth.ok) return auth.response;
 
   const body = await req.json().catch(() => null);
