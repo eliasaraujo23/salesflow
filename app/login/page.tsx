@@ -133,7 +133,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <form method="post" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form method="post" action="/api/auth/login" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-zinc-400 text-[13px] font-medium">
                   E-mail
