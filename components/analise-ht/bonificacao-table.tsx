@@ -3,10 +3,15 @@
 import { Fragment, useMemo, useState } from 'react';
 import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronRight } from 'lucide-react';
 import type { BonificacaoResultado } from '@/lib/hooks/use-analise-ht-bonificacao';
+import type { ResumoAvaliadora } from '@/lib/hooks/use-analise-ht-resumo';
 import { corDaLoja } from '@/lib/analise-ht/cores-lojas';
 
 interface Props {
   resultado: BonificacaoResultado[];
+  // Usado só para saber em quais lojas a avaliadora atuou no mês — garante
+  // que a loja apareça na tabela mesmo com todos os valores zerados (ex:
+  // nenhuma compra dela ali ficou dentro do limite de pago/grama).
+  resumo: ResumoAvaliadora[];
   premiacaoPorChave: Record<string, number>;
   bonusPrimeiroPrecoPorChave: Record<string, number>;
   metaLojaPorChave: Record<string, number>;
@@ -71,7 +76,7 @@ const COLS: { key: SortKey; label: string }[] = [
   { key: 'comissao', label: 'Bonificação' },
   { key: 'premiacao', label: 'Premiação' },
   { key: 'bonusPrimeiroPreco', label: 'Bônus 1º Preço' },
-  { key: 'metaLoja', label: 'Meta Loja' },
+  { key: 'metaLoja', label: 'Comissão' },
   { key: 'gratificacao', label: 'Gratificação' },
   { key: 'total', label: 'Total' },
 ];
@@ -88,7 +93,7 @@ function LojaPill({ loja }: { loja: string }) {
   );
 }
 
-export function BonificacaoTable({ resultado, premiacaoPorChave, bonusPrimeiroPrecoPorChave, metaLojaPorChave, gratificacaoPorChave, mostrarColunaLoja }: Props) {
+export function BonificacaoTable({ resultado, resumo, premiacaoPorChave, bonusPrimeiroPrecoPorChave, metaLojaPorChave, gratificacaoPorChave, mostrarColunaLoja }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('total');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [expandido, setExpandido] = useState<string | null>(null);
@@ -96,6 +101,7 @@ export function BonificacaoTable({ resultado, premiacaoPorChave, bonusPrimeiroPr
   const porAvaliador = useMemo(() => {
     const chaves = new Set([
       ...resultado.map(r => `${r.avaliador}::${r.loja}`),
+      ...resumo.map(r => `${r.avaliador}::${r.loja}`),
       ...Object.keys(premiacaoPorChave),
       ...Object.keys(bonusPrimeiroPrecoPorChave),
       ...Object.keys(metaLojaPorChave),

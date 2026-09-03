@@ -28,7 +28,7 @@ export function AnaliseHtRelatorios({ uploads }: Props) {
     [uploads, lojaFiltro]
   );
 
-  const { params, bonificacao, premiacaoPorChave, bonusPrimeiroPrecoPorChave, metaLojaPorChave, gratificacaoPorChave, lojasSemGrupo, isCalculating, handleCalcular } =
+  const { params, bonificacao, resumo, premiacaoPorChave, bonusPrimeiroPrecoPorChave, metaLojaPorChave, gratificacaoPorChave, lojasSemGrupo, isCalculating, handleCalcular } =
     useAnaliseHtCalculadora(uploadsFiltrados);
 
   // O cache de resultado (React Query) é global, não por upload — trocar o
@@ -72,6 +72,7 @@ export function AnaliseHtRelatorios({ uploads }: Props) {
       <div className="flex-1 min-w-0 min-h-0 flex flex-col">
         <BonificacaoTable
           resultado={bonificacao}
+          resumo={resumo}
           premiacaoPorChave={premiacaoPorChave}
           bonusPrimeiroPrecoPorChave={bonusPrimeiroPrecoPorChave}
           metaLojaPorChave={metaLojaPorChave}
