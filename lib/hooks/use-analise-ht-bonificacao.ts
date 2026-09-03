@@ -36,16 +36,21 @@ export interface BonificacaoParamsInput {
   limitePagoPorGrama: number;
 }
 
-// Chave global fixa (não por parâmetro) — o resultado calculado fica em
-// cache entre trocas de rota (Bonificação/Resumo/Config são páginas
-// separadas) até o próximo "Calcular", sem precisar recalcular ao navegar.
-const QUERY_KEY = ['analise-ht-bonificacao-resultado'];
+// Chave parametrizada pelos uploadIds — sem isso, telas com filtros
+// diferentes (ex: Bonificação filtrada por uma loja vs Resumo sempre com
+// todos os uploads) compartilhavam o mesmo cache e um recálculo em uma
+// tela apagava o filtro aplicado na outra (ver conversa 2026-09-03).
+function queryKey(uploadIds: string[]) {
+  return ['analise-ht-bonificacao-resultado', ...[...uploadIds].sort()];
+}
+const EMPTY: BonificacaoResultado[] = [];
 
-export function useAnaliseHtBonificacao() {
+export function useAnaliseHtBonificacao(uploadIds: string[]) {
   const qc = useQueryClient();
-  const { data: resultado = [] } = useQuery<BonificacaoResultado[]>({
-    queryKey: QUERY_KEY,
-    queryFn: () => qc.getQueryData(QUERY_KEY) ?? [],
+  const key = queryKey(uploadIds);
+  const { data: resultado = EMPTY } = useQuery<BonificacaoResultado[]>({
+    queryKey: key,
+    queryFn: () => qc.getQueryData(key) ?? EMPTY,
     staleTime: Infinity,
   });
 
@@ -65,7 +70,7 @@ export function useAnaliseHtBonificacao() {
       if (!parsed.success) throw new Error('Resposta inesperada do servidor.');
       return parsed.data;
     },
-    onSuccess: data => qc.setQueryData(QUERY_KEY, data),
+    onSuccess: data => qc.setQueryData(key, data),
     onError: (err: Error) => toast.error(err.message),
   });
 

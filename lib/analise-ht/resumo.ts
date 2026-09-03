@@ -7,18 +7,24 @@
 //   aparece 100% SOZINHA (sem "/").
 // Ambas excluem bijuteria (motivo_nc='4') e linhas só-prata (sem ouro/platina).
 
-import { n, somaOuroPlatina, naoDonosNaOrdem, type AnaliseHtRegistroDb } from '@/lib/analise-ht/bonificacao';
+import { n, somaOuroPlatina, naoDonosNaOrdem, ehDono, type AnaliseHtRegistroDb } from '@/lib/analise-ht/bonificacao';
 
 export interface ResumoParams {
   teorMedio: number;         // ex: 0.67
   valorFino: number;         // ex: 620
   limitePagoPorGrama: number; // ex: 130 — usado no % Bonificação
+  // Separados dos de cima para não acoplar o Lucro Gerado (estimativa
+  // usada só no Resumo) aos parâmetros de Bonificação.
+  teorMedioLucro: number;    // ex: 0.67
+  valorFinoLucro: number;    // ex: 620
 }
 
 export const DEFAULT_RESUMO_PARAMS: ResumoParams = {
   teorMedio: 0.67,
   valorFino: 620,
   limitePagoPorGrama: 130,
+  teorMedioLucro: 0.67,
+  valorFinoLucro: 620,
 };
 
 export interface ResumoAvaliadora {
@@ -40,7 +46,7 @@ export interface ResumoAvaliadora {
 function isSozinha(avaliadorRaw: string | null): string | null {
   if (!avaliadorRaw) return null;
   const nome = avaliadorRaw.trim();
-  if (!nome || nome.includes('/')) return null;
+  if (!nome || nome.includes('/') || ehDono(nome)) return null;
   return nome;
 }
 
@@ -108,7 +114,7 @@ export function calcularResumo(
       return pesoGrupo > 0 ? gastoGrupo / pesoGrupo : 0;
     };
 
-    const valorVendaTotal = somaPeso * params.teorMedio * params.valorFino;
+    const valorVendaTotal = somaPeso * params.teorMedioLucro * params.valorFinoLucro;
     const lucroGerado = valorVendaTotal - somaGasto;
 
     resultado.push({

@@ -24,13 +24,18 @@ export interface PremiacaoParamsInput {
   pesoMinimo: number;
 }
 
-const RESULTADO_QUERY_KEY = ['analise-ht-premiacao-resultado'];
+// Chave parametrizada pelos uploadIds envolvidos — ver bonificação.
+function resultadoQueryKey(uploadIds: string[]) {
+  return ['analise-ht-premiacao-resultado', ...[...uploadIds].sort()];
+}
+const EMPTY_RESULTADO: PremiacaoResultado[] = [];
 
-export function useAnaliseHtPremiacao() {
+export function useAnaliseHtPremiacao(uploadIds: string[]) {
   const qc = useQueryClient();
-  const { data: resultado = [] } = useQuery<PremiacaoResultado[]>({
-    queryKey: RESULTADO_QUERY_KEY,
-    queryFn: () => qc.getQueryData(RESULTADO_QUERY_KEY) ?? [],
+  const key = resultadoQueryKey(uploadIds);
+  const { data: resultado = EMPTY_RESULTADO } = useQuery<PremiacaoResultado[]>({
+    queryKey: key,
+    queryFn: () => qc.getQueryData(key) ?? EMPTY_RESULTADO,
     staleTime: Infinity,
   });
 
@@ -50,7 +55,7 @@ export function useAnaliseHtPremiacao() {
       if (!parsed.success) throw new Error('Resposta inesperada do servidor.');
       return parsed.data;
     },
-    onSuccess: data => qc.setQueryData(RESULTADO_QUERY_KEY, data),
+    onSuccess: data => qc.setQueryData(key, data),
     onError: (err: Error) => toast.error(err.message),
   });
 

@@ -10,6 +10,8 @@ const paramsSchema = z.object({
   teorMedio: z.number().min(0).max(1).default(DEFAULT_RESUMO_PARAMS.teorMedio),
   valorFino: z.number().min(0).default(DEFAULT_RESUMO_PARAMS.valorFino),
   limitePagoPorGrama: z.number().min(0).default(DEFAULT_RESUMO_PARAMS.limitePagoPorGrama),
+  teorMedioLucro: z.number().min(0).max(1).default(DEFAULT_RESUMO_PARAMS.teorMedioLucro),
+  valorFinoLucro: z.number().min(0).default(DEFAULT_RESUMO_PARAMS.valorFinoLucro),
 });
 
 export async function POST(req: NextRequest) {

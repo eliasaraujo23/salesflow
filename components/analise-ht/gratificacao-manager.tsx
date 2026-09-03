@@ -64,7 +64,7 @@ export function GratificacaoManager() {
     const chamadas = nomesPorLoja.flatMap(([loja, nomes]) =>
       nomes.map(nome => {
         const edicao = edicoes[nome];
-        const valorNum = parseFloat(edicao?.valor ?? '') || 0;
+        const valorNum = parseFloat((edicao?.valor ?? '').replace(',', '.')) || 0;
         const payload = { avaliador: nome, valor: valorNum };
 
         if (loja === 'Gerente') {
@@ -130,7 +130,7 @@ export function GratificacaoManager() {
                         <div className="flex items-center gap-1.5">
                           <span className="text-[11px] text-zinc-400 shrink-0">R$</span>
                           <input
-                            type="number" step="0.01"
+                            type="text" inputMode="decimal"
                             value={edicao.valor}
                             onChange={e => setEdicoes(prev => ({ ...prev, [nome]: { valor: e.target.value } }))}
                             placeholder="0,00"

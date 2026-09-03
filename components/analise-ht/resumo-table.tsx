@@ -141,12 +141,10 @@ export function ResumoTable({ resumo, bonificacaoPorChave, premiacaoPorChave, bo
               className="flex flex-col gap-2 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-white/[0.08] rounded-xl p-3"
               style={{ borderTopColor: cor, borderTopWidth: 3 }}
             >
-              {linhasDaAvaliadora.length > 1 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: cor }} />
-                  <span className="text-xs font-bold uppercase tracking-wide" style={{ color: cor }}>{atual.loja}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: cor }} />
+                <span className="text-xs font-bold uppercase tracking-wide" style={{ color: cor }}>{atual.loja}</span>
+              </div>
               <div className="flex flex-col gap-2">
                 {grupos.map((grupo, i) => (
                   <div key={i} className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">

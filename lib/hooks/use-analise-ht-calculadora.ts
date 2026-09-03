@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DEFAULT_BONIFICACAO_PARAMS } from '@/lib/analise-ht/bonificacao';
 import { DEFAULT_PREMIACAO_PARAMS, grupoLojasPorLoja } from '@/lib/analise-ht/premiacao';
 import { DEFAULT_BONUS_PRIMEIRO_PRECO_PARAMS } from '@/lib/analise-ht/bonus-primeiro-preco';
+import { DEFAULT_RESUMO_PARAMS } from '@/lib/analise-ht/resumo';
 import { useAnaliseHtBonificacao } from '@/lib/hooks/use-analise-ht-bonificacao';
 import { useAnaliseHtPremiacao } from '@/lib/hooks/use-analise-ht-premiacao';
 import { useAnaliseHtBonusPrimeiroPreco } from '@/lib/hooks/use-analise-ht-bonus-primeiro-preco';
@@ -17,31 +19,87 @@ export interface UploadAlvo {
   loja: string;
 }
 
+interface ParametrosCalculadora {
+  teorMedio: number;
+  valorFino: number;
+  percentual: number;
+  limitePagoPorGrama: number;
+  limiteValorGrama: number;
+  pesoMinimo: number;
+  valorBonusPrimeiroPreco: number;
+  limiteMediaBonusPrimeiroPreco: number;
+  teorMedioLucro: number;
+  valorFinoLucro: number;
+}
+
+const PARAMETROS_DEFAULT: ParametrosCalculadora = {
+  teorMedio: DEFAULT_BONIFICACAO_PARAMS.teorMedio * 100,
+  valorFino: DEFAULT_BONIFICACAO_PARAMS.valorFino,
+  percentual: DEFAULT_BONIFICACAO_PARAMS.percentual * 100,
+  limitePagoPorGrama: DEFAULT_BONIFICACAO_PARAMS.limitePagoPorGrama,
+  limiteValorGrama: DEFAULT_PREMIACAO_PARAMS.limiteValorGrama,
+  pesoMinimo: DEFAULT_PREMIACAO_PARAMS.pesoMinimo,
+  valorBonusPrimeiroPreco: DEFAULT_BONUS_PRIMEIRO_PRECO_PARAMS.valorBonus,
+  limiteMediaBonusPrimeiroPreco: DEFAULT_BONUS_PRIMEIRO_PRECO_PARAMS.limiteMedia,
+  teorMedioLucro: DEFAULT_RESUMO_PARAMS.teorMedioLucro * 100,
+  valorFinoLucro: DEFAULT_RESUMO_PARAMS.valorFinoLucro,
+};
+
+// Cache global (não por sessão de componente) — sem isso, o valor digitado
+// no modal de Parâmetros se perdia toda vez que a página era remontada ao
+// navegar entre abas (ex: Bonificação -> Resumo -> Bonificação), mesmo o
+// resultado já calculado continuando correto (ver conversa 2026-09-03).
+const PARAMS_QUERY_KEY = ['analise-ht-parametros'];
+
+function useParametrosCalculadora() {
+  const qc = useQueryClient();
+  const { data: params = PARAMETROS_DEFAULT } = useQuery<ParametrosCalculadora>({
+    queryKey: PARAMS_QUERY_KEY,
+    queryFn: () => qc.getQueryData(PARAMS_QUERY_KEY) ?? PARAMETROS_DEFAULT,
+    staleTime: Infinity,
+  });
+
+  function setParam<K extends keyof ParametrosCalculadora>(key: K, value: ParametrosCalculadora[K]) {
+    qc.setQueryData<ParametrosCalculadora>(PARAMS_QUERY_KEY, prev => ({ ...(prev ?? PARAMETROS_DEFAULT), [key]: value }));
+  }
+
+  return { params, setParam };
+}
+
 // Centraliza parâmetros + os 4 cálculos (bonificação, premiação, bônus 1º
 // preço, resumo) — usado nas páginas /analise-ht e /analise-ht/resumo, que
 // compartilham o mesmo cálculo via cache do React Query (ver hooks
 // individuais): calcular em qualquer uma mantém o resultado ao navegar.
 export function useAnaliseHtCalculadora(uploads: UploadAlvo[]) {
-  const [teorMedio, setTeorMedio] = useState(DEFAULT_BONIFICACAO_PARAMS.teorMedio * 100);
-  const [valorFino, setValorFino] = useState(DEFAULT_BONIFICACAO_PARAMS.valorFino);
-  const [percentual, setPercentual] = useState(DEFAULT_BONIFICACAO_PARAMS.percentual * 100);
-  const [limitePagoPorGrama, setLimitePagoPorGrama] = useState(DEFAULT_BONIFICACAO_PARAMS.limitePagoPorGrama);
-  const [limiteValorGrama, setLimiteValorGrama] = useState(DEFAULT_PREMIACAO_PARAMS.limiteValorGrama);
-  const [pesoMinimo, setPesoMinimo] = useState(DEFAULT_PREMIACAO_PARAMS.pesoMinimo);
-  const [valorBonusPrimeiroPreco, setValorBonusPrimeiroPreco] = useState(DEFAULT_BONUS_PRIMEIRO_PRECO_PARAMS.valorBonus);
-  const [limiteMediaBonusPrimeiroPreco, setLimiteMediaBonusPrimeiroPreco] = useState(DEFAULT_BONUS_PRIMEIRO_PRECO_PARAMS.limiteMedia);
+  const { params: p, setParam } = useParametrosCalculadora();
+  const {
+    teorMedio, valorFino, percentual, limitePagoPorGrama,
+    limiteValorGrama, pesoMinimo, valorBonusPrimeiroPreco, limiteMediaBonusPrimeiroPreco,
+    teorMedioLucro, valorFinoLucro,
+  } = p;
+  const setTeorMedio = (v: number) => setParam('teorMedio', v);
+  const setValorFino = (v: number) => setParam('valorFino', v);
+  const setPercentual = (v: number) => setParam('percentual', v);
+  const setLimitePagoPorGrama = (v: number) => setParam('limitePagoPorGrama', v);
+  const setLimiteValorGrama = (v: number) => setParam('limiteValorGrama', v);
+  const setPesoMinimo = (v: number) => setParam('pesoMinimo', v);
+  const setValorBonusPrimeiroPreco = (v: number) => setParam('valorBonusPrimeiroPreco', v);
+  const setLimiteMediaBonusPrimeiroPreco = (v: number) => setParam('limiteMediaBonusPrimeiroPreco', v);
+  const setTeorMedioLucro = (v: number) => setParam('teorMedioLucro', v);
+  const setValorFinoLucro = (v: number) => setParam('valorFinoLucro', v);
 
-  const { resultado: bonificacao, calcular: calcularBonificacao, isCalculating: isCalculatingBonificacao } = useAnaliseHtBonificacao();
-  const { resultado: premiacao, calcular: calcularPremiacao, isCalculating: isCalculatingPremiacao } = useAnaliseHtPremiacao();
-  const { resultado: bonusPrimeiroPreco, calcular: calcularBonusPrimeiroPreco, isCalculating: isCalculatingBonus } = useAnaliseHtBonusPrimeiroPreco();
-  const { resultado: resumo, calcular: calcularResumo, isCalculating: isCalculatingResumo } = useAnaliseHtResumo();
+  const uploadIds = useMemo(() => uploads.map(u => u.id), [uploads]);
+  const { resultado: bonificacao, calcular: calcularBonificacao, isCalculating: isCalculatingBonificacao } = useAnaliseHtBonificacao(uploadIds);
+  const { resultado: premiacao, calcular: calcularPremiacao, isCalculating: isCalculatingPremiacao } = useAnaliseHtPremiacao(uploadIds);
+  const { resultado: bonusPrimeiroPreco, calcular: calcularBonusPrimeiroPreco, isCalculating: isCalculatingBonus } = useAnaliseHtBonusPrimeiroPreco(uploadIds);
+  const { resultado: resumo, calcular: calcularResumo, isCalculating: isCalculatingResumo } = useAnaliseHtResumo(uploadIds);
   const { resultado: metasLoja, calcular: calcularMetasLoja, isCalculating: isCalculatingMetasLoja } = useAnaliseHtMetasLoja();
   const { itens: lojaBaseItens } = useAnaliseHtLojaBase();
   const referenciaGerente = useMemo(() => {
     const agora = new Date();
     return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`;
   }, []);
-  const { itens: gratificacaoItens } = useAnaliseHtGratificacao(uploads.map(u => u.id), [referenciaGerente]);
+  const { itens: gratificacaoItens } = useAnaliseHtGratificacao(uploadIds, [referenciaGerente]);
 
   const gratificacaoPorChave = useMemo(() => {
     const map: Record<string, number> = {};
@@ -102,19 +160,20 @@ export function useAnaliseHtCalculadora(uploads: UploadAlvo[]) {
   // ao logar de novo/recarregar a página. Recalcula automaticamente uma
   // vez ao carregar se ainda não houver nada em cache, para não abrir a
   // tela com tudo zerado até o usuário clicar em Calcular manualmente.
-  const autoCalculouRef = useRef(false);
+  // IMPORTANTE: não usar useRef aqui — ele é local ao componente e reseta
+  // toda vez que a página remonta (ex: navegar Bonificação -> Resumo ->
+  // Bonificação), disparando recálculo de novo mesmo já havendo cache
+  // (ver conversa 2026-09-03: botão "preso" em Calculando ao reabrir).
+  // `bonificacao.length > 0` já é a checagem correta e persiste no cache
+  // global independente de quantas vezes o componente remonta.
   useEffect(() => {
-    if (autoCalculouRef.current) return;
     if (uploads.length === 0) return;
-    if (bonificacao.length > 0) { autoCalculouRef.current = true; return; }
-    autoCalculouRef.current = true;
+    if (bonificacao.length > 0) return;
     handleCalcular();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uploads.length]);
+  }, [uploads.length, bonificacao.length]);
 
   function handleCalcular() {
-    const uploadIds = uploads.map(u => u.id);
-
     calcularBonificacao({
       uploadIds,
       teorMedio: teorMedio / 100,
@@ -137,6 +196,8 @@ export function useAnaliseHtCalculadora(uploads: UploadAlvo[]) {
       teorMedio: teorMedio / 100,
       valorFino,
       limitePagoPorGrama,
+      teorMedioLucro: teorMedioLucro / 100,
+      valorFinoLucro,
     });
 
     calcularMetasLoja(uploadIds);
@@ -152,6 +213,8 @@ export function useAnaliseHtCalculadora(uploads: UploadAlvo[]) {
       pesoMinimo, setPesoMinimo,
       valorBonusPrimeiroPreco, setValorBonusPrimeiroPreco,
       limiteMediaBonusPrimeiroPreco, setLimiteMediaBonusPrimeiroPreco,
+      teorMedioLucro, setTeorMedioLucro,
+      valorFinoLucro, setValorFinoLucro,
     },
     bonificacao,
     premiacaoPorChave,

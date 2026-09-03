@@ -8,7 +8,7 @@ const DONOS_TOKEN = ['EDUARDO', 'HELTON', 'AUGUSTO'];
 // "THAÍS" sozinho não pode entrar em DONOS_TOKEN.
 const DONOS_NOME_COMPLETO = ['THAÍS ALMEIDA'];
 
-function ehDono(nome: string): boolean {
+export function ehDono(nome: string): boolean {
   const upper = nome.toUpperCase();
   if (DONOS_NOME_COMPLETO.includes(upper)) return true;
   return DONOS_TOKEN.some(d => upper.includes(d));

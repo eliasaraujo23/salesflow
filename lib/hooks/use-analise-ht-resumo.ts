@@ -29,15 +29,22 @@ export interface ResumoParamsInput {
   teorMedio: number;
   valorFino: number;
   limitePagoPorGrama: number;
+  teorMedioLucro: number;
+  valorFinoLucro: number;
 }
 
-const QUERY_KEY = ['analise-ht-resumo-resultado'];
+// Chave parametrizada pelos uploadIds envolvidos — ver bonificação.
+function queryKey(uploadIds: string[]) {
+  return ['analise-ht-resumo-resultado', ...[...uploadIds].sort()];
+}
+const EMPTY: ResumoAvaliadora[] = [];
 
-export function useAnaliseHtResumo() {
+export function useAnaliseHtResumo(uploadIds: string[]) {
   const qc = useQueryClient();
-  const { data: resultado = [] } = useQuery<ResumoAvaliadora[]>({
-    queryKey: QUERY_KEY,
-    queryFn: () => qc.getQueryData(QUERY_KEY) ?? [],
+  const key = queryKey(uploadIds);
+  const { data: resultado = EMPTY } = useQuery<ResumoAvaliadora[]>({
+    queryKey: key,
+    queryFn: () => qc.getQueryData(key) ?? EMPTY,
     staleTime: Infinity,
   });
 
@@ -57,7 +64,7 @@ export function useAnaliseHtResumo() {
       if (!parsed.success) throw new Error('Resposta inesperada do servidor.');
       return parsed.data;
     },
-    onSuccess: data => qc.setQueryData(QUERY_KEY, data),
+    onSuccess: data => qc.setQueryData(key, data),
     onError: (err: Error) => toast.error(err.message),
   });
 

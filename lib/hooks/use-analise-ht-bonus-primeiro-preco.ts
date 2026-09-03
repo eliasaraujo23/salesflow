@@ -21,13 +21,18 @@ export interface BonusPrimeiroPrecoParamsInput {
   limiteMedia: number;
 }
 
-const QUERY_KEY = ['analise-ht-bonus-primeiro-preco-resultado'];
+// Chave parametrizada pelos uploadIds envolvidos — ver bonificação.
+function queryKey(uploadIds: string[]) {
+  return ['analise-ht-bonus-primeiro-preco-resultado', ...[...uploadIds].sort()];
+}
+const EMPTY: BonusPrimeiroPrecoResultado[] = [];
 
-export function useAnaliseHtBonusPrimeiroPreco() {
+export function useAnaliseHtBonusPrimeiroPreco(uploadIds: string[]) {
   const qc = useQueryClient();
-  const { data: resultado = [] } = useQuery<BonusPrimeiroPrecoResultado[]>({
-    queryKey: QUERY_KEY,
-    queryFn: () => qc.getQueryData(QUERY_KEY) ?? [],
+  const key = queryKey(uploadIds);
+  const { data: resultado = EMPTY } = useQuery<BonusPrimeiroPrecoResultado[]>({
+    queryKey: key,
+    queryFn: () => qc.getQueryData(key) ?? EMPTY,
     staleTime: Infinity,
   });
 
@@ -47,7 +52,7 @@ export function useAnaliseHtBonusPrimeiroPreco() {
       if (!parsed.success) throw new Error('Resposta inesperada do servidor.');
       return parsed.data;
     },
-    onSuccess: data => qc.setQueryData(QUERY_KEY, data),
+    onSuccess: data => qc.setQueryData(key, data),
     onError: (err: Error) => toast.error(err.message),
   });
 
