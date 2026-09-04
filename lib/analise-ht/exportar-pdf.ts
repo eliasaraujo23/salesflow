@@ -62,7 +62,7 @@ export function exportarBonificacaoPdf(linhas: LinhaAvaliadorPdf[], totalGeral: 
     if (mostrarColunaLoja && r.porLoja.length > 1) {
       for (const linha of r.porLoja) {
         body.push([
-          `  ↳ ${r.avaliador}`,
+          `  - ${r.avaliador}`,
           linha.loja,
           linha.linhasElegiveis,
           fmtKg(linha.pesoTotal),
@@ -95,8 +95,7 @@ export function exportarBonificacaoPdf(linhas: LinhaAvaliadorPdf[], totalGeral: 
       // aumentar a fonte sozinho, mas o cellWidth fixo evita o corte de
       // texto que estava acontecendo antes).
       const avaliadorCel = (data.row.raw as (string | number)[] | undefined)?.[0];
-      if (typeof avaliadorCel === 'string' && avaliadorCel.trim().startsWith('↳')) {
-        data.cell.styles.fontStyle = 'italic';
+      if (typeof avaliadorCel === 'string' && avaliadorCel.trim().startsWith('-')) {
         data.cell.styles.textColor = [120, 120, 120];
         data.cell.styles.fontSize = 7;
       }
