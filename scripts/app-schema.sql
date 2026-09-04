@@ -328,3 +328,26 @@ CREATE UNIQUE INDEX IF NOT EXISTS analise_ht_gratificacao_upload_avaliador_uidx
   ON analise_ht_gratificacao (upload_id, avaliador) WHERE upload_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS analise_ht_gratificacao_referencia_avaliador_uidx
   ON analise_ht_gratificacao (referencia, avaliador) WHERE referencia IS NOT NULL;
+
+-- Parâmetros de cálculo (Bonificação/Premiação/Bônus 1º Preço/Lucro Gerado)
+-- — ver conversa com Elias 2026-09-04. Antes viviam só em cache do React
+-- Query (memória do navegador), então se perdiam ao recarregar a página
+-- ou trocar de sessão. Linha única (id fixo) com upsert.
+CREATE TABLE IF NOT EXISTS analise_ht_parametros (
+  id                              INTEGER PRIMARY KEY DEFAULT 1,
+  teor_medio                      NUMERIC NOT NULL DEFAULT 67,
+  valor_fino                      NUMERIC NOT NULL DEFAULT 620,
+  percentual                      NUMERIC NOT NULL DEFAULT 2,
+  limite_pago_por_grama           NUMERIC NOT NULL DEFAULT 130,
+  limite_valor_grama              NUMERIC NOT NULL DEFAULT 40,
+  peso_minimo                     NUMERIC NOT NULL DEFAULT 20,
+  valor_bonus_primeiro_preco      NUMERIC NOT NULL DEFAULT 500,
+  limite_media_bonus_primeiro_preco NUMERIC NOT NULL DEFAULT 60,
+  teor_medio_lucro                NUMERIC NOT NULL DEFAULT 67,
+  valor_fino_lucro                NUMERIC NOT NULL DEFAULT 620,
+  updated_at                      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (id = 1)
+);
+INSERT INTO analise_ht_parametros (id)
+VALUES (1)
+ON CONFLICT (id) DO NOTHING;

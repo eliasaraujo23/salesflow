@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import type { ResumoAvaliadora } from '@/lib/hooks/use-analise-ht-resumo';
 import { corDaLoja, ORDEM_LOJAS } from '@/lib/analise-ht/cores-lojas';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface Props {
   resumo: ResumoAvaliadora[];
@@ -38,10 +40,7 @@ const HEADER_COR: Record<CardCor, string> = {
 
 const selectCls = 'px-3 py-1.5 text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-lg text-zinc-800 dark:text-zinc-100 focus:outline-none focus:border-indigo-500';
 
-function montarGrupos(atual: ResumoAvaliadora, totais: { bonificacao: number; premiacao: number; bonusPrimeiroPreco: number; metaLoja: number; gratificacao: number }): Card[][] {
-  const { bonificacao, premiacao, bonusPrimeiroPreco, metaLoja, gratificacao } = totais;
-  const totalAPagar = bonificacao + premiacao + bonusPrimeiroPreco + metaLoja + gratificacao;
-
+function montarGruposBase(atual: ResumoAvaliadora): Card[][] {
   return [
     [
       { label: 'Avaliações', value: String(atual.avaliacoes), cor: 'zinc' },
@@ -60,6 +59,16 @@ function montarGrupos(atual: ResumoAvaliadora, totais: { bonificacao: number; pr
       { label: '2º Preço', value: fmtBRL(atual.segundoPreco), cor: 'sky' },
       { label: '3º Preço', value: fmtBRL(atual.terceiroPreco), cor: 'sky' },
     ],
+  ];
+}
+
+// Grupos financeiros — ocultos por padrão, só aparecem depois de o usuário
+// confirmar explicitamente pelo olho (ver conversa 2026-09-04).
+function montarGruposFinanceiros(atual: ResumoAvaliadora, totais: { bonificacao: number; premiacao: number; bonusPrimeiroPreco: number; metaLoja: number; gratificacao: number }): Card[][] {
+  const { bonificacao, premiacao, bonusPrimeiroPreco, metaLoja, gratificacao } = totais;
+  const totalAPagar = bonificacao + premiacao + bonusPrimeiroPreco + metaLoja + gratificacao;
+
+  return [
     [
       { label: 'Bonificação', value: fmtBRL(bonificacao), cor: 'emerald' },
       { label: 'Premiação', value: fmtBRL(premiacao), cor: 'emerald' },
@@ -76,6 +85,8 @@ function montarGrupos(atual: ResumoAvaliadora, totais: { bonificacao: number; pr
 
 export function ResumoTable({ resumo, bonificacaoPorChave, premiacaoPorChave, bonusPrimeiroPrecoPorChave, metaLojaPorChave, gratificacaoPorChave }: Props) {
   const [avaliadorSelecionado, setAvaliadorSelecionado] = useState<string | null>(null);
+  const [mostrarFinanceiro, setMostrarFinanceiro] = useState(false);
+  const [confirmandoExibir, setConfirmandoExibir] = useState(false);
 
   const porAvaliador = useMemo(() => {
     const grupos = new Map<string, ResumoAvaliadora[]>();
@@ -120,7 +131,23 @@ export function ResumoTable({ resumo, bonificacaoPorChave, premiacaoPorChave, bo
             ))}
           </select>
         </div>
+        <button
+          onClick={() => (mostrarFinanceiro ? setMostrarFinanceiro(false) : setConfirmandoExibir(true))}
+          title={mostrarFinanceiro ? 'Ocultar valores financeiros' : 'Exibir valores financeiros'}
+          className="flex items-center justify-center h-[34px] w-[34px] rounded-lg border border-zinc-200 dark:border-white/[0.13] text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] transition-colors"
+        >
+          {mostrarFinanceiro ? <Eye size={16} /> : <EyeOff size={16} />}
+        </button>
       </div>
+
+      <ConfirmDialog
+        open={confirmandoExibir}
+        onOpenChange={setConfirmandoExibir}
+        title="Exibir valores financeiros?"
+        description=""
+        confirmLabel="Exibir"
+        onConfirm={() => setMostrarFinanceiro(true)}
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
         {linhasDaAvaliadora.map(atual => {
@@ -132,7 +159,9 @@ export function ResumoTable({ resumo, bonificacaoPorChave, premiacaoPorChave, bo
             metaLoja: metaLojaPorChave[chave] ?? 0,
             gratificacao: gratificacaoPorChave[chave] ?? 0,
           };
-          const grupos = montarGrupos(atual, totais);
+          const grupos = mostrarFinanceiro
+            ? [...montarGruposBase(atual), ...montarGruposFinanceiros(atual, totais)]
+            : montarGruposBase(atual);
           const cor = corDaLoja(atual.loja);
 
           return (

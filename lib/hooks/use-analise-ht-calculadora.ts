@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { DEFAULT_BONIFICACAO_PARAMS } from '@/lib/analise-ht/bonificacao';
 import { DEFAULT_PREMIACAO_PARAMS, grupoLojasPorLoja } from '@/lib/analise-ht/premiacao';
 import { DEFAULT_BONUS_PRIMEIRO_PRECO_PARAMS } from '@/lib/analise-ht/bonus-primeiro-preco';
@@ -45,22 +46,45 @@ const PARAMETROS_DEFAULT: ParametrosCalculadora = {
   valorFinoLucro: DEFAULT_RESUMO_PARAMS.valorFinoLucro,
 };
 
-// Cache global (não por sessão de componente) — sem isso, o valor digitado
-// no modal de Parâmetros se perdia toda vez que a página era remontada ao
-// navegar entre abas (ex: Bonificação -> Resumo -> Bonificação), mesmo o
-// resultado já calculado continuando correto (ver conversa 2026-09-03).
+// Persistido no banco (analise_ht_parametros) — antes vivia só em cache do
+// React Query (memória do navegador) e se perdia ao recarregar a página ou
+// abrir em outra sessão (ver conversa 2026-09-04). O cache aqui é só a
+// camada otimista: busca do banco no mount, atualiza local a cada tecla, e
+// salva no banco com debounce para não disparar um PUT por caractere.
 const PARAMS_QUERY_KEY = ['analise-ht-parametros'];
+
+async function fetchParametros(): Promise<ParametrosCalculadora> {
+  const res = await fetch('/api/analise-ht/parametros', { cache: 'no-store' });
+  if (!res.ok) return PARAMETROS_DEFAULT;
+  const body = await res.json().catch(() => ({}));
+  return body.data ? { ...PARAMETROS_DEFAULT, ...body.data } : PARAMETROS_DEFAULT;
+}
 
 function useParametrosCalculadora() {
   const qc = useQueryClient();
   const { data: params = PARAMETROS_DEFAULT } = useQuery<ParametrosCalculadora>({
     queryKey: PARAMS_QUERY_KEY,
-    queryFn: () => qc.getQueryData(PARAMS_QUERY_KEY) ?? PARAMETROS_DEFAULT,
-    staleTime: Infinity,
+    queryFn: fetchParametros,
   });
 
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function salvarNoBanco(proximo: ParametrosCalculadora) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      const res = await fetch('/api/analise-ht/parametros', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(proximo),
+      });
+      if (!res.ok) toast.error('Falha ao salvar parâmetros.');
+    }, 600);
+  }
+
   function setParam<K extends keyof ParametrosCalculadora>(key: K, value: ParametrosCalculadora[K]) {
-    qc.setQueryData<ParametrosCalculadora>(PARAMS_QUERY_KEY, prev => ({ ...(prev ?? PARAMETROS_DEFAULT), [key]: value }));
+    const proximo = { ...(qc.getQueryData<ParametrosCalculadora>(PARAMS_QUERY_KEY) ?? PARAMETROS_DEFAULT), [key]: value };
+    qc.setQueryData<ParametrosCalculadora>(PARAMS_QUERY_KEY, proximo);
+    salvarNoBanco(proximo);
   }
 
   return { params, setParam };
