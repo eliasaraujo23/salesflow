@@ -74,7 +74,7 @@ export function calcularMetaLoja(
 
   const abaixo250 = compras.filter(r => {
     const ppg = n(r.pago_por_grama);
-    return ppg > 0 && ppg < config.limiteAbaixo250;
+    return ppg > 0 && ppg <= config.limiteAbaixo250;
   });
   const percentualAbaixo250 = compras.length > 0 ? abaixo250.length / compras.length : 0;
   const metaAbaixo250Batida = percentualAbaixo250 >= config.metaAbaixo250;
