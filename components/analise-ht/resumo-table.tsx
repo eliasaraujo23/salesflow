@@ -5,6 +5,8 @@ import { Eye, EyeOff } from 'lucide-react';
 import type { ResumoAvaliadora } from '@/lib/hooks/use-analise-ht-resumo';
 import { corDaLoja, ORDEM_LOJAS } from '@/lib/analise-ht/cores-lojas';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useFirebase } from '@/components/firebase-provider';
+import { acessoSomenteResumo } from '@/lib/analise-ht/acesso-restrito';
 
 interface Props {
   resumo: ResumoAvaliadora[];
@@ -84,6 +86,11 @@ function montarGruposFinanceiros(atual: ResumoAvaliadora, totais: { bonificacao:
 }
 
 export function ResumoTable({ resumo, bonificacaoPorChave, premiacaoPorChave, bonusPrimeiroPrecoPorChave, metaLojaPorChave, gratificacaoPorChave }: Props) {
+  const { currentUser } = useFirebase();
+  // Usuário restrito (ex: Raphael Borges) nunca pode revelar valores
+  // financeiros — nem o botão de olho existe para ele (ver conversa Elias
+  // 2026-09-04).
+  const podeVerFinanceiro = !acessoSomenteResumo(currentUser?.email);
   const [avaliadorSelecionado, setAvaliadorSelecionado] = useState<string | null>(null);
   const [mostrarFinanceiro, setMostrarFinanceiro] = useState(false);
   const [confirmandoExibir, setConfirmandoExibir] = useState(false);
@@ -131,23 +138,27 @@ export function ResumoTable({ resumo, bonificacaoPorChave, premiacaoPorChave, bo
             ))}
           </select>
         </div>
-        <button
-          onClick={() => (mostrarFinanceiro ? setMostrarFinanceiro(false) : setConfirmandoExibir(true))}
-          title={mostrarFinanceiro ? 'Ocultar valores financeiros' : 'Exibir valores financeiros'}
-          className="flex items-center justify-center h-[34px] w-[34px] rounded-lg border border-zinc-200 dark:border-white/[0.13] text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] transition-colors"
-        >
-          {mostrarFinanceiro ? <Eye size={16} /> : <EyeOff size={16} />}
-        </button>
+        {podeVerFinanceiro && (
+          <button
+            onClick={() => (mostrarFinanceiro ? setMostrarFinanceiro(false) : setConfirmandoExibir(true))}
+            title={mostrarFinanceiro ? 'Ocultar valores financeiros' : 'Exibir valores financeiros'}
+            className="flex items-center justify-center h-[34px] w-[34px] rounded-lg border border-zinc-200 dark:border-white/[0.13] text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] transition-colors"
+          >
+            {mostrarFinanceiro ? <Eye size={16} /> : <EyeOff size={16} />}
+          </button>
+        )}
       </div>
 
-      <ConfirmDialog
-        open={confirmandoExibir}
-        onOpenChange={setConfirmandoExibir}
-        title="Exibir valores financeiros?"
-        description=""
-        confirmLabel="Exibir"
-        onConfirm={() => setMostrarFinanceiro(true)}
-      />
+      {podeVerFinanceiro && (
+        <ConfirmDialog
+          open={confirmandoExibir}
+          onOpenChange={setConfirmandoExibir}
+          title="Exibir valores financeiros?"
+          description=""
+          confirmLabel="Exibir"
+          onConfirm={() => setMostrarFinanceiro(true)}
+        />
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
         {linhasDaAvaliadora.map(atual => {
@@ -159,7 +170,7 @@ export function ResumoTable({ resumo, bonificacaoPorChave, premiacaoPorChave, bo
             metaLoja: metaLojaPorChave[chave] ?? 0,
             gratificacao: gratificacaoPorChave[chave] ?? 0,
           };
-          const grupos = mostrarFinanceiro
+          const grupos = mostrarFinanceiro && podeVerFinanceiro
             ? [...montarGruposBase(atual), ...montarGruposFinanceiros(atual, totais)]
             : montarGruposBase(atual);
           const cor = corDaLoja(atual.loja);
