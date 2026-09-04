@@ -31,14 +31,18 @@ export function GratificacaoManager() {
   }, [uploads]);
 
   const uploadIds = useMemo(() => [...uploadPorLoja.values()].map(u => u.id), [uploadPorLoja]);
-  // Gratificação de gerente (ex: Raphael Borges) não é vinculada a nenhuma
-  // loja/upload — usa "referencia" (mês corrente) como chave de período,
-  // pois ele não entra nas comissões calculadas por loja.
-  const referenciaGerente = useMemo(() => {
+  // Grupos sem upload/loja vinculada (Gerente, ex: Raphael Borges; e Sem
+  // Loja) usam "referencia" (mês corrente) como chave de período, pois não
+  // entram nas comissões calculadas por loja.
+  const referenciaSemUpload = useMemo(() => {
     const agora = new Date();
     return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`;
   }, []);
-  const { itens: gratificacoes, salvarAsync, isSaving } = useAnaliseHtGratificacao(uploadIds, [referenciaGerente]);
+  const { itens: gratificacoes, salvarAsync, isSaving } = useAnaliseHtGratificacao(uploadIds, [referenciaSemUpload]);
+
+  // Grupos sem upload/loja vinculada (Gerente e Sem Loja) usam "referencia"
+  // (mês corrente) como chave de período — mesmo caso do Raphael Borges.
+  const GRUPOS_SEM_UPLOAD = ['Gerente', 'Sem loja'];
 
   const nomesPorLoja = useMemo(() => {
     const naoDonos = avaliadoras.filter(a => naoDonosNaOrdem(a.avaliador).length > 0);
@@ -46,8 +50,10 @@ export function GratificacaoManager() {
     for (const loja of uploadPorLoja.keys()) {
       grupos.set(loja, naoDonos.filter(a => a.loja === loja).map(a => a.avaliador).sort((a, b) => a.localeCompare(b)));
     }
-    const gerentes = naoDonos.filter(a => a.loja === 'Gerente').map(a => a.avaliador).sort((a, b) => a.localeCompare(b));
-    if (gerentes.length > 0) grupos.set('Gerente', gerentes);
+    for (const grupo of GRUPOS_SEM_UPLOAD) {
+      const nomes = naoDonos.filter(a => a.loja === grupo).map(a => a.avaliador).sort((a, b) => a.localeCompare(b));
+      if (nomes.length > 0) grupos.set(grupo, nomes);
+    }
     const indice = (loja: string) => { const i = ORDEM_LOJAS.indexOf(loja); return i === -1 ? ORDEM_LOJAS.length : i; };
     return [...grupos.entries()].sort((a, b) => indice(a[0]) - indice(b[0]));
   }, [avaliadoras, uploadPorLoja]);
@@ -67,8 +73,8 @@ export function GratificacaoManager() {
         const valorNum = parseFloat((edicao?.valor ?? '').replace(',', '.')) || 0;
         const payload = { avaliador: nome, valor: valorNum };
 
-        if (loja === 'Gerente') {
-          return salvarAsync({ referencia: referenciaGerente, ...payload });
+        if (GRUPOS_SEM_UPLOAD.includes(loja)) {
+          return salvarAsync({ referencia: referenciaSemUpload, ...payload });
         }
         const upload = uploadPorLoja.get(loja);
         if (!upload) return Promise.resolve();

@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import { useAnaliseHtLojaBase, type LojaBaseItem } from '@/lib/hooks/use-analise-ht-loja-base';
 import { LojaBaseColumn } from '@/components/analise-ht/loja-base-column';
 import { CORES_LOJAS, ORDEM_LOJAS } from '@/lib/analise-ht/cores-lojas';
+import { ehDono } from '@/lib/analise-ht/bonificacao';
 
 const LOJAS = ORDEM_LOJAS.map(sigla => ({ sigla, cor: CORES_LOJAS[sigla] }));
 
@@ -53,7 +54,9 @@ export function LojaBaseBoard() {
             key={sigla}
             loja={sigla}
             cor={cor}
-            itens={itens.filter((item: LojaBaseItem) => item.loja === sigla)}
+            itens={itens.filter((item: LojaBaseItem) =>
+              item.loja === sigla && (sigla !== 'Sem loja' || !ehDono(item.avaliador))
+            )}
             isDragOver={dragOverLoja === sigla}
             draggingId={draggingId}
             onDragOver={() => setDragOverLoja(sigla)}

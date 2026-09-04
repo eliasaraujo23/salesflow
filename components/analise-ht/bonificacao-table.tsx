@@ -1,10 +1,12 @@
 'use client';
 
 import { Fragment, useMemo, useState } from 'react';
-import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronRight } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, ChevronRight, FileDown } from 'lucide-react';
 import type { BonificacaoResultado } from '@/lib/hooks/use-analise-ht-bonificacao';
 import type { ResumoAvaliadora } from '@/lib/hooks/use-analise-ht-resumo';
 import { corDaLoja } from '@/lib/analise-ht/cores-lojas';
+import { exportarBonificacaoPdf } from '@/lib/analise-ht/exportar-pdf';
+import { ehDono } from '@/lib/analise-ht/bonificacao';
 
 interface Props {
   resultado: BonificacaoResultado[];
@@ -112,11 +114,15 @@ export function BonificacaoTable({ resultado, resumo, premiacaoPorChave, bonusPr
 
     for (const chave of chaves) {
       const [avaliador, loja] = chave.split('::');
+      if (ehDono(avaliador)) continue;
+      const gratificacao = gratificacaoPorChave[chave] ?? 0;
+      // "Sem loja" só entra na tabela se houver gratificação lançada para a
+      // pessoa — não é uma loja real de atuação (ver conversa Elias 2026-09-04).
+      if (loja === 'Sem loja' && gratificacao <= 0) continue;
       const base = resultado.find(r => r.avaliador === avaliador && r.loja === loja);
       const premiacao = premiacaoPorChave[chave] ?? 0;
       const bonusPrimeiroPreco = bonusPrimeiroPrecoPorChave[chave] ?? 0;
       const metaLoja = metaLojaPorChave[chave] ?? 0;
-      const gratificacao = gratificacaoPorChave[chave] ?? 0;
       const comissao = base?.comissao ?? 0;
       const linha: LinhaLoja = {
         loja,
@@ -164,14 +170,27 @@ export function BonificacaoTable({ resultado, resumo, premiacaoPorChave, bonusPr
 
   if (porAvaliador.length === 0) return null;
 
+  function handleExportarPdf() {
+    exportarBonificacaoPdf(sorted, totalGeral, mostrarColunaLoja);
+  }
+
   return (
     <div className="flex-1 min-h-0 overflow-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/[0.13] rounded-xl">
       <table className="w-full text-xs border-separate border-spacing-0 data-table">
         <thead>
           <tr>
             <th colSpan={totalCols} className="sticky top-0 z-20 px-4 py-3 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-white/[0.13]">
-              <div className="text-left font-bold text-zinc-800 dark:text-zinc-100">
-                Bonificação por avaliador — Total: {fmtBRL(totalGeral)}
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-left font-bold text-zinc-800 dark:text-zinc-100">
+                  Bonificação por avaliador — Total: {fmtBRL(totalGeral)}
+                </div>
+                <button
+                  onClick={handleExportarPdf}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.13] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-white/[0.04] text-[11px] font-medium transition-colors shrink-0"
+                >
+                  <FileDown size={13} />
+                  Exportar PDF
+                </button>
               </div>
             </th>
           </tr>
