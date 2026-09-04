@@ -1,5 +1,5 @@
 import type { LeilaoBaseRow } from '@/lib/hooks/use-leilao-base';
-import { loteParaDia } from '@/lib/hooks/use-cadastrar-pecas';
+import { loteParaDia } from '@/lib/leilao-lote';
 
 const PECA_MAX = 100;
 

@@ -1,6 +1,6 @@
 export const maxDuration = 300;
 
-import { loteParaDia } from '@/lib/hooks/use-cadastrar-pecas';
+import { loteParaDia } from '@/lib/leilao-lote';
 import { requireAuth } from '@/lib/auth/require-auth';
 
 const BASE = 'https://leiloesbr.com.br/painel_lbr';

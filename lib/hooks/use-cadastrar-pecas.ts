@@ -2,10 +2,9 @@
 
 import { useState, useCallback, useRef } from 'react';
 import type { LeilaoBaseRow } from '@/lib/hooks/use-leilao-base';
+import { loteParaDia } from '@/lib/leilao-lote';
 
-export function loteParaDia(lote: number, numDias: number): number {
-  return Math.min(numDias, Math.ceil(lote / 200));
-}
+export { loteParaDia };
 
 const PECA_MAX = 100;
 
