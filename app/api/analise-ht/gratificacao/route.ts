@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requirePermission } from '@/lib/auth/require-auth';
+import { requireAnaliseHtFinanceiro } from '@/lib/auth/require-auth';
 import { getAppPool } from '@/lib/app-db';
 
 function mapRow(row: any) {
@@ -15,7 +15,7 @@ function mapRow(row: any) {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await requirePermission(req, 'analise-ht');
+  const auth = await requireAnaliseHtFinanceiro(req);
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(req.url);
@@ -43,7 +43,7 @@ const addSchema = z.object({
 }).refine(v => !!v.uploadId || !!v.referencia, { message: 'Informe uploadId ou referencia.' });
 
 export async function POST(req: NextRequest) {
-  const auth = await requirePermission(req, 'analise-ht');
+  const auth = await requireAnaliseHtFinanceiro(req);
   if (!auth.ok) return auth.response;
 
   const body = await req.json().catch(() => null);

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requirePermission } from '@/lib/auth/require-auth';
+import { requireAnaliseHtFinanceiro } from '@/lib/auth/require-auth';
 import { getAppPool } from '@/lib/app-db';
 import { calcularPremiacao, DEFAULT_PREMIACAO_PARAMS, type PremiacaoFaixa } from '@/lib/analise-ht/premiacao';
 import type { AnaliseHtRegistroDb } from '@/lib/analise-ht/bonificacao';
@@ -26,7 +26,7 @@ function mapFaixas(rows: any[]): PremiacaoFaixa[] {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requirePermission(req, 'analise-ht');
+  const auth = await requireAnaliseHtFinanceiro(req);
   if (!auth.ok) return auth.response;
 
   const body = await req.json().catch(() => null);

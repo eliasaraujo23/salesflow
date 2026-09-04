@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requirePermission } from '@/lib/auth/require-auth';
+import { requirePermission, requireAnaliseHtFinanceiro } from '@/lib/auth/require-auth';
 import { getAppPool } from '@/lib/app-db';
 
 function mapRow(row: any) {
@@ -47,7 +47,7 @@ const paramsSchema = z.object({
 });
 
 export async function PUT(req: NextRequest) {
-  const auth = await requirePermission(req, 'analise-ht');
+  const auth = await requireAnaliseHtFinanceiro(req);
   if (!auth.ok) return auth.response;
 
   const body = await req.json().catch(() => null);

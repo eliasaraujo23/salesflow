@@ -4,6 +4,7 @@ import { requirePermission } from '@/lib/auth/require-auth';
 import { getAppPool } from '@/lib/app-db';
 import { calcularResumo, DEFAULT_RESUMO_PARAMS } from '@/lib/analise-ht/resumo';
 import type { AnaliseHtRegistroDb } from '@/lib/analise-ht/bonificacao';
+import { acessoSomenteResumo } from '@/lib/analise-ht/acesso-restrito';
 
 const paramsSchema = z.object({
   uploadIds: z.array(z.string().min(1)).min(1),
@@ -45,5 +46,13 @@ export async function POST(req: NextRequest) {
     resultado.push(...porAvaliadora.map(r => ({ ...r, loja, uploadId })));
   }
 
-  return NextResponse.json({ httpStatus: 200, data: resultado });
+  // Usuário restrito ao Resumo (ex: Raphael Borges) não pode ver Lucro
+  // Gerado nem inspecionando a resposta de rede — zerado no payload (o
+  // schema do cliente exige o campo numérico), não só escondido na UI
+  // (ver conversa Elias 2026-09-04).
+  const dados = acessoSomenteResumo(auth.session.email)
+    ? resultado.map(r => ({ ...r, lucroGerado: 0 }))
+    : resultado;
+
+  return NextResponse.json({ httpStatus: 200, data: dados });
 }

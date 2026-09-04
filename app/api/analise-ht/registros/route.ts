@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requirePermission } from '@/lib/auth/require-auth';
+import { requireAnaliseHtFinanceiro } from '@/lib/auth/require-auth';
 import { getAppPool } from '@/lib/app-db';
 
 export async function GET(req: NextRequest) {
-  const auth = await requirePermission(req, 'analise-ht');
+  const auth = await requireAnaliseHtFinanceiro(req);
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(req.url);

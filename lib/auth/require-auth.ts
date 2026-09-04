@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyAccessToken, ACCESS_TOKEN_COOKIE, type SessionClaims } from '@/lib/auth/session';
 import { getLojaConfig, type LojaCode } from '@/lib/controle-config';
+import { acessoSomenteResumo } from '@/lib/analise-ht/acesso-restrito';
 
 type AuthResult = { ok: true; session: SessionClaims } | { ok: false; response: NextResponse };
 
@@ -68,6 +69,22 @@ export async function requireAnyLojaAccess(req: Request): Promise<AuthResult> {
 
   if (!hasAnyLoja) {
     return { ok: false, response: NextResponse.json({ message: 'Sem permissão para o Controle de Lojas' }, { status: 403 }) };
+  }
+
+  return auth;
+}
+
+// Rotas de Análise HT que expõem dados financeiros fora do Resumo
+// (bonificação, premiação, comissão, gratificação, config) — bloqueadas
+// no servidor para usuários restritos (ex: Raphael Borges), fechando o
+// acesso mesmo via chamada direta à API, não só pela UI (ver conversa
+// Elias 2026-09-04).
+export async function requireAnaliseHtFinanceiro(req: Request): Promise<AuthResult> {
+  const auth = await requirePermission(req, 'analise-ht');
+  if (!auth.ok) return auth;
+
+  if (acessoSomenteResumo(auth.session.email)) {
+    return { ok: false, response: NextResponse.json({ message: 'Sem permissão' }, { status: 403 }) };
   }
 
   return auth;
