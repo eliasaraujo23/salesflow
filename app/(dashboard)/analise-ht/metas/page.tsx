@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { MetasLojaResultado } from '@/components/analise-ht/metas-loja-resultado';
 import { MetasLojaConfigTable } from '@/components/analise-ht/metas-loja-config-table';
 import { useAnaliseHtMetasLojaConfig, type MetaLojaConfigRow } from '@/lib/hooks/use-analise-ht-metas-loja';
+import { SomenteResumoGuard } from '@/components/analise-ht/somente-resumo-guard';
 
 export default function AnaliseHtMetasPage() {
   const { metas, isLoading, salvar, isSaving } = useAnaliseHtMetasLojaConfig();
@@ -21,6 +22,7 @@ export default function AnaliseHtMetasPage() {
 
   return (
     <div className="flex flex-col gap-4 p-3 sm:p-6">
+      <SomenteResumoGuard />
       <MetasLojaResultado onSalvar={handleSalvar} isSaving={isSaving} />
       <MetasLojaConfigTable metas={metas} isLoading={isLoading} edicoes={edicoes} setEdicoes={setEdicoes} />
     </div>

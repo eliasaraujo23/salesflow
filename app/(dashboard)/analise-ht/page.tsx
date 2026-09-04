@@ -4,12 +4,14 @@ import { FileBarChart } from 'lucide-react';
 import { useAnaliseHtUploads } from '@/lib/hooks/use-analise-ht-uploads';
 import { AnaliseHtUploadSection } from '@/components/analise-ht/analise-ht-upload';
 import { AnaliseHtRelatorios } from '@/components/analise-ht/analise-ht-relatorios';
+import { SomenteResumoGuard } from '@/components/analise-ht/somente-resumo-guard';
 
 export default function AnaliseHtPage() {
   const { uploads, isUploading, uploadFiles, remove } = useAnaliseHtUploads();
 
   return (
     <div className="p-3 sm:p-6 space-y-6">
+      <SomenteResumoGuard />
       <AnaliseHtUploadSection
         uploads={uploads}
         isUploading={isUploading}

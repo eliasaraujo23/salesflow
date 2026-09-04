@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { Sun, Moon, CloudCheck, Menu, ChevronRight } from 'lucide-react';
 import { NAVIGATION_ITEMS } from '@/lib/constants';
 import { NavTabBar, type NavTab } from '@/components/nav-tab-bar';
+import { useFirebase } from '@/components/firebase-provider';
+import { acessoSomenteResumo } from '@/lib/analise-ht/acesso-restrito';
 
 interface TopbarProps {
   title?: string;
@@ -114,6 +116,8 @@ const TAB_GROUPS: TabGroupConfig[] = [
 
 export function Topbar({ title, subtitle, onMobileMenu, desktopCollapsed = false }: TopbarProps) {
   const pathname = usePathname();
+  const { currentUser } = useFirebase();
+  const somenteResumo = acessoSomenteResumo(currentUser?.email);
   const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
@@ -130,7 +134,10 @@ export function Topbar({ title, subtitle, onMobileMenu, desktopCollapsed = false
   const pageTitle = title ?? navItem?.label ?? 'SalesFlow';
 
   const activeGroup = TAB_GROUPS.find(group => group.match(pathname));
-  const tabGroup: NavTab[] | undefined = activeGroup?.tabs.map(tab => ({
+  const tabsVisiveis = pathname.startsWith('/analise-ht') && somenteResumo
+    ? activeGroup?.tabs.filter(tab => tab.href === '/analise-ht/resumo')
+    : activeGroup?.tabs;
+  const tabGroup: NavTab[] | undefined = tabsVisiveis?.map(tab => ({
     label: tab.label,
     href: tab.href,
     active: tab.active(pathname),
