@@ -105,13 +105,18 @@ export function calcularResumo(
 
     const somaGasto = comprasFinanceiro.reduce((s, r) => s + n(r.valor_gasto), 0);
     const somaPeso = comprasFinanceiro.reduce((s, r) => s + n(r.peso_total), 0);
-    const mediaGeral = somaPeso > 0 ? somaGasto / somaPeso : 0;
+    // Média aritmética simples de pago_por_grama — não ponderada por peso
+    // (ver conversa 2026-09-04: comparado direto contra a coluna Pago por
+    // Grama da planilha, ex: (30,77+363,64+100+150)/4 = 161,10).
+    const mediaSimples = (linhas: AnaliseHtRegistroDb[]) => {
+      if (linhas.length === 0) return 0;
+      return linhas.reduce((s, r) => s + n(r.pago_por_grama), 0) / linhas.length;
+    };
+    const mediaGeral = mediaSimples(comprasFinanceiro);
 
     const mediaPorPreco = (codigo: string) => {
       const grupo = comprasFinanceiro.filter(r => r.preco?.trim() === codigo);
-      const gastoGrupo = grupo.reduce((s, r) => s + n(r.valor_gasto), 0);
-      const pesoGrupo = grupo.reduce((s, r) => s + n(r.peso_total), 0);
-      return pesoGrupo > 0 ? gastoGrupo / pesoGrupo : 0;
+      return mediaSimples(grupo);
     };
 
     const valorVendaTotal = somaPeso * params.teorMedioLucro * params.valorFinoLucro;

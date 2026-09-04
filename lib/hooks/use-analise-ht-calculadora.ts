@@ -62,7 +62,7 @@ async function fetchParametros(): Promise<ParametrosCalculadora> {
 
 function useParametrosCalculadora() {
   const qc = useQueryClient();
-  const { data: params = PARAMETROS_DEFAULT } = useQuery<ParametrosCalculadora>({
+  const { data: params = PARAMETROS_DEFAULT, isSuccess: parametrosCarregados } = useQuery<ParametrosCalculadora>({
     queryKey: PARAMS_QUERY_KEY,
     queryFn: fetchParametros,
   });
@@ -87,7 +87,7 @@ function useParametrosCalculadora() {
     salvarNoBanco(proximo);
   }
 
-  return { params, setParam };
+  return { params, setParam, parametrosCarregados };
 }
 
 // Centraliza parâmetros + os 4 cálculos (bonificação, premiação, bônus 1º
@@ -95,7 +95,7 @@ function useParametrosCalculadora() {
 // compartilham o mesmo cálculo via cache do React Query (ver hooks
 // individuais): calcular em qualquer uma mantém o resultado ao navegar.
 export function useAnaliseHtCalculadora(uploads: UploadAlvo[]) {
-  const { params: p, setParam } = useParametrosCalculadora();
+  const { params: p, setParam, parametrosCarregados } = useParametrosCalculadora();
   const {
     teorMedio, valorFino, percentual, limitePagoPorGrama,
     limiteValorGrama, pesoMinimo, valorBonusPrimeiroPreco, limiteMediaBonusPrimeiroPreco,
@@ -190,12 +190,19 @@ export function useAnaliseHtCalculadora(uploads: UploadAlvo[]) {
   // (ver conversa 2026-09-03: botão "preso" em Calculando ao reabrir).
   // `bonificacao.length > 0` já é a checagem correta e persiste no cache
   // global independente de quantas vezes o componente remonta.
+  // IMPORTANTE: só dispara depois que os parâmetros terminaram de
+  // carregar do banco (parametrosCarregados) — sem isso, o auto-cálculo
+  // ao recarregar a página rodava com os valores default (67/620) antes
+  // do fetch de /api/analise-ht/parametros terminar, e o resultado ficava
+  // errado até alguém clicar em Calcular manualmente de novo (ver
+  // conversa 2026-09-04: Lucro Gerado voltando ao valor antigo).
   useEffect(() => {
+    if (!parametrosCarregados) return;
     if (uploads.length === 0) return;
     if (bonificacao.length > 0) return;
     handleCalcular();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uploads.length, bonificacao.length]);
+  }, [uploads.length, bonificacao.length, parametrosCarregados]);
 
   function handleCalcular() {
     calcularBonificacao({
