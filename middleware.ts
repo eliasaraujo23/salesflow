@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyAccessToken, ACCESS_TOKEN_COOKIE } from '@/lib/auth/session';
 import { canAccessPath, firstAllowedPath } from '@/lib/auth/can-access-path';
+import { acessoSomenteResumo } from '@/lib/analise-ht/acesso-restrito';
 
 const PUBLIC_PATHS = ['/login', '/esqueci-senha', '/redefinir-senha'];
 const PUBLIC_API_PREFIXES = ['/api/auth/'];
@@ -39,6 +40,19 @@ export async function middleware(request: NextRequest) {
     if (!canAccessPath(session, pathname)) {
       const url = request.nextUrl.clone();
       url.pathname = firstAllowedPath(session);
+      return NextResponse.redirect(url);
+    }
+
+    // Usuários restritos a só a aba Resumo de Análise HT (ex: Raphael Borges)
+    // não podem nem chegar a renderizar as outras abas — checagem no servidor
+    // evita o "flash" de dados financeiros antes do redirect client-side.
+    if (
+      pathname.startsWith('/analise-ht') &&
+      pathname !== '/analise-ht/resumo' &&
+      acessoSomenteResumo(session.email)
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/analise-ht/resumo';
       return NextResponse.redirect(url);
     }
   }
